@@ -1,0 +1,25 @@
+#GNU compilers
+IF(CMAKE_COMPILER_IS_GNUCXX) 
+  ADD_DEFINITIONS(-Drestrict=__restrict__ -DADD_)
+  SET(CMAKE_CXX_FLAGS "-O6 -ftemplate-depth-60 -Drestrict=__restrict__ -fstrict-aliasing -funroll-all-loops   -finline-limit=1000 -ffast-math -Wno-deprecated ")
+#  SET(CMAKE_CXX_FLAGS "-O6 -ftemplate-depth-60 -Drestrict=__restrict__ -fstrict-aliasing -funroll-all-loops   -finline-limit=1000 -ffast-math -Wno-deprecated -pg")
+#  SET(CMAKE_CXX_FLAGS "-g -ftemplate-depth-60 -Drestrict=__restrict__ -fstrict-aliasing -Wno-deprecated")
+
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  SET(CMAKE_SHARED_LIBRARY_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_CXX_FLAGS} -faltivec -framework Accelerate")
+  SET(F77 xlf)
+  SET(F77FLAGS -O3)
+ELSE(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  SET(FORTRAN_LIBS "-lg2c")
+  SET(F77 g77)
+  SET(F77FLAGS  -funroll-loops -O3)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+ENDIF(CMAKE_COMPILER_IS_GNUCXX) 
+  
+IF(QMC_BUILD_STATIC)
+  SET(CMAKE_CXX_LINK_FLAGS " -static")
+ENDIF(QMC_BUILD_STATIC)
+
+IF(APPLE)
+  INCLUDE_DIRECTORIES(/sw/include)
+ENDIF(APPLE)
