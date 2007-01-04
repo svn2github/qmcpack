@@ -176,7 +176,7 @@ namespace qmcplusplus {
       }
       ++step;++CurrentStep;
       Estimators->accumulate(W);
-      if(CurrentStep%100 == 0) updateWalkers();
+      //if(CurrentStep%100 == 0) updateWalkers();
     } while(step<nSteps);
 
   }
@@ -259,7 +259,7 @@ namespace qmcplusplus {
 }
 
 /***************************************************************************
- * $RCSfile$   $Author$
+ * $RCSfile: VMCParticleByParticle.cpp,v $   $Author$
  * $Revision$   $Date$
  * $Id$ 
  ***************************************************************************/
