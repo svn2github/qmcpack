@@ -13,61 +13,62 @@
 // Supported by 
 //   National Center for Supercomputing Applications, UIUC
 //   Materials Computation Center, UIUC
-//   Department of Physics, Ohio State University
-//   Ohio Supercomputer Center
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
-#ifndef QMCPLUSPLUS_DMC_UPDATE_PARTICLEBYPARTCLE_H
-#define QMCPLUSPLUS_DMC_UPDATE_PARTICLEBYPARTCLE_H
+#ifndef QMCPLUSPLUS_VMC_PARTICLEBYPARTICLE_UPDATE_H
+#define QMCPLUSPLUS_VMC_PARTICLEBYPARTICLE_UPDATE_H
 #include "QMCDrivers/QMCUpdateBase.h"
+
 namespace qmcplusplus {
 
-  class DMCUpdatePbyPWithRejection: public QMCUpdateBase {
-
+  /** @ingroup QMCDrivers  ParticleByParticle
+   *@brief Implements the VMC algorithm using particle-by-particle move. 
+   */
+  class VMCUpdatePbyP: public QMCUpdateBase {
   public:
-
     /// Constructor.
-    DMCUpdatePbyPWithRejection(ParticleSet& w, TrialWaveFunction& psi, 
+    VMCUpdatePbyP(ParticleSet& w, TrialWaveFunction& psi, 
         QMCHamiltonian& h, RandomGenerator_t& rg);
-    ///destructor
-    ~DMCUpdatePbyPWithRejection();
+
+    ~VMCUpdatePbyP();
 
     void advanceWalkers(WalkerIter_t it, WalkerIter_t it_end);
+ 
+    bool put(xmlNodePtr cur);
 
   private:
-
+    ///sub steps
+    int nSubSteps;
     /// Copy Constructor (disabled)
-    DMCUpdatePbyPWithRejection(const DMCUpdatePbyPWithRejection& a): QMCUpdateBase(a){ }
+    VMCUpdatePbyP(const VMCUpdatePbyP& a): QMCUpdateBase(a) { }
     /// Copy operator (disabled).
-    DMCUpdatePbyPWithRejection& operator=(const DMCUpdatePbyPWithRejection&) { return *this;}
-
+    VMCUpdatePbyP& operator=(const VMCUpdatePbyP&) { return *this;}
   };
 
-  class DMCUpdatePbyPWithKill: public QMCUpdateBase {
-
+  /** @ingroup QMCDrivers  ParticleByParticle
+   *@brief Implements the VMC algorithm using particle-by-particle move with the drift equation. 
+   */
+  class VMCUpdatePbyPWithDrift: public QMCUpdateBase {
   public:
-
     /// Constructor.
-    DMCUpdatePbyPWithKill(ParticleSet& w, TrialWaveFunction& psi, 
+    VMCUpdatePbyPWithDrift(ParticleSet& w, TrialWaveFunction& psi, 
         QMCHamiltonian& h, RandomGenerator_t& rg);
-    ///destructor
-    ~DMCUpdatePbyPWithKill();
+
+    ~VMCUpdatePbyPWithDrift();
 
     void advanceWalkers(WalkerIter_t it, WalkerIter_t it_end);
-
+ 
   private:
-
     /// Copy Constructor (disabled)
-    DMCUpdatePbyPWithKill(const DMCUpdatePbyPWithKill& a): QMCUpdateBase(a){ }
+    VMCUpdatePbyPWithDrift(const VMCUpdatePbyPWithDrift& a): QMCUpdateBase(a) { }
     /// Copy operator (disabled).
-    DMCUpdatePbyPWithKill& operator=(const DMCUpdatePbyPWithKill&) { return *this;}
-
+    VMCUpdatePbyPWithDrift& operator=(const VMCUpdatePbyPWithDrift&) { return *this;}
   };
 }
 
 #endif
 /***************************************************************************
- * $RCSfile: DMCUpdatePbyP.h,v $   $Author$
- * $Revision$   $Date$
- * $Id$ 
+ * $RCSfile: VMCUpdatePbyP.h,v $   $Author: jnkim $
+ * $Revision: 1.5 $   $Date: 2006/07/17 14:29:40 $
+ * $Id: VMCUpdatePbyP.h,v 1.5 2006/07/17 14:29:40 jnkim Exp $ 
  ***************************************************************************/

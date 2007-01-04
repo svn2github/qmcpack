@@ -129,8 +129,15 @@ SimpleFixedNodeBranch::branch(int iter, MCWalkerConfiguration& w) {
   }
 }
 
-int SimpleFixedNodeBranch::branch(int iter, MCWalkerConfiguration& w, vector<ThisType*>& clones) {
-  return WalkerController->branch(iter,w,PopControl);
+/** perform branching
+ *
+ * Set the trial energy of clones
+ */
+void 
+SimpleFixedNodeBranch::branch(int iter, MCWalkerConfiguration& w, 
+    vector<ThisType*>& clones) {
+  branch(iter,w);
+  for(int i=0; i<clones.size(); i++) clones[i]->E_T=E_T;
 }
 
 void SimpleFixedNodeBranch::reset() {
@@ -286,7 +293,7 @@ void SimpleFixedNodeBranch::read(const string& fname) {}
 }
 
 /***************************************************************************
- * $RCSfile$   $Author$
+ * $RCSfile: SimpleFixedNodeBranch.cpp,v $   $Author$
  * $Revision$   $Date$
  * $Id$ 
  ***************************************************************************/

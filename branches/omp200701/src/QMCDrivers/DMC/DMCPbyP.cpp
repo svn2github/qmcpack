@@ -77,6 +77,7 @@ namespace qmcplusplus {
           Mover = new DMCUpdatePbyPWithRejection(W,Psi,H,Random);
         }
       }
+      Mover->initWalkersForPbyP(W.begin(),W.end());
     }
 
     //set the collection mode for the estimator
@@ -86,8 +87,6 @@ namespace qmcplusplus {
     Estimators->reset();
 
     Mover->resetRun(branchEngine);
-    Mover->initWalkers(W.begin(),W.end());
-
     if(fixW) {
       Mover->MaxAge=0;
       if(BranchInterval<0) {
@@ -126,7 +125,6 @@ namespace qmcplusplus {
       Mover->NonLocalMoveAccepted=0;
 
       do {
-
         //DMC without branching, weights are accumulated
         IndexType interval = 0;
         do {
@@ -141,7 +139,7 @@ namespace qmcplusplus {
         branchEngine->branch(CurrentStep,W);
 
         pop_acc += W.getActiveWalkers();
-        if(CurrentStep%100 == 0) updateWalkers();
+        if(CurrentStep%100 == 0) Mover->updateWalkers(W.begin(),W.end());
 
         ++step; 
       } while(step<nSteps);
@@ -158,7 +156,7 @@ namespace qmcplusplus {
       nRejectTot += Mover->nReject;
 
       Eest = Estimators->average(0);
-      RealType totmoves=1.0/static_cast<RealType>(step*W.getActiveWalkers());
+      //RealType totmoves=1.0/static_cast<RealType>(step*W.getActiveWalkers());
 
       block++;
       recordBlock(block);
@@ -203,7 +201,7 @@ namespace qmcplusplus {
       block++;
       recordBlock(block);
 
-      updateWalkers();
+      Mover->updateWalkers(W.begin(),W.end());
     } while(block<nBlocks);
 
     return finalize(block);
@@ -216,7 +214,7 @@ namespace qmcplusplus {
 }
 
 /***************************************************************************
- * $RCSfile$   $Author$
+ * $RCSfile: DMCPbyP.cpp,v $   $Author$
  * $Revision$   $Date$
  * $Id$ 
  ***************************************************************************/

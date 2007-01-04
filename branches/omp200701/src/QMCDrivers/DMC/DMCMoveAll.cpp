@@ -199,6 +199,7 @@ namespace qmcplusplus {
           Mover = new DMCUpdateAllWithRejection(W,Psi,H,Random);
         }
       }
+      Mover->initWalkers(W.begin(),W.end());
     }
 
     Estimators->reportHeader(AppendRun);
@@ -225,7 +226,7 @@ namespace qmcplusplus {
   }
 }
 /***************************************************************************
- * $RCSfile$   $Author$
+ * $RCSfile: DMCMoveAll.cpp,v $   $Author$
  * $Revision$   $Date$
  * $Id$ 
  ***************************************************************************/

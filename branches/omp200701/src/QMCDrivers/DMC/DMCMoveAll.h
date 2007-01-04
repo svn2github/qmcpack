@@ -8,13 +8,10 @@
 //   University of Illinois, Urbana-Champaign
 //   Urbana, IL 61801
 //   e-mail: jnkim@ncsa.uiuc.edu
-//   Tel:    217-244-6319 (NCSA) 217-333-3324 (MCC)
 //
 // Supported by 
 //   National Center for Supercomputing Applications, UIUC
 //   Materials Computation Center, UIUC
-//   Department of Physics, Ohio State University
-//   Ohio Supercomputer Center
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
 /**@file DMCMoveAll.h
@@ -28,7 +25,7 @@
 
 namespace qmcplusplus {
 
-  class DMCUpdateBase;
+  class QMCUpdateBase;
 
   /** @ingroup QMCDrivers  WalkerByWalker
    *@brief implements the DMC algorithm using walker-by-walker move. 
@@ -46,7 +43,7 @@ namespace qmcplusplus {
 
   private:
 
-    DMCUpdateBase *Mover;
+    QMCUpdateBase *Mover;
     IndexType KillNodeCrossing;
     IndexType BranchInterval;
     ///Interval between branching
@@ -66,7 +63,7 @@ namespace qmcplusplus {
 }
 #endif
 /***************************************************************************
- * $RCSfile$   $Author$
+ * $RCSfile: DMCMoveAll.h,v $   $Author$
  * $Revision$   $Date$
  * $Id$ 
  ***************************************************************************/

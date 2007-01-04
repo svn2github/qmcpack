@@ -5,22 +5,27 @@ SET(DMCDRIVERS
   ../Estimators/LocalEnergyEstimator.cpp
   ../Estimators/ScalarEstimatorManager.cpp
   ../Estimators/MultipleEnergyEstimator.cpp
-	../Estimators/RQMCMultipleEstimator.cpp
+  ../Estimators/RQMCMultipleEstimator.cpp
   WalkerControlBase.cpp
-  DMC/DMCMoveAll.cpp
-  DMC/DMCPbyP.cpp
-  DMC/DMCFactory.cpp
-  DMC/DMCUpdateBase.cpp
+  CloneManager.cpp
+  QMCUpdateBase.cpp
+  VMC/VMCUpdatePbyP.cpp
+  VMC/VMCUpdateAll.cpp
+  VMC/VMCSingle.cpp
+  VMC/VMCSingleOMP.cpp
+  VMC/VMCFactory.cpp
   DMC/DMCUpdateAll.cpp
   DMC/DMCUpdatePbyP.cpp
   DMC/DMCNonLocalUpdate.cpp
+  DMC/DMCMoveAll.cpp
+  DMC/DMCPbyP.cpp
+  DMC/DMCFactory.cpp
   DMC/WalkerControlFactory.cpp
   DMC/WalkerReconfiguration.cpp
 )
 
 IF(ENABLE_OPENMP) 
-  SET(DMCDRIVERS ${DMCDRIVERS} 
-  DMC/DMCPbyPOMP.cpp)
+  SET(DMCDRIVERS ${DMCDRIVERS} DMC/DMCPbyPOMP.cpp)
 ENDIF(ENABLE_OPENMP) 
 
 IF(HAVE_MPI) 
@@ -33,10 +38,6 @@ ENDIF(HAVE_MPI)
 SET(QMCDRIVERS 
   SimpleFixedNodeBranch.cpp
   QMCDriver.cpp
-  DummyQMC.cpp
-  VMC.cpp
-  VMCParticleByParticle.cpp
-  ReptationMC.cpp
   QMCOptimize.cpp
   QMCCostFunction.cpp
   WaveFunctionTester.cpp

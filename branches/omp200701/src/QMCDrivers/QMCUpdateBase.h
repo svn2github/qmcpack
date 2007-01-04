@@ -8,20 +8,17 @@
 //   University of Illinois, Urbana-Champaign
 //   Urbana, IL 61801
 //   e-mail: jnkim@ncsa.uiuc.edu
-//   Tel:    217-244-6319 (NCSA) 217-333-3324 (MCC)
 //
 // Supported by 
 //   National Center for Supercomputing Applications, UIUC
 //   Materials Computation Center, UIUC
-//   Department of Physics, Ohio State University
-//   Ohio Supercomputer Center
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
-/** @file DMCUpdateBase
- * @brief Declare DMCUpdateBase class
+/** @file QMCUpdateBase
+ * @brief Declare QMCUpdateBase class
  */
-#ifndef QMCPLUSPLUS_DMC_UPDATE_BASE_H
-#define QMCPLUSPLUS_DMC_UPDATE_BASE_H
+#ifndef QMCPLUSPLUS_QMCUPDATE_BASE_H
+#define QMCPLUSPLUS_QMCUPDATE_BASE_H
 #include "Particle/MCWalkerConfiguration.h" 
 #include "QMCWaveFunctions/TrialWaveFunction.h"
 #include "QMCHamiltonians/QMCHamiltonian.h"
@@ -30,13 +27,13 @@
 
 namespace qmcplusplus {
 
-  /** @ingroup DMC
+  /** @ingroup QMC
    * @brief Base class for update methods for each step
    *
-   * DMCUpdateBase provides the common functions to update all the walkers for each time step.
+   * QMCUpdateBase provides the common functions to update all the walkers for each time step.
    * Derived classes should implement advanceWalkers to complete a step.
    */
-  class DMCUpdateBase: public QMCTraits {
+  class QMCUpdateBase: public QMCTraits {
 
   public:
 
@@ -48,7 +45,7 @@ namespace qmcplusplus {
     IndexType MaxAge;
     ///counter for number of moves accepted
     IndexType nAccept;
-    ///counter for number of moves /rejected
+    ///counter for number of moves rejected
     IndexType nReject; 
     ///Total number of the steps when all the particle moves are rejected.
     IndexType nAllRejected;
@@ -56,17 +53,17 @@ namespace qmcplusplus {
     IndexType nNodeCrossing;
     ///Total numer of non-local moves accepted
     IndexType NonLocalMoveAccepted;
-
     /// Constructor.
-    DMCUpdateBase(ParticleSet& w, TrialWaveFunction& psi, 
-        QMCHamiltonian& h, RandomGenerator_t& rg);
+    QMCUpdateBase(ParticleSet& w, TrialWaveFunction& psi, QMCHamiltonian& h, 
+        RandomGenerator_t& rg);
     ///destructor
-    virtual ~DMCUpdateBase();
+    virtual ~QMCUpdateBase();
 
     inline RealType acceptRatio() const {
       return static_cast<RealType>(nAccept)/static_cast<RealType>(nAccept+nReject);
     }
-    /** reset the DMCUpdateBase parameters
+
+    /** reset the QMCUpdateBase parameters
      * @param brancher engine which handles branching
      *
      * Update time-step variables to move walkers
@@ -85,6 +82,10 @@ namespace qmcplusplus {
 
     /** initialize Walker buffers for PbyP update
      */
+    void initWalkersForPbyP(WalkerIter_t it, WalkerIter_t it_end);
+
+    /** initalize Walker for walker update
+     */
     void initWalkers(WalkerIter_t it, WalkerIter_t it_end);
 
     /** update Walker buffers for PbyP update
@@ -95,6 +96,13 @@ namespace qmcplusplus {
      */
     void benchMark(WalkerIter_t it, WalkerIter_t it_end, int ip);
 
+    /** virtual function to get options for the update engine
+     */
+    virtual bool put(xmlNodePtr cur)
+    {
+      return true;
+    }
+
     /** advance walkers executed at each step
      *
      * Derived classes implement how to move walkers and accept/reject
@@ -102,48 +110,38 @@ namespace qmcplusplus {
      */
     virtual void advanceWalkers(WalkerIter_t it, WalkerIter_t it_end)=0;
 
-
   protected:
     ///number of particles
     IndexType NumPtcl;
     ///timestep
     RealType Tau;
-
     ///Time-step factor \f$ 1/(2\Tau)\f$
     RealType m_oneover2tau;
-
     ///Time-step factor \f$ \sqrt{\Tau}\f$
     RealType m_sqrttau;
-
     ///walker ensemble
     ParticleSet& W;
-
     ///trial function
     TrialWaveFunction& Psi;
-
     ///Hamiltonian
     QMCHamiltonian& H;
-
     ///random number generator
     RandomGenerator_t& RandomGen;
-
     ///branch engine
     BranchEngineType* branchEngine;
-
     ///temporary storage for drift
     ParticleSet::ParticlePos_t drift;
-
     ///temporary storage for random displacement
     ParticleSet::ParticlePos_t deltaR;
-
-    ///storage for differential gradients and laplacians for PbyP update
+    ///storage for differential gradients for PbyP update
     ParticleSet::ParticleGradient_t G, dG;
+    ///storage for differential laplacians for PbyP update
     ParticleSet::ParticleLaplacian_t L, dL;
 
     /// Copy Constructor (disabled)
-    DMCUpdateBase(const DMCUpdateBase& a): W(a.W),Psi(a.Psi),H(a.H), RandomGen(a.RandomGen){ }
+    QMCUpdateBase(const QMCUpdateBase& a): W(a.W),Psi(a.Psi),H(a.H), RandomGen(a.RandomGen){ }
     /// Copy operator (disabled).
-    DMCUpdateBase& operator=(const DMCUpdateBase&) { return *this;}
+    QMCUpdateBase& operator=(const QMCUpdateBase&) { return *this;}
   };
 }
 
@@ -151,5 +149,5 @@ namespace qmcplusplus {
 /***************************************************************************
  * $RCSfile$   $Author$
  * $Revision$   $Date$
- * $Id$ 
+ * $Id$
  ***************************************************************************/

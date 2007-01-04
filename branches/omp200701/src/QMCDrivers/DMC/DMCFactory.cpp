@@ -40,9 +40,7 @@ namespace qmcplusplus {
       int np=omp_get_max_threads();
       if(np>1) {
         app_log() << "Creating DMCPbyPOpenMP for the qmc driver" << endl;
-        DMCPbyPOMP* a = new DMCPbyPOMP(w,psi,h); 
-        a->makeClones(hpool,np);
-        qmc=a;
+        qmc = new DMCPbyPOMP(w,psi,h,hpool);
       } else {
         app_log() << "Creating DMCPbyP for the qmc driver" << endl;
         qmc = new DMCPbyP(w,psi,h); 
@@ -60,7 +58,7 @@ namespace qmcplusplus {
   }
 }
 /***************************************************************************
- * $RCSfile$   $Author$
+ * $RCSfile: DMCFactory.cpp,v $   $Author$
  * $Revision$   $Date$
  * $Id$ 
  ***************************************************************************/

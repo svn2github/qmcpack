@@ -8,32 +8,32 @@
 //   University of Illinois, Urbana-Champaign
 //   Urbana, IL 61801
 //   e-mail: jnkim@ncsa.uiuc.edu
-//   Tel:    217-244-6319 (NCSA) 217-333-3324 (MCC)
 //
 // Supported by 
 //   National Center for Supercomputing Applications, UIUC
 //   Materials Computation Center, UIUC
-//   Department of Physics, Ohio State University
-//   Ohio Supercomputer Center
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
-#ifndef QMCPLUSPLUS_DMC_FACTORY_H
-#define QMCPLUSPLUS_DMC_FACTORY_H
+#ifndef QMCPLUSPLUS_VMC_FACTORY_H
+#define QMCPLUSPLUS_VMC_FACTORY_H
 #include "QMCDrivers/QMCDriver.h" 
-#include "QMCApp/HamiltonianPool.h" 
 
 namespace qmcplusplus {
-  struct DMCFactory {
-    bool PbyPUpdate;
+  class ParticleSetPool;
+  class HamiltonianPool;
+
+  struct VMCFactory {
+    int VMCMode;
     xmlNodePtr myNode;
-    DMCFactory(bool pbyp, xmlNodePtr cur):PbyPUpdate(pbyp), myNode(cur){}
-    QMCDriver* create(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h, HamiltonianPool& hpool);
+    VMCFactory(int vmode, xmlNodePtr cur):VMCMode(vmode), myNode(cur){}
+    QMCDriver* create(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h, 
+        ParticleSetPool& ptclpool, HamiltonianPool& hpool);
   };
 }
 
 #endif
 /***************************************************************************
- * $RCSfile: DMCFactory.h,v $   $Author$
- * $Revision$   $Date$
- * $Id$ 
+ * $RCSfile: DMCFactory.h,v $   $Author: jnkim $
+ * $Revision: 1.2 $   $Date: 2006/04/05 00:49:59 $
+ * $Id: DMCFactory.h,v 1.2 2006/04/05 00:49:59 jnkim Exp $ 
  ***************************************************************************/

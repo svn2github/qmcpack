@@ -25,7 +25,7 @@
 namespace qmcplusplus {
 
   //class DMCPbyPUpdate;
-  class DMCUpdateBase;
+  class QMCUpdateBase;
 
   /** @ingroup QMCDrivers ParticleByParticle 
    *@brief Implements the DMC algorithm using particle-by-particle move. 
@@ -64,7 +64,7 @@ namespace qmcplusplus {
     ///input string to determine to use nonlocal move
     string NonLocalMove;
     ///update engine
-    DMCUpdateBase *Mover;
+    QMCUpdateBase *Mover;
     /// Copy Constructor (disabled)
     DMCPbyP(const DMCPbyP& a): QMCDriver(a) { }
     /// Copy operator (disabled).
@@ -78,7 +78,7 @@ namespace qmcplusplus {
 
 #endif
 /***************************************************************************
- * $RCSfile$   $Author$
+ * $RCSfile: DMCPbyP.h,v $   $Author$
  * $Revision$   $Date$
  * $Id$ 
  ***************************************************************************/
