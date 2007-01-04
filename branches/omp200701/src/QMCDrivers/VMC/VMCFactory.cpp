@@ -17,11 +17,11 @@
 #include "QMCDrivers/VMC/VMCFactory.h" 
 #include "QMCDrivers/VMC/VMCSingle.h"
 #include "QMCDrivers/VMC/VMCSingleOMP.h"
-#include "QMCDrivers/VMCMultiple.h"
-#include "QMCDrivers/VMCPbyPMultiple.h"
+#include "QMCDrivers/VMC/VMCMultiple.h"
+#include "QMCDrivers/VMC/VMCPbyPMultiple.h"
 #if !defined(QMC_COMPLEX)
-#include "QMCDrivers/VMCMultipleWarp.h"
-#include "QMCDrivers/VMCPbyPMultiWarp.h"
+#include "QMCDrivers/VMC/VMCMultipleWarp.h"
+#include "QMCDrivers/VMC/VMCPbyPMultiWarp.h"
 #endif
 #include "Message/OpenMP.h"
 

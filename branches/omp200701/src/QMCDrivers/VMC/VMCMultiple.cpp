@@ -17,7 +17,7 @@
 //   Ohio Supercomputer Center
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
-#include "QMCDrivers/VMCMultiple.h"
+#include "QMCDrivers/VMC/VMCMultiple.h"
 #include "Utilities/OhmmsInfo.h"
 #include "Particle/MCWalkerConfiguration.h"
 #include "Particle/HDFWalkerIO.h"

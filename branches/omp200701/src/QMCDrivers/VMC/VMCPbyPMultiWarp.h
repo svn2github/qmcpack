@@ -20,7 +20,7 @@
 #ifndef QMCPLUSPLUS_VMC_PARTICLEBYPARTCLE_WARP_H
 #define QMCPLUSPLUS_VMC_PARTICLEBYPARTCLE_WARP_H
 #include "QMCDrivers/QMCDriver.h" 
-#include "SpaceWarp.h"
+#include "QMCDrivers/SpaceWarp.h"
 namespace qmcplusplus {
 
   class MultipleEnergyEstimator;
