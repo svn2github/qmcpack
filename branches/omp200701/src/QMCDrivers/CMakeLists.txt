@@ -47,15 +47,15 @@ SET(QMCDRIVERS
 IF(NOT QMCPLUSPLUS_RELEASE)
 
   SET(QMCDRIVERS ${QMCDRIVERS}
-    VMCMultiple.cpp
-    VMCPbyPMultiple.cpp
     PolymerEstimator.cpp
     RQMCMultiple.cpp
     MultiChain.cpp
     SpaceWarp.cpp
-    VMCMultipleWarp.cpp
-    VMCPbyPMultiWarp.cpp
     RQMCMultiWarp.cpp
+    VMC/VMCMultiple.cpp
+    VMC/VMCPbyPMultiple.cpp
+    VMC/VMCMultipleWarp.cpp
+    VMC/VMCPbyPMultiWarp.cpp
   )
 
 #include GSLOptimize.cpp if libgsl is enabled
