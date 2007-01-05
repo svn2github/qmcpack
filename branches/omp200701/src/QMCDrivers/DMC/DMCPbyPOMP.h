@@ -56,12 +56,8 @@ namespace qmcplusplus {
     ///input string to benchmark OMP performance
     string BenchMarkRun;
 
-    void resetRun();
+    void resetUpdateEngines();
     void benchMark();
-    bool runDMCBlocks();
-    //void dmcWithBranching();
-    //void dmcWithReconfiguration();
-
     /// Copy Constructor (disabled)
     DMCPbyPOMP(const DMCPbyPOMP& a): QMCDriver(a), CloneManager(a) { }
     /// Copy operator (disabled).
