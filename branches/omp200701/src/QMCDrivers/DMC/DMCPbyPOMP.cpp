@@ -17,6 +17,8 @@
 #include "QMCDrivers/DMC/DMCPbyPOMP.h"
 #include "QMCDrivers/DMC/DMCUpdatePbyP.h"
 #include "QMCDrivers/DMC/DMCNonLocalUpdate.h"
+#include "QMCDrivers/DMC/DMCUpdateAll.h"
+#include "Estimators/DMCEnergyEstimator.h"
 #include "QMCApp/HamiltonianPool.h"
 #include "Message/Communicate.h"
 #include "Message/OpenMP.h"
@@ -38,13 +40,18 @@ namespace qmcplusplus {
     m_param.add(KillWalker,"killnode","string");
     m_param.add(BenchMarkRun,"benchmark","string");
     m_param.add(Reconfiguration,"reconfiguration","string");
+
+    Estimators = new ScalarEstimatorManager(H);
+    Estimators->add(new DMCEnergyEstimator,"elocal");
   }
 
-  void DMCPbyPOMP::resetRun() {
+  void DMCPbyPOMP::resetUpdateEngines() {
+
 
     makeClones(W,Psi,H);
 
     if(Movers.empty()) {
+
       Movers.resize(NumThreads,0);
       branchClones.resize(NumThreads,0);
       Rng.resize(NumThreads,0);
@@ -63,62 +70,69 @@ namespace qmcplusplus {
         Rng[ip]->init(ip,NumThreads,-1);
 
         branchClones[ip] = new BranchEngineType(*branchEngine);
-
-        if(NonLocalMove == "yes")
+        if(QMCDriverMode[QMC_UPDATE_MODE])
         {
-          DMCNonLocalUpdatePbyP* nlocMover= 
-            new DMCNonLocalUpdatePbyP(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]); 
-          nlocMover->put(qmcNode);
-          Movers[ip]=nlocMover;
+          if(NonLocalMove == "yes")
+          {
+            DMCNonLocalUpdatePbyP* nlocMover= 
+              new DMCNonLocalUpdatePbyP(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]); 
+            nlocMover->put(qmcNode);
+            Movers[ip]=nlocMover;
+          } 
+          else
+          {
+            Movers[ip]= new DMCUpdatePbyPWithRejection(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]); 
+          }
+          Movers[ip]->resetRun(branchClones[ip]);
+          Movers[ip]->initWalkersForPbyP(W.begin()+wPerNode[ip],W.begin()+wPerNode[ip+1]);
         } 
         else
         {
-          Movers[ip]= new DMCUpdatePbyPWithRejection(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]); 
+          if(NonLocalMove == "yes") {
+            app_log() << "  Non-local update is used." << endl;
+            DMCNonLocalUpdate* nlocMover= new DMCNonLocalUpdate(W,Psi,H,Random);
+            nlocMover->put(qmcNode);
+            Movers[ip]=nlocMover;
+          } else {
+            if(KillNodeCrossing) {
+              Movers[ip] = new DMCUpdateAllWithKill(W,Psi,H,Random);
+            } else {
+              Movers[ip] = new DMCUpdateAllWithRejection(W,Psi,H,Random);
+            }
+          }
+          Movers[ip]->resetRun(branchClones[ip]);
+          Movers[ip]->initWalkers(W.begin()+wPerNode[ip],W.begin()+wPerNode[ip+1]);
         }
-        Movers[ip]->resetRun(branchClones[ip]);
-        Movers[ip]->initWalkersForPbyP(W.begin()+wPerNode[ip],W.begin()+wPerNode[ip+1]);
       }
     }
+
+    bool fixW = (Reconfiguration == "yes");
+    if(fixW) 
+    {
+      app_log() << "  DMC/OMP PbyP Update with reconfigurations" << endl;
+      for(int ip=0; ip<Movers.size(); ip++) Movers[ip]->MaxAge=0;
+      if(BranchInterval<0)
+      {
+        BranchInterval=nSteps;
+      }
+    } 
+    else 
+    {
+      app_log() << "  DMC/OMP PbyP update with a fluctuating population" << endl;
+      for(int ip=0; ip<Movers.size(); ip++) Movers[ip]->MaxAge=1;
+      if(BranchInterval<0) BranchInterval=1;
+    }
+    branchEngine->initWalkerController(Tau,fixW);
   }
 
   bool DMCPbyPOMP::run() {
 
-    resetRun();
+    resetUpdateEngines();
 
     //set the collection mode for the estimator
     Estimators->setCollectionMode(branchEngine->SwapMode);
     Estimators->reportHeader(AppendRun);
     Estimators->reset();
-
-    bool fixW = (Reconfiguration == "yes");
-    if(BenchMarkRun == "yes")  
-    {
-      app_log() << "  Running DMCPbyPOMP::benchMark " << endl;
-      benchMark();
-    } 
-    else  
-    {
-      if(fixW) 
-      {
-        app_log() << "  DMC/OMP PbyP Update with reconfigurations" << endl;
-        for(int ip=0; ip<Movers.size(); ip++) Movers[ip]->MaxAge=0;
-        if(BranchInterval<0)
-        {
-          BranchInterval=nSteps;
-        }
-      } 
-      else 
-      {
-        app_log() << "  DMC/OMP PbyP update with a fluctuating population" << endl;
-        for(int ip=0; ip<Movers.size(); ip++) Movers[ip]->MaxAge=1;
-        if(BranchInterval<0) BranchInterval=1;
-      }
-    }
-
-    return runDMCBlocks();
-  }
-  
-  bool DMCPbyPOMP::runDMCBlocks() {
 
     IndexType block = 0;
 
@@ -164,7 +178,6 @@ namespace qmcplusplus {
 
     } while(block<nBlocks);
 
-
     return finalize(block);
   }
 
@@ -181,7 +194,7 @@ namespace qmcplusplus {
     IndexType block = 0;
     RealType Eest = branchEngine->E_T;
 
-    resetRun();
+    //resetRun();
 
     for(int ip=0; ip<NumThreads; ip++) {
       char fname[16];
