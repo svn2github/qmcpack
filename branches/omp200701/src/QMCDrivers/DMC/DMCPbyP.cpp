@@ -77,16 +77,15 @@ namespace qmcplusplus {
           Mover = new DMCUpdatePbyPWithRejection(W,Psi,H,Random);
         }
       }
-      Mover->initWalkersForPbyP(W.begin(),W.end());
+      Mover->resetRun(branchEngine);
+      if(W.createAuxDataSet()) Mover->initWalkersForPbyP(W.begin(),W.end());
     }
 
     //set the collection mode for the estimator
     Estimators->setCollectionMode(branchEngine->SwapMode);
-
     Estimators->reportHeader(AppendRun);
     Estimators->reset();
 
-    Mover->resetRun(branchEngine);
     if(fixW) {
       Mover->MaxAge=0;
       if(BranchInterval<0) {
@@ -116,6 +115,7 @@ namespace qmcplusplus {
     //Mover->MaxAge=1;
     IndexType block = 0;
     RealType Eest = branchEngine->E_T;
+
     do {
       IndexType step = 0;
       IndexType pop_acc=0; 
