@@ -17,15 +17,14 @@ SET(DMCDRIVERS
   DMC/DMCUpdateAll.cpp
   DMC/DMCUpdatePbyP.cpp
   DMC/DMCNonLocalUpdate.cpp
-  DMC/DMCMoveAll.cpp
-  DMC/DMCPbyP.cpp
+  DMC/DMC.cpp
   DMC/DMCFactory.cpp
   DMC/WalkerControlFactory.cpp
   DMC/WalkerReconfiguration.cpp
 )
 
 IF(ENABLE_OPENMP) 
-  SET(DMCDRIVERS ${DMCDRIVERS} DMC/DMCPbyPOMP.cpp)
+  SET(DMCDRIVERS ${DMCDRIVERS} DMC/DMCOMP.cpp)
 ENDIF(ENABLE_OPENMP) 
 
 IF(HAVE_MPI) 
