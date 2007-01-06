@@ -14,7 +14,7 @@
 //   Materials Computation Center, UIUC
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
-#include "QMCDrivers/DMC/DMCPbyPOMP.h"
+#include "QMCDrivers/DMC/DMCOMP.h"
 #include "QMCDrivers/DMC/DMCUpdatePbyP.h"
 #include "QMCDrivers/DMC/DMCNonLocalUpdate.h"
 #include "QMCDrivers/DMC/DMCUpdateAll.h"
