@@ -18,10 +18,9 @@
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
 #include "QMCDrivers/DMC/DMCFactory.h" 
-#include "QMCDrivers/DMC/DMCMoveAll.h" 
-#include "QMCDrivers/DMC/DMCPbyP.h" 
+#include "QMCDrivers/DMC/DMC.h" 
 #if defined(ENABLE_OPENMP)
-#include "QMCDrivers/DMC/DMCPbyPOMP.h" 
+#include "QMCDrivers/DMC/DMCOMP.h" 
 #endif
 #include "Message/OpenMP.h"
 
@@ -29,30 +28,21 @@ namespace qmcplusplus {
 
   QMCDriver* DMCFactory::create(MCWalkerConfiguration& w, TrialWaveFunction& psi, 
       QMCHamiltonian& h, HamiltonianPool& hpool) {
-   // string reconfigure("no");
-   // ParameterSet param;
-   // param.add(reconfigure,"reconfiguration");
-   // param.put(cur);
-   // bool fixW = (reconfigure == "yes");
-   QMCDriver* qmc=0;
-    if(PbyPUpdate) {
+    QMCDriver* qmc=0;
 #if defined(ENABLE_OPENMP)
-      int np=omp_get_max_threads();
-      if(np>1) {
-        app_log() << "Creating DMCPbyPOpenMP for the qmc driver" << endl;
-        qmc = new DMCPbyPOMP(w,psi,h,hpool);
-      } else {
-        app_log() << "Creating DMCPbyP for the qmc driver" << endl;
-        qmc = new DMCPbyP(w,psi,h); 
-      }
-#else
-      app_log() << "Creating DMCPbyP for the qmc driver" << endl;
-      qmc = new DMCPbyP(w,psi,h); 
-#endif
-
+    int np=omp_get_max_threads();
+    if(np>1) {
+      app_log() << "Creating DMCMP for the qmc driver" << endl;
+      qmc = new DMCOMP(w,psi,h,hpool);
     } else {
-       qmc = new DMCMoveAll(w,psi,h); 
+      app_log() << "Creating DMC for the qmc driver" << endl;
+      qmc = new DMC(w,psi,h); 
     }
+#else
+    app_log() << "Creating DMC for the qmc driver" << endl;
+    qmc = new DMC(w,psi,h); 
+#endif
+    qmc->setUpdateMode(PbyPUpdate);
 
     return qmc;
   }

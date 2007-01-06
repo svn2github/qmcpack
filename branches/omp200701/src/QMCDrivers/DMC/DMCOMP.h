@@ -28,11 +28,11 @@ namespace qmcplusplus {
   /** @ingroup QMCDrivers 
    *@brief A dummy QMCDriver for testing
    */
-  class DMCPbyPOMP: public QMCDriver, public CloneManager {
+  class DMCOMP: public QMCDriver, public CloneManager {
   public:
 
     /// Constructor.
-    DMCPbyPOMP(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h,
+    DMCOMP(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h,
         HamiltonianPool& hpool);
 
     bool run();
@@ -59,15 +59,15 @@ namespace qmcplusplus {
     void resetUpdateEngines();
     void benchMark();
     /// Copy Constructor (disabled)
-    DMCPbyPOMP(const DMCPbyPOMP& a): QMCDriver(a), CloneManager(a) { }
+    DMCOMP(const DMCOMP& a): QMCDriver(a), CloneManager(a) { }
     /// Copy operator (disabled).
-    DMCPbyPOMP& operator=(const DMCPbyPOMP&) { return *this;}
+    DMCOMP& operator=(const DMCOMP&) { return *this;}
   };
 }
 
 #endif
 /***************************************************************************
- * $RCSfile: DMCPbyPOMP.h,v $   $Author$
+ * $RCSfile: DMCOMP.h,v $   $Author$
  * $Revision$   $Date$
  * $Id$ 
  ***************************************************************************/

@@ -127,7 +127,11 @@ namespace qmcplusplus {
     bool fixW=(Reconfiguration == "yes");
     if(fixW)
     {
-      app_log() << "  DMC/OMP PbyP Update with reconfigurations" << endl;
+      if(QMCDriverMode[QMC_UPDATE_MODE])
+        app_log() << "  DMC PbyP Update with reconfigurations" << endl;
+      else
+        app_log() << "  DMC walker Update with reconfigurations" << endl;
+
       Mover->MaxAge=0;
       if(BranchInterval<0)
       {
@@ -136,12 +140,24 @@ namespace qmcplusplus {
     } 
     else 
     {
-      app_log() << "  DMC/OMP PbyP update with a fluctuating population" << endl;
-      Mover->MaxAge=1;
+      if(QMCDriverMode[QMC_UPDATE_MODE])
+      {
+        app_log() << "  DMC PbyP Update with a fluctuating population" << endl;
+        Mover->MaxAge=1;
+      }
+      else
+      {
+        app_log() << "  DMC walker Update with a fluctuating population" << endl;
+        Mover->MaxAge=3;
+      }
       if(BranchInterval<0) BranchInterval=1;
     }
 
     branchEngine->initWalkerController(Tau,fixW);
+  }
+
+  bool DMC::put(xmlNodePtr q){
+    return true;
   }
 
 }

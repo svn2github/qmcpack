@@ -26,13 +26,13 @@
 namespace qmcplusplus { 
 
   /// Constructor.
-  DMCPbyPOMP::DMCPbyPOMP(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h,
+  DMCOMP::DMCOMP(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h,
       HamiltonianPool& hpool):
     QMCDriver(w,psi,h), CloneManager(hpool),
     KillNodeCrossing(0),
     Reconfiguration("no"), BenchMarkRun("no"){
     RootName = "dummy";
-    QMCType ="DMCPbyPOMP";
+    QMCType ="DMCOMP";
 
     QMCDriverMode.set(QMC_UPDATE_MODE,1);
     QMCDriverMode.set(QMC_MULTIPLE,1);
@@ -45,7 +45,7 @@ namespace qmcplusplus {
     Estimators->add(new DMCEnergyEstimator,"elocal");
   }
 
-  void DMCPbyPOMP::resetUpdateEngines() {
+  void DMCOMP::resetUpdateEngines() {
 
 
     makeClones(W,Psi,H);
@@ -109,7 +109,10 @@ namespace qmcplusplus {
     bool fixW = (Reconfiguration == "yes");
     if(fixW) 
     {
-      app_log() << "  DMC/OMP PbyP Update with reconfigurations" << endl;
+      if(QMCDriverMode[QMC_UPDATE_MODE])
+        app_log() << "  DMCOMP PbyP Update with reconfigurations" << endl;
+      else
+        app_log() << "  DMCOMP walker Update with reconfigurations" << endl;
       for(int ip=0; ip<Movers.size(); ip++) Movers[ip]->MaxAge=0;
       if(BranchInterval<0)
       {
@@ -118,17 +121,25 @@ namespace qmcplusplus {
     } 
     else 
     {
-      app_log() << "  DMC/OMP PbyP update with a fluctuating population" << endl;
-      for(int ip=0; ip<Movers.size(); ip++) Movers[ip]->MaxAge=1;
+      if(QMCDriverMode[QMC_UPDATE_MODE])
+      {
+        app_log() << "  DMCOMP PbyP Update with a fluctuating population" << endl;
+        for(int ip=0; ip<Movers.size(); ip++) Movers[ip]->MaxAge=1;
+      }
+      else
+      {
+        app_log() << "  DMCOMP walker Update with a fluctuating population" << endl;
+        for(int ip=0; ip<Movers.size(); ip++) Movers[ip]->MaxAge=3;
+      }
       if(BranchInterval<0) BranchInterval=1;
     }
     branchEngine->initWalkerController(Tau,fixW);
   }
 
-  bool DMCPbyPOMP::run() {
+  bool DMCOMP::run() {
 
+    bool variablePop = (Reconfiguration == "no");
     resetUpdateEngines();
-
     //set the collection mode for the estimator
     Estimators->setCollectionMode(branchEngine->SwapMode);
     Estimators->reportHeader(AppendRun);
@@ -157,7 +168,7 @@ namespace qmcplusplus {
         Movers[0]->setMultiplicity(W.begin(),W.end());
         Estimators->accumulate(W);
         branchEngine->branch(CurrentStep,W, branchClones);
-
+        if(variablePop) FairDivideLow(W.getActiveWalkers(),NumThreads,wPerNode);
         ++step; 
         CurrentStep+=BranchInterval;
       } while(step<nSteps);
@@ -181,7 +192,7 @@ namespace qmcplusplus {
     return finalize(block);
   }
 
-  void DMCPbyPOMP::benchMark() { 
+  void DMCOMP::benchMark() { 
     
     //set the collection mode for the estimator
     Estimators->setCollectionMode(branchEngine->SwapMode);
@@ -214,12 +225,12 @@ namespace qmcplusplus {
   }
   
   bool 
-  DMCPbyPOMP::put(xmlNodePtr q){ 
+  DMCOMP::put(xmlNodePtr q){ 
     //nothing to do
     return true;
   }
 
-//  void DMCPbyPOMP::dmcWithBranching() {
+//  void DMCOMP::dmcWithBranching() {
 //
 //    RealType Eest = branchEngine->E_T;
 //
@@ -289,7 +300,7 @@ namespace qmcplusplus {
 }
 
 /***************************************************************************
- * $RCSfile: DMCPbyPOMP.cpp,v $   $Author$
+ * $RCSfile: DMCOMP.cpp,v $   $Author$
  * $Revision$   $Date$
  * $Id$ 
  ***************************************************************************/
