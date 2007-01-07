@@ -30,7 +30,7 @@ namespace qmcplusplus {
       HamiltonianPool& hpool):
     QMCDriver(w,psi,h), CloneManager(hpool),
     KillNodeCrossing(0),
-    Reconfiguration("no"), BenchMarkRun("no"){
+    Reconfiguration("no"), BenchMarkRun("no"), BranchInterval(-1){
     RootName = "dummy";
     QMCType ="DMCOMP";
 
@@ -47,25 +47,28 @@ namespace qmcplusplus {
 
   void DMCOMP::resetUpdateEngines() {
 
-
     makeClones(W,Psi,H);
 
-    if(Movers.empty()) {
+    if(Movers.empty()) 
+    {
+
+      if(QMCDriverMode[QMC_UPDATE_MODE]) W.clearAuxDataSet();
 
       Movers.resize(NumThreads,0);
       branchClones.resize(NumThreads,0);
       Rng.resize(NumThreads,0);
-
       FairDivideLow(W.getActiveWalkers(),NumThreads,wPerNode);
       app_log() << "  Initial partition of walkers ";
       std::copy(wPerNode.begin(),wPerNode.end(),ostream_iterator<int>(app_log()," "));
       app_log() << endl;
+
 #pragma omp parallel  
       {
         int ip = omp_get_thread_num();
         if(ip) {
           hClones[ip]->add2WalkerProperty(*wClones[ip]);
         }
+
         Rng[ip]=new RandomGenerator_t();
         Rng[ip]->init(ip,NumThreads,-1);
 
@@ -103,7 +106,7 @@ namespace qmcplusplus {
           Movers[ip]->resetRun(branchClones[ip]);
           Movers[ip]->initWalkers(W.begin()+wPerNode[ip],W.begin()+wPerNode[ip+1]);
         }
-      }
+      } 
     }
 
     bool fixW = (Reconfiguration == "yes");
