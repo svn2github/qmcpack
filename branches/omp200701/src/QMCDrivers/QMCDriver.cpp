@@ -97,11 +97,11 @@ namespace qmcplusplus {
    */
   void QMCDriver::process(xmlNodePtr cur) {
 
-    //first-time with this  QMCDriver, clear the buffer so
-    if(MyCounter == 0) { 
-      app_log() << "  Clearing buffer of all the walkers " << endl;
-      W.clearAuxDataSet();
-    }
+    ////first-time with this  QMCDriver, clear the buffer so
+    //if(MyCounter == 0) { 
+    //  app_log() << "  Clearing buffer of all the walkers " << endl;
+    //  W.clearAuxDataSet();
+    //}
 
     deltaR.resize(W.getTotalNum());
     drift.resize(W.getTotalNum());
