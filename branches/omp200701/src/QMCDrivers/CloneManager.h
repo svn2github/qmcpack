@@ -34,6 +34,8 @@ namespace qmcplusplus {
   public:
     /// Constructor.
     CloneManager(HamiltonianPool& hpool);
+    ///virtual destructor
+    virtual ~CloneManager();
 
     void makeClones(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& ham);
 

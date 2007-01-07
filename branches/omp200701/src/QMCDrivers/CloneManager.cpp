@@ -18,6 +18,7 @@
 #include "QMCApp/HamiltonianPool.h"
 #include "Message/Communicate.h"
 #include "Message/OpenMP.h"
+#include "Utilities/IteratorUtility.h"
 
 namespace qmcplusplus { 
 
@@ -35,12 +36,19 @@ namespace qmcplusplus {
     wPerNode.resize(NumThreads+1,0);
   }
 
+  CloneManager::~CloneManager()
+  {
+    delete_iter(Rng.begin(),Rng.end());
+    delete_iter(Movers.begin(),Movers.end());
+    delete_iter(branchClones.begin(),branchClones.end());
+  }
+
   void CloneManager::makeClones(MCWalkerConfiguration& w, 
       TrialWaveFunction& psi, QMCHamiltonian& ham)
   {
 
     if(wClones.size()) {
-      app_log() << "Cannot make clones again. Use existing " << NumThreads << " clones" << endl;
+      app_log() << "  Cannot make clones again. Use existing " << NumThreads << " clones" << endl;
       return;
     }
 
