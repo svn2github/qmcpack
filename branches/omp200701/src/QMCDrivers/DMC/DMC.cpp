@@ -27,7 +27,7 @@ namespace qmcplusplus {
 
   /// Constructor.
   DMC::DMC(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h):
-    QMCDriver(w,psi,h), KillNodeCrossing(0), Reconfiguration("no"), Mover(0)
+    QMCDriver(w,psi,h), KillNodeCrossing(0), Reconfiguration("no"), Mover(0), BranchInterval(-1)
   {
     RootName = "dummy";
     QMCType ="DMC";
@@ -53,7 +53,7 @@ namespace qmcplusplus {
     Estimators->reset();
 
     IndexType block = 0;
-    IndexType CurrentStep = 0;
+    CurrentStep = 0;
     do // block
     {
       Estimators->startBlock();
@@ -92,6 +92,7 @@ namespace qmcplusplus {
     if(Mover==0) {
       if(QMCDriverMode[QMC_UPDATE_MODE])
       {
+        W.clearAuxDataSet();
         if(NonLocalMove == "yes")
         {
           DMCNonLocalUpdatePbyP* nlocMover= new DMCNonLocalUpdatePbyP(W,Psi,H,Random); 
