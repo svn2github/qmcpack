@@ -89,10 +89,14 @@ namespace qmcplusplus {
 
   void DMC::resetUpdateEngine() {
 
-    if(Mover==0) {
+    bool fixW=(Reconfiguration == "yes");
+
+    if(Mover==0) //disable switching update modes for DMC in a run
+    {
+      branchEngine->initWalkerController(Tau,fixW);
+
       if(QMCDriverMode[QMC_UPDATE_MODE])
       {
-        W.clearAuxDataSet();
         if(NonLocalMove == "yes")
         {
           DMCNonLocalUpdatePbyP* nlocMover= new DMCNonLocalUpdatePbyP(W,Psi,H,Random); 
@@ -124,8 +128,12 @@ namespace qmcplusplus {
         Mover->initWalkers(W.begin(),W.end());
       }
     }
+    else
+    {
+      if(QMCDriverMode[QMC_UPDATE_MODE])
+        Mover->updateWalkers(W.begin(),W.end());
+    }
 
-    bool fixW=(Reconfiguration == "yes");
     if(fixW)
     {
       if(QMCDriverMode[QMC_UPDATE_MODE])
@@ -138,6 +146,7 @@ namespace qmcplusplus {
       {
         BranchInterval=nSteps;
       }
+      nSteps=1;
     } 
     else 
     {
@@ -153,8 +162,6 @@ namespace qmcplusplus {
       }
       if(BranchInterval<0) BranchInterval=1;
     }
-
-    branchEngine->initWalkerController(Tau,fixW);
   }
 
   bool DMC::put(xmlNodePtr q){

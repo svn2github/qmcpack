@@ -47,13 +47,15 @@ namespace qmcplusplus {
 
   void DMCOMP::resetUpdateEngines() {
 
+    bool fixW = (Reconfiguration == "yes");
+
     makeClones(W,Psi,H);
 
     if(Movers.empty()) 
     {
+      branchEngine->initWalkerController(Tau,fixW);
 
-      if(QMCDriverMode[QMC_UPDATE_MODE]) W.clearAuxDataSet();
-
+      //if(QMCDriverMode[QMC_UPDATE_MODE]) W.clearAuxDataSet();
       Movers.resize(NumThreads,0);
       branchClones.resize(NumThreads,0);
       Rng.resize(NumThreads,0);
@@ -109,7 +111,6 @@ namespace qmcplusplus {
       } 
     }
 
-    bool fixW = (Reconfiguration == "yes");
     if(fixW) 
     {
       if(QMCDriverMode[QMC_UPDATE_MODE])
@@ -136,7 +137,6 @@ namespace qmcplusplus {
       }
       if(BranchInterval<0) BranchInterval=1;
     }
-    branchEngine->initWalkerController(Tau,fixW);
   }
 
   bool DMCOMP::run() {
