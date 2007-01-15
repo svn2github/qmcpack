@@ -72,15 +72,14 @@ namespace qmcplusplus {
 
   void QMCUpdateBase::initWalkersForPbyP(WalkerIter_t it, WalkerIter_t it_end) 
   {
-    if(G.size() != NumPtcl) {
-      G.resize(NumPtcl);
-      dG.resize(NumPtcl);
-      L.resize(NumPtcl);
-      dL.resize(NumPtcl);
-    }
-
+    NumPtcl=(*it)->size();//resize it always
+    G.resize(NumPtcl);
+    dG.resize(NumPtcl);
+    L.resize(NumPtcl);
+    dL.resize(NumPtcl);
 
     while(it != it_end) {
+      (*it)->DataSet.clear();
       (*it)->DataSet.rewind();
       W.registerData(**it,(*it)->DataSet);
       RealType logpsi=Psi.registerData(W,(*it)->DataSet);
