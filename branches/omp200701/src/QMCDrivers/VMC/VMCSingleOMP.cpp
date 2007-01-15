@@ -39,8 +39,6 @@ namespace qmcplusplus {
 
     if(Movers.empty()) 
     {
-      if(QMCDriverMode[QMC_UPDATE_MODE]) W.clearAuxDataSet();
-
       Movers.resize(NumThreads,0);
       branchClones.resize(NumThreads,0);
       Rng.resize(NumThreads,0);

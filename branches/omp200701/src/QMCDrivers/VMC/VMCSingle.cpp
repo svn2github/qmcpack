@@ -34,7 +34,6 @@ namespace qmcplusplus {
     {
       if(QMCDriverMode[QMC_UPDATE_MODE])
       {
-        W.clearAuxDataSet();
         if(UseDrift == "yes")
           Mover=new VMCUpdatePbyPWithDrift(W,Psi,H,Random);
         else
