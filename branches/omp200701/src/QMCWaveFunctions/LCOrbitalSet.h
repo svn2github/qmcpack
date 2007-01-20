@@ -35,6 +35,8 @@ namespace qmcplusplus {
 
     ///pointer to the basis set
     BS* myBasisSet;
+    ValueMatrix_t Temp;
+    ValueMatrix_t Tempv;
 
     /** constructor
      * @param bs pointer to the BasisSet
