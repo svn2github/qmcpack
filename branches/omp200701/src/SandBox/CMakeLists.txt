@@ -21,6 +21,9 @@ TARGET_LINK_LIBRARIES(mpi_group qmc qmcbase qmcutil)
 #ADD_EXECUTABLE(serialization serialization.cpp)
 #TARGET_LINK_LIBRARIES(serialization boost)
 
+ADD_EXECUTABLE(cubicspline cubicspline.cpp)
+TARGET_LINK_LIBRARIES(cubicspline qmc qmcbase qmcutil)
+
 ADD_EXECUTABLE(tricubicspline tricubicspline.cpp)
 TARGET_LINK_LIBRARIES(tricubicspline qmc qmcbase)
 
