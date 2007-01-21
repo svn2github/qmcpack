@@ -26,6 +26,9 @@ TARGET_LINK_LIBRARIES(mpi_group qmc qmcbase qmcutil)
 ADD_EXECUTABLE(cubicspline cubicspline.cpp)
 TARGET_LINK_LIBRARIES(cubicspline qmc qmcbase qmcutil)
 
+ADD_EXECUTABLE(cubicspline1 cubicspline1.cpp)
+TARGET_LINK_LIBRARIES(cubicspline1 qmc qmcbase qmcutil)
+
 ADD_EXECUTABLE(tricubicspline tricubicspline.cpp)
 TARGET_LINK_LIBRARIES(tricubicspline qmc qmcbase)
 
