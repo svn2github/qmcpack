@@ -24,7 +24,13 @@
 #include <complex>
 #include <limits>
 
+/** enumeration of one-dimensional grid type
+ */
 enum {LINEAR_1DGRID, LOG_1DGRID, LOGZERO_1DGRID, CUSTOM_1DGRID};
+
+/** enumeration of boundary conditions 
+ */
+enum {PBC_CONSTRAINTS, FIRSTDERIV_CONSTRAINTS, NATURAL_CONSTRAINTS};
 
 template <class T> struct GridTraits {};
 
