@@ -111,6 +111,12 @@ struct CubicSpline: public CubicSplineGrid<T,GRIDTYPE,PBC>
     return getValue(x);
   }
 
+  inline value_type splint(point_type x)
+  {
+    updateFirstOrder0(x);
+    return  p1*P[i0]+p2*P[i0+1]+GridDelta*(q1*dP[i0]+q2*dP[i0+1]);
+  }
+
   inline value_type splint(point_type x, value_type& dy, value_type& d2y)
   {
     updateFirstOrder(x);
