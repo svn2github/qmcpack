@@ -22,16 +22,16 @@
 
 #include "Numerics/CubicBsplineGrid.h"
 
-template<class T, unsigned GRIDTYPE, bool PBC>
-struct CubicBspline: public CubicBsplineGrid<T,GRIDTYPE,PBC>
+template<class T, unsigned GRIDTYPE, unsigned BC>
+struct CubicBspline: public CubicBsplineGrid<T,GRIDTYPE,BC>
 {
-  typedef typename CubicBsplineGrid<T,GRIDTYPE,PBC>::point_type point_type;
-  typedef typename CubicBsplineGrid<T,GRIDTYPE,PBC>::value_type value_type;
-  typedef typename CubicBsplineGrid<T,GRIDTYPE,PBC>::container_type container_type;
+  typedef typename CubicBsplineGrid<T,GRIDTYPE,BC>::point_type point_type;
+  typedef typename CubicBsplineGrid<T,GRIDTYPE,BC>::value_type value_type;
+  typedef typename CubicBsplineGrid<T,GRIDTYPE,BC>::container_type container_type;
 
-  using CubicBsplineGrid<T,GRIDTYPE,PBC>::tp;
-  using CubicBsplineGrid<T,GRIDTYPE,PBC>::GridDeltaInv;
-  using CubicBsplineGrid<T,GRIDTYPE,PBC>::GridDeltaInv2;
+  using CubicBsplineGrid<T,GRIDTYPE,BC>::tp;
+  using CubicBsplineGrid<T,GRIDTYPE,BC>::GridDeltaInv;
+  using CubicBsplineGrid<T,GRIDTYPE,BC>::GridDeltaInv2;
 
   ///index of current grid point
   int i0,i1,i2,i3;
