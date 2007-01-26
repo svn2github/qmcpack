@@ -17,10 +17,11 @@
 // -*- C++ -*-
 #include "QMCDrivers/WalkerControlBase.h"
 #include "Particle/HDFWalkerIO.h"
+#include "OhmmsData/OhmmsParameter.h"
 namespace qmcplusplus {
 
   WalkerControlBase::WalkerControlBase(): 
-  SwapMode(0), Nmin(1), Nmax(10), MaxCopy(10)
+  SwapMode(0), Nmin(1), Nmax(10), MaxCopy(10), targetVarBound(20)
   {
     accumData.resize(LE_MAX);
     curData.resize(LE_MAX);
@@ -80,9 +81,8 @@ namespace qmcplusplus {
     NumWalkers=0;
     MCWalkerConfiguration::iterator it_end(W.end());
     RealType esum=0.0,e2sum=0.0,wsum=0.0,ecum=0.0;
-    RealType sigma= 5.0*targetVar;
+    RealType sigma=std::max(5.0*targetVar,targetVarBound);
     RealType ebar= targetAvg;
-
     while(it != it_end) {
       RealType e((*it)->Properties(LOCALENERGY));
       int nc=0; 
@@ -182,6 +182,12 @@ namespace qmcplusplus {
     return W.getActiveWalkers();
   }
 
+  bool WalkerControlBase::put(xmlNodePtr cur)
+  {
+    ParameterSet params;
+    params.add(targetVarBound,"energyBound","double");
+    params.put(cur);
+  }
 }
 /***************************************************************************
  * $RCSfile$   $Author$

@@ -58,6 +58,8 @@ namespace qmcplusplus {
     RealType targetAvg;
     ///target average variance
     RealType targetVar;
+    ///bound of the energy window
+    RealType targetVarBound;
     ///current variance
     RealType curVar;
     ///any accumulated data over a block
@@ -119,6 +121,9 @@ namespace qmcplusplus {
     virtual RealType getFeedBackParameter(int ngen, RealType tau) {
       return 1.0/(static_cast<RealType>(ngen)*tau);
     }
+
+    bool put(xmlNodePtr cur);
+
   };
 
 }
