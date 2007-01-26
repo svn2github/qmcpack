@@ -54,6 +54,12 @@ namespace qmcplusplus {
     IndexType MaxCopy;
     ///current number of walkers per processor
     IndexType NumWalkers;
+    ///target average energy
+    RealType targetAvg;
+    ///target average variance
+    RealType targetVar;
+    ///current variance
+    RealType curVar;
     ///any accumulated data over a block
     vector<RealType> accumData;
     ///any temporary data
@@ -85,6 +91,13 @@ namespace qmcplusplus {
      */
     inline RealType getCurrentValue(int i) {
       return curData[i];
+    }
+
+    /** set the target average and variance
+     */
+    inline void setEnergyAndVariance(RealType e, RealType v) {
+      targetAvg=e;
+      targetVar=v;
     }
 
     /** sort Walkers between good and bad and prepare branching

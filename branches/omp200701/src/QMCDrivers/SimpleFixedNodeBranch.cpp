@@ -85,6 +85,9 @@ void SimpleFixedNodeBranch::initWalkerController(RealType tau, bool fixW) {
         SwapMode, Nideal, Nmax, Nmin, WalkerController,MyEstimator->getCommunicator());
     Nmax=WalkerController->Nmax;
     Nmin=WalkerController->Nmin;
+
+    //assign current E_T and a large number for variance
+    WalkerController->setEnergyAndVariance(E_T,10);
   }
 
   if(fixW) {
