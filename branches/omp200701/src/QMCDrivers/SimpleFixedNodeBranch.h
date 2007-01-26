@@ -85,6 +85,8 @@ namespace qmcplusplus {
       RealType PopControl;
       ///LogJacob
       RealType LogJacobRef;
+      ///TargetEnergyBound
+      RealType TargetEnergyBound;
 
       ///LogNorm
       vector<RealType> LogNorm;
