@@ -22,7 +22,7 @@ namespace qmcplusplus {
 
   WalkerControlBase::WalkerControlBase(): 
   SwapMode(0), Nmin(1), Nmax(10), MaxCopy(5), 
-  targetEnergyBound(20), targetVar(2), targetSigma(10)
+  targetVar(10), targetSigma(10), targetEnergyBound(20), curVar(10)
   {
     accumData.resize(LE_MAX);
     curData.resize(LE_MAX);
@@ -86,10 +86,9 @@ namespace qmcplusplus {
     RealType ebar= targetAvg;
     while(it != it_end) {
       RealType e((*it)->Properties(LOCALENERGY));
-      int nc=0; 
+      int nc= std::min(static_cast<int>((*it)->Multiplicity),MaxCopy);
       if(fabs(ebar-e) < sigma)//exclude extreme energies 
       {
-        nc = std::min(static_cast<int>((*it)->Multiplicity),MaxCopy);
         RealType wgt((*it)->Weight);
         esum += wgt*e;
         e2sum += wgt*e*e;
