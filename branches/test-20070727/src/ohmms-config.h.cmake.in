@@ -1,0 +1,86 @@
+/* src/ohmms-config.h.in.  Generated from configure.in by autoheader.  */
+// -*- c++  -*-
+//
+//Ohmms Configuration Header. Automatically Generated
+//
+//See the LICENSE file in the top-level directory for copyright notices
+//
+#ifndef QMCPLUSPLUS_CONFIGURATION_H
+#define QMCPLUSPLUS_CONFIGURATION_H
+
+/* define the major version */
+#define QMCPLUSPLUS_VERSION_MAJOR  @QMCPLUSPLUS_VERSION_MAJOR@
+
+/* define the minor version */
+#define QMCPLUSPLUS_VERSION_MINOR  @QMCPLUSPLUS_VERSION_MINOR@
+
+/* define the patch version */
+#define QMCPLUSPLUS_VERSION_PATCH  @QMCPLUSPLUS_VERSION_PATCH@
+
+/* define the release version */
+#cmakedefine QMCPLUSPLUS_RELEASE  @QMCPLUSPLUS_RELEASE@
+
+/* define the linearscale version */
+#cmakedefine QMCPLUSPLUS_LINEARSCALE  @QMCPLUSPLUS_LINEARSCALE@
+
+/* Enable OpenMP parallelization. */
+#cmakedefine ENABLE_OPENMP @ENABLE_OPENMP@
+
+/* Define to 1 if you have the `hdf5' library (-lhdf5). */
+#cmakedefine HAVE_LIBHDF5 @HAVE_LIBHDF5@
+
+/* Define to 1 if you have the `boost' library */
+#cmakedefine HAVE_LIBBOOST @HAVE_LIBBOOST@
+
+/* Define to 1 if you have the `sprng' library (-lsprng). */
+#cmakedefine HAVE_LIBSPRNG @HAVE_LIBSPRNG@
+
+/* Define to 1 if you have the `blitz' library */
+#cmakedefine HAVE_LIBBLITZ @HAVE_LIBBLITZ@
+
+/* Define to 1 if you have libxml2 */
+#cmakedefine HAVE_LIBXML2 @HAVE_LIBXML2@
+
+/* Define to 1 if you have fftw */
+#cmakedefine HAVE_LIBFFTW @HAVE_LIBFFTW@
+
+/* Define to 1 if you have libxml++ */
+#cmakedefine HAVE_LIBXMLPP @HAVE_LIBXMLPP@
+
+/* Define to 1 if you have gsl */
+#cmakedefine HAVE_LIBGSL @HAVE_LIBGSL@
+
+/* Define to 1 if you have MPI library */
+#cmakedefine HAVE_MPI @HAVE_MPI@
+
+/* Define to 1 if you have OOMPI library */
+#cmakedefine HAVE_OOMPI @HAVE_OOMPI@
+
+/* Define the physical dimension of appliation. */
+#cmakedefine OHMMS_DIM @OHMMS_DIM@
+
+/* Define the index type: int, long */
+#cmakedefine OHMMS_INDEXTYPE @OHMMS_INDEXTYPE@
+
+/* Define the base precision: float, double */
+#cmakedefine OHMMS_PRECISION @OHMMS_PRECISION@
+
+/* Define to 1 if complex wavefunctions are used */
+#cmakedefine QMC_COMPLEX @QMC_COMPLEX@
+
+/* Define to 1 if using AYSNC comm for estimator */
+#cmakedefine QMC_ASYNC_COLLECT @QMC_ASYNC_COLLECT@
+
+/* Define to 1 if using recursive SK evaluation */
+#cmakedefine QMC_SK_USE_RECURSIVE @QMC_SK_USE_RECURSIVE@
+
+/* Define if the code is specialized for orthorhombic supercell */
+#define OHMMS_ORTHO @OHMMS_ORTHO@
+
+/* Define the index of the walker iterator. NOT USED */
+#cmakedefine QMC_FASTWALKER @QMC_FASTWALKER@
+
+/* Define if sincos function exists */
+#cmakedefine HAVE_SINCOS
+
+#endif // QMCPLUSPLUS_CONFIGURATION_H
