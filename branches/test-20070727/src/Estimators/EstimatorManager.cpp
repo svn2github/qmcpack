@@ -186,21 +186,17 @@ namespace qmcplusplus {
     RecordCount=est[0]->RecordCount;
 
     TotalWeight=est[0]->TotalWeight;
-    for(int i=1; i<ThreadCount; i++)
-      TotalWeight+=est[i]->TotalWeight;
+    for(int i=1; i<ThreadCount; i++) TotalWeight+=est[i]->TotalWeight;
 
     AverageCache=est[0]->AverageCache;
-    for(int i=1; i<ThreadCount; i++)
-      AverageCache+=est[i]->AverageCache;
+    for(int i=1; i<ThreadCount; i++) AverageCache+=est[i]->AverageCache;
 
     //normalize by the number of threads per node
     RealType wgt=1.0/static_cast<RealType>(ThreadCount);
     AverageCache*=wgt;
 
     PropertyCache=est[0]->PropertyCache;
-    for(int i=1; i<ThreadCount; i++)
-      PropertyCache+=est[i]->PropertyCache;
-
+    for(int i=1; i<ThreadCount; i++) PropertyCache+=est[i]->PropertyCache;
     PropertyCache*=wgt;
 
     stop();
@@ -259,7 +255,8 @@ namespace qmcplusplus {
     RefEnergy[0]=CumEnergy[1]*wgtnorm;
     RefEnergy[1]=CumEnergy[2]*wgtnorm-RefEnergy[0]*RefEnergy[0];
     RefEnergy[2]=std::sqrt(RefEnergy[1]/(CumEnergy[0]-1.0));
-    RefEnergy[3]=CumEnergy[3]*wgtnorm;//average block variance
+    RefEnergy[3]=std::sqrt(RefEnergy[1]);
+    //RefEnergy[3]=CumEnergy[3]*wgtnorm;//average block variance
 
     //close the group
     if(h_obs>-1)
