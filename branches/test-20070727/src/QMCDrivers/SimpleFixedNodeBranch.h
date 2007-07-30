@@ -158,9 +158,9 @@ namespace qmcplusplus {
         return std::exp(-tau*(emixed-E_T));
       }
 
+      /** calculate branchWeight with a cutoff */
       inline RealType branchWeight(RealType tau, RealType enew, RealType eold) const { 
         RealType taueff=tau*0.5;
-        //return min(0.5/(reject+1e-12),exp(-tau*(emix-E_T)));
         RealType x=std::max(E_T-enew,E_T-eold);
         if(x>branchMax)
         {
