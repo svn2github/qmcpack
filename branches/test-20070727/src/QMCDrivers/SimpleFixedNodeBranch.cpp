@@ -29,7 +29,7 @@ namespace qmcplusplus {
 
   SimpleFixedNodeBranch::SimpleFixedNodeBranch(RealType tau, int nideal): 
     FixedNumWalkers(false), QMCCounter(-1), SwapMode(0), Counter(0), 
-    Nideal(nideal), NumGeneration(50), 
+    Nideal(nideal), NumGeneration(50), BranchInterval(1),
     Tau(tau), E_T(0.0), DeltaE(1.0),EavgSum(0.0), WgtSum(0.0), PopControl(0.1), 
     WalkerController(0), MyEstimator(0), SwapWalkers("yes")
   {
@@ -62,6 +62,7 @@ namespace qmcplusplus {
     m_param.add(PopControl,"swapTrigger","none");
     m_param.add(SwapWalkers,"swapWalkers","string");
     m_param.add(SwapWalkers,"collect","string");
+    m_param.add(BranchInterval,"branchInterval","int");
 
     //backward compatability
     m_param.add(E_T,"ref_energy","AU"); m_param.add(E_T,"en_ref","AU");
@@ -85,7 +86,7 @@ namespace qmcplusplus {
     reset();
     if(WalkerController == 0) {
       FixedNumWalkers=fixW;
-      if(fixW) {Feed=0.0;logN=0.0;}
+      //if(fixW) {Feed=0.0;logN=0.0;}
       WalkerController = CreateWalkerController(FixedNumWalkers, 
           SwapMode, Nideal, Nmax, Nmin, WalkerController,MyEstimator->getCommunicator());
       Nmax=WalkerController->Nmax;
@@ -110,13 +111,13 @@ namespace qmcplusplus {
 
     //reset
     WalkerController->reset();
-    if(fixW) {
-      ETrialIndex=-1;
-      E_T=0.0;
-    } else {
-      ETrialIndex = MyEstimator->addColumn("Etrial");
-      MyEstimator->addColumn("Popupation");
-    }
+    //if(fixW) {
+    //  ETrialIndex=-1;
+    //  E_T=0.0;
+    //} else {
+    ETrialIndex = MyEstimator->addColumn("Etrial");
+    MyEstimator->addColumn("Popupation");
+    //}
 
     app_log() << "  QMC counter      = " << QMCCounter << endl;
     app_log() << "  reference energy = " << E_T << endl;
@@ -140,24 +141,21 @@ namespace qmcplusplus {
   void
     SimpleFixedNodeBranch::branch(int iter, MCWalkerConfiguration& w) {
       //evaluate a safe bound for the trial energy.
-      RealType sigma=WalkerController->getSigmaBound();
+      //RealType sigma=WalkerController->getSigmaBound();
       //collect the total weights and redistribute the walkers accordingly
       int pop_now = WalkerController->branch(iter,w,PopControl);
       //trial energy is updated to regulate the number of walkers if it is allowed to flunctuate
-      EavgSum+=WalkerController->getCurrentValue(WalkerControlBase::EREF_INDEX);
-      WgtSum+=WalkerController->getCurrentValue(WalkerControlBase::WALKERSIZE_INDEX);
-      if(ETrialIndex>0) {
-        //E_T = (EavgSum/WgtSum+E_T)*0.5-Feed*log(static_cast<RealType>(pop_now))+logN;
-        RealType delEt=(EavgSum/WgtSum-E_T)*0.5-Feed*std::log(static_cast<RealType>(pop_now))+logN;
-        if(delEt<-sigma) 
-          E_T -= sigma;
-        else if(delEt>sigma) 
-          E_T += sigma;
-        else 
-          E_T += delEt;
-        MyEstimator->setColumn(ETrialIndex,E_T);
-        MyEstimator->setColumn(ETrialIndex+1,pop_now);
-      }
+      //EavgSum+=WalkerController->getCurrentValue(WalkerControlBase::EREF_INDEX);
+      //WgtSum+=WalkerController->getCurrentValue(WalkerControlBase::WALKERSIZE_INDEX);
+      RealType enecur=WalkerController->getCurrentValue(WalkerControlBase::EREF_INDEX);
+      RealType wgtcur=WalkerController->getCurrentValue(WalkerControlBase::WEIGHT_INDEX);
+      EavgSum+= enecur;
+      WgtSum += wgtcur;
+      //use an average: instantenous energy is good, too
+      E_T = EavgSum/WgtSum-Feed*std::log(static_cast<RealType>(wgtcur))+logN;
+      //E_T = enecur/wgtcur-Feed*std::log(static_cast<RealType>(wgtcur))+logN;
+      MyEstimator->setColumn(ETrialIndex,E_T);
+      MyEstimator->setColumn(ETrialIndex+1,wgtcur);
 
       //evaluate everything else
       MyEstimator->accumulate(w);
@@ -176,7 +174,8 @@ namespace qmcplusplus {
 
   void SimpleFixedNodeBranch::reset() 
   {
-    Feed = 1.0/(static_cast<RealType>(NumGeneration)*Tau);
+    //use effective time step of BranchInterval*Tau
+    Feed = 1.0/(static_cast<RealType>(NumGeneration*BranchInterval)*Tau);
     logN = Feed*std::log(static_cast<RealType>(Nideal));
     app_log() << "  Current Counter = " << Counter << "\n  Trial Energy = " << E_T << endl;
     app_log() << "  Feedback parameter = " << Feed <<endl;

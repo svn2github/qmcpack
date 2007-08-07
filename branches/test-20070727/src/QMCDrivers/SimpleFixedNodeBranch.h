@@ -68,6 +68,8 @@ namespace qmcplusplus {
       int NumGeneration;
       ///number of previous energy to evaluate the trial energy
       int NumEnergyHistory;
+      ///number of steps before branching
+      int BranchInterval;
       ///index of the trial energy
       int ETrialIndex;
       ///the timestep
