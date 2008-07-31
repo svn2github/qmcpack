@@ -91,7 +91,19 @@ namespace qmcplusplus {
 
     LRTwoBodyJastrow(ParticleSet& p, HandlerType* inhandler=0);
 
-    void resetParameters(OptimizableSetType& optVariables);
+    /** check out optimizable variables
+     */
+    void checkOutVariables(const opt_variables_type& o);
+
+    /** check in an optimizable parameter
+     * @param o a super set of optimizable variables
+     */
+    void checkInVariables(opt_variables_type& o);
+
+    /** print the state, e.g., optimizables */
+    void reportStatus(ostream& os);
+
+    void resetParameters(const opt_variables_type& active);
 
     void resetByFunction(RealType kc, int functype);
 

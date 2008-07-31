@@ -73,10 +73,10 @@ namespace qmcplusplus {
     return 0;
   }
 
-  void OrbitalBase::copyFrom(const OrbitalBase& old)
-  {
-    APP_ABORT("OrbitalBase::copyFrom needs to be implemented by a derived class.");
-  }
+  //void OrbitalBase::copyFrom(const OrbitalBase& old)
+  //{
+  //  APP_ABORT("OrbitalBase::copyFrom needs to be implemented by a derived class.");
+  //}
 
   OrbitalBasePtr OrbitalBase::makeProxy(ParticleSet& tpq)
   {

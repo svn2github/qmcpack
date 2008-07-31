@@ -279,14 +279,14 @@ namespace qmcplusplus {
     for(int i=0; i<Z.size(); i++) Z[i]->acceptMove(P,iat);
   }
 
-  void TrialWaveFunction::resizeByWalkers(int nwalkers){
-    for(int i=0; i<Z.size(); i++) Z[i]->resizeByWalkers(nwalkers);
-  }
+  //void TrialWaveFunction::resizeByWalkers(int nwalkers){
+  //  for(int i=0; i<Z.size(); i++) Z[i]->resizeByWalkers(nwalkers);
+  //}
   
-  void TrialWaveFunction::resetParameters(OptimizableSetType& optVariables)
+  void TrialWaveFunction::resetParameters(const opt_variables_type& active)
   {
     for(int i=0; i<Z.size(); i++) 
-      Z[i]->resetParameters(optVariables);
+      Z[i]->resetParameters(active);
   }
 
   TrialWaveFunction::RealType

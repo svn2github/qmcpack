@@ -28,9 +28,26 @@ namespace qmcplusplus {
     delete Constraints;
   }
 
-  void ComboOrbital::resetParameters(OptimizableSetType& optVariables) 
+  void ComboOrbital::resetParameters(const opt_variables_type& active) 
   {
-    Constraints->resetParameters(optVariables);
+    APP_ABORT("ComboOrbital::resetParameters is incomplete");
+    for(int i=0; i<Psi.size(); i++) Psi[i]->resetParameters(active);
+    //Constraints->resetParameters(active);
+  }
+
+  void ComboOrbital::checkOutVariables(const opt_variables_type& o)
+  {
+    for(int i=0; i<Psi.size(); i++) Psi[i]->checkOutVariables(o);
+  }
+
+  void ComboOrbital::checkInVariables(opt_variables_type& o)
+  {
+    for(int i=0; i<Psi.size(); i++) Psi[i]->checkInVariables(o);
+  }
+
+  void ComboOrbital::reportStatus(ostream& os)
+  {
+    for(int i=0; i<Psi.size(); i++) Psi[i]->reportStatus(os);
   }
 
   void ComboOrbital::resetTargetParticleSet(ParticleSet& P) {

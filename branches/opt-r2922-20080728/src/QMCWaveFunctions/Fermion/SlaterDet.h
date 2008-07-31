@@ -36,7 +36,7 @@ namespace qmcplusplus {
     void add(Determinant_t* det);
 
     ///reset all the Dirac determinants, Optimizable is true
-    void resetParameters(OptimizableSetType& optVariables);
+    void resetParameters(const opt_variables_type& optVariables);
 
     void resetTargetParticleSet(ParticleSet& P);
 

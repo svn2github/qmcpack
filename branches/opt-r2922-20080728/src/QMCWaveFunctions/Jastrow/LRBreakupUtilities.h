@@ -342,23 +342,22 @@ template<class T=double>
 };
 
 template<typename T>
-    struct ShortRangePartAdapter : OptimizableFunctorBase<T> {
+    struct ShortRangePartAdapter : OptimizableFunctorBase {
       public:
         typedef LRHandlerBase HandlerType;
-        typedef typename OptimizableFunctorBase<T>::real_type real_type;  
-        typedef typename OptimizableFunctorBase<T>::OptimizableSetType OptimizableSetType;  
 
         explicit ShortRangePartAdapter(HandlerType* inhandler): Uconst(0) {
           myHandler = inhandler;
         }
 
-        OptimizableFunctorBase<T>* makeClone() const 
+        OptimizableFunctorBase* makeClone() const 
         {
           APP_ABORT("ShortRangePartAdapter<T>::makeClone() failed");
           //this is ugly
           return 0;
         }
 
+        inline void reset() {}
         inline void setRmax(real_type rm) { Uconst=myHandler->evaluate(rm,1.0/rm);}
         inline real_type evaluate(real_type r) { return f(r); }
         inline real_type f(real_type r) 
@@ -369,9 +368,8 @@ template<typename T>
         {
           return myHandler->srDf(r, 1.0/r);
         }
-        void resetParameters(OptimizableSetType& optVariables) { }
+        void resetParameters(const opt_variables_type& optVariables) { }
         bool put(xmlNodePtr cur) {return true;}
-        void addOptimizables(OptimizableSetType& vlist){}
       private:
         real_type Uconst;
         HandlerType* myHandler;

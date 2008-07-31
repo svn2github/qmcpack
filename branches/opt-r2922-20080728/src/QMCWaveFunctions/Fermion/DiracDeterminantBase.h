@@ -74,7 +74,7 @@ namespace qmcplusplus {
     void set(int first, int nel);
 
     ///reset the single-particle orbital set
-    void resetParameters(OptimizableSetType& optVariables) 
+    void resetParameters(const opt_variables_type& optVariables) 
     { 
       Phi->resetParameters(optVariables); 
     }

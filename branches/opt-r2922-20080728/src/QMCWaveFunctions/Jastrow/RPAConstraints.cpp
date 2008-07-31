@@ -202,43 +202,44 @@ namespace qmcplusplus {
     return true;
   }
 
-  void RPAPBCConstraints::addOptimizables(OptimizableSetType& outVars) {
-    //outVars.addVariable(ID_Rs,Rs);
-    //potentially add Rcut
-    //outVars[ID_Rs]=Rs;
-    if(LongRangeRPA) LongRangeRPA->put(NULL,outVars);
-  }
+  //TO JEREMY
+  // void RPAPBCConstraints::addOptimizables(OptimizableSetType& outVars) {
+  //   //outVars.addVariable(ID_Rs,Rs);
+  //   //potentially add Rcut
+  //   //outVars[ID_Rs]=Rs;
+  //   if(LongRangeRPA) LongRangeRPA->put(NULL,outVars);
+  // }
 
-  void RPAPBCConstraints::resetParameters(OptimizableSetType& optVariables) 
+  void RPAPBCConstraints::resetParameters(const opt_variables_type& active) 
   { 
-    
-    OptimizableSetType::iterator it(optVariables.find(ID_Rs));
-    if(it != optVariables.end()){ 
-      //targetPtcl.Lattice.LR_rc *= ((*it).second) / rs;
-      Rs=(*it).second;
-      //std::cout<<"resetting a parameter: "<<(*it).first<<" to: "<<(*it).second<<endl;
-      //myHandler->Breakup(targetPtcl,(*it).second);
-      if(OwnHandler) realHandler->Breakup(targetPtcl,Rs);
-      //JK: Don't know why we need this
-      //myHandler=realHandler;
-
-      //2008-04-07 Longrange is not committed yet.
-      //realHandler->resetTargetParticleSet(targetPtcl,Rs);
-      if(LongRangeRPA) LongRangeRPA->resetParameters(optVariables);
-    
-      //reset the numerical functor
-      //nfunc->initialize(SRA, myGrid);
-
-#if !defined(HAVE_MPI)
-      ofstream fout("rpa.short.dat");
-      for (int i = 0; i < myGrid->size(); i++) {
-        RealType r=(*myGrid)(i);
-        fout << r << "   " << nfunc->evaluate(r) << "   "
-          << realHandler->evaluate(r,1.0/r) << " " 
-          << realHandler->evaluateLR(r) << endl;
-      }
-#endif
-    }
+    APP_ABORT("RPAPBCConstraints::resetParameters is broken");
+//    OptimizableSetType::iterator it(optVariables.find(ID_Rs));
+//    if(it != optVariables.end()){ 
+//      //targetPtcl.Lattice.LR_rc *= ((*it).second) / rs;
+//      Rs=(*it).second;
+//      //std::cout<<"resetting a parameter: "<<(*it).first<<" to: "<<(*it).second<<endl;
+//      //myHandler->Breakup(targetPtcl,(*it).second);
+//      if(OwnHandler) realHandler->Breakup(targetPtcl,Rs);
+//      //JK: Don't know why we need this
+//      //myHandler=realHandler;
+//
+//      //2008-04-07 Longrange is not committed yet.
+//      //realHandler->resetTargetParticleSet(targetPtcl,Rs);
+//      if(LongRangeRPA) LongRangeRPA->resetParameters(optVariables);
+//    
+//      //reset the numerical functor
+//      //nfunc->initialize(SRA, myGrid);
+//
+//#if !defined(HAVE_MPI)
+//      ofstream fout("rpa.short.dat");
+//      for (int i = 0; i < myGrid->size(); i++) {
+//        RealType r=(*myGrid)(i);
+//        fout << r << "   " << nfunc->evaluate(r) << "   "
+//          << realHandler->evaluate(r,1.0/r) << " " 
+//          << realHandler->evaluateLR(r) << endl;
+//      }
+//#endif
+//    }
   }
 
   /** create TwoBody Jastrow using LR breakup method

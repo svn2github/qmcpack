@@ -23,13 +23,8 @@
 namespace qmcplusplus {
 
   template<class T>
-  struct BsplineFunctor: public OptimizableFunctorBase<T> {
-    ///typedef of real values
-    typedef typename OptimizableFunctorBase<T>::real_type real_type;
-    typedef typename OptimizableFunctorBase<T>::OptimizableSetType OptimizableSetType;
+  struct BsplineFunctor: public OptimizableFunctorBase {
 
-    using OptimizableFunctorBase<T>::FirstIndex;
-    using OptimizableFunctorBase<T>::LastIndex;
     int NumParams;
     int Dummy;
     const TinyVector<real_type,16> A, dA, d2A;
@@ -63,24 +58,7 @@ namespace qmcplusplus {
     {
     }
 
-    /////copy constructor
-    //BsplineFunctor(const BsplineFunctor<T>& rhs) : 
-    //  Rcut(rhs.Rcut), 
-    //  A(rhs.A),dA(rhs.dA),d2A(rhs.d2A),
-    //  CuspValue(rhs.CuspValue), 
-    //  elementType(rhs.elementType),pairType(rhs.pairType)
-    //{
-    //  FirstIndex=rhs.FirstIndex;
-    //  LastIndex=rhs.LastIndex;
-    //  resize(rhs.NumParams);
-    //  ParameterNames=rhs.ParameterNames;
-    //  //ParameterIndex=rhs.ParameterIndex;
-    //  Parameters=rhs.Parameters;
-    //  //ParameterNames=rhs.ParameterNames;
-    //  reset();
-    //}
-
-    OptimizableFunctorBase<T>* makeClone() const 
+    OptimizableFunctorBase* makeClone() const 
     {
       return new BsplineFunctor(*this);
     }
@@ -300,13 +278,15 @@ namespace qmcplusplus {
           for (int i=0; i< NumParams; i++) {
             std::stringstream sstr;
             sstr << id << "_" << i;
-            ParameterNames.push_back(sstr.str());
+            myVars.insert(sstr.str(),Parameters[i],true);
           }
 
           app_log() << "Parameter     Name      Value\n";
-          for (int i=0; i<ParameterNames.size(); i++)
-            app_log() << "    " << i << "         " << ParameterNames[i] 
-              << "       " << Parameters[i] << endl;
+          myVars.print(app_log());
+
+          //for (int i=0; i<ParameterNames.size(); i++)
+          //  app_log() << "    " << i << "         " << ParameterNames[i] 
+          //    << "       " << Parameters[i] << endl;
         }
         xmlCoefs = xmlCoefs->next;
       }
@@ -315,34 +295,19 @@ namespace qmcplusplus {
       return true;
     }
     
-    void addOptimizables(OptimizableSetType& vlist)
-    {
-      //capture FirstIndex in the vlist
-      FirstIndex=vlist.addVariable(ParameterNames[0],Parameters[0]);
-      for (int i=1; i<ParameterNames.size(); i++)
-       int loc=vlist.addVariable(ParameterNames[i],Parameters[i]);
-      LastIndex=FirstIndex+ParameterNames.size();
-//      for (int i=0; i<ParameterNames.size(); i++)
-//	vlist[ParameterNames[i]] = Parameters[i];
-    }
-    
     /** reset the internal variables.
      *
      * USE_resetParameters
      */
-    void resetParameters(OptimizableSetType& optVariables) 
+    void resetParameters(const opt_variables_type& active)
     {
-      for (int i=0; i<ParameterNames.size(); i++) {
-	typename OptimizableSetType::iterator it(optVariables.find(ParameterNames[i]));
-	if(it != optVariables.end()) {
-// 	  cerr << "Resetting " << ParameterNames[i] << " to " 
-// 	       << it->second << endl;
-	  Parameters[i] = it->second;
-	}
-	reset();
+      for(int i=0; i<Parameters.size(); ++i)
+      {
+        int loc=myVars.where(i);
+        if(loc>=0) Parameters[i]=active[loc];
       }
+      reset();
     }
-
 
     void print(std::ostream& os)
     {

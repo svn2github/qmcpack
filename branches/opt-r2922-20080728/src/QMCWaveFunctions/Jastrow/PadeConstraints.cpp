@@ -55,31 +55,9 @@ namespace qmcplusplus {
     return true;
   }
 
-  void PadeConstraints::addOptimizables(OptimizableSetType& outVars) 
+  void PadeConstraints::resetParameters(const opt_variables_type& active)
   {
-    //outVars[ID_B]=B;
-    int loc=outVars.addVariable(ID_B,B);
-    //dPsi->setBounds(loc);
-  }
-
-  void PadeConstraints::resetParameters(OptimizableSetType& optVariables)
-  {
-    OptimizableSetType nothing;
-    OptimizableSetType::iterator it(optVariables.find(ID_B));
-    if(it != optVariables.end()) 
-    {
-      B=(*it).second;
-      for(int i=0; i<FuncList.size(); i++) 
-      {
-        FuncList[i]->B0=B;
-        FuncList[i]->resetParameters(nothing);
-      }
-      //for(int i=0; i<dFuncList.size(); i++) 
-      //{
-      //  dFuncList[i]->B0=B;
-      //  dFuncList[i]->resetParameters(nothing);
-      //}
-    }
+    //nothing to do
   }
 
   OrbitalBase* PadeConstraints::createTwoBody() 
@@ -191,33 +169,28 @@ namespace qmcplusplus {
     delete_iter(FuncList.begin(), FuncList.end());
   }
 
-  void ScaledPadeConstraints::addOptimizables(OptimizableSetType& outVars) 
+  void ScaledPadeConstraints::resetParameters(const opt_variables_type& active)
   {
-    outVars[ID_B]=B;
-    outVars[ID_C]=C;
-  }
-
-  void ScaledPadeConstraints::resetParameters(OptimizableSetType& optVariables) 
-  {
-    bool update=false;
-    OptimizableSetType::iterator it(optVariables.find(ID_B));
-    if(it != optVariables.end())
-    { 
-      B=(*it).second;
-      update=true;
-    }
-    OptimizableSetType::iterator it_c(optVariables.find(ID_C));
-    if(it_c != optVariables.end()) 
-    {
-      C=(*it_c).second;
-      update=true;
-    }
-    if(update)
-      for(int i=0; i<FuncList.size(); i++) {
-        FuncList[i]->B=B;
-        FuncList[i]->C=C;
-        FuncList[i]->resetParameters(optVariables);
-      }
+    APP_ABORT("ScaledPadeConstraints::resetParameters is broken. Fix it!");
+   // bool update=false;
+   // OptimizableSetType::iterator it(optVariables.find(ID_B));
+   // if(it != optVariables.end())
+   // { 
+   //   B=(*it).second;
+   //   update=true;
+   // }
+   // OptimizableSetType::iterator it_c(optVariables.find(ID_C));
+   // if(it_c != optVariables.end()) 
+   // {
+   //   C=(*it_c).second;
+   //   update=true;
+   // }
+   // if(update)
+   //   for(int i=0; i<FuncList.size(); i++) {
+   //     FuncList[i]->B=B;
+   //     FuncList[i]->C=C;
+   //     FuncList[i]->resetParameters(optVariables);
+   //   }
   }
 
 

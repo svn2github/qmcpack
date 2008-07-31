@@ -67,7 +67,7 @@ namespace qmcplusplus {
   }
   
 
-  void LRTwoBodyJastrow::resetParameters(OptimizableSetType& optVariables) 
+  void LRTwoBodyJastrow::resetParameters(const opt_variables_type& active)
   {
     if(handler) resetByHandler();
   }

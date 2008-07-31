@@ -43,7 +43,6 @@ namespace qmcplusplus {
     int ng = targetPtcl.groups();
 
     int ia=0, ib=0, iab=0;
-    int cur_var = targetPsi.VarList.size();
     xmlNodePtr gridPtr=NULL;
     cur = cur->children;
     const SpeciesSet& species(targetPtcl.getSpeciesSet());
@@ -77,7 +76,6 @@ namespace qmcplusplus {
         FN *j= new FN;
         j->cutoff_radius=rc;
         j->put(cur);
-        j->addOptimizables(targetPsi.VarList);
         J2->addFunc(pairID,ia,ib,j);
         ++pairs;
       }
@@ -86,9 +84,6 @@ namespace qmcplusplus {
 
     if(pairs)
     {
-      //set this jastrow function to be not optimizable
-      if(targetPsi.VarList.size() == cur_var) J2->setOptimizable(false);
-
       string j2name="J2_"+jname;
       targetPsi.addOrbital(J2,j2name);
       return true;

@@ -30,7 +30,6 @@ namespace qmcplusplus {
   template<class ROT, class GT=DummyGrid>
   struct SphericalBasisSet 
   {
-
     typedef ROT                                                  RadialOrbital_t;
     typedef typename ROT::value_type                             value_type;
     typedef typename OrbitalSetTraits<value_type>::RealType      RealType;
@@ -43,7 +42,6 @@ namespace qmcplusplus {
     typedef typename OrbitalSetTraits<value_type>::GradVector_t  GradVector_t;
     typedef typename OrbitalSetTraits<value_type>::GradMatrix_t  GradMatrix_t;
     typedef SphericalTensor<RealType,PosType>                    SphericalHarmonics_t;
-    typedef VarRegistry<OHMMS_PRECISION>                         OptimizableSetType;
 
     ///size of the basis set
     IndexType BasisSetSize;

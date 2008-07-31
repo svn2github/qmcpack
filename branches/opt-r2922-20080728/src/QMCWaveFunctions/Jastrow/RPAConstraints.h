@@ -39,8 +39,7 @@ namespace qmcplusplus {
 
       RPAPBCConstraints(ParticleSet& p, TrialWaveFunction& psi, bool nospin=true);
       ~RPAPBCConstraints();
-      void addOptimizables(OptimizableSetType& outVars);
-      void resetParameters(OptimizableSetType& optVariables);
+      void resetParameters(const opt_variables_type& optVariables);
       OrbitalBase* createTwoBody();
       OrbitalBase* createOneBody(ParticleSet& source);
       void addExtra2ComboOrbital(ComboOrbital* jcombo);
