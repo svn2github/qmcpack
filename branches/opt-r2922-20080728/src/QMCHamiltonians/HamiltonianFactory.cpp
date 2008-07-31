@@ -27,7 +27,7 @@
 #include "QMCHamiltonians/LocalCorePolPotential.h"
 #include "QMCHamiltonians/ECPotentialBuilder.h"
 #endif
-#if defined(HAVE_LIBFFTW)
+#if defined(HAVE_LIBFFTW_LS)
 #include "QMCHamiltonians/ModInsKineticEnergy.h"
 #include "QMCHamiltonians/MomentumDistribution.h"
 #include "QMCHamiltonians/DispersionRelation.h"
@@ -395,7 +395,7 @@ namespace qmcplusplus {
 
   void
   HamiltonianFactory::addModInsKE(xmlNodePtr cur) {
-#if defined(HAVE_LIBFFTW)
+#if defined(HAVE_LIBFFTW_LS)
     typedef QMCTraits::RealType    RealType;
     typedef QMCTraits::IndexType   IndexType;
     typedef QMCTraits::PosType     PosType;

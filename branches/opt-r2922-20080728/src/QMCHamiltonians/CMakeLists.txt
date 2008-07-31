@@ -22,12 +22,12 @@ IF(OHMMS_DIM MATCHES 3)
      )
 ENDIF(OHMMS_DIM MATCHES 3)
 
-IF(HAVE_LIBFFTW)
-  SET(HAMSRCS ${HAMSRCS}
-    DispersionRelation.cpp
-    MomentumDistribution.cpp
-)
-ENDIF(HAVE_LIBFFTW)
+#IF(HAVE_LIBFFTW)
+#  SET(HAMSRCS ${HAMSRCS}
+#    DispersionRelation.cpp
+#    MomentumDistribution.cpp
+#)
+#ENDIF(HAVE_LIBFFTW)
 
 ADD_LIBRARY(qmcham ${HAMSRCS})
 #IF(QMC_BUILD_STATIC)
