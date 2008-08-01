@@ -134,7 +134,6 @@ namespace qmcplusplus {
       OrbitalBase* j=control->createOneBody(*sourcePtcl);
       if(j)
       {
-        control->addOptimizables(targetPsi.VarList);
         targetPsi.addOrbital(j,"J1_WM");
         Children.push_back(control);
         success=true;
@@ -265,7 +264,6 @@ namespace qmcplusplus {
       string j2name="J2_"+funcOpt;
       targetPsi.addOrbital(j2,j2name);
     }
-    control->addOptimizables(targetPsi.VarList);
     Children.push_back(control);
 
     return success;
@@ -323,7 +321,6 @@ namespace qmcplusplus {
       app_log() << "\n  creating Three-Body Jastrow function using only diagnoal blocks." << endl;
       ThreeBodyBlockSparse* J3 = new ThreeBodyBlockSparse(*sourcePtcl, targetPtcl);
       J3->setBasisSet(basisBuilder->myBasisSet);
-      J3->put(coeffPtr,targetPsi.VarList);
       J3->setBlocks(basisBuilder->SizeOfBasisPerCenter);
       targetPsi.addOrbital(J3,"J3_block");
     } 
@@ -332,7 +329,7 @@ namespace qmcplusplus {
       app_log() << "\n  creating Three-Body Jastrow function using a complete Geminal matrix." << endl;
       ThreeBodyGeminal* J3 = new ThreeBodyGeminal(*sourcePtcl, targetPtcl);
       J3->setBasisSet(basisBuilder->myBasisSet);
-      J3->put(coeffPtr,targetPsi.VarList);
+      J3->put(coeffPtr);
       targetPsi.addOrbital(J3,"J3_full");
     }
 #else

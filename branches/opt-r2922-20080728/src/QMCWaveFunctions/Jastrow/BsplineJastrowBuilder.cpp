@@ -68,7 +68,6 @@ namespace qmcplusplus {
 	      functor->Rcut = sourcePtcl->Lattice.WignerSeitzRadius;
 	      functor->reset();
 	    }
-            functor->addOptimizables(targetPsi.VarList);
             J1->addFunc (ig,functor);
 	    success = true;
             //dJ1->addFunc(ig,functor);
@@ -167,8 +166,6 @@ namespace qmcplusplus {
 	     functor->Rcut = targetPtcl.Lattice.WignerSeitzRadius;
 	     functor->reset();
 	  }
-
-	  functor->addOptimizables(targetPsi.VarList);
 
           J2->addFunc(pairType,ia,ib,functor);
           //dJ2->addFunc(pairType,ia,ib,functor);

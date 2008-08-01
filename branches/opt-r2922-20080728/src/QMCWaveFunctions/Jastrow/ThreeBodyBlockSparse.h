@@ -38,8 +38,11 @@ namespace qmcplusplus {
 
     ~ThreeBodyBlockSparse();
 
-    ///reset the value of all the Two-Body Jastrow functions
-    void resetParameters(OptimizableSetType& optVariables);
+    //implement virtual functions for optimizations
+    void checkInVariables(opt_variables_type& active);
+    void checkOutVariables(const opt_variables_type& active);
+    void resetParameters(const opt_variables_type& active);
+    void reportStatus(ostream& os);
     //evaluate the distance table with els
     void resetTargetParticleSet(ParticleSet& P);
 
@@ -84,9 +87,7 @@ namespace qmcplusplus {
 
     void setBasisSet(BasisSetType* abasis) { GeminalBasis=abasis;}
 
-    bool put(xmlNodePtr cur, OptimizableSetType& varlist);
-
-    void addOptimizables(OptimizableSetType& varlist);
+    bool put(xmlNodePtr cur);
 
     //set blocks
     void setBlocks(const std::vector<int>& blockspergroup);

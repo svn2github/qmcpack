@@ -79,10 +79,10 @@ namespace qmcplusplus {
       return myclone;
     }
 
-    inline void resetParameters(VarRegistry<RealType>& optVariables) 
+    inline void resetParameters(const opt_variables_type& active) 
     { 
       for(int nl=0; nl<Rnl.size(); nl++) 
-        Rnl[nl]->resetParameters(optVariables);
+        Rnl[nl]->resetParameters(active);
     }
 
     /** return the number of basis functions

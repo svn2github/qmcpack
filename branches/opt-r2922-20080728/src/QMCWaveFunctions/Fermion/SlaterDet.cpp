@@ -31,11 +31,23 @@ namespace qmcplusplus {
     DetID.insert(DetID.end(),det->rows(),last);
   }
 
+  void SlaterDet::checkInVariables(opt_variables_type& active)
+  {
+  }
+
+  void SlaterDet::checkOutVariables(const opt_variables_type& active)
+  {
+  }
+
   ///reset all the Dirac determinants, Optimizable is true
-  void SlaterDet::resetParameters(OptimizableSetType& optVariables) 
+  void SlaterDet::resetParameters(const opt_variables_type& active) 
   {  
-    if(Optimizable) 
-      for(int i=0; i<Dets.size(); i++) Dets[i]->resetParameters(optVariables);
+    //if(Optimizable) 
+    //  for(int i=0; i<Dets.size(); i++) Dets[i]->resetParameters(active);
+  }
+
+  void SlaterDet::reportStatus(ostream& os)
+  {
   }
 
   void SlaterDet::resetTargetParticleSet(ParticleSet& P) 

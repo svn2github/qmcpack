@@ -91,7 +91,7 @@ namespace qmcplusplus {
     Matrix<ComplexType> Delta_e2iGr;
 
     // Map of the optimizable variables:
-    std::map<std::string,RealType*> VarMap;
+    //std::map<std::string,RealType*> VarMap;
 
     //////////////////////
     // Member functions //
@@ -127,11 +127,11 @@ namespace qmcplusplus {
     void setCoefficients (std::vector<RealType> &oneBodyCoefs,
 			  std::vector<RealType> &twoBodyCoefs);
 
-    // Optimization-related
-    void addOptimizables(OptimizableSetType& vlist);
-
-    void resetParameters(OptimizableSetType& optVariables);
-
+    //implement virtual functions for optimizations
+    void checkInVariables(opt_variables_type& active);
+    void checkOutVariables(const opt_variables_type& active);
+    void resetParameters(const opt_variables_type& active);
+    void reportStatus(ostream& os);
     //evaluate the distance table with els
     void resetTargetParticleSet(ParticleSet& P);
 
@@ -183,9 +183,9 @@ namespace qmcplusplus {
     // crystal symmetry
     bool operator()(PosType G1, PosType G2);
     OrbitalBasePtr makeClone(ParticleSet& tqp) const;
-    void copyFrom(const OrbitalBase& old);
 
   private:
+    void copyFrom(const kSpaceJastrow& old);
     kSpaceJastrow(const ParticleSet& ions, ParticleSet& els);
   };
 }
