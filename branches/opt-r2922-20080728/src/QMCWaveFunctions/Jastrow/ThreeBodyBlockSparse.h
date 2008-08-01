@@ -125,7 +125,8 @@ namespace qmcplusplus {
 
     /** Symmetric matrix connecting Geminal Basis functions */
     Matrix<RealType> Lambda;
-
+    /** boolean to enable/disable optmization of Lambda(i,j) component */
+    Matrix<int> FreeLambda;
     vector<IndexType> Blocks;
     vector<IndexType> BlockOffset;
     vector<Matrix<RealType>* > LambdaBlocks;

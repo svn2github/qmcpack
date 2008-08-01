@@ -29,11 +29,23 @@ namespace qmcplusplus {
     return SuperLattice;
   }
   
-  void
-  EinsplineSet::resetParameters(VarRegistry<RealType>& vlist)
+  void EinsplineSet::checkInVariables(opt_variables_type& active)
   {
+    //do nothing
   }
-  
+  void EinsplineSet::checkOutVariables(const opt_variables_type& active)
+  {
+    //do nothing
+  }
+  void EinsplineSet::resetParameters(const opt_variables_type& active)
+  {
+    //do nothing
+  }
+  void EinsplineSet::reportStatus(ostream& os)
+  {
+    //do nothing
+  }
+
   void
   EinsplineSet::resetTargetParticleSet(ParticleSet& e)
   {

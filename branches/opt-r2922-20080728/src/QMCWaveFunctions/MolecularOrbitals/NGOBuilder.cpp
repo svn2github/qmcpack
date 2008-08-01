@@ -228,10 +228,9 @@ namespace qmcplusplus {
   }
 
   template<class T>
-  struct PadeOrbital: public OptimizableFunctorBase<T> {
+  struct PadeOrbital: public OptimizableFunctorBase {
   
-    typedef typename OptimizableFunctorBase<T>::value_type value_type;
-    typedef typename OptimizableFunctorBase<T>::real_type real_type;
+    typedef T value_type;
     real_type a0,a1,a2,a3,rcut;
     std::string  nodeName;
   
@@ -241,6 +240,11 @@ namespace qmcplusplus {
   
     ~PadeOrbital(){ }
   
+    OptimizableFunctorBase* makeClone() const
+    {
+      return new PadeOrbital<T>(*this);
+    }
+
     void reset() {}
   
     inline real_type f(real_type r) {

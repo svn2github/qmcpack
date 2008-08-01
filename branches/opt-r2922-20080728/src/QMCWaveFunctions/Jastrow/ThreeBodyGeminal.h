@@ -120,7 +120,8 @@ namespace qmcplusplus {
 
     /** Symmetric matrix connecting Geminal Basis functions */
     Matrix<RealType> Lambda;
-
+    /** boolean to enable/disable optmization of Lambda(i,j) component */
+    Vector<int> FreeLambda;
     /** Uk[i] = \sum_j dot(U[i],V[j]) */
     Vector<RealType> Uk;
 
