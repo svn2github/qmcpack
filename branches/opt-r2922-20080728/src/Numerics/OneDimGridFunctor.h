@@ -86,6 +86,11 @@ struct OneDimGridFunctor//: public FunctorBase<Td,1> {
     return *this;
   }
 
+  template<typename TT>
+    inline void resetParameters(const TT& active)
+    {
+    }
+
   ///set the number of nodes
   inline void setNumOfNodes(int n) { NumNodes = n;}
 
