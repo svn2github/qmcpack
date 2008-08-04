@@ -26,6 +26,17 @@ namespace qmcplusplus {
 //#endif
   { }
 
+  OrbitalBase::OrbitalBase(const OrbitalBase& old):
+    Optimizable(old.Optimizable), UseBuffer(old.UseBuffer), //Counter(old.Counter), 
+    dPsi(old.dPsi), OrbitalName(old.OrbitalName),myVars(old.myVars)
+  {
+    //
+    //if(dLogPsi.size()) dLogPsi.resize(dLogPsi.size());
+    //if(d2LogPsi.size()) dLogPsi.resize(d2LogPsi.size());
+    //if(dPsi) dPsi=old.dPsi->makeClone();
+  }
+
+
 //  void OrbitalBase::setDiffOrbital(DiffOrbitalBasePtr d)
 //  {
 //#if defined(ENABLE_SMARTPOINTER)

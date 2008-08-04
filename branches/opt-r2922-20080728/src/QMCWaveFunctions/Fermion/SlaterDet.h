@@ -27,7 +27,7 @@ namespace qmcplusplus {
     typedef DiracDeterminantBase Determinant_t;
 
     /// constructor
-    SlaterDet() {M.resize(3,0);Optimizable=false;}
+    SlaterDet();
 
     ///destructor
     ~SlaterDet();

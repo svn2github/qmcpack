@@ -78,9 +78,9 @@ namespace qmcplusplus {
     /** boolean to turn on/off the buffer
      */
     bool UseBuffer;
-    /** integer to keep track its usage
-     */
-    int Counter;
+    ///** integer to keep track its usage
+    // */
+    //int Counter;
     /** current \f$\log\phi \f$
      */
     ValueType LogValue;
@@ -106,6 +106,7 @@ namespace qmcplusplus {
 
     /// default constructor
     OrbitalBase();
+    OrbitalBase(const OrbitalBase& old);
 
     ///default destructor
     virtual ~OrbitalBase() { }

@@ -29,23 +29,6 @@ namespace qmcplusplus {
     return SuperLattice;
   }
   
-  void EinsplineSet::checkInVariables(opt_variables_type& active)
-  {
-    //do nothing
-  }
-  void EinsplineSet::checkOutVariables(const opt_variables_type& active)
-  {
-    //do nothing
-  }
-  void EinsplineSet::resetParameters(const opt_variables_type& active)
-  {
-    //do nothing
-  }
-  void EinsplineSet::reportStatus(ostream& os)
-  {
-    //do nothing
-  }
-
   void
   EinsplineSet::resetTargetParticleSet(ParticleSet& e)
   {
@@ -88,6 +71,11 @@ namespace qmcplusplus {
     abort();
   }
 
+  void
+  EinsplineSetLocal::resetParameters(const opt_variables_type& active)
+  {
+
+  }
 
   void 
   EinsplineSetLocal::evaluate (const ParticleSet& P, int iat, 
@@ -289,10 +277,9 @@ namespace qmcplusplus {
 				  (complex<double>*)hess.data());
   }
 			   
-
   template<typename StorageType> void
   EinsplineSetExtended<StorageType>::resetParameters
-  (VarRegistry<RealType>& vlist) 
+  (const opt_variables_type& active)
   {
 
   }

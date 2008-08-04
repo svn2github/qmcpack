@@ -81,11 +81,6 @@ namespace qmcplusplus {
     void evaluate(const ParticleSet& P, int first, int last,
 		  ValueMatrix_t& psi, GradMatrix_t& dpsi, 
 		  ValueMatrix_t& d2psi);
-    
-    void checkInVariables(opt_variables_type& active);
-    void checkOutVariables(const opt_variables_type& active);
-    void resetParameters(const opt_variables_type& active);
-    void reportStatus(ostream& os);
 
     void resetTargetParticleSet(ParticleSet& e);
     void resetSourceParticleSet(ParticleSet& ions);
@@ -118,6 +113,8 @@ namespace qmcplusplus {
     void evaluate(const ParticleSet& P, int first, int last,
 		  ValueMatrix_t& psi, GradMatrix_t& dpsi, 
 		  ValueMatrix_t& d2psi);
+
+    void resetParameters(const opt_variables_type& active);
 
     EinsplineSetLocal() 
     {
@@ -226,7 +223,7 @@ namespace qmcplusplus {
 		  ComplexValueMatrix_t& psi, ComplexGradMatrix_t& dpsi, 
 		  ComplexValueMatrix_t& d2psi);
     
-    void resetParameters(VarRegistry<RealType>& vlist);
+    void resetParameters(const opt_variables_type& active);
     void resetTargetParticleSet(ParticleSet& e);
     void setOrbitalSetSize(int norbs);
     string Type();

@@ -19,6 +19,12 @@
 
 namespace qmcplusplus {
 
+  SlaterDet::SlaterDet() 
+  {
+    Optimizable=false;
+    OrbitalName="SlaterDet";
+    M.resize(3,0);
+  }
   ///destructor
   SlaterDet::~SlaterDet() { }
 

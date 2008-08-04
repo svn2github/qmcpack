@@ -52,6 +52,7 @@ struct LinearCombinationFunctor: public OptimizableFunctorBase
   {
     LinearCombinationFunctor<T>* myclone=new LinearCombinationFunctor<T>(*this);
     for(int i=0; i<NumComponents; ++i) myclone->Phi[i]=Phi[i]->makeClone();
+    return myclone;
   }
 
   int size() const { return NumComponents;}
