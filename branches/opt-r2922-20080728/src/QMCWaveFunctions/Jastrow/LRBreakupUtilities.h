@@ -368,6 +368,8 @@ template<typename T>
         {
           return myHandler->srDf(r, 1.0/r);
         }
+        void checkInVariables(opt_variables_type& active) { }
+        void checkOutVariables(const opt_variables_type& active) { }
         void resetParameters(const opt_variables_type& optVariables) { }
         bool put(xmlNodePtr cur) {return true;}
       private:

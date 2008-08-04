@@ -117,8 +117,8 @@ namespace qmcplusplus {
       typename std::map<std::string,FT*>::iterator it(J2Unique.begin()),it_end(J2Unique.end());
       while(it != it_end) 
       {
-        myVars.insertFrom((*it).second->myVars);//add myVars
-        active.insertFrom((*it).second->myVars);
+        (*it).second->checkInVariables(active);
+        (*it).second->checkInVariables(myVars);
         ++it;
       }
     }
@@ -132,9 +132,9 @@ namespace qmcplusplus {
       typename std::map<std::string,FT*>::iterator it(J2Unique.begin()),it_end(J2Unique.end());
       while(it != it_end) 
       {
-        (*it++).second->getIndex(active);
+        (*it++).second->checkOutVariables(active);
       }
-      if(dPsi) dPsi->checkOutVariables(active);
+      //if(dPsi) dPsi->checkOutVariables(active);
     }
 
     ///reset the value of all the unique Two-Body Jastrow functions

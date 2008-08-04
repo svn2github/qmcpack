@@ -125,8 +125,16 @@ namespace qmcplusplus {
         return true;
       }
 
-      /** reset the internal variables.
-       */
+      void checkInVariables(opt_variables_type& active)
+      {
+        active.insertFrom(myVars);
+      }
+
+      void checkOutVariables(const opt_variables_type& active)
+      {
+        myVars.getIndex(active);
+      }
+      
       inline void resetParameters(const opt_variables_type& active) 
       {
         int loc=myVars.where(0);

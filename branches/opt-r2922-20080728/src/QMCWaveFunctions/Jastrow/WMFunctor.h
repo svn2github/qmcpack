@@ -105,14 +105,23 @@ namespace qmcplusplus {
         return true;
       }
 
-      /** reset the internal variables.
-       *
-       * USE_resetParameters
-       */
+      void checkInVariables(opt_variables_type& active)
+      {
+        //disable optimization of E
+        //active.insertFrom(myVars);
+      }
+
+      void checkOutVariables(const opt_variables_type& active)
+      {
+        //disable optimization of E
+        //myVars.getIndex(active);
+      }
+
       void resetParameters(const opt_variables_type& active) 
       {
-        int loc=myVars.where(0);
-        if(loc>=0) B0=active[loc];
+        //disable optimization of E
+        //int loc=myVars.where(0);
+        //if(loc>=0) {myVars[0]=B0=active[loc];}
       }
     };
 
@@ -242,6 +251,16 @@ namespace qmcplusplus {
       bool put(xmlNodePtr cur) 
       {
         return true;
+      }
+
+      void checkInVariables(opt_variables_type& active)
+      {
+        active.insertFrom(myVars);
+      }
+
+      void checkOutVariables(const opt_variables_type& active)
+      {
+        myVars.getIndex(active);
       }
 
       void resetParameters(const opt_variables_type& active) 

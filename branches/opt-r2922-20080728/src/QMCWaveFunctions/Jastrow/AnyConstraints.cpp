@@ -185,6 +185,7 @@ namespace qmcplusplus
         rAttrib.put(cur);
 
 
+        acombo->cutoff_radius=rcut;
         OptimizableFunctorBase *a=0;
         OptimizableFunctorBase *da=0;
         if(rfuncName == "cusp")
@@ -264,7 +265,7 @@ namespace qmcplusplus
       curGroup=(*it).second;
     }
 
-    InFuncType* infunc=curGroup->In_;
+    InFuncType* infunc=curGroup->In_ ;
     OutFuncType* nfunc= new OutFuncType(infunc, curGroup->Rcut, curGroup->NumGridPoints);
     curGroup->Out_ = nfunc;
 

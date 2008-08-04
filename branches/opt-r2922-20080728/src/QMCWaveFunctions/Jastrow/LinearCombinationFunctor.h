@@ -61,8 +61,24 @@ struct LinearCombinationFunctor: public OptimizableFunctorBase
   {
     CanNotChange.push_back(fixit);
     C.push_back(c);
+    Phi.push_back(func);
+    int loc=myVars.size();
     myVars.insert(id,c);
+    if(fixit) myVars.Index[loc]=-1;//freeze this
     NumComponents++;
+  }
+
+  void checkInVariables(opt_variables_type& active)
+  {
+    active.insertFrom(myVars);
+    for(int i=0; i<NumComponents; i++) Phi[i]->checkInVariables(active);
+  }
+
+  void checkOutVariables(const opt_variables_type& active)
+  {
+    cout << "LCF::checkOutVariables " << endl;
+    myVars.getIndex(active);
+    for(int i=0; i<NumComponents; i++) Phi[i]->checkOutVariables(active);
   }
 
   inline void reset()
@@ -100,7 +116,7 @@ struct LinearCombinationFunctor: public OptimizableFunctorBase
     {
       if(CanNotChange[i]) continue;
       int loc=myVars.where(i);
-      if(loc>=0) C[i]=active[loc];
+      if(loc>=0) C[i]=myVars[i]=active[loc];
     }
 
     for(int i=0; i<NumComponents; i++) 

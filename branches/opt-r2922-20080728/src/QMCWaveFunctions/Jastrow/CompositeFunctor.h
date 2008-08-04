@@ -299,6 +299,16 @@ namespace qmcplusplus {
         return true;
       }
 
+      void checkInVariables(opt_variables_type& active)
+      {
+        active.insertFrom(myVars);
+      }
+
+      void checkOutVariables(const opt_variables_type& active)
+      {
+        myVars.getIndex(active);
+      }
+
       //cannot be optimized
       void resetParameters(const opt_variables_type& active) 
       { 

@@ -53,8 +53,12 @@ namespace qmcplusplus {
       real_type d2Y;
       ///constructor
       CubicSplineSingle(): InFunc(0) { }
+
       CubicSplineSingle(const CubicSplineSingle& old): 
-        NumGridPoints(old.NumGridPoints), Rmax(old.Rmax), GridDelta(old.GridDelta)
+        OptimizableFunctorBase(old),
+        NumGridPoints(old.NumGridPoints), 
+        Rmax(old.Rmax), 
+        GridDelta(old.GridDelta)
       {
         if(old.InFunc)
         {
@@ -68,12 +72,12 @@ namespace qmcplusplus {
       }
 
       ///constructor with arguments
-      CubicSplineSingle(FNIN* in_, grid_type* agrid): InFunc(0) 
+      CubicSplineSingle(FNIN* in_, grid_type* agrid): InFunc(in_) 
       {
         initialize(in_,agrid);
       }
       ///constructor with arguments
-      CubicSplineSingle(FNIN* in_, real_type rc, int npts):InFunc(0)
+      CubicSplineSingle(FNIN* in_, real_type rc, int npts):InFunc(in_)
       {
         initialize(in_,rc,npts);
       }
@@ -132,14 +136,33 @@ namespace qmcplusplus {
         return s;
       }
 
+      void checkInVariables(opt_variables_type& active)
+      {
+        if(InFunc)
+          InFunc->checkInVariables(active);
+        else
+          APP_ABORT("CubicSplineJastrow::checkInVariables failed due to null input function");
+        std::cout << "^^^^^ checkInVariables " << std::endl;
+      }
+
+      void checkOutVariables(const opt_variables_type& active)
+      {
+        if(InFunc)
+          InFunc->checkOutVariables(active);
+        else
+          APP_ABORT("CubicSplineJastrow::checkOutVariables failed due to null input function");
+      }
+
       ///reset the input/output function
       void resetParameters(const opt_variables_type& active) 
       {
-        if(!InFunc)
+        if(InFunc)
+        {
+          InFunc->resetParameters(myVars);
+          reset();
+        }
+        else
           APP_ABORT("CubicSplineJastrow::resetParameters failed due to null input function");
-
-        InFunc->resetParameters(active);
-        reset();
       }
 
       void print(ostream& os) 
@@ -166,13 +189,20 @@ namespace qmcplusplus {
 
       void reset()
       {
-        typename FNOUT::container_type datain(NumGridPoints);
-        real_type r=0;
-        for(int i=0; i<NumGridPoints; i++, r+=GridDelta) 
+        if(InFunc)
         {
-          datain[i] = InFunc->f(r);
+          typename FNOUT::container_type datain(NumGridPoints);
+          real_type r=0;
+          for(int i=0; i<NumGridPoints; i++, r+=GridDelta) 
+          {
+            datain[i] = InFunc->f(r);
+          }
+          OutFunc.Init(0.0,Rmax,datain,true,InFunc->df(0.0),0.0);
         }
-        OutFunc.Init(0.0,Rmax,datain,true,InFunc->df(0.0),0.0);
+        else
+        {
+          APP_ABORT("CubicSplineSingle::reset has no input functor");
+        }
       }
     };
 
@@ -207,7 +237,7 @@ namespace qmcplusplus {
       void resetParameters(const opt_variables_type& active) 
       {
         if(!InFunc)
-          APP_ABORT("CubicSplineBasisSEt::resetParameters failed due to null input function ");
+          APP_ABORT("CubicSplineBasisSet::resetParameters failed due to null input function ");
 
         InFunc->resetParameters(active);
         reset();

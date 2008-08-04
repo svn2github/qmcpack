@@ -159,6 +159,8 @@ struct GaussianCombo: public OptimizableFunctorBase {
 
   bool put(xmlNodePtr cur);
 
+  void checkInVariables(opt_variables_type& active) { }
+  void checkOutVariables(const opt_variables_type& active) { }
   void resetParameters(const opt_variables_type& active)
   {
     //DO NOTHING FOR NOW

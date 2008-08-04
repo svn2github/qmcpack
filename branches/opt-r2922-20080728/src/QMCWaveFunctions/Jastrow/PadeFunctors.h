@@ -118,10 +118,16 @@ namespace qmcplusplus {
         return true;
       }
 
-      /** reset the internal variables.
-       *
-       * USE_resetParameters
-       */
+      void checkInVariables(opt_variables_type& active)
+      {
+        active.insertFrom(myVars);
+      }
+
+      void checkOutVariables(const opt_variables_type& active)
+      {
+        myVars.getIndex(active);
+      }
+
       void resetParameters(const opt_variables_type& active) 
       {
         int ia=myVars.where(0); if(ia>-1) A=active[ia];
@@ -240,6 +246,15 @@ namespace qmcplusplus {
         return true;
       }
 
+      void checkInVariables(opt_variables_type& active)
+      {
+        active.insertFrom(myVars);
+      }
+
+      void checkOutVariables(const opt_variables_type& active)
+      {
+        myVars.getIndex(active);
+      }
       void resetParameters(const opt_variables_type& active) 
       {
         if(myVars.where(0)>-1) A=active[myVars.where(0)];
@@ -316,10 +331,16 @@ namespace qmcplusplus {
 
       bool put(xmlNodePtr cur) {return true;}
 
-      /** reset the internal variables.
-       *
-       * When RefPade is not 0, use RefPade->B to reset the values
-       */
+      void checkInVariables(opt_variables_type& active)
+      {
+        active.insertFrom(myVars);
+      }
+
+      void checkOutVariables(const opt_variables_type& active)
+      {
+        myVars.getIndex(active);
+      }
+
       inline void resetParameters(const opt_variables_type& active) 
       {
         OneOverC=1.0/C;

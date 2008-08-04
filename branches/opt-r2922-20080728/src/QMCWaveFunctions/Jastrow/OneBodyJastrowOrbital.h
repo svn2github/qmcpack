@@ -122,8 +122,8 @@ namespace qmcplusplus {
         FT* fptr=Funique[i];
         if(fptr)
         {
-          myVars.insertFrom(fptr->myVars);//add myVars
-          active.insertFrom(fptr->myVars);
+          fptr->checkInVariables(active);
+          fptr->checkInVariables(myVars);
         }
       }
     }
@@ -134,8 +134,10 @@ namespace qmcplusplus {
     {
       myVars.getIndex(active);
       Optimizable=myVars.is_optimizable();
+
       for(int i=0; i<Funique.size(); ++i)
-        if(Funique[i]) Funique[i]->getIndex(active);
+        if(Funique[i]) Funique[i]->checkOutVariables(active);
+
       //if(dPsi) dPsi->checkOutVariables(active);
     }
 

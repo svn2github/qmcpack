@@ -503,6 +503,8 @@ namespace qmcplusplus {
     OptVariablesForPsi.clear();
     Psi.checkInVariables(OptVariablesForPsi);
 
+    OptVariablesForPsi.resetIndex();
+
     //synchronize OptVariables and OptVariablesForPsi
     OptVariables=OptVariablesForPsi;
 
@@ -564,6 +566,10 @@ namespace qmcplusplus {
         ++eit;
       }
     }
+
+    cout << "##################### " << endl;
+    OptVariablesForPsi.print(cout);
+    cout << "##################### " << endl;
 
     //get the indices
     Psi.checkOutVariables(OptVariablesForPsi);
@@ -667,6 +673,11 @@ namespace qmcplusplus {
 
       xmlXPathFreeContext(acontext);
     }
+
+    app_log() << "#### Debugging OptVariablesForPsi " << endl;
+    OptVariablesForPsi.print(app_log());
+    app_log() << "#### Psi.reportStatus " << endl;
+    Psi.reportStatus(app_log());
 
     map<string,xmlNodePtr>::iterator pit(paramNodes.begin()), pit_end(paramNodes.end());
     while(pit != pit_end)
@@ -870,6 +881,7 @@ namespace qmcplusplus {
       val_proj=Cost();
 
       app_log() << "  cost = " << val_proj << endl;
+      //Psi.reportStatus(app_log());
       //return false;
       return true;
     }

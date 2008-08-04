@@ -54,19 +54,36 @@ struct OptimizableFunctorBase
   inline OptimizableFunctorBase(){}
   ///virtual destrutor
   virtual ~OptimizableFunctorBase(){}
-  /** add variables to be optimized
-   * @param vlist list to which  derived classes add optimizable variables
-   */
-  void addOptimizables(variable_map_type& vlist) 
-  {
-    myVars.insertTo(vlist);
-  }
+  ///** add variables to be optimized
+  // * @param vlist list to which  derived classes add optimizable variables
+  // */
+  //void addOptimizables(variable_map_type& vlist) 
+  //{
+  //  myVars.insertTo(vlist);
+  //}
 
   inline void getIndex(const opt_variables_type& active)
   {
     myVars.getIndex(active);
   }
 
+  virtual void checkInVariables(opt_variables_type& active)=0;
+  ///{
+  ///  std::cout << "  Calling  cOFB::heckInVariables " << std::endl;
+  ///  active.insertFrom(myVars);
+  ///  //myVars.insertTo(active);
+  ///}
+
+  virtual void checkOutVariables(const opt_variables_type& active)=0;
+  //{
+  //  std::cout << "  Calling  cOFB::heckOutVariables " << std::endl;
+  //  myVars.getIndex(active);
+  //}
+
+  /** reset the optimizable variables
+   * @param active list of active optimizable variables
+   */
+  virtual void resetParameters(const opt_variables_type& active)=0;
   /** create a clone of this object
    */
   virtual OptimizableFunctorBase* makeClone() const =0;
@@ -74,10 +91,6 @@ struct OptimizableFunctorBase
   /** reset function 
    */
   virtual void reset()=0;
-  /** reset the optimizable variables
-   * @param active list of active optimizable variables
-   */
-  virtual void resetParameters(const opt_variables_type& active)=0;
 
   /** evaluate the value at r
    * @param r distance
