@@ -66,10 +66,26 @@ namespace qmcplusplus {
     }
   }
   
+  void LRTwoBodyJastrow::checkInVariables(opt_variables_type& active)
+  {
+    APP_ABORT("LRTwoBodyJastrow::checkInVariables is not completed.");
+    //if(handler) resetByHandler();
+  }
+
+  void LRTwoBodyJastrow::checkOutVariables(const opt_variables_type& active)
+  {
+    APP_ABORT("LRTwoBodyJastrow::checkOutVariables is not completed.");
+    //if(handler) resetByHandler();
+  }
 
   void LRTwoBodyJastrow::resetParameters(const opt_variables_type& active)
   {
     if(handler) resetByHandler();
+  }
+
+  void LRTwoBodyJastrow::reportStatus(ostream& os)
+  {
+    //do nothing for now
   }
 
   void LRTwoBodyJastrow::resetTargetParticleSet(ParticleSet& P) {
@@ -406,7 +422,8 @@ namespace qmcplusplus {
   
   
   bool
-    LRTwoBodyJastrow::put(xmlNodePtr cur, VarRegistry<RealType>& vlist) {
+    LRTwoBodyJastrow::put(xmlNodePtr cur) {
+      //LRTwoBodayJastrow should only works with the handler
       
       if(skRef == 0) {
         app_error() << "  LRTowBodyJastrow should not be used for non periodic systems." << endl;
@@ -433,7 +450,7 @@ namespace qmcplusplus {
                 RealType x;
                 putContent(x,tcur);
                 Fk_symm[ik]=x;
-                vlist[(const char*)idptr]=x;
+                //vlist[(const char*)idptr]=x;
               }
               foundCoeff=true;
             }
@@ -447,21 +464,13 @@ namespace qmcplusplus {
         resetInternals();
       } else {
         if(handler) resetByHandler();
-        //add the names for optimization
-        for(int ish=0; ish<MaxKshell; ish++)
-        {
-          char coeffname[128];
-          sprintf(coeffname,"rpa_k%d",ish);
-          vlist[coeffname]=Fk_symm[ish];
-          ////vlist.add(coeffname,Fk_symm.data()+ik);
-          //std::ostringstream kname,val;
-          //kname << ish;
-          //val<<Fk_symm[ish];
-          //xmlNodePtr p_ptr = xmlNewTextChild(cur,NULL,(const xmlChar*)"parameter",
-          //    (const xmlChar*)val.str().c_str());
-          //xmlNewProp(p_ptr,(const xmlChar*)"id",(const xmlChar*)coeffname);
-          //xmlNewProp(p_ptr,(const xmlChar*)"name",(const xmlChar*)kname.str().c_str());
-        }
+        ////add the names for optimization
+        //for(int ish=0; ish<MaxKshell; ish++)
+        //{
+        //  char coeffname[128];
+        //  sprintf(coeffname,"rpa_k%d",ish);
+        //  vlist[coeffname]=Fk_symm[ish];
+        //}
 
         MaxK=skRef->KLists.kshell[MaxKshell];
         Kshell.resize(MaxKshell+1);

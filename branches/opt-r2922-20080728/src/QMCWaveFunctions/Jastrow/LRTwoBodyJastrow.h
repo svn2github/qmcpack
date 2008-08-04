@@ -183,7 +183,7 @@ namespace qmcplusplus {
     ValueType evaluate(ParticleSet& P, PooledData<RealType>& buf);
 
     ///process input file
-    bool put(xmlNodePtr cur, VarRegistry<RealType>& vlist);
+    bool put(xmlNodePtr cur);
 
   };
 }

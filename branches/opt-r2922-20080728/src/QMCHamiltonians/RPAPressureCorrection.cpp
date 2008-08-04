@@ -136,8 +136,7 @@ namespace qmcplusplus {
       LRTwoBodyJastrow* LongRangeRPA = new LRTwoBodyJastrow(P,realHandler);
 //       LongRangeRPA->resetByHandler();
 
-      VarRegistry<RealType> tempO;
-      LongRangeRPA->put(0,tempO);
+      LongRangeRPA->put(0);
       dPsi.push_back(LongRangeRPA);
 
       //short-range uses realHandler
@@ -179,8 +178,7 @@ namespace qmcplusplus {
       LRTwoBodyJastrow* LongRangeRPA = new LRTwoBodyJastrow(P,realHandler);
 //       LongRangeRPA->resetByHandler();
 
-      VarRegistry<RealType> tempO;
-      LongRangeRPA->put(0,tempO);
+      LongRangeRPA->put(0);
       dPsi.push_back(LongRangeRPA);
     }
     else if (RPAPfunc=="NUMERIC"){
@@ -197,8 +195,7 @@ namespace qmcplusplus {
       LRTwoBodyJastrow* LongRangeRPA = new LRTwoBodyJastrow(P,realHandler);
 //       LongRangeRPA->resetByHandler();
 
-      VarRegistry<RealType> tempO;
-      LongRangeRPA->put(0,tempO);
+      LongRangeRPA->put(0);
       dPsi.push_back(LongRangeRPA);
       
       
@@ -240,8 +237,7 @@ namespace qmcplusplus {
       LRTwoBodyJastrow* LongRangeRPA = new LRTwoBodyJastrow(P,realHandler);
 //       LongRangeRPA->resetByHandler();
 
-      VarRegistry<RealType> tempO;
-      LongRangeRPA->put(0,tempO);
+      LongRangeRPA->put(0);
         dPsi.push_back(LongRangeRPA);
 //       double dPsiKVal = (*dPsi.begin())->evaluateLog(P,P.G,P.L);
 //       cout<<"point-1 "<<(*dPsi.begin())->evaluateLog(P,P.G,P.L)<<endl;
@@ -290,7 +286,7 @@ namespace qmcplusplus {
       HandlerType* tempHandler= new LRHandlerTemp<YukawaBreakup<Return_t>,LPQHIBasis >(*tempP,RPAKCut);
       tempHandler-> initBreakup(*tempP);
       LRTwoBodyJastrow* tempLongRangeRPA = new LRTwoBodyJastrow(*tempP,tempHandler);
-      tempLongRangeRPA->put(0,tempO);
+      tempLongRangeRPA->put(0);
       
       vector<OrbitalBase*> tempPsi;
         tempPsi.push_back(tempLongRangeRPA);
@@ -359,7 +355,7 @@ namespace qmcplusplus {
       HandlerType* tempHandler2= new LRHandlerTemp<YukawaBreakup<Return_t>,LPQHIBasis >(*tempP2,RPAKCut);
       tempHandler2-> initBreakup(*tempP2);
       LRTwoBodyJastrow* tempLongRangeRPA2 = new LRTwoBodyJastrow(*tempP2,tempHandler2);
-      tempLongRangeRPA2->put(0,tempO);
+      tempLongRangeRPA2->put(0);
       
       vector<OrbitalBase*> tempPsi2;
       tempPsi2.push_back(tempLongRangeRPA2);
@@ -418,8 +414,7 @@ namespace qmcplusplus {
       LRTwoBodyJastrow* LongRangeRPA = new LRTwoBodyJastrow(P,realHandler);
 //       LongRangeRPA->resetByHandler();
 
-      VarRegistry<RealType> tempO;
-      LongRangeRPA->put(0,tempO);
+      LongRangeRPA->put(0);
       dPsi.push_back(LongRangeRPA);
 //       double dPsiKVal = (*dPsi.begin())->evaluateLog(P,P.G,P.L);
 //       cout<<"point-1 "<<(*dPsi.begin())->evaluateLog(P,P.G,P.L)<<endl;
@@ -468,7 +463,7 @@ namespace qmcplusplus {
       HandlerType* tempHandler= new LRRPAHandlerTemp<RPABreakup<Return_t>,LPQHIBasis >(*tempP,RPAKCut);
       tempHandler-> initBreakup(*tempP);
       LRTwoBodyJastrow* tempLongRangeRPA = new LRTwoBodyJastrow(*tempP,tempHandler);
-      tempLongRangeRPA->put(0,tempO);
+      tempLongRangeRPA->put(0);
       
       vector<OrbitalBase*> tempPsi;
       tempPsi.push_back(tempLongRangeRPA);
@@ -537,7 +532,7 @@ namespace qmcplusplus {
       HandlerType* tempHandler2= new LRRPAHandlerTemp<RPABreakup<Return_t>,LPQHIBasis >(*tempP2,RPAKCut);
       tempHandler2-> initBreakup(*tempP2);
       LRTwoBodyJastrow* tempLongRangeRPA2 = new LRTwoBodyJastrow(*tempP2,tempHandler2);
-      tempLongRangeRPA2->put(0,tempO);
+      tempLongRangeRPA2->put(0);
       
       vector<OrbitalBase*> tempPsi2;
       tempPsi2.push_back(tempLongRangeRPA2);

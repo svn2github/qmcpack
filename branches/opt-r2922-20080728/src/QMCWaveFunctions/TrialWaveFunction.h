@@ -79,23 +79,20 @@ namespace qmcplusplus {
     bool put(xmlNodePtr cur);
     ///implement the virtual function
     void reset();
-    ///reset member data
-    void resetParameters(const opt_variables_type& active);
-
-    /** check out optimizable variables
-     */      
-    void checkOutVariables(const opt_variables_type& o);
-
-    /** print out state of the trial wavefunction
-     */
-    void reportStatus(ostream& os);
-
     /** check in an optimizable parameter
      * * @param o a super set of optimizable variables
      *
      * Update myOptIndex if o is found among the "active" paramemters.
      */
     void checkInVariables(opt_variables_type& o);
+    /** check out optimizable variables
+     */      
+    void checkOutVariables(const opt_variables_type& o);
+    ///reset member data
+    void resetParameters(const opt_variables_type& active);
+    /** print out state of the trial wavefunction
+     */
+    void reportStatus(ostream& os);
 
     /** recursively change the ParticleSet whose G and L are evaluated */
     void resetTargetParticleSet(ParticleSet& P);
