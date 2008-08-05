@@ -208,6 +208,33 @@ namespace qmcplusplus {
 	HaveLocalizedOrbs = HaveLocalizedOrbs || (radius > 0.0);
       }
     }
+
+    //////////////////////////////////////////////////////////
+    // If the density has not been set in TargetPtcl, and   //
+    // the density is available, read it in and save it     //
+    // in TargetPtcl.                                       //
+    //////////////////////////////////////////////////////////
+    if (!TargetPtcl.Density_G.size()) {
+      HDFAttribIO<vector<TinyVector<int,OHMMS_DIM> > > 
+	h_reduced_gvecs(TargetPtcl.DensityReducedGvecs);
+      HDFAttribIO<Array<RealType,OHMMS_DIM> > 
+	h_density_r (TargetPtcl.Density_r);
+      h_reduced_gvecs.read (H5FileID, "/density/reduced_gvecs");
+      h_density_r.read (H5FileID,     "/density/rho_r");
+      int numG = TargetPtcl.DensityReducedGvecs.size();
+      app_log() << "  Read " << numG << " density G-vectors.\n";
+      if (TargetPtcl.DensityReducedGvecs.size()) {
+	app_log() << "  EinsplineSetBuilder found density in the HDF5 file.\n";
+	HDFAttribIO<vector<ComplexType > > h_density_G (TargetPtcl.Density_G);
+	h_density_G.read (H5FileID, "/density/rho_G");
+	if (!TargetPtcl.Density_G.size()) {
+	  app_error() << "  Density reduced G-vectors defined, but not the"
+		      << " density.\n";
+	  abort();
+	}
+      }
+    }
+
     return true;
   }
 

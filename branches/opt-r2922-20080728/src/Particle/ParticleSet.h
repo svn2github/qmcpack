@@ -20,6 +20,7 @@
 #include "Utilities/SpeciesSet.h"
 #include "Particle/Walker.h"
 #include "OhmmsData/RecordProperty.h"
+#include "OhmmsPETE/OhmmsArray.h"
 
 namespace qmcplusplus {
 
@@ -84,6 +85,11 @@ namespace qmcplusplus {
 
     ///spherical-grids for non-local PP
     vector<ParticlePos_t*> Sphere;
+
+    ///Particle density in G-space for MPC interaction
+    vector<TinyVector<int,OHMMS_DIM> > DensityReducedGvecs;
+    vector<std::complex<double> >   Density_G;
+    Array<RealType,OHMMS_DIM> Density_r;
 
      /** name-value map of Walker Properties
      *

@@ -157,11 +157,6 @@ namespace qmcplusplus {
           
         }
       }
-      
-      
-      
-
-      
       //else if(cname == "harmonic") 
       //{
       //  PtclPoolType::iterator pit(ptclPool.find(sourceInp));
@@ -256,6 +251,25 @@ namespace qmcplusplus {
     return true;
   }
 
+  void
+  HamiltonianFactory::addMPCPotential(xmlNodePtr cur) {
+#if defined(HAVE_LIBFFTW)
+    string a("e"), title("MPC");
+    OhmmsAttributeSet hAttrib;
+    double cutoff = 30.0;
+    hAttrib.add(title,"id"); 
+    hAttrib.add(title,"name"); 
+    hAttrib.add(cutoff,"cutoff");
+    hAttrib.put(cur);
+
+    renameProperty(a);
+
+    MPC *mpc = new MPC (*targetPtcl, cutoff);
+    targetH->addOperator(mpc, "MPC");
+    
+#endif // defined(HAVE_LIBFFTW)
+  }
+
   void 
   HamiltonianFactory::addCoulombPotential(xmlNodePtr cur) {
 
@@ -283,7 +297,7 @@ namespace qmcplusplus {
       if(source->getTotalNum()>1)  {
         if(applyPBC) {
           //targetH->addOperator(new CoulombPBCAA(*targetPtcl),title);
-          targetH->addOperator(new CoulombPBCAATemp(*targetPtcl),title);
+          targetH->addOperator(new CoulombPBCAATemp(*targetPtcl,true),title);
         } else {
           targetH->addOperator(new CoulombPotentialAA(*targetPtcl),title);
         }
@@ -386,7 +400,7 @@ namespace qmcplusplus {
       if(ion->getTotalNum()>1) 
         if(PBCType){
           //targetH->addOperator(new CoulombPBCAA(*ion),"IonIon");
-          targetH->addOperator(new CoulombPBCAATemp(*ion),"IonIon");
+          targetH->addOperator(new CoulombPBCAATemp(*ion,false),"IonIon");
         } else {
           targetH->addOperator(new IonIonPotential(*ion),"IonIon");
         }
