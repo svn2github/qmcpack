@@ -74,8 +74,10 @@ namespace qmcplusplus {
     SphericalBasisSet<ROT,GT>* makeClone() const
     {
       SphericalBasisSet<ROT,GT>* myclone=new SphericalBasisSet<ROT,GT>(*this);
-      for(int i=0; i<Grids.size(); ++i) myclone->Grids[i]=Grids[i]->makeClone();
-      for(int i=0; i<Rnl.size(); ++i) myclone->Rnl[i]=new ROT(*Rnl[i]);
+      //for(int i=0; i<Grids.size(); ++i) myclone->Grids[i]=Grids[i]->makeClone();
+      //for(int i=0; i<Rnl.size(); ++i) myclone->Rnl[i]=new ROT(*Rnl[i]);
+      for(int i=0; i<Rnl.size(); ++i) 
+        myclone->Rnl[i]=dynamic_cast<ROT*>(Rnl[i]->makeClone());
       return myclone;
     }
 

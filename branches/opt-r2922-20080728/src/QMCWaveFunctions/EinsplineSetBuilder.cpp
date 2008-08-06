@@ -21,6 +21,7 @@
 #include "Message/Communicate.h"
 #include "Message/CommOperators.h"
 #include <vector>
+#include "Numerics/HDFSTLAttrib.h"
 
 namespace qmcplusplus {
   std::map<TinyVector<int,4>,EinsplineSetBuilder::OrbType*,Int4less> 
@@ -37,7 +38,7 @@ namespace qmcplusplus {
       PtclPoolType& psets, xmlNodePtr cur) 
     : XMLRoot(cur), TileFactor(1,1,1), TwistNum(0), LastSpinSet(-1), 
       NumOrbitalsRead(-1), NumMuffinTins(0), NumCoreStates(0),
-      ParticleSets(psets)
+      ParticleSets(psets), TargetPtcl(p)
   {
     for (int i=0; i<3; i++)
       for (int j=0; j<3; j++)
@@ -244,6 +245,7 @@ namespace qmcplusplus {
     if(myComm->size() == 1) return;
 
     int numIons = IonTypes.size();
+    int numDensityGvecs = TargetPtcl.DensityReducedGvecs.size();
     PooledData<RealType> abuffer;
     abuffer.add(Version.begin(),Version.end()); //myComm->bcast(Version);
     abuffer.add(Lattice.begin(),Lattice.end());//myComm->bcast(Lattice);
@@ -256,6 +258,7 @@ namespace qmcplusplus {
     abuffer.add(NumTwists); //myComm->bcast(NumTwists);
     abuffer.add(numIons); //myComm->bcast(numIons);
     abuffer.add(NumMuffinTins);
+    abuffer.add(numDensityGvecs);
 
     myComm->bcast(abuffer);
 
@@ -273,11 +276,14 @@ namespace qmcplusplus {
       abuffer.get(NumTwists);
       abuffer.get(numIons);
       abuffer.get(NumMuffinTins);
+      abuffer.get(numDensityGvecs);
       MT_APW_radii.resize(NumMuffinTins);
       MT_APW_lmax.resize(NumMuffinTins);
       MT_APW_rgrids.resize(NumMuffinTins);
       MT_APW_num_radial_points.resize(NumMuffinTins);
       MT_centers.resize(NumMuffinTins);
+      TargetPtcl.DensityReducedGvecs.resize(numDensityGvecs);
+      TargetPtcl.Density_G.resize(numDensityGvecs);
     }
 
     vector<int> rgrids_sizes(NumMuffinTins);
@@ -316,7 +322,10 @@ namespace qmcplusplus {
     bbuffer.add(&(MT_centers[0][0]), &(MT_centers[0][0])+OHMMS_DIM*NumMuffinTins);
     for (int i=0; i<NumMuffinTins; i++) 
       bbuffer.add(MT_APW_rgrids[i].begin(), MT_APW_rgrids[i].end());
-
+    bbuffer.add(&(TargetPtcl.DensityReducedGvecs[0][0]),
+		&(TargetPtcl.DensityReducedGvecs[0][0])+numDensityGvecs*OHMMS_DIM);
+    bbuffer.add(&(TargetPtcl.Density_G[0]),
+		&(TargetPtcl.Density_G[0]) + numDensityGvecs);
     myComm->bcast(bbuffer);
 
     if(myComm->rank())
@@ -332,6 +341,10 @@ namespace qmcplusplus {
       bbuffer.get(&(MT_centers[0][0]), &(MT_centers[0][0])+OHMMS_DIM*NumMuffinTins);
       for (int i=0; i<NumMuffinTins; i++) 
 	bbuffer.get(MT_APW_rgrids[i].begin(), MT_APW_rgrids[i].end());
+      bbuffer.get(&(TargetPtcl.DensityReducedGvecs[0][0]),
+		  &(TargetPtcl.DensityReducedGvecs[0][0])+numDensityGvecs*OHMMS_DIM);
+      bbuffer.get(&(TargetPtcl.Density_G[0]),
+		  &(TargetPtcl.Density_G[0]) + numDensityGvecs);
     }
   }
 

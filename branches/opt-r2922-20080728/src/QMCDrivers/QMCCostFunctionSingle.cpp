@@ -238,8 +238,6 @@ namespace qmcplusplus {
     }
     else
       for(int i=0; i<OptVariables.size(); ++i) OptVariablesForPsi[i]=OptVariables[i];
-
-    Psi.resetParameters(OptVariablesForPsi);
   }
 
   ///** Reset the Wavefunction \f$ \Psi({\bf R},{{\bf \alpha_i}}) \f$

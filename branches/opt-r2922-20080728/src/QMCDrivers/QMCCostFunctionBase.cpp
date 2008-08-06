@@ -567,10 +567,6 @@ namespace qmcplusplus {
       }
     }
 
-    cout << "##################### " << endl;
-    OptVariablesForPsi.print(cout);
-    cout << "##################### " << endl;
-
     //get the indices
     Psi.checkOutVariables(OptVariablesForPsi);
     NumOptimizables=OptVariables.size();
@@ -674,9 +670,6 @@ namespace qmcplusplus {
       xmlXPathFreeContext(acontext);
     }
 
-    app_log() << "#### Debugging OptVariablesForPsi " << endl;
-    OptVariablesForPsi.print(app_log());
-    app_log() << "#### Psi.reportStatus " << endl;
     Psi.reportStatus(app_log());
 
     map<string,xmlNodePtr>::iterator pit(paramNodes.begin()), pit_end(paramNodes.end());

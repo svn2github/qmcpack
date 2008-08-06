@@ -47,7 +47,7 @@ public:
   using base_type::dY;
   using base_type::d2Y;
   using base_type::m_Y;
-  using base_type::FirstAddress;
+  //using base_type::FirstAddress;
 
   int First;
   int Last;

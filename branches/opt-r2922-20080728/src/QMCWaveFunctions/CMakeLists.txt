@@ -11,7 +11,8 @@ SET(JASTROW_SRCS
   Jastrow/LRTwoBodyJastrow.cpp
   Jastrow/JAABuilder.cpp
   Jastrow/JABBuilder.cpp
-  Jastrow/PadeConstraints.cpp
+  Jastrow/PadeJastrowBuilder.cpp
+  Jastrow/WMJastrowBuilder.cpp
   Jastrow/RPAConstraints.cpp
   Jastrow/AnyConstraints.cpp
   Jastrow/CBSOBuilder.cpp
