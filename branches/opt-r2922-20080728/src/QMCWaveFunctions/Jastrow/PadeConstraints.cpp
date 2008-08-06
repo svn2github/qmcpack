@@ -77,9 +77,9 @@ namespace qmcplusplus {
 
     if(IgnoreSpin) 
     {
-      RealType cusp=0.5*q;
+      RealType cusp=-0.5*q*q;
       FuncType *func=new FuncType(cusp,B);
-      func->ID_B=ID_B;
+      func->setIDs("jee_cusp",ID_B);//set the ID's
 
       J2->addFunc("pade_uu",0,0,func);
       FuncList.push_back(func);
@@ -89,10 +89,16 @@ namespace qmcplusplus {
       //dFuncList.push_back(dfunc);
       app_log() << "    Adding Spin-independent Pade Two-Body Jastrow Cusp " << cusp<< "\n";
     } else {
-      RealType cusp_uu=0.25*q;
-      RealType cusp_ud=0.5*q;
+      //build uu functor
+      RealType cusp_uu=-0.25*q*q;
       FuncType *funcUU=new FuncType(cusp_uu,B);
+      funcUU->setIDs("pade_uu",ID_B);//set the ID's
+
+      //build ud functor
+      RealType cusp_ud=-0.5*q*q;
       FuncType *funcUD=new FuncType(cusp_ud,B);
+      funcUD->setIDs("pade_ud",ID_B);//set the ID's
+
       J2->addFunc("pade_uu",0,0,funcUU);
       J2->addFunc("pade_ud",0,1,funcUD);
       FuncList.push_back(funcUU);
@@ -139,9 +145,13 @@ namespace qmcplusplus {
     int icharge = Species.addAttribute("charge");
     for(int ig=0; ig<ng; ig++) {
       RealType zeff=Species(icharge,ig);
+      ostringstream j1id;
+      j1id<<"pade_"<<Species.speciesName[ig];
+
       RealType sc=std::pow(2*zeff,0.25);
-      //RealType sc=1.0;
       FuncType *func=new FuncType(-zeff,B,sc);
+      func->setIDs(j1id.str(),ID_B);
+
       J1->addFunc(ig,func);
       FuncList.push_back(func);
 

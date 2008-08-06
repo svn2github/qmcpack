@@ -52,9 +52,24 @@ namespace qmcplusplus {
       PadeFunctor(): Scale(1.0),ID_A("0"),ID_B("0") { }
       ///constructor
       explicit PadeFunctor(real_type a, real_type b, real_type s=1.0): 
-        A(a),B0(b),Scale(s),ID_A("0"), ID_B("0") 
+        A(a),B0(b),Scale(s)
       {
         reset();
+      }
+
+
+      /** set ID_A and ID_B
+       * @param id_a ID of A
+       * @param id_b ID of B
+       * @param free_a if true, A is optimizable
+       * @param free_b if true, B is optimizable
+       */
+      inline void setIDs(const std::string& id_a, const std::string& id_b, bool free_a=false, bool free_b=true)
+      {
+        ID_A=id_a;
+        ID_B=id_b;
+        myVars.insert(ID_A,A,free_a);
+        myVars.insert(ID_B,B0,free_b);
       }
 
       OptimizableFunctorBase* makeClone() const
@@ -92,8 +107,9 @@ namespace qmcplusplus {
       }
 
       bool put(xmlNodePtr cur) {
-        real_type Atemp(A),Btemp(B);
+        real_type Atemp(A),Btemp(B0);
         cur = cur->xmlChildrenNode;
+        bool renewed=false;
         while(cur != NULL) {
           //@todo Var -> <param(eter) role="opt"/>
           std::string cname((const char*)(cur->name));
@@ -109,12 +125,19 @@ namespace qmcplusplus {
               ID_B = (const char*)iptr;
               putContent(Btemp,cur);
             }
+            bool renewed=true;
           }
           cur = cur->next;
         }
-        reset();
-        myVars.insert(ID_A,A, ID_A != "0");
-        myVars.insert(ID_B,B0,ID_B != "0");
+        if(renewed)
+        {
+          A=Atemp;
+          B0=Btemp;
+          reset();
+          myVars.clear();
+          myVars.insert(ID_A,A, ID_A != "0");
+          myVars.insert(ID_B,B0,ID_B != "0");
+        }
         return true;
       }
 
@@ -126,6 +149,7 @@ namespace qmcplusplus {
       void checkOutVariables(const opt_variables_type& active)
       {
         myVars.getIndex(active);
+        myVars.print(std::cout);
       }
 
       void resetParameters(const opt_variables_type& active) 

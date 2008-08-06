@@ -138,19 +138,12 @@ namespace qmcplusplus {
 
       void checkInVariables(opt_variables_type& active)
       {
-        if(InFunc)
-          InFunc->checkInVariables(active);
-        else
-          APP_ABORT("CubicSplineJastrow::checkInVariables failed due to null input function");
-        std::cout << "^^^^^ checkInVariables " << std::endl;
+        if(InFunc) InFunc->checkInVariables(active);
       }
 
       void checkOutVariables(const opt_variables_type& active)
       {
-        if(InFunc)
-          InFunc->checkOutVariables(active);
-        else
-          APP_ABORT("CubicSplineJastrow::checkOutVariables failed due to null input function");
+        if(InFunc) InFunc->checkOutVariables(active);
       }
 
       ///reset the input/output function
@@ -158,11 +151,9 @@ namespace qmcplusplus {
       {
         if(InFunc)
         {
-          InFunc->resetParameters(myVars);
+          InFunc->resetParameters(active);
           reset();
         }
-        else
-          APP_ABORT("CubicSplineJastrow::resetParameters failed due to null input function");
       }
 
       void print(ostream& os) 

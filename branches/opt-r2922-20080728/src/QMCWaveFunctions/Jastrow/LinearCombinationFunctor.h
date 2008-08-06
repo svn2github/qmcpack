@@ -68,19 +68,6 @@ struct LinearCombinationFunctor: public OptimizableFunctorBase
     NumComponents++;
   }
 
-  void checkInVariables(opt_variables_type& active)
-  {
-    active.insertFrom(myVars);
-    for(int i=0; i<NumComponents; i++) Phi[i]->checkInVariables(active);
-  }
-
-  void checkOutVariables(const opt_variables_type& active)
-  {
-    cout << "LCF::checkOutVariables " << endl;
-    myVars.getIndex(active);
-    for(int i=0; i<NumComponents; i++) Phi[i]->checkOutVariables(active);
-  }
-
   inline void reset()
   {
     for(int i=0; i<NumComponents; ++i) Phi[i]->reset();
@@ -104,6 +91,21 @@ struct LinearCombinationFunctor: public OptimizableFunctorBase
     return true;
   }
 
+
+  //disable optimization of exponents
+  void checkInVariables(opt_variables_type& active)
+  {
+    active.insertFrom(myVars);
+    //for(int i=0; i<NumComponents; i++) Phi[i]->checkInVariables(active);
+  }
+
+  void checkOutVariables(const opt_variables_type& active)
+  {
+    myVars.getIndex(active);
+    //for(int i=0; i<NumComponents; i++) Phi[i]->checkOutVariables(active);
+  }
+
+
   /** reset the coefficients
    * @param optVariables modified variables
    *
@@ -112,15 +114,15 @@ struct LinearCombinationFunctor: public OptimizableFunctorBase
    */
   void resetParameters(const opt_variables_type& active) 
   {
-    for(int i=0; i<NumComponents; i++) 
+    for(int i=0; i<NumComponents; ++i) 
     {
       if(CanNotChange[i]) continue;
       int loc=myVars.where(i);
       if(loc>=0) C[i]=myVars[i]=active[loc];
     }
 
-    for(int i=0; i<NumComponents; i++) 
-      Phi[i]->resetParameters(active);
+
+    //for(int i=0; i<NumComponents; i++) Phi[i]->resetParameters(active);
   }
 
 };

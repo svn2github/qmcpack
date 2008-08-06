@@ -15,8 +15,8 @@
 // -*- C++ -*-
 #include "QMCWaveFunctions/Jastrow/JastrowBuilder.h"
 #include "QMCWaveFunctions/Jastrow/JastrowBasisBuilder.h"
-#include "QMCWaveFunctions/Jastrow/AnyConstraints.h"
-#include "QMCWaveFunctions/Jastrow/PadeConstraints.h"
+#include "QMCWaveFunctions/Jastrow/PadeJastrowBuilder.h"
+#include "QMCWaveFunctions/Jastrow/WMJastrowBuilder.h"
 #include "QMCWaveFunctions/Jastrow/RPAConstraints.h"
 #include "QMCWaveFunctions/Jastrow/JAABuilder.h"
 #include "QMCWaveFunctions/Jastrow/JABBuilder.h"
@@ -121,43 +121,23 @@ namespace qmcplusplus {
 
     bool success=false;
     ParticleSet* sourcePtcl= (*pa_it).second;
-    if(funcOpt == "any")// || funcOpt == "poly")
+    if(funcOpt == "any")
     {
-      OrbitalConstraintsBase* control=0;
-      control = new AnyConstraints(targetPtcl,targetPsi);
-      control->setReportLevel(ReportLevel);
-      //if(funcOpt == "any")
-      //  control = new AnyConstraints(targetPtcl,targetPsi);
-      //else
-      //  control = new PolyConstraints(targetPtcl,targetPsi,true);
-      control->put(cur);
-      OrbitalBase* j=control->createOneBody(*sourcePtcl);
-      if(j)
-      {
-        targetPsi.addOrbital(j,"J1_WM");
-        Children.push_back(control);
-        success=true;
-      }
-      else
-      {
-        delete control;
-      }
+      app_log() << "\n  Using WMJastrowBuilder for one-body jastrow with WM functions" << endl;
+      WMJastrowBuilder jb(targetPtcl,targetPsi,sourcePtcl);
+      success=jb.put(cur);
     }
     else if (funcOpt == "Bspline" ) 
     {
       app_log() << "\n  Using BsplineBuilder for one-body jastrow with B-spline functions" << endl;
-      OrbitalBuilderBase* jb = new BsplineJastrowBuilder (targetPtcl, targetPsi, *sourcePtcl);
-      jb->setReportLevel(ReportLevel);
-      Children.push_back(jb);
-      success= jb->put(cur);
+      BsplineJastrowBuilder jb(targetPtcl,targetPsi,*sourcePtcl);
+      success=jb.put(cur);
     }
     else
     {
       app_log() << "\n  Using JABBuilder for one-body jastrow with analytic functions" << endl;
-      OrbitalBuilderBase* jb = new JABBuilder(targetPtcl,targetPsi,ptclPool);
-      jb->setReportLevel(ReportLevel);
-      Children.push_back(jb);
-      success=jb->put(cur);
+      JABBuilder jb(targetPtcl,targetPsi,ptclPool);
+      success=jb.put(cur);
     }
 
     return success;
@@ -174,7 +154,8 @@ namespace qmcplusplus {
     OrbitalConstraintsBase* control=0;
     if(funcOpt == "any")
     {
-      control=new AnyConstraints(targetPtcl,targetPsi);
+      WMJastrowBuilder jb(targetPtcl,targetPsi);
+      return jb.put(cur);
     }
     else if(funcOpt == "pade") 
     {
@@ -182,7 +163,8 @@ namespace qmcplusplus {
         PRE.warning("Pade Jastrow is requested for a periodic system. Please choose other functors.");
 	return false;
       }	
-      control = new PadeConstraints(targetPtcl,targetPsi,ignoreSpin);
+      PadeJastrowBuilder pbuilder(targetPtcl,targetPsi,ptclPool);
+      return pbuilder.put(cur);
     } 
     else if((funcOpt == "Yukawa") || (funcOpt == "RPA")) 
     {
@@ -194,30 +176,19 @@ namespace qmcplusplus {
       else 
         control = new RPAPBCConstraints(targetPtcl,targetPsi,ignoreSpin);
     } 
-    //else if(funcOpt ==  "poly")
+    //else if(funcOpt == "scaledpade") 
     //{
-    //  app_log() << "    Using analytic Polynomial expansion Jastrow Functor " <<endl;
-    //  control = new PolyConstraints(targetPtcl,targetPsi,ignoreSpin);
-    //}
-    else if(funcOpt == "scaledpade") 
-    {
-      control = new ScaledPadeConstraints(targetPtcl,targetPsi,ignoreSpin);
-    } 
+    //  control = new ScaledPadeConstraints(targetPtcl,targetPsi,ignoreSpin);
+    //} 
     else if (funcOpt == "Bspline" ) 
     {
-      OrbitalBuilderBase* sBuilder = new BsplineJastrowBuilder (targetPtcl, targetPsi);
-      Children.push_back(sBuilder);
-      success=sBuilder->put(cur);
-
-      return success;
+      BsplineJastrowBuilder bbuilder(targetPtcl,targetPsi);
+      return bbuilder.put(cur);
     }
     else //try analytic functions
     {
-      OrbitalBuilderBase* jb=new JAABuilder(targetPtcl,targetPsi);
-      jb->setReportLevel(ReportLevel);
-      Children.push_back(jb);
-      success=jb->put(cur);
-      return success;
+      JAABuilder jb(targetPtcl,targetPsi);
+      return jb.put(cur);
     }
 
     control->setReportLevel(ReportLevel);
@@ -229,8 +200,9 @@ namespace qmcplusplus {
     }
 
     OrbitalBase* j2=control->createTwoBody();
-    if(j2== 0) {
-      PRE.error("No two body Jastrow is added.");
+    if(j2== 0) 
+    {
+      APP_ABORT("JastrowBuild::addTwoBody");
       delete control;
       return false;
     }

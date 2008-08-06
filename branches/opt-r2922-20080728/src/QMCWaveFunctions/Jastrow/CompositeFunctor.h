@@ -221,7 +221,10 @@ namespace qmcplusplus {
       inline CuspCorrectionFunctor(real_type e, real_type rc)
       {
         real_type rin=0.5*rc;
-        E=(rin)<e?4.0/rin:e;
+        if(e>0) 
+          E=(rin)<e?4.0/rin:e;
+        else
+          E=5.0/rc;
         Rmax=rc;
         //E=e; 
         reset();
