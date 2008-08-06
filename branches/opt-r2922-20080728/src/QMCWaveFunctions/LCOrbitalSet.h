@@ -175,7 +175,6 @@ namespace qmcplusplus {
 
     ///reset the target particleset
     void resetTargetParticleSet(ParticleSet& P) {
-      cout << "LCOrbitalSet::resetTargetParticleSet " << endl;
       myBasisSet->resetTargetParticleSet(P);
     }
 

@@ -151,8 +151,8 @@ namespace qmcplusplus {
     
     /** reset the distance table with a new target P
      */
-    void resetTargetParticleSet(ParticleSet& P) {
-      LOGMSG("LocalizedBasisSet::resetTargetParticleSet")
+    void resetTargetParticleSet(ParticleSet& P) 
+    {
       myTable = DistanceTable::add(CenterSys,P);
       for(int i=0; i<LOBasisSet.size(); i++) LOBasisSet[i]->setTable(myTable);
     }
