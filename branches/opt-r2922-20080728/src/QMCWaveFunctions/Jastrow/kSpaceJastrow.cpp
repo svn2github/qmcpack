@@ -626,13 +626,13 @@ namespace qmcplusplus {
     for (int i=0; i<OneBodySymmCoefs.size(); i++) 
     {
       int loc_r=myVars.where(ii++);
-      if(loc_r>=0) OneBodySymmCoefs[i].cG.real()=active[loc_r];
       int loc_i=myVars.where(ii++);
+      if(loc_r>=0) OneBodySymmCoefs[i].cG.real()=active[loc_r];
       if(loc_i>=0) OneBodySymmCoefs[i].cG.imag()=active[loc_i];
     }
     for (int i=0; i<TwoBodySymmCoefs.size(); i++) 
     {
-      int loc=myVars.where(i);
+      int loc=myVars.where(ii++);
       if(loc>=0) TwoBodySymmCoefs[i].cG=active[loc];
     }
   }

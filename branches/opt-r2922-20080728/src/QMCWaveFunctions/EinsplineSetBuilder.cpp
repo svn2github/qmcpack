@@ -215,6 +215,7 @@ namespace qmcplusplus {
     // the density is available, read it in and save it     //
     // in TargetPtcl.                                       //
     //////////////////////////////////////////////////////////
+#if defined(HAVE_LIBFFTW)
     if (!TargetPtcl.Density_G.size()) {
       HDFAttribIO<vector<TinyVector<int,OHMMS_DIM> > > 
 	h_reduced_gvecs(TargetPtcl.DensityReducedGvecs);
@@ -236,6 +237,7 @@ namespace qmcplusplus {
       }
     }
 
+#endif
     return true;
   }
 

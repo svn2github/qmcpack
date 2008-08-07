@@ -578,6 +578,7 @@ namespace qmcplusplus {
 
     app_log() << "  Active Optimizable Variables" << endl;
     OptVariables.print(app_log());
+    app_log() << "======================= " << endl;
 
     if(msg_stream) msg_stream->setf(ios::scientific, ios::floatfield);
 
