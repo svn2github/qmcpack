@@ -208,7 +208,7 @@ namespace qmcplusplus {
         Return_t x= hClones[ip]->evaluate(wRef);
         e0 += saved[ENERGY_TOT] = x;
         e2 += x*x;
-        saved[ENERGY_FIXED] = hClones[ip]->getInvariantEnergy();
+        saved[ENERGY_FIXED] = hClones[ip]->getLocalPotential();
 
         ++it;
         ++iw;
@@ -249,9 +249,9 @@ namespace qmcplusplus {
     else
       for(int i=0; i<OptVariables.size(); ++i) OptVariablesForPsi[i]=OptVariables[i];
 
-    cout << "######### QMCCostFunctionOMP::resetPsi " << endl;
-    OptVariablesForPsi.print(cout);
-    cout << "-------------------------------------- " << endl;
+    //cout << "######### QMCCostFunctionOMP::resetPsi " << endl;
+    //OptVariablesForPsi.print(cout);
+    //cout << "-------------------------------------- " << endl;
     Psi.resetParameters(OptVariablesForPsi);
 
     for(int i=0; i<psiClones.size(); ++i)
