@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////
-// (c) Copyright 2003  by Jeongnim Kim
+// (c) Copyright 2003-  by Jeongnim Kim
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 //   National Center for Supercomputing Applications &
@@ -7,7 +7,6 @@
 //   University of Illinois, Urbana-Champaign
 //   Urbana, IL 61801
 //   e-mail: jnkim@ncsa.uiuc.edu
-//   Tel:    217-244-6319 (NCSA) 217-333-3324 (MCC)
 //
 // Supported by 
 //   National Center for Supercomputing Applications, UIUC
@@ -39,25 +38,23 @@ namespace qmcplusplus {
     ///constructor
     QMCHamiltonian();
 
-    ///copy constructor
-
     ///destructor
     ~QMCHamiltonian();
 
-    void addOperator(QMCHamiltonianBase* h, const string& aname);
-    bool remove(const string& aname);
+    ///add an operator
+    void addOperator(QMCHamiltonianBase* h, const string& aname, bool physical=true);
 
     ///add each term to the PropertyList for averages
     void add2WalkerProperty(ParticleSet& P);
 
     ///retrun the starting index
-    inline int startIndex() const { return Hindex[0];}
+    inline int startIndex() const { return myIndex;}
 
     ///return the name of ith Hamiltonian 
-    inline string getName(int i) const { return Hname[i];}
+    inline string getName(int i) const { return H[i]->myName;}
 
     ///return the value of Hamiltonian i
-    inline Return_t operator[](int i) const { return Hvalue[i];}
+    inline Return_t operator[](int i) const { return H[i]->Value;}
 
     ///return the number of Hamiltonians
     inline int size() const { return H.size();}
@@ -66,8 +63,9 @@ namespace qmcplusplus {
     template<class IT>
     inline 
     void saveProperty(IT first) {
-      first[LOCALPOTENTIAL]= LocalEnergy-Hvalue[0];
-      std::copy(Hvalue.begin(),Hvalue.end(),first+Hindex[0]);
+      first[LOCALPOTENTIAL]= LocalEnergy-KineticEnergy;
+      std::copy(myData.begin(),myData.end(),first+myIndex);
+      //std::copy(Hvalue.begin(),Hvalue.end(),first+Hindex[0]);
     }
 
     /** return QMCHamiltonianBase with the name aname
@@ -80,26 +78,20 @@ namespace qmcplusplus {
      * @param i index of the QMCHamiltonianBase
      * @return H[i]
      */
-    QMCHamiltonianBase* getHamiltonian(int i) {
+    QMCHamiltonianBase* getHamiltonian(int i) 
+    {
       return H[i];
     }
 
     ////return the LocalEnergy \f$=\sum_i H^{qmc}_{i}\f$
     inline Return_t getLocalEnergy() { return LocalEnergy;}
     ////return the LocalPotential \f$=\sum_i H^{qmc}_{i} - KE\f$
-    inline Return_t getLocalPotential() { return LocalEnergy-Hvalue[0];}
-    ///return the energy that does not depend on variational parameters
-    inline Return_t getInvariantEnergy() const { 
-      Return_t s=0;
-      for(int i=0; i<H.size(); i++) {
-        if(!H[i]->UpdateMode[QMCHamiltonianBase::OPTIMIZABLE]) s+=Hvalue[i];
-      }
-      return s;
-    }
+    inline Return_t getLocalPotential() { return LocalEnergy-KineticEnergy;}
 
     /** set Tau for each Hamiltonian
      */
-    inline void setTau(RealType tau) {
+    inline void setTau(RealType tau) 
+    {
       for(int i=0; i< H.size();i++)H[i]->setTau(tau); 
     }
 
@@ -107,20 +99,20 @@ namespace qmcplusplus {
      */
     inline void setPrimary(bool primary) {
       for(int i=0; i< H.size();i++) 
-        H[i]->UpdateMode.set(QMCHamiltonianBase::PRIMARY,1);
+        H[i]->UpdateMode.set(QMCHamiltonianBase::PRIMARY,primary);
     }
     
-    /** return if WaveFunction Ratio needs to be evaluated
-     *
-     * This is added to handle orbital-dependent QMCHamiltonianBase during
-     * orbital optimizations.
-     */
-    inline bool needRatio() {
-      bool dependOnOrbital=false;
-      for(int i=0; i< H.size();i++)  
-        if(H[i]->UpdateMode[QMCHamiltonianBase::RATIOUPDATE]) dependOnOrbital=true;
-      return dependOnOrbital;
-    }
+    ///** return if WaveFunction Ratio needs to be evaluated
+    // *
+    // * This is added to handle orbital-dependent QMCHamiltonianBase during
+    // * orbital optimizations.
+    // */
+    //inline bool needRatio() {
+    //  bool dependOnOrbital=false;
+    //  for(int i=0; i< H.size();i++)  
+    //    if(H[i]->UpdateMode[QMCHamiltonianBase::RATIOUPDATE]) dependOnOrbital=true;
+    //  return dependOnOrbital;
+    //}
 
     /** evaluate Local Energy
      * @param P ParticleSet
@@ -165,26 +157,22 @@ namespace qmcplusplus {
     QMCHamiltonian* makeClone(ParticleSet& qp, TrialWaveFunction& psi); 
 
    private:
-
+    ///starting index
+    int myIndex;
     ///Current Local Energy
     Return_t LocalEnergy;
+    ///Current Kinetic Energy
+    Return_t KineticEnergy;
     ///getName is in the way
     string myName;
     ///vector of Hamiltonians
     std::vector<QMCHamiltonianBase*> H;
+    ///vector of Hamiltonians
+    std::vector<QMCHamiltonianBase*> auxH;
     ///timers
     std::vector<NewTimer*> myTimers;
-    ///vector containing the index of the Hamiltonians
-    std::vector<int> Hindex;
-    ///vector containing the values of the Hamiltonians
-    std::vector<Return_t> Hvalue;
-    ///vector containing the names of the Hamiltonians
-    std::vector<string> Hname;
-    ///map the name to an index
-    std::map<string,int> Hmap;
-
-    /////disable copy constructor
-    //QMCHamiltonian(const QMCHamiltonian& qh);
+    ///data
+    RecordNamedProperty<RealType> myData;
   };
 }
 #endif
