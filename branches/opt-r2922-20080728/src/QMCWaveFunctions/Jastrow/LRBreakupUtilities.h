@@ -342,40 +342,35 @@ template<class T=double>
 };
 
 template<typename T>
-    struct ShortRangePartAdapter : OptimizableFunctorBase {
-      public:
-        typedef LRHandlerBase HandlerType;
+struct ShortRangePartAdapter : OptimizableFunctorBase {
+  typedef LRHandlerBase HandlerType;
 
-        explicit ShortRangePartAdapter(HandlerType* inhandler): Uconst(0) {
-          myHandler = inhandler;
-        }
+  explicit ShortRangePartAdapter(HandlerType* inhandler): Uconst(0), myHandler(inhandlder) 
+  { }
 
-        OptimizableFunctorBase* makeClone() const 
-        {
-          APP_ABORT("ShortRangePartAdapter<T>::makeClone() failed");
-          //this is ugly
-          return 0;
-        }
+  OptimizableFunctorBase* makeClone() const 
+  {
+    return new ShortRangePartAdapter<T>(*this);
+  }
 
-        inline void reset() {}
-        inline void setRmax(real_type rm) { Uconst=myHandler->evaluate(rm,1.0/rm);}
-        inline real_type evaluate(real_type r) { return f(r); }
-        inline real_type f(real_type r) 
-        { 
-          return myHandler->evaluate(r, 1.0/r)-Uconst; 
-        }
-        inline real_type df(real_type r) 
-        {
-          return myHandler->srDf(r, 1.0/r);
-        }
-        void checkInVariables(opt_variables_type& active) { }
-        void checkOutVariables(const opt_variables_type& active) { }
-        void resetParameters(const opt_variables_type& optVariables) { }
-        bool put(xmlNodePtr cur) {return true;}
-      private:
-        real_type Uconst;
-        HandlerType* myHandler;
-    };
+  inline void reset() {}
+  inline void setRmax(real_type rm) { Uconst=myHandler->evaluate(rm,1.0/rm);}
+  inline real_type evaluate(real_type r) { return f(r); }
+  inline real_type f(real_type r) 
+  { 
+    return myHandler->evaluate(r, 1.0/r)-Uconst; 
+  }
+  inline real_type df(real_type r) 
+  {
+    return myHandler->srDf(r, 1.0/r);
+  }
+  void checkInVariables(opt_variables_type& active) { }
+  void checkOutVariables(const opt_variables_type& active) { }
+  void resetParameters(const opt_variables_type& optVariables) { }
+  bool put(xmlNodePtr cur) {return true;}
+  real_type Uconst;
+  HandlerType* myHandler;
+};
 
 
 }

@@ -185,6 +185,7 @@ namespace qmcplusplus {
     ///process input file
     bool put(xmlNodePtr cur);
 
+    OrbitalBasePtr makeClone(ParticleSet& tqp) const;
   };
 }
 #endif
