@@ -58,7 +58,7 @@ eval_e2iphi (const std::vector<float> &phi, std::vector<std::complex<float> > &z
   for (int i=0; i<n; i++)
     z[i] = std::complex<float>(c[i],s[i]);
 }
-#elif defined(HAVE_MKL)
+#elif defined(HAVE_MKL_VML)
 #include <mkl_vml_functions.h>
 inline void
 eval_e2iphi (const std::vector<double> &phi, std::vector<std::complex<double> > &z)
