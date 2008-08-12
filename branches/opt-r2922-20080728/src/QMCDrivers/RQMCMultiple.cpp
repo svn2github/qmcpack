@@ -43,7 +43,9 @@ namespace qmcplusplus {
     QMCDriverMode.set(QMC_UPDATE_MODE,1);
     //Add the primary h and psi, extra H and Psi pairs will be added by QMCMain
     add_H_and_Psi(&h,&psi);
-    nObs = h.size();
+
+    //nObs = h.size();
+    nObs = h.sizeOfObservables();
   }
 
   RQMCMultiple::~RQMCMultiple() {
@@ -129,10 +131,12 @@ namespace qmcplusplus {
       NewBead->Action(ipsi,PlusDirection)=NewBead->Action(ipsi,MinusDirection);
       NewBead->Action(ipsi,Directionless)=0.5*Tau*eloc;
       
+      //JNKIM:walker already has these
       NewBead->Add_Observable(eloc);
       for (int obsi=0;obsi<nObs;obsi++){
-        NewBead->Add_Observable((*H1[ipsi])[obsi]);
-      };
+        NewBead->Add_Observable(H1[ipsi]->getObservable(obsi));
+        //NewBead->Add_Observable((*H1[ipsi])[obsi]);
+      }
       NewBead->stepmade=0;
       NewBead->deltaRSquared[0]=0.0;
       NewBead->deltaRSquared[1]=0.0;
@@ -596,10 +600,13 @@ namespace qmcplusplus {
       NewBeadProp[LOGPSI]=Psi1[ipsi]->evaluateLog(W);
       NewBeadProp[SIGN]=Psi1[ipsi]->getPhase();
       RealType eloc=NewBeadProp[LOCALENERGY]= H1[ipsi]->evaluate(W);
+
+      //JNKIM: Walker::Properties are already in place
       NewBead->Observables[0] = H1[ipsi]->getLocalEnergy();
       for(int obsi=0;obsi<nObs;obsi++){
-        NewBead->Observables[obsi+1] = (*H1[ipsi])[obsi];
-      };
+        NewBead->Observables[obsi+1] = H1[ipsi]->getObservable(obsi);
+        //NewBead->Observables[obsi+1] = (*H1[ipsi])[obsi];
+      }
       
       if (NewBead->Observables[1] <= 0.0) {
         cout<<"*";
