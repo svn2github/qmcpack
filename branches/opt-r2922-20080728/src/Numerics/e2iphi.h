@@ -95,7 +95,7 @@ inline void
 eval_e2iphi (const std::vector<float> &phi, std::vector<std::complex<float> > &z)
 {
   int n = phi.size();
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(__INTEL_COMPILER)
   for (int i=0; i<n; i++) sincos (phi[i], &(z[i].imag()), &(z[i].real()));
 #else
   for (int i=0; i<n; i++) sincosf (phi[i], &(z[i].imag()), &(z[i].real()));
@@ -113,7 +113,7 @@ inline void
 eval_e2iphi (const APPNAMESPACE::Vector<float> &phi, APPNAMESPACE::Vector<std::complex<float> > &z)
 {
   int n = phi.size();
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(__INTEL_COMPILER)
   for (int i=0; i<n; i++) sincos (phi[i], &(z[i].imag()), &(z[i].real()));
 #else
   for (int i=0; i<n; i++) sincosf (phi[i], &(z[i].imag()), &(z[i].real()));
