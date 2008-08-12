@@ -2,13 +2,6 @@
 # QMC Drivers which implements various QMC algorithms
 ####################################
 SET(QMCDRIVERS 
-  ../Estimators/LocalEnergyEstimator.cpp
-  ../Estimators/MultipleEnergyEstimator.cpp
-  ../Estimators/RQMCMultipleEstimator.cpp
-  ../Estimators/CompositeEstimators.cpp
-  ../Estimators/GofREstimator.cpp
-  ../Estimators/SkEstimator.cpp
-  ../Estimators/EstimatorManager.cpp
   SimpleFixedNodeBranch.cpp
   BranchIO.cpp
   QMCDriver.cpp
@@ -35,6 +28,13 @@ SET(QMCDRIVERS
   CorrelatedSampling/CSVMC.cpp
   CorrelatedSampling/CSVMCUpdateAll.cpp
   CorrelatedSampling/CSVMCUpdatePbyP.cpp
+  ../Estimators/LocalEnergyEstimator.cpp
+  ../Estimators/MultipleEnergyEstimator.cpp
+  ../Estimators/RQMCMultipleEstimator.cpp
+  ../Estimators/CompositeEstimators.cpp
+  ../Estimators/GofREstimator.cpp
+  ../Estimators/SkEstimator.cpp
+  ../Estimators/EstimatorManager.cpp
   ../Estimators/CSEnergyEstimator.cpp
   ../Estimators/CSPolymerEstimator.cpp
   ../Estimators/MJPolymerEstimator.cpp
