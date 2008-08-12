@@ -108,8 +108,9 @@ QMCHamiltonian::addOperator(QMCHamiltonianBase* h, const string& aname, bool phy
  * object to the correct property column.
  */
 void 
-QMCHamiltonian::add2WalkerProperty(ParticleSet& P) {
-  //first add properties to H
+QMCHamiltonian::add2WalkerProperty(ParticleSet& P) 
+{
+  //first add properties to myData
   myData.clear();
   for(int i=0; i<H.size(); ++i) H[i]->registerProperties(myData);
   for(int i=0; i<auxH.size(); ++i) auxH[i]->registerProperties(myData);
@@ -136,7 +137,6 @@ QMCHamiltonian::evaluate(ParticleSet& P)
     myTimers[i]->stop();
   }
   KineticEnergy=H[0]->Value;
-
   P.PropertyList[LOCALENERGY]=LocalEnergy;
   P.PropertyList[LOCALPOTENTIAL]=LocalEnergy-KineticEnergy;
   for(int i=0; i<auxH.size(); ++i)

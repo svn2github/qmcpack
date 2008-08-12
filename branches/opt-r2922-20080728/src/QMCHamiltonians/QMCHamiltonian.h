@@ -43,31 +43,8 @@ namespace qmcplusplus {
 
     ///add an operator
     void addOperator(QMCHamiltonianBase* h, const string& aname, bool physical=true);
-
-    ///add each term to the PropertyList for averages
-    void add2WalkerProperty(ParticleSet& P);
-
-    ///retrun the starting index
-    inline int startIndex() const { return myIndex;}
-
-    ///return the name of ith Hamiltonian 
-    inline string getName(int i) const { return H[i]->myName;}
-
-    ///return the value of Hamiltonian i
-    inline Return_t operator[](int i) const { return H[i]->Value;}
-
     ///return the number of Hamiltonians
     inline int size() const { return H.size();}
-
-    ///save the values of Hamiltonian elements to the Properties
-    template<class IT>
-    inline 
-    void saveProperty(IT first) {
-      first[LOCALPOTENTIAL]= LocalEnergy-KineticEnergy;
-      std::copy(myData.begin(),myData.end(),first+myIndex);
-      //std::copy(Hvalue.begin(),Hvalue.end(),first+Hindex[0]);
-    }
-
     /** return QMCHamiltonianBase with the name aname
      * @param aname name of a QMCHamiltonianBase
      * @return 0 if aname is not found.
@@ -83,21 +60,46 @@ namespace qmcplusplus {
       return H[i];
     }
 
+    /**
+     * \defgroup Functions to get/put observables
+     */
+    /*@{*/
+    ///add each term to the PropertyList for averages
+    void add2WalkerProperty(ParticleSet& P);
+    ///retrun the starting index
+    inline int startIndex() const { return myIndex;}
+    ///return the size of observables
+    inline int sizeOfObservables() const { return myData.size();}
+    ///return the value of the i-th observable
+    inline RealType getObservable(int i) const { return myData.Values[i];}
+    ///return the name of the i-th observable
+    inline string getObservableName(int i) const { return myData.Names[i];}
+    ///save the values of Hamiltonian elements to the Properties
+    template<class IT>
+    inline 
+    void saveProperty(IT first) 
+    {
+      first[LOCALPOTENTIAL]= LocalEnergy-KineticEnergy;
+      std::copy(myData.begin(),myData.end(),first+myIndex);
+    }
+    /*@}*/
+
     ////return the LocalEnergy \f$=\sum_i H^{qmc}_{i}\f$
     inline Return_t getLocalEnergy() { return LocalEnergy;}
     ////return the LocalPotential \f$=\sum_i H^{qmc}_{i} - KE\f$
     inline Return_t getLocalPotential() { return LocalEnergy-KineticEnergy;}
 
-    /** set Tau for each Hamiltonian
-     */
-    inline void setTau(RealType tau) 
-    {
-      for(int i=0; i< H.size();i++)H[i]->setTau(tau); 
-    }
+    ///** set Tau for each Hamiltonian
+    // */
+    //inline void setTau(RealType tau) 
+    //{
+    //  for(int i=0; i< H.size();i++)H[i]->setTau(tau); 
+    //}
 
-    /** set Tau for each Hamiltonian
+    /** set PRIMARY bit of all the components
      */
-    inline void setPrimary(bool primary) {
+    inline void setPrimary(bool primary) 
+    {
       for(int i=0; i< H.size();i++) 
         H[i]->UpdateMode.set(QMCHamiltonianBase::PRIMARY,primary);
     }
@@ -156,7 +158,7 @@ namespace qmcplusplus {
     /** return a clone */
     QMCHamiltonian* makeClone(ParticleSet& qp, TrialWaveFunction& psi); 
 
-   private:
+  private:
     ///starting index
     int myIndex;
     ///Current Local Energy
