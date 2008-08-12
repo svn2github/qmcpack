@@ -139,6 +139,7 @@ SET(ENABLE_GTK_GUI 0)
 SET(HAVE_EINSPLINE 0)
 SET(HAVE_EINSPLINE_EXT 0)
 SET(HAVE_MKL 0)
+SET(HAVE_MKL_VML 0)
 SET(HAVE_ACML 0)
 
 ######################################################
