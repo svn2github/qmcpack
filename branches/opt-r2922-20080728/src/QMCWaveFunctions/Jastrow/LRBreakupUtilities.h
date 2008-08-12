@@ -345,7 +345,7 @@ template<typename T>
 struct ShortRangePartAdapter : OptimizableFunctorBase {
   typedef LRHandlerBase HandlerType;
 
-  explicit ShortRangePartAdapter(HandlerType* inhandler): Uconst(0), myHandler(inhandlder) 
+  explicit ShortRangePartAdapter(HandlerType* inhandler): Uconst(0), myHandler(inhandler) 
   { }
 
   OptimizableFunctorBase* makeClone() const 

@@ -506,7 +506,7 @@ namespace qmcplusplus {
   OrbitalBasePtr LRTwoBodyJastrow::makeClone(ParticleSet& tqp) const
   {
     LRTwoBodyJastrow* myclone=new LRTwoBodyJastrow(*this);
-    myclone->skRef=tqp->SK;
+    myclone->skRef=tqp.SK;
     return myclone;
   }
 
