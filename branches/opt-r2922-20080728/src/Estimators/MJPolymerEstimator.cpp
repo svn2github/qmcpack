@@ -37,13 +37,15 @@ namespace qmcplusplus {
     NumCopies=hcopy;
 //     Hpointer = &h;
 
-    SizeOfHamiltonians = h.size();
+    SizeOfHamiltonians = h.sizeOfObservables();
     FirstHamiltonian = h.startIndex();
 //     cout<<"size of Hamiltonian "<<SizeOfHamiltonians<<" First one "<<FirstHamiltonian<<endl;
 
     elocal_name.push_back("LocalEnergy");
-    for(int i=0; i < SizeOfHamiltonians; i++){
-      elocal_name.push_back(h.getName(i));
+    for(int i=0; i < SizeOfHamiltonians; i++)
+    {
+      elocal_name.push_back(h.getObservableName(i));
+      //elocal_name.push_back(h.getName(i));
     };
     
     elocal_name.push_back("SumPot");
