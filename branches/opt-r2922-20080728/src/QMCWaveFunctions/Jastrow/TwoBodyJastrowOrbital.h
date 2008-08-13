@@ -470,7 +470,7 @@ namespace qmcplusplus {
     {
       TwoBodyJastrowOrbital<FT>* j2copy=new TwoBodyJastrowOrbital<FT>(tqp);
       map<const FT*,FT*> fcmap;
-      for(int ig=0; ig<NumGroups-1; ++ig)
+      for(int ig=0; ig<NumGroups; ++ig)
         for(int jg=ig; jg<NumGroups; ++jg)
         {
           int ij=ig*NumGroups+jg;
