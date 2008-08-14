@@ -77,7 +77,6 @@ namespace qmcplusplus {
     //vector<PosType>  Kcart;
    
     void resetInternals();
-    void resetByHandler();
     void resize();
     ///fixed components of Fk
     Vector<RealType> Fk_0; 
@@ -89,7 +88,7 @@ namespace qmcplusplus {
     ///A unique Fk sorted by |k|
     Vector<RealType> Fk_symm;
 
-    LRTwoBodyJastrow(ParticleSet& p, HandlerType* inhandler=0);
+    LRTwoBodyJastrow(ParticleSet& p);
 
     /** check out optimizable variables
      */
@@ -105,7 +104,7 @@ namespace qmcplusplus {
 
     void resetParameters(const opt_variables_type& active);
 
-    void resetByFunction(RealType kc, int functype);
+    void resetByHandler(HandlerType* handler);
 
     //evaluate the distance table with els
     void resetTargetParticleSet(ParticleSet& P);
