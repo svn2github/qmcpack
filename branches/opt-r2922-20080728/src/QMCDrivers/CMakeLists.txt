@@ -38,6 +38,7 @@ SET(QMCDRIVERS
   ../Estimators/CSEnergyEstimator.cpp
   ../Estimators/CSPolymerEstimator.cpp
   ../Estimators/MJPolymerEstimator.cpp
+  ../Estimators/HFDHE2PolymerEstimator.cpp
 )
 #  ../Estimators/PairCorrEstimator.cpp
 

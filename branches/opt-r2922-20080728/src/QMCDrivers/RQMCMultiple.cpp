@@ -25,6 +25,7 @@
 #include "OhmmsPETE/OhmmsMatrix.h"
 #include "Estimators/CSPolymerEstimator.h"
 #include "Estimators/MJPolymerEstimator.h"
+#include "Estimators/HFDHE2PolymerEstimator.h"
 #include "OhmmsData/AttributeSet.h"
 
 namespace qmcplusplus { 
@@ -43,7 +44,6 @@ namespace qmcplusplus {
     QMCDriverMode.set(QMC_UPDATE_MODE,1);
     //Add the primary h and psi, extra H and Psi pairs will be added by QMCMain
     add_H_and_Psi(&h,&psi);
-
     nObs = h.sizeOfObservables();
   }
 
@@ -133,8 +133,7 @@ namespace qmcplusplus {
       NewBead->Action(ipsi,MinusDirection)= 0.25*Dot(*NewBead->DriftVectors[ipsi],*NewBead->DriftVectors[ipsi])/Tau;
       NewBead->Action(ipsi,PlusDirection)=NewBead->Action(ipsi,MinusDirection);
       NewBead->Action(ipsi,Directionless)=0.5*Tau*eloc;
-      
-      //JNKIM:walker already has these
+
       NewBead->stepmade=0;
       NewBead->deltaRSquared[0]=0.0;
       NewBead->deltaRSquared[1]=0.0;
@@ -494,8 +493,10 @@ namespace qmcplusplus {
       } else if (observ=="ZVZB"){
         cout<<"Using ZVZB observables"<<endl;
         multiEstimator = new MJPolymerEstimator(H,nPsi);
-//         multiEstimator->setConstants(nrs3);
-      };
+      } else if (observ=="HFDHE2"){
+        cout<<"Using HFDHE2 observables"<<endl;
+        multiEstimator = new HFDHE2PolymerEstimator(H,nPsi);
+      }
       
       Estimators->add(multiEstimator,Estimators->MainEstimatorName);
       branchEngine->setEstimatorManager(Estimators);

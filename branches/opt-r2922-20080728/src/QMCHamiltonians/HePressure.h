@@ -33,7 +33,7 @@ namespace qmcplusplus {
   **/
 
   struct HePressure: public QMCHamiltonianBase {
-    double A,alpha,c0,c1,c2,c3,c1p,c2p,c3p,D;
+    double A,alpha,c0,c1,c2,c3,c1p,c2p,c3p,D,rdV;
     double pNorm,tailcorr,rcutoff,kNorm;
     bool ZV;
     bool ZB;
@@ -122,6 +122,7 @@ namespace qmcplusplus {
         }
       }
       Value *= pNorm;
+      rdV = Value+tailcorr;
       Value += kNorm*KE;
       Value += tailcorr;
       
@@ -158,7 +159,17 @@ namespace qmcplusplus {
     {
       return new HePressure(qp);
     }
+    void registerProperties(RecordNamedProperty<RealType>& plist)
+    {
+      myIndex=plist.add("HePress");
+      plist.add("rijdrV");
+    }
 
+    void setProperties(vector<RealType>& plist)
+    {
+      plist[myIndex]=Value;
+      plist[myIndex+1]=rdV;
+    }
   };
 }
 #endif
