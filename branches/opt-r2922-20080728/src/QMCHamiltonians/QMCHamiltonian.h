@@ -175,6 +175,8 @@ namespace qmcplusplus {
     std::vector<NewTimer*> myTimers;
     ///data
     RecordNamedProperty<RealType> myData;
+    ///reset myData
+    void resetMyData(int start);
   };
 }
 #endif

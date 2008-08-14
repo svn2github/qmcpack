@@ -211,18 +211,25 @@ QMCHamiltonian::setRandomGenerator(RandomGenerator_t* rng)
 
 QMCHamiltonian* QMCHamiltonian::makeClone(ParticleSet& qp, TrialWaveFunction& psi) 
 {
-  QMCHamiltonian* myclone=new QMCHamiltonian(*this);
-  for(int i=0; i<H.size(); ++i) myclone->H[i]=H[i]->makeClone(qp,psi);
-  for(int i=0; i<auxH.size(); ++i) myclone->auxH[i]=auxH[i]->makeClone(qp,psi);
-  //create timers with the same name
-  for(int i=0; i<myTimers.size(); i++)
-  {
-    NewTimer* atimer=new NewTimer(myTimers[i]->get_name());
-    myclone->myTimers[i]=atimer;
-    TimerManager.addTimer(atimer);
-  }
+  QMCHamiltonian* myclone=new QMCHamiltonian;
+  for(int i=0; i<H.size(); ++i)
+    myclone->addOperator(H[i]->makeClone(qp,psi),H[i]->myName,true);
+  for(int i=0; i<auxH.size(); ++i)
+    myclone->addOperator(auxH[i]->makeClone(qp,psi),auxH[i]->myName,false);
+  myclone->resetMyData(myIndex);
   return myclone;
 }
+
+void 
+QMCHamiltonian::resetMyData(int start)
+{
+  //first add properties to myData
+  myData.clear();
+  for(int i=0; i<H.size(); ++i) H[i]->registerProperties(myData);
+  for(int i=0; i<auxH.size(); ++i) auxH[i]->registerProperties(myData);
+  myIndex=start;
+}
+
 }
 
 /***************************************************************************
