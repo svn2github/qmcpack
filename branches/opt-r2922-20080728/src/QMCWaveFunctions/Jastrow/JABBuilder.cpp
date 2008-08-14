@@ -19,6 +19,7 @@
 #include "QMCWaveFunctions/Jastrow/JABBuilder.h"
 #include "QMCWaveFunctions/Jastrow/BsplineJastrowBuilder.h"
 #include "QMCWaveFunctions/Jastrow/PadeFunctors.h"
+#include "QMCWaveFunctions/Jastrow/GaussianFunctor.h"
 #include "QMCWaveFunctions/Jastrow/ModPadeFunctor.h"
 #include "QMCWaveFunctions/Jastrow/BsplineFunctor.h"
 #include "QMCWaveFunctions/Jastrow/OneBodyJastrowOrbital.h"
@@ -104,6 +105,14 @@ namespace qmcplusplus {
     else if(jastfunction == "short") 
     {
       success = createJAB<ModPadeFunctor<RealType> >(cur,jastfunction);
+    }
+    else if(jastfunction == "Gaussian") 
+    {
+      success = createJAB<GaussianFunctor<RealType> >(cur,jastfunction);
+    }
+    else if(jastfunction == "shiftedGaussian") 
+    {
+      success = createJAB<TruncatedShiftedGaussianFunctor<RealType> >(cur,jastfunction);
     }
     else if (jastfunction == "Bspline") 
     {

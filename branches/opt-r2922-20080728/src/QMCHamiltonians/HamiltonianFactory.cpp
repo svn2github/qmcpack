@@ -137,9 +137,8 @@ namespace qmcplusplus {
           else {
             addConstCoulombPotential(cur,sourceInp);
           }
-          
-        } else if(potType == "hfdhe2") {
-          targetH->addOperator(new HFDHE2Potential(*targetPtcl),"HFDHE2");
+        } else if(potType == "HFDHE2") {
+          targetH->addOperator(new HFDHE2Potential(*targetPtcl),"HFDHE2",true);
           app_log() << "  Adding HFDHE2Potential " << endl;
         } else if(potType == "pseudo") {
           addPseudoPotential(cur);
