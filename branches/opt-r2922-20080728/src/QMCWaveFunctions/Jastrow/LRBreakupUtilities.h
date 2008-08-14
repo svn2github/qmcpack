@@ -341,6 +341,148 @@ template<class T=double>
     }
 };
 
+template<class T=double>
+    struct EPRPABreakup {
+  T Rs;
+  T Kf;
+  T Density;
+  T NormFactor;
+  inline EPRPABreakup(){}
+
+  void reset(ParticleSet& ref) {
+    NormFactor=1.0/ref.getTotalNum();
+    Density=ref.getTotalNum()/ref.Lattice.Volume;
+    Rs = std::pow(3.0/(4.0*M_PI*Density), 1.0/3.0);
+        //unpolarized K_f
+    Kf = std::pow(2.25*M_PI, 1.0/3.0)/Rs;
+  }
+
+  void reset(ParticleSet& ref, T rs) {
+          //       NormFactor=4.0*M_PI/ref.Lattice.Volume;
+    NormFactor=1.0/ref.getTotalNum();
+        //       NormFactor=4.0*M_PI/ref.getTotalNum();
+    Density=ref.getTotalNum()/ref.Lattice.Volume;
+
+    Rs = rs;
+          //unpolarized
+    Kf = std::pow(2.25*M_PI, 1.0/3.0)/Rs;
+  }
+
+
+  inline T operator()(T r, T rinv) {
+    return 0.0;
+  }
+
+  inline T df(T r) {
+    return 0.0;
+  }
+
+  inline T Fk(T k, T rc) {
+    return -Xk(k,rc);
+  }
+
+  inline T Xk(T k, T rc) {
+    T y = 0.5*k/Kf;
+    T Sy;
+    if (y >= 1.0) {
+      Sy=1.0;
+    }
+    else {
+      Sy = 1.5*y - 0.5*y*y*y;
+    };
+    T val = 12.0/(k*k*k*k*Rs*Rs*Rs);
+    return  -0.5*NormFactor*val*std::pow(1.0/(Sy*Sy)+val,-0.5);
+  }
+
+      /** return RPA value at |k|
+   * @param kk |k|^2
+       */
+  inline T Uk(T kk)
+  {
+    return NormFactor*Rs/kk;
+  }
+
+        /** return d u(k)/d rs
+   *
+   * Implement a correct one
+         */
+  inline T derivUk(T kk)
+  {
+    return 0.0;
+  }
+};
+    template<class T=double>
+        struct derivEPRPABreakup {
+      T Rs;
+      T Kf;
+      T Density;
+      T NormFactor;
+      inline derivEPRPABreakup(){}
+
+      void reset(ParticleSet& ref) {
+        NormFactor=1.0/ref.getTotalNum();
+        Density=ref.getTotalNum()/ref.Lattice.Volume;
+        Rs = std::pow(3.0/(4.0*M_PI*Density), 1.0/3.0);
+    //unpolarized K_f
+        Kf = std::pow(2.25*M_PI, 1.0/3.0)/Rs;
+      }
+
+      void reset(ParticleSet& ref, T rs) {
+    //       NormFactor=4.0*M_PI/ref.Lattice.Volume;
+        NormFactor=1.0/ref.getTotalNum();
+    //       NormFactor=4.0*M_PI/ref.getTotalNum();
+        Density=ref.getTotalNum()/ref.Lattice.Volume;
+
+        Rs = rs;
+      //unpolarized
+        Kf = std::pow(2.25*M_PI, 1.0/3.0)/Rs;
+      }
+
+
+      inline T operator()(T r, T rinv) {
+        return 0.0;
+      }
+
+      inline T df(T r) {
+        return 0.0;
+      }
+
+      inline T Fk(T k, T rc) {
+        return -Xk(k,rc);
+      }
+
+      inline T Xk(T k, T rc) {
+        T y = 0.5*k/Kf;
+        T Sy;
+        if (y >= 1.0) {
+          Sy=1.0;
+        }
+        else {
+          Sy = 1.5*y - 0.5*y*y*y;
+        };
+        T val = 12.0/(k*k*k*k*Rs*Rs*Rs);
+        T uk = val*std::pow(1.0/(Sy*Sy)+val,-0.5);
+        return  -0.5*NormFactor*(uk/Rs)*(1.0-0.5*val/(1.0/(Sy*Sy)+val) );
+      }
+
+        /** return RPA value at |k|
+       * @param kk |k|^2
+         */
+      inline T Uk(T kk)
+      {
+        return NormFactor*Rs/kk;
+      }
+
+/** return d u(k)/d rs
+       *
+       * Implement a correct one
+ */
+      inline T derivUk(T kk)
+      {
+        return 0.0;
+      }
+ };
+
 template<typename T>
 struct ShortRangePartAdapter : OptimizableFunctorBase {
   typedef LRHandlerBase HandlerType;
