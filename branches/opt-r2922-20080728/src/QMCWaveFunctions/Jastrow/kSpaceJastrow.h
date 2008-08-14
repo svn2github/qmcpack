@@ -21,8 +21,8 @@
  * Optimization should use rpa_k0, ...rpa_kn as the names of the
  * optimizable parameters.
  */
-#ifndef QMCPLUSPLUS_LR_RPAJASTROW_H
-#define QMCPLUSPLUS_LR_RPAJASTROW_H
+#ifndef QMCPLUSPLUS_LR_KSPACEJASTROW_H
+#define QMCPLUSPLUS_LR_KSPACEJASTROW_H
 
 #include "QMCWaveFunctions/OrbitalBase.h"
 #include "Optimize/VarList.h"
@@ -32,6 +32,24 @@
 #include "LongRange/LRHandlerBase.h"
 
 namespace qmcplusplus {
+  
+    /** Functor which return \f$frac{Rs}{k^2 (k^2+(1/Rs)^2)}\f$
+     */
+  template<typename T>
+      struct RPA0
+  {
+    T Rs;
+    T OneOverRsSq;
+    RPA0(T rs=1):Rs(rs){OneOverRsSq=1.0/(Rs*Rs);}
+    inline T operator()(T kk) 
+    {
+      T k2=std::sqrt(kk);
+      return Rs/(k2*(k2+OneOverRsSq));
+        //return (-0.5+0.5*std::pow(1.0+12.0*OneOverRs3/kk/kk,0.5));
+    }
+  };
+  
+  
   template<typename T>
   class kSpaceCoef
   {
@@ -48,7 +66,7 @@ namespace qmcplusplus {
   };
 
   class kSpaceJastrow: public OrbitalBase {
-  public:   
+  public:
     typedef enum { CRYSTAL, ISOTROPIC, NOSYMM } SymmetryType;
   private:
     typedef std::complex<RealType> ComplexType;
