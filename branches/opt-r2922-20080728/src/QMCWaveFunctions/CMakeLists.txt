@@ -13,13 +13,14 @@ SET(JASTROW_SRCS
   Jastrow/JABBuilder.cpp
   Jastrow/PadeJastrowBuilder.cpp
   Jastrow/WMJastrowBuilder.cpp
-  Jastrow/RPAConstraints.cpp
   Jastrow/AnyConstraints.cpp
   Jastrow/CBSOBuilder.cpp
   Jastrow/JastrowBuilder.cpp
   Jastrow/BsplineJastrowBuilder.cpp
   Jastrow/kSpaceJastrow.cpp
   Jastrow/kSpaceJastrowBuilder.cpp
+  Jastrow/RPAJastrow.cpp
+  Jastrow/singleRPAJastrowBuilder.cpp
 )
 
 #  Jastrow/BsplineFunctor.cpp
