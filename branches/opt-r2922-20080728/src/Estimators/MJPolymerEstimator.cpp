@@ -57,7 +57,6 @@ namespace qmcplusplus {
     scalars.resize(SizeOfHamiltonians+6);
     scalars_saved=scalars;
     pnorm=0.0;
-
   };
 
 
@@ -99,15 +98,16 @@ namespace qmcplusplus {
     {
       RealType uw(Reptile->UmbrellaWeight[i]);
       //Adding all parts from the Hamiltonian
-      vector<double>::iterator HeadIt(Reptile->front()->Observables.begin());
-      vector<double>::iterator TailIt(Reptile->back()->Observables.begin());
-      RealType eloc = 0.5*((*HeadIt) + (*TailIt));
-      for(int obsi=0;obsi<(SizeOfHamiltonians+1);obsi++,HeadIt++,TailIt++){
-        scalars[obsi]( 0.5*((*HeadIt) + (*TailIt)) , uw);
+      RealType* restrict HeadProp(Reptile->front()->getPropertyBase(i));
+      RealType* restrict TailProp(Reptile->back()->getPropertyBase(i));
+      RealType eloc = 0.5*( HeadProp[LOCALENERGY] + TailProp[LOCALENERGY]);
+      scalars[0](eloc,uw);
+      for(int obsi=0;obsi<SizeOfHamiltonians ;obsi++){
+        scalars[obsi+1]( 0.5*( HeadProp[obsi+FirstHamiltonian] + TailProp[obsi+FirstHamiltonian]) , uw);
       };
       //Center Pressure
-      vector<double> CenIt(Reptile->center()->Observables);
-      scalars[SizeOfHamiltonians+3]( (2.0*eloc-CenIt[2])*pnorm ,uw);
+      RealType* restrict CenProp(Reptile->center()->getPropertyBase(i));
+      scalars[SizeOfHamiltonians+3]( (2.0*eloc-CenProp[LOCALPOTENTIAL])*pnorm ,uw);
       
       int Rage(Reptile->Age);
       int Bage=Rage;
@@ -120,17 +120,17 @@ namespace qmcplusplus {
       for( MultiChain::iterator Bit = Reptile->begin();Bit != (Reptile->end());Bit++){
         localE += 0.5*( (*Bit)->deltaRSquared[0] + (*Bit)->deltaRSquared[1]);
         tmpF+= 0.5*(*Bit)->deltaRSquared[2];
-        tmpE+=(*Bit)->Observables[0];
-        tmpV+=(*Bit)->Observables[2];
+        tmpE+=(*Bit)->getPropertyBase(i)[LOCALENERGY];
+        tmpV+=(*Bit)->getPropertyBase(i)[LOCALPOTENTIAL];
         Bage=min((*Bit)->stepmade,Bage);
       };
 
       tmpF-=0.25*Reptile->back()->deltaRSquared[2];
       tmpF-=0.25*Reptile->front()->deltaRSquared[2];
-      tmpE-=0.5*Reptile->back()->Observables[0];
-      tmpE-=0.5*Reptile->front()->Observables[0];
-      tmpV-=0.5*Reptile->back()->Observables[2];
-      tmpV-=0.5*Reptile->front()->Observables[2];
+      tmpE-=0.5*Reptile->back()->getPropertyBase(i)[LOCALENERGY];
+      tmpE-=0.5*Reptile->front()->getPropertyBase(i)[LOCALENERGY];
+      tmpV-=0.5*Reptile->back()->getPropertyBase(i)[LOCALPOTENTIAL];
+      tmpV-=0.5*Reptile->front()->getPropertyBase(i)[LOCALPOTENTIAL];
       tmpV *= -pnorm*Tau;
 
       localE *= -0.5*OneOverTau*OneOverTau;
@@ -145,7 +145,7 @@ namespace qmcplusplus {
       ///This is the center bead energy using PIMC stuff.
       localE *= 1.0/(Reptile->Last);
       scalars[SizeOfHamiltonians+5]( localE ,uw);
-    };
+    }
   }
 
   void 
