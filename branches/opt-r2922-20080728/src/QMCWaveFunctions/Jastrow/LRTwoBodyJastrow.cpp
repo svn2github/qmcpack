@@ -19,8 +19,8 @@
 
 namespace qmcplusplus {
 
-  LRTwoBodyJastrow::LRTwoBodyJastrow(ParticleSet& p, HandlerType* inHandler):
-  NumPtcls(0), NumSpecies(0), skRef(0), handler(inHandler) {
+  LRTwoBodyJastrow::LRTwoBodyJastrow(ParticleSet& p ):
+  NumPtcls(0), NumSpecies(0), skRef(0)  {
 
     Optimizable=false;
     NumSpecies=p.groups();
@@ -31,9 +31,8 @@ namespace qmcplusplus {
       NormConstant=4.0*M_PI*Rs*NumPtcls*(NumPtcls-1)*0.5;
       NumPtcls=p.getTotalNum();
       NumKpts=skRef->KLists.numk;
-      MaxKshell=skRef->KLists.kshell.size()-1;
+      MaxKshell=skRef->KLists.kshell.size();
       resize();
-      //resetInternals();
     }
   }
   
@@ -52,20 +51,7 @@ namespace qmcplusplus {
     offdU.resize(NumPtcls);
     offd2U.resize(NumPtcls);
   }
-  
-  
-  /** update Fk using the handler
-   */
-  void LRTwoBodyJastrow::resetInternals() 
-  {
-    if(handler)
-    {
-      Fk_0.resize(handler->Fk.size());
-      Fk_0 = -1.0 * handler->Fk;
-      Fk.resize(Fk_0.size());
-      Fk=Fk_0;
-    }
-  }
+
   
   void LRTwoBodyJastrow::checkInVariables(opt_variables_type& active)
   {
@@ -77,7 +63,7 @@ namespace qmcplusplus {
 
   void LRTwoBodyJastrow::resetParameters(const opt_variables_type& active)
   {
-    if(handler) resetByHandler();
+//     if(handler) resetByHandler();
   }
 
   void LRTwoBodyJastrow::reportStatus(ostream& os)
@@ -419,71 +405,16 @@ namespace qmcplusplus {
   
   bool
     LRTwoBodyJastrow::put(xmlNodePtr cur) {
-      //LRTwoBodayJastrow should only works with the handler
-
       if(skRef == 0) {
         app_error() << "  LRTowBodyJastrow should not be used for non periodic systems." << endl;
         return false;
       }
-
-      ///[0,MaxKshell)
-      if(handler) MaxKshell=handler->MaxKshell; 
-
-      bool foundCoeff=false;
-      if(cur != NULL)
-      {
-        Fk_symm.resize(MaxKshell);
-        FkbyKK.resize(MaxKshell);
-        xmlNodePtr tcur=cur->children;
-        while(tcur != NULL) {
-          string cname((const char*)(tcur->name));
-          if(cname == "parameter") {
-            const xmlChar* kptr=xmlGetProp(tcur,(const xmlChar *)"name");
-            const xmlChar* idptr=xmlGetProp(tcur,(const xmlChar *)"id");
-            if(idptr!= NULL && kptr != NULL) {
-              int ik=atoi((const char*)kptr);
-              if(ik<Fk_symm.size()) { // only accept valid ik 
-                RealType x;
-                putContent(x,tcur);
-                Fk_symm[ik]=x;
-                //vlist[(const char*)idptr]=x;
-              }
-              foundCoeff=true;
-            }
-          }
-          tcur=tcur->next;
-        }
-      }//check if coeff is proided externally
-
-      Fk.resize(NumKpts);
-      if(foundCoeff) {
-        resetInternals();
-      } else {
-        if(handler) resetByHandler();
-        MaxK=skRef->KLists.kshell[MaxKshell];
-        Kshell.resize(MaxKshell+1);
-        std::copy(skRef->KLists.kshell.begin(),skRef->KLists.kshell.begin()+MaxKshell+1, Kshell.begin());
-      }
-
-      app_log() << "  Long-range Two-Body Jastrow coefficients K-shell = " << MaxKshell << endl;
-      app_log() << "  MaxK = " << MaxK << " NumKpts = " << NumKpts << " Kc^2 = " << 1.0/Rs << endl;
-      app_log() << "   Kshell degneracy        k        Fk (breakup)     Fk (rpa)    " << endl;
-
-      double u0 = -4.0*M_PI*Rs/CellVolume;
-      for(int ks=0; ks<MaxKshell; ks++) 
-      {
-        app_log() << setw(10) << ks << setw(4) << Kshell[ks+1]-Kshell[ks] 
-          << setw(20) << std::sqrt(skRef->KLists.ksq[Kshell[ks]])
-          << setw(20) << Fk_symm[ks];
-        app_log()  << setw(20) << u0/skRef->KLists.ksq[Kshell[ks]] << endl;
-      }
-      app_log() << endl;
-      Rhok.resize(MaxK);
       return true;
     }
 
-  void LRTwoBodyJastrow::resetByHandler()
-  {
+    void LRTwoBodyJastrow::resetByHandler(HandlerType* handler)
+  { 
+    MaxKshell=handler->MaxKshell;
     Fk_symm.resize(MaxKshell);
     FkbyKK.resize(MaxKshell);
 
@@ -501,6 +432,10 @@ namespace qmcplusplus {
       for(; ki<skRef->KLists.kshell[ish+1]; ki++) Fk[ki]=Fk_symm[ish];
       ++ish;
     }
+    MaxK=skRef->KLists.kshell[MaxKshell];
+    Kshell.resize(MaxKshell+1);
+    std::copy(skRef->KLists.kshell.begin(),skRef->KLists.kshell.begin()+MaxKshell+1, Kshell.begin());
+    if (Rhok.size()!=MaxK) Rhok.resize(MaxK);
   } 
 
   OrbitalBasePtr LRTwoBodyJastrow::makeClone(ParticleSet& tqp) const
@@ -509,40 +444,5 @@ namespace qmcplusplus {
     myclone->skRef=tqp.SK;
     return myclone;
   }
-
-  // /** reset the coefficients by a function
-  //  */
-  // void LRTwoBodyJastrow::resetByFunction(RealType kc, int functype)
-  // {
-  //   RealType kcsq=kc*kc;
-  //   int maxshell=skRef->KLists.kshell.size()-1;
-  //   const KContainer::SContainer_t& kk(skRef->KLists.ksq);
-
-  //   int ksh=0,ik=0;
-  //   while(ksh<maxshell)
-  //   {
-  //     if(kk[ik]>kcsq) break; //exit
-  //     ik=skRef->KLists.kshell[++ksh];
-  //     cout << "Starting a new ksh  " << ksh << " " << ik << endl;
-  //   }
-  //   MaxKshell=ksh;
-
-  //   cout << "Maximum kshell " << MaxKshell << endl;
-  //   Fk_symm.resize(MaxKshell);
-  //   FkbyKK.resize(MaxKshell);
-  //   Fk.resize(ik);
-  //   Fk_0.resize(ik);
-
-  //   //hard code RPA stuff
-  //   RealType u0 = -4.0*M_PI*Rs/CellVolume;
-  //   for(ksh=0,ik=0; ksh<MaxKshell; ksh++, ik++)
-  //   {
-  //     RealType rpa=u0/kk[ik];
-  //     Fk_symm[ksh]=rpa;
-  //     FkbyKK[ksh]=kk[ik]*rpa;
-  //     for(; ik<skRef->KLists.kshell[ksh+1]; ik++) Fk[ik]=rpa;
-  //   }
-  //   Fk_0=Fk;
-  // }
 }
 
