@@ -2,8 +2,7 @@
 /** @file RPAJastrow.cpp
  * @brief Definitions of RPAJastrow
  */
-#include "QMCWaveFunctions/Jastrow/RPAJastrow.h"
-#include "QMCWaveFunctions/Jastrow/RPAJastrowBuilder.h"
+
 #include "QMCWaveFunctions/Jastrow/RPAJastrow.h"
 #include "QMCWaveFunctions/OrbitalBuilderBase.h"
 #include "QMCWaveFunctions/Jastrow/TwoBodyJastrowOrbital.h"
