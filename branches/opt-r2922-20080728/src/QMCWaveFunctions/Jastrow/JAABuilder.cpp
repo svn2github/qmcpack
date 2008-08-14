@@ -18,6 +18,7 @@
 #include "Particle/DistanceTable.h"
 #include "QMCWaveFunctions/Jastrow/JAABuilder.h"
 #include "QMCWaveFunctions/Jastrow/ModPadeFunctor.h"
+#include "QMCWaveFunctions/Jastrow/McMillanJ2Functor.h"
 #include "QMCWaveFunctions/Jastrow/TwoBodyJastrowOrbital.h"
 #include "OhmmsData/AttributeSet.h"
 
@@ -118,6 +119,18 @@ namespace qmcplusplus {
       IgnoreSpin=true;
       //ModPadeFunctor<RealType> *dummy = 0;
       success = createJAA<ModPadeFunctor<RealType> >(cur,jastfunction);
+    }else if(jastfunction == "modMcMillan")
+    {
+      app_log() << "  Modified McMillan Jastrow function Two-Body Jastrow Function = " << jastfunction << endl;
+      IgnoreSpin=true;
+      //ModPadeFunctor<RealType> *dummy = 0;
+      success = createJAA<ModMcMillanJ2Functor<RealType> >(cur,jastfunction);
+    }else if(jastfunction == "McMillan")
+    {
+      app_log() << "  McMillan Jastrow (LONG RANGE!) function Two-Body Jastrow Function = " << jastfunction << endl;
+      IgnoreSpin=true;
+      //ModPadeFunctor<RealType> *dummy = 0;
+      success = createJAA<McMillanJ2Functor<RealType> >(cur,jastfunction);
     }
     //} else if(jastfunction == "rpa") {
     //  app_log() << "  Two-Body Jastrow Function = " << jastfunction << endl;
