@@ -168,6 +168,7 @@ ENDIF(Subversion_FOUND)
 SET(FOUND_CXXENV 0)
 INCLUDE(${CMAKE_ROOT}/Modules/TestCXXAcceptsFlag.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
+INCLUDE(${CMAKE_ROOT}/Modules/CheckSymbolExists.cmake)
 
 ######################################################
 # Try to identify CPU identity
