@@ -57,7 +57,7 @@ namespace qmcplusplus {
     ~RPAPressure() {};
     
     
-    void registerProperties(RecordNamedProperty<RealType>& plist)
+    void addObservables(PropertySetType& plist)
     {
       myIndex=plist.add("EPterm");
       plist.add("ZVterm");
@@ -66,7 +66,7 @@ namespace qmcplusplus {
       plist.add("Pressure");
     }
 
-    void setProperties(vector<RealType>& plist)
+    void setObservables(PropertySetType& plist)
     {
       plist[myIndex]=Energy*Press;
       plist[myIndex+1]=Value;
@@ -95,7 +95,7 @@ namespace qmcplusplus {
     bool get(std::ostream& os) const {
       os << "RPAZVZBP";
       return true;
-    };
+    }
 
     QMCHamiltonianBase* makeClone(ParticleSet& P, TrialWaveFunction& psi);
 
@@ -108,6 +108,6 @@ namespace qmcplusplus {
 /***************************************************************************
  * $RCSfile$   $Author: jnkim $
  * $Revision: 1581 $   $Date: 2007-01-04 10:02:14 -0600 (Thu, 04 Jan 2007) $
- * $Id: BareKineticEnergy.h 1581 2007-01-04 16:02:14Z jnkim $ 
+ * $Id: RPAPressure.h 1581 2007-01-04 16:02:14Z jnkim $ 
  ***************************************************************************/
 

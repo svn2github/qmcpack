@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////
-// (c) Copyright 2003  by Jeongnim Kim
+// (c) Copyright 2003-  by Jeongnim Kim
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 //   National Center for Supercomputing Applications &
@@ -7,7 +7,6 @@
 //   University of Illinois, Urbana-Champaign
 //   Urbana, IL 61801
 //   e-mail: jnkim@ncsa.uiuc.edu
-//   Tel:    217-244-6319 (NCSA) 217-333-3324 (MCC)
 //
 // Supported by 
 //   National Center for Supercomputing Applications, UIUC
@@ -128,7 +127,9 @@ struct RecordNamedProperty: public RecordProperty {
   inline typename std::vector<T>::const_iterator begin() const { return Values.begin();}
   inline typename std::vector<T>::const_iterator end() const { return Values.end();}
 
-  inline int add(const char* aname) {
+  //inline int add(const char* aname) {
+  inline int add(const std::string& aname) 
+  {
     int i=0;
     while(i<Names.size()) {
       if(Names[i]== aname) return i;

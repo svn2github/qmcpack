@@ -159,13 +159,13 @@ namespace qmcplusplus {
     {
       return new HePressure(qp);
     }
-    void registerProperties(RecordNamedProperty<RealType>& plist)
+    void addObservables(PropertySetType& plist)
     {
       myIndex=plist.add("HePress");
       plist.add("rijdrV");
     }
 
-    void setProperties(vector<RealType>& plist)
+    void setObservables(PropertySetType& plist)
     {
       plist[myIndex]=Value;
       plist[myIndex+1]=rdV;
@@ -177,6 +177,6 @@ namespace qmcplusplus {
 /***************************************************************************
  * $RCSfile$   $Author: jnkim $
  * $Revision: 1581 $   $Date: 2007-01-04 10:02:14 -0600 (Thu, 04 Jan 2007) $
- * $Id: BareKineticEnergy.h 1581 2007-01-04 16:02:14Z jnkim $ 
+ * $Id: HePressure.h 1581 2007-01-04 16:02:14Z jnkim $ 
  ***************************************************************************/
 

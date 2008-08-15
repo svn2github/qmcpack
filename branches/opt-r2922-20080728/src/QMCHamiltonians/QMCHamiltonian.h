@@ -34,6 +34,7 @@ namespace qmcplusplus {
     typedef QMCHamiltonianBase::RealType  RealType;
     typedef QMCHamiltonianBase::ValueType ValueType;
     typedef QMCHamiltonianBase::Return_t  Return_t;
+    typedef QMCHamiltonianBase::PropertySetType  PropertySetType;
     
     ///constructor
     QMCHamiltonian();
@@ -64,23 +65,25 @@ namespace qmcplusplus {
      * \defgroup Functions to get/put observables
      */
     /*@{*/
-    ///add each term to the PropertyList for averages
-    void add2WalkerProperty(ParticleSet& P);
+    /** add each term to the PropertyList for averages
+     * @param plist a set of properties to which this Hamiltonian add the observables
+     */
+    void addObservables(PropertySetType& plist);
     ///retrun the starting index
     inline int startIndex() const { return myIndex;}
     ///return the size of observables
-    inline int sizeOfObservables() const { return myData.size();}
+    inline int sizeOfObservables() const { return Observables.size();}
     ///return the value of the i-th observable
-    inline RealType getObservable(int i) const { return myData.Values[i];}
+    inline RealType getObservable(int i) const { return Observables.Values[i];}
     ///return the name of the i-th observable
-    inline string getObservableName(int i) const { return myData.Names[i];}
+    inline string getObservableName(int i) const { return Observables.Names[i];}
     ///save the values of Hamiltonian elements to the Properties
     template<class IT>
     inline 
     void saveProperty(IT first) 
     {
       first[LOCALPOTENTIAL]= LocalEnergy-KineticEnergy;
-      std::copy(myData.begin(),myData.end(),first+myIndex);
+      std::copy(Observables.begin(),Observables.end(),first+myIndex);
     }
     /*@}*/
 
@@ -174,9 +177,9 @@ namespace qmcplusplus {
     ///timers
     std::vector<NewTimer*> myTimers;
     ///data
-    RecordNamedProperty<RealType> myData;
-    ///reset myData
-    void resetMyData(int start);
+    PropertySetType Observables;
+    ///reset Observables
+    void resetObservables(int start);
   };
 }
 #endif

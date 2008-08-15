@@ -73,12 +73,12 @@ namespace qmcplusplus {
     /** default implementation to add named values to a list
      * @param plist RecordNameProperty
      */
-    virtual void registerProperties(RecordNamedProperty<RealType>& plist)
+    virtual void addObservables(PropertySetType& plist)
     {
       myIndex=plist.add(myName.c_str());
     }
 
-    virtual void setProperties(vector<RealType>& plist)
+    virtual void setObservables(PropertySetType& plist)
     {
       plist[myIndex]=Value;
     }

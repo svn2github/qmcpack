@@ -243,36 +243,7 @@ namespace qmcplusplus {
       if(attach2Node) xmlAddChild(myNode,xmlCopyNode(cur,1));
       cur = cur->next;
     }
-
-    ////This should be disabled
-    //if(targetH->size() == 1) 
-    //{//no external potential is provided, use type
-    //  WARNMSG("Using pre-determined hamiltonian for molecular systems.")
-    //  PtclPoolType::iterator pit(ptclPool.find(source));
-    //  if(pit == ptclPool.end()) {
-    //    ERRORMSG("No ionic system " << source << " exists.")
-    //    return false;
-    //  }
-    //  ParticleSet* ion=(*pit).second;
-    //  if(PBCType) targetH->addOperator(new CoulombPBCAATemp(*targetPtcl),"ElecElec");
-    //  else targetH->addOperator(new CoulombPotentialAA(*targetPtcl),"ElecElec");
-    //  if(htype == "molecule" || htype=="coulomb")
-    //  {
-    //    if(PBCType) targetH->addOperator(new CoulombPBCABTemp(*ion,*targetPtcl),"Coulomb");
-    //    else targetH->addOperator(new CoulombPotentialAB(*ion,*targetPtcl),"Coulomb");
-    //  } 
-    //  else 
-    //  {
-    //    ERRORMSG(htype << " is diabled")
-    //  }
-    //  if(ion->getTotalNum()>1) {
-    //    if(PBCType) targetH->addOperator(new CoulombPBCAATemp(*ion),"IonIon");
-    //    else targetH->addOperator(new IonIonPotential(*ion),"IonIon");
-    //  }
-    //}
-
-
-
+    targetH->addObservables(targetPtcl->PropertyList);
     return true;
   }
 

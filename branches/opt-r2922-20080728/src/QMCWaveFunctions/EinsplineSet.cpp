@@ -17,9 +17,9 @@
 #include "QMCWaveFunctions/EinsplineSet.h"
 #include <einspline/multi_bspline.h>
 #include "Configuration.h"
-#ifdef HAVE_MKL
-  #include <mkl_vml.h>
-#endif
+//#ifdef HAVE_MKL
+//  #include <mkl_vml.h>
+//#endif
 
 namespace qmcplusplus {
 

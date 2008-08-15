@@ -180,8 +180,8 @@ namespace qmcplusplus {
     DeltaG.resize(n);
     WeightSign.resize(n);
 
-    //Register properties for each walker
-    for(int ipsi=0; ipsi<nPsi; ipsi++) H1[ipsi]->add2WalkerProperty(W);
+    ////Register properties for each walker
+    //for(int ipsi=0; ipsi<nPsi; ipsi++) H1[ipsi]->add2WalkerProperty(W);
 
     //resize Walker::Properties to hold everything
     W.resetWalkerProperty(nPsi);

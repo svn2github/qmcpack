@@ -8,7 +8,6 @@
 //   University of Illinois, Urbana-Champaign
 //   Urbana, IL 61801
 //   e-mail: jnkim@ncsa.uiuc.edu
-//   Tel:    217-244-6319 (NCSA) 217-333-3324 (MCC)
 //
 // Supported by 
 //   National Center for Supercomputing Applications, UIUC
@@ -41,7 +40,7 @@ namespace qmcplusplus {
     MinNumWalkers = 0.9;
 
     H_KE.addOperator(H.getHamiltonian("Kinetic"),"Kinetic");
-    H_KE.add2WalkerProperty(W);
+    H_KE.addObservables(W.PropertyList);
 
     SumValue.resize(SUM_INDEX_SIZE,0.0);
     IsValid=true;
