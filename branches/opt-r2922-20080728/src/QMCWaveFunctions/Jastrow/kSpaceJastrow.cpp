@@ -238,7 +238,7 @@ namespace qmcplusplus {
     int nTwo = TwoBodyGvecs.size();
     int nElecs = Elecs.getTotalNum();
     TwoBodyCoefs.resize(nTwo);
-    TwoBody_rhoG.resize(nOne);
+    TwoBody_rhoG.resize(nTwo);
     TwoBodyPhase.resize(nTwo);
     TwoBody_e2iGr_new.resize(nTwo);
     TwoBody_e2iGr_old.resize(nTwo);
@@ -345,8 +345,9 @@ namespace qmcplusplus {
 
     // Do two-body part
     int nTwo = TwoBodyGvecs.size();
-    for (int i=0; i<nTwo; i++)
+    for (int i=0; i<nTwo; i++){
       TwoBody_rhoG[i] = ComplexType();
+    };
     for (int iat=0; iat<N; iat++) {
       PosType r(P.R[iat]);
       for (int i=0; i<nTwo; i++) 
