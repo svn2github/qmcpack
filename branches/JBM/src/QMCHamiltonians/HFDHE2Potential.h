@@ -62,10 +62,14 @@ namespace qmcplusplus {
       Return_t rm10 = rm8*rm2;
       Return_t VShift = (A*std::exp(alpha*rc) - (c1*rm6+c2*rm8+c3*rm10)*dampF(rc));
 //       cout<<"  HFDHE2Potential shift is  "<<VShift<<endl;
+//       cout<<"  rc is  "<<rc<<endl;
     }
 
     inline Return_t evaluate(ParticleSet& P) {
       Value = 0.0;
+      
+      cout<<"  HFDHE2Potential"<< Pname<<" shift is  "<<VShift<<endl;
+      cout<<"  rc is  "<<rc<<endl;
       
       for(int i=0; i<d_table->getTotNadj(); i++) {
 	Return_t r1 = d_table->r(i);
