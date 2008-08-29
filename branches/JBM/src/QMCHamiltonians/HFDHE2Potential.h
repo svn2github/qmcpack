@@ -13,14 +13,14 @@ namespace qmcplusplus {
   struct HFDHE2Potential: public QMCHamiltonianBase {
 
     Return_t tailcorr,rc,A,alpha,c1,c2,c3,D,VShift;
-    // remember that the default units are Hartree and Bohrs
     DistanceTableData* d_table;
-    ParticleSet* PtclRef;
+//     ParticleSet& PtclRef;
+    string Pname;
 
     // epsilon = 3.42016039e-5, rm = 5.607384357
     // C6 = 1.460008056, C8 = 14.22016431, C10 = 187.2033646;
-    HFDHE2Potential(ParticleSet& P): PtclRef(&P) {
-      
+    HFDHE2Potential(ParticleSet& P){
+      Pname = P.getName();
       A = 18.63475757;
       alpha = -2.381392669;
       c1=1.460008056;
@@ -47,18 +47,14 @@ namespace qmcplusplus {
 
     ~HFDHE2Potential() { }
 
-    Return_t getVShift(){
-      return VShift;
-    };
-    
     void resetTargetParticleSet(ParticleSet& P)  {
+      Pname = P.getName();
       d_table = DistanceTable::add(P);
-      PtclRef=&P;
+//       PtclRef=&P;
       Return_t rho = P.G.size()/P.Lattice.Volume;
       Return_t N0 = P.G.size();
-      Return_t rc = P.Lattice.WignerSeitzRadius;
-      tailcorr = 2*M_PI*rho*N0*(-26.7433377905*std::pow(rc,-7.0) - 2.8440930339*std::pow(rc,-5.0)-0.486669351961 *std::pow(rc,-3.0)+ std::exp(-2.381392669*rc)*(2.75969257875+6.571911675726*rc+7.82515114293*rc*rc) );
-      
+      rc = P.Lattice.WignerSeitzRadius;
+      tailcorr = 2.0*M_PI*rho*N0*(-26.7433377905*std::pow(rc,-7.0) - 2.8440930339*std::pow(rc,-5.0)-0.486669351961 *std::pow(rc,-3.0)+ std::exp(-2.381392669*rc)*(2.75969257875+6.571911675726*rc+7.82515114293*rc*rc) );
       Return_t r2 = (rc*rc);
       Return_t rm2 = 1.0/r2;
       Return_t rm6 = std::pow(rm2,3);
@@ -105,7 +101,7 @@ namespace qmcplusplus {
     }
 
     bool get(std::ostream& os) const {
-      os << "HFDHE2Potential (T/S): " << PtclRef->getName();
+      os << "HFDHE2Potential (T/S): " << Pname;
       return true;
     }
 
