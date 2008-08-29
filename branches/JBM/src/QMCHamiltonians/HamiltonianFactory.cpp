@@ -39,6 +39,7 @@
 #include "QMCHamiltonians/RPAPressure.h"
 #include "QMCHamiltonians/HePressure.h"
 #include "QMCHamiltonians/HFDHE2Potential.h"
+#include "QMCHamiltonians/HFDHE2PotentialShift.h"
 
 
 
@@ -139,8 +140,11 @@ namespace qmcplusplus {
             addConstCoulombPotential(cur,sourceInp);
           }
         } else if(potType == "HFDHE2") {
-          targetH->addOperator(new HFDHE2Potential(*targetPtcl),"HFDHE2",true);
-          app_log() << "  Adding HFDHE2Potential " << endl;
+          HFDHE2Potential* HFP = new HFDHE2Potential(*targetPtcl);
+          targetH->addOperator(HFP,"HFDHE2",true);
+          HFDHE2PotentialShift* HFPS = new HFDHE2PotentialShift(*targetPtcl);
+          targetH->addOperator(HFPS,"HFDHE2_S",false);
+          app_log() << "  Adding HFDHE2Potential and Shift" << endl;
         } else if(potType == "pseudo") {
           addPseudoPotential(cur);
         } else if(potType == "cpp") {

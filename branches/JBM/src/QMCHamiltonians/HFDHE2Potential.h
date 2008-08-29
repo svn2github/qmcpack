@@ -12,7 +12,7 @@ namespace qmcplusplus {
    */
   struct HFDHE2Potential: public QMCHamiltonianBase {
 
-    Return_t tailcorr,rc,A,alpha,c1,c2,c3,D;
+    Return_t tailcorr,rc,A,alpha,c1,c2,c3,D,VShift;
     // remember that the default units are Hartree and Bohrs
     DistanceTableData* d_table;
     ParticleSet* PtclRef;
@@ -34,11 +34,23 @@ namespace qmcplusplus {
       Return_t N0 = P.G.size();
       rc = P.Lattice.WignerSeitzRadius;
       tailcorr = 2.0*M_PI*rho*N0*(-26.7433377905*std::pow(rc,-7.0) - 2.8440930339*std::pow(rc,-5.0)-0.486669351961 *std::pow(rc,-3.0)+ std::exp(-2.381392669*rc)*(2.75969257875+6.571911675726*rc+7.82515114293*rc*rc) );
-      cout<<"  HFDHE2Potential tail correction is  "<<tailcorr<<endl;
+//       cout<<"  HFDHE2Potential tail correction is  "<<tailcorr<<endl;
+      
+      Return_t r2 = (rc*rc);
+      Return_t rm2 = 1.0/r2;
+      Return_t rm6 = std::pow(rm2,3);
+      Return_t rm8 = rm6*rm2;
+      Return_t rm10 = rm8*rm2;
+      Return_t VShift = (A*std::exp(alpha*rc) - (c1*rm6+c2*rm8+c3*rm10)*dampF(rc));
+//       cout<<"  HFDHE2Potential shift is  "<<VShift<<endl;
     }
 
     ~HFDHE2Potential() { }
 
+    Return_t getVShift(){
+      return VShift;
+    };
+    
     void resetTargetParticleSet(ParticleSet& P)  {
       d_table = DistanceTable::add(P);
       PtclRef=&P;
@@ -46,6 +58,14 @@ namespace qmcplusplus {
       Return_t N0 = P.G.size();
       Return_t rc = P.Lattice.WignerSeitzRadius;
       tailcorr = 2*M_PI*rho*N0*(-26.7433377905*std::pow(rc,-7.0) - 2.8440930339*std::pow(rc,-5.0)-0.486669351961 *std::pow(rc,-3.0)+ std::exp(-2.381392669*rc)*(2.75969257875+6.571911675726*rc+7.82515114293*rc*rc) );
+      
+      Return_t r2 = (rc*rc);
+      Return_t rm2 = 1.0/r2;
+      Return_t rm6 = std::pow(rm2,3);
+      Return_t rm8 = rm6*rm2;
+      Return_t rm10 = rm8*rm2;
+      Return_t VShift = (A*std::exp(alpha*rc) - (c1*rm6+c2*rm8+c3*rm10)*dampF(rc));
+//       cout<<"  HFDHE2Potential shift is  "<<VShift<<endl;
     }
 
     inline Return_t evaluate(ParticleSet& P) {
@@ -59,7 +79,7 @@ namespace qmcplusplus {
           Return_t rm6 = std::pow(rm2,3);
           Return_t rm8 = rm6*rm2;
           Return_t rm10 = rm8*rm2;
-	  Value += (A*std::exp(alpha*r1) - (c1*rm6+c2*rm8+c3*rm10)*dampF(r1));
+          Value += (A*std::exp(alpha*r1) - (c1*rm6+c2*rm8+c3*rm10)*dampF(r1)) - VShift;
 	}
       }
       Value += tailcorr;
