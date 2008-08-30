@@ -41,7 +41,7 @@ namespace qmcplusplus {
       Return_t rm6 = std::pow(rm2,3);
       Return_t rm8 = rm6*rm2;
       Return_t rm10 = rm8*rm2;
-      Return_t VShift = (A*std::exp(alpha*rc) - (c1*rm6+c2*rm8+c3*rm10)*dampF(rc));
+      VShift = (A*std::exp(alpha*rc) - (c1*rm6+c2*rm8+c3*rm10)*dampF(rc));
 //       cout<<"  HFDHE2Potential shift is  "<<VShift<<endl;
     }
 
@@ -60,7 +60,7 @@ namespace qmcplusplus {
       Return_t rm6 = std::pow(rm2,3);
       Return_t rm8 = rm6*rm2;
       Return_t rm10 = rm8*rm2;
-      Return_t VShift = (A*std::exp(alpha*rc) - (c1*rm6+c2*rm8+c3*rm10)*dampF(rc));
+      VShift = (A*std::exp(alpha*rc) - (c1*rm6+c2*rm8+c3*rm10)*dampF(rc));
 //       cout<<"  HFDHE2Potential shift is  "<<VShift<<endl;
 //       cout<<"  rc is  "<<rc<<endl;
     }

@@ -34,14 +34,13 @@ namespace qmcplusplus {
 
   struct HFDHE2PotentialShift: public QMCHamiltonianBase {
     Return_t VShift,rc;
-    ParticleSet* sourcePtcl;
     DistanceTableData* d_table;
     
     /** constructor
      *
      * HFDHE2PotentialShift operators need to be re-evaluated during optimization.
      */
-    HFDHE2PotentialShift(ParticleSet& P ): sourcePtcl(&P) {
+    HFDHE2PotentialShift(ParticleSet& P ){
       UpdateMode.set(OPTIMIZABLE,1);
       d_table = DistanceTable::add(P);
       rc = P.Lattice.WignerSeitzRadius;
