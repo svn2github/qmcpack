@@ -67,10 +67,6 @@ namespace qmcplusplus {
 
     inline Return_t evaluate(ParticleSet& P) {
       Value = 0.0;
-      
-      cout<<"  HFDHE2Potential"<< Pname<<" shift is  "<<VShift<<endl;
-      cout<<"  rc is  "<<rc<<endl;
-      
       for(int i=0; i<d_table->getTotNadj(); i++) {
 	Return_t r1 = d_table->r(i);
         if ( r1 < rc) {
