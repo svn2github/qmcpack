@@ -140,6 +140,11 @@ namespace qmcplusplus {
       app_log() << "  Gaussian function Two-Body Jastrow Function = " << jastfunction << endl;
       IgnoreSpin=true;
       success = createJAA<TruncatedShiftedGaussianFunctor<RealType> >(cur,jastfunction);
+    }else if(jastfunction == "HFDHE2")
+    {
+      app_log() << "  Approximately the HFDHE2 potential derived Two-Body Jastrow Function = " << jastfunction << endl;
+      IgnoreSpin=true;
+      success = createJAA<HFDHE2Functor<RealType> >(cur,jastfunction);
     }
     //} else if(jastfunction == "rpa") {
     //  app_log() << "  Two-Body Jastrow Function = " << jastfunction << endl;

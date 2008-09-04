@@ -41,7 +41,7 @@ namespace qmcplusplus {
     RealType Kc(-1.0);
     params.add(Rs,"rs","double");
     params.add(Kc,"kc","double");
-
+//     params.add(Kc,"kc1","double");
     params.put(cur);
         
     if(Rs<0) {
@@ -52,7 +52,8 @@ namespace qmcplusplus {
       Kc = 1e-4 ;
     };
 
-
+//     if(rpafunc=="HRPA") myHandler= new LRRPAHandlerTemp<derivEPRPABreakup<RealType>,LPQHIBasis>(targetPtcl,Kc);
+//     else if(rpafunc=="RPA") 
     myHandler= new LRRPAHandlerTemp<EPRPABreakup<RealType>,LPQHIBasis>(targetPtcl,Kc);
     myHandler->Breakup(targetPtcl,Rs);
     
@@ -72,7 +73,7 @@ namespace qmcplusplus {
     SRA->setRmax(Rcut);
     nfunc->initialize(SRA, myGrid);
 
-    JneType* J1s = new JneType (*sourcePtcl,targetPtcl);
+    J1s = new JneType (*sourcePtcl,targetPtcl);
 
     for(int ig=0; ig<ng; ig++) {
       J1s->addFunc(ig,nfunc);
@@ -80,6 +81,35 @@ namespace qmcplusplus {
 
     app_log()<<" Only Short range part of E-I RPA is implemented"<<endl;
     targetPsi.addOrbital(J1s,MyName);
+    
+
     return true;
   }
+  
+  OrbitalBase* singleRPAJastrowBuilder::getOrbital(){
+    RealType Rs=tlen;
+    RealType Kc = 1e-4 ;
+    myHandler= new LRRPAHandlerTemp<derivEPRPABreakup<RealType>,LPQHIBasis>(targetPtcl,Kc);
+    myHandler->Breakup(targetPtcl,Rs);
+
+    //Add short range part
+    Rcut = myHandler->get_rc()-0.1;
+    GridType* myGrid = new GridType;
+    int npts=static_cast<int>(Rcut/0.01)+1;
+    myGrid->set(0,Rcut,npts);
+
+      //create the numerical functor
+    nfunc = new FuncType;
+    SRA = new ShortRangePartAdapter<RealType>(myHandler);
+    SRA->setRmax(Rcut);
+    nfunc->initialize(SRA, myGrid);
+
+    J1s = new JneType (*sourcePtcl,targetPtcl);
+
+    for(int ig=0; ig<ng; ig++) {
+      J1s->addFunc(ig,nfunc);
+    }
+    
+  return J1s;
+}
 }

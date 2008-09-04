@@ -81,7 +81,7 @@ namespace qmcplusplus {
       tailcorr =  (10*c3)/7*rm7 + (8*c2)/5*rm5 + (2*c1)*rm3 + ( A*std::exp(alpha*r1) * (6 - alpha*rcutoff*(6 - alpha*rcutoff* (3 - alpha* rcutoff))))/(alpha*alpha*alpha);
       tailcorr *= pNorm;
       tailcorr *= 2.0*M_PI*rho*N0;
-      cout<<setprecision (12)<<"  HePressure:: Tail Correction for "<<sourcePtcl->getName()<<" is: "<<tailcorr<<endl;
+//       cout<<setprecision (12)<<"  HePressure:: Tail Correction for "<<sourcePtcl->getName()<<" is: "<<tailcorr<<endl;
     }
     ///destructor
     ~HePressure() { }
@@ -109,7 +109,7 @@ namespace qmcplusplus {
       tailcorr =  (10*c3)/7*rm7 + (8*c2)/5*rm5 + (2*c1)*rm3 + ( A*std::exp(alpha*r1) * (6 - alpha*rcutoff*(6 - alpha*rcutoff* (3 - alpha* rcutoff))))/(alpha*alpha*alpha);
       tailcorr *= pNorm;
       tailcorr *= 2.0*M_PI*rho*N0;
-      cout<<setprecision (12)<<"  HePressure:: Tail Correction for "<<sourcePtcl->getName()<<" is: "<<tailcorr<<endl;
+//       cout<<setprecision (12)<<"  HePressure:: Tail Correction for "<<sourcePtcl->getName()<<" is: "<<tailcorr<<endl;
     }
 
     inline Return_t evaluate(ParticleSet& P) {

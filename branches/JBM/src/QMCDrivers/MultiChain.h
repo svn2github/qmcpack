@@ -53,6 +53,7 @@ namespace qmcplusplus {
     inline ~Bead()
     {
       delete_iter(Gradients.begin(),Gradients.end());
+      delete_iter(DriftVectors.begin(),DriftVectors.end());
     }
 
     inline Bead(const Walker_t& a){
@@ -74,6 +75,7 @@ namespace qmcplusplus {
       Resize_Grad_and_Action(rows,a.size());
       Action=a.Action;
       for(int i=0; i<rows; i++) *Gradients[i] = *(a.Gradients[i]);
+      for(int i=0; i<rows; i++) *DriftVectors[i] = *(a.DriftVectors[i]);
       BeadSignWgt.resize(rows);
       BeadSignWgt=a.BeadSignWgt;
       TransProb[0]=a.TransProb[0];
@@ -81,7 +83,6 @@ namespace qmcplusplus {
 
       stepmade=a.stepmade;
       deltaRSquared=a.deltaRSquared;
-      DriftVectors=a.DriftVectors;
     }
 
     inline void Resize_Grad_and_Action(int n, int m){
@@ -213,6 +214,12 @@ namespace qmcplusplus {
       }
       denom=1.0/denom;
       Drift *= denom;
+    }
+    
+    inline void getScaledDriftSingle(vector<RealType>& LogNorm, RealType Tau, int ipsi) {
+//       ParticleAttrib<TinyVector<double,3> > TMPgrad(Drift);
+//       (*DriftVectors[ipsi]) = TMPgrad;
+      setScaledDriftPbyP(Tau,*Gradients[ipsi],(*DriftVectors[ipsi]));
     }
 
     inline void getDrift(vector<RealType>& Jacobian, SpaceWarp& PtclWarp,vector<RealType>& LogNorm) {

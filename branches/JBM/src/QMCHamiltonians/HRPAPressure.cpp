@@ -23,8 +23,11 @@
 
 
 #include "Configuration.h"
-#include "QMCHamiltonians/RPAPressure.h"
+#include "QMCHamiltonians/HRPAPressure.h"
 #include "QMCWaveFunctions/Jastrow/RPAJastrow.h"
+#include "QMCWaveFunctions/Jastrow/singleRPAJastrowBuilder.h"
+#include "QMCWaveFunctions/TrialWaveFunction.h"
+#include "Message/Communicate.h"
 #include "Optimize/VarList.h"
 #include "ParticleBase/ParticleAttribOps.h"
 
@@ -35,12 +38,13 @@ namespace qmcplusplus {
 
   typedef QMCHamiltonianBase::Return_t Return_t;
   
-  void RPAPressure::resetTargetParticleSet(ParticleSet& P) {
+  void HRPAPressure::resetTargetParticleSet(ParticleSet& P) {
     dPsi[0]->resetTargetParticleSet(P);
+    dPsi[1]->resetTargetParticleSet(P);
     pNorm = 1.0/(P.Lattice.DIM*P.Lattice.Volume);
   };
     
-  Return_t RPAPressure::evaluate(ParticleSet& P) {
+  Return_t HRPAPressure::evaluate(ParticleSet& P) {
     vector<OrbitalBase*>::iterator dit(dPsi.begin()), dit_end(dPsi.end());
     tValue=0.0;
     Value=0.0;
@@ -54,44 +58,42 @@ namespace qmcplusplus {
     ZVCorrection =  -1.0 * (0.5*Sum(dL)+Dot(dG,P.G));
     Value = -ZVCorrection*drsdV;
     
-    Energy = P.PropertyList[LOCALENERGY];
-    vValue = P.PropertyList[LOCALPOTENTIAL];
-    
-    vSum -= vHistory.back();
-    vHistory.pop_back();
-    vSum += vValue;
-    
-    vHistory.insert(vHistory.begin(),vValue);
-    
-    Press=2.0*Energy-vValue;
+    Press=2.0*P.PropertyList[LOCALENERGY]-P.PropertyList[LOCALPOTENTIAL];
     Press*=pNorm;
-
+    Energy = P.PropertyList[LOCALENERGY];
+    
     return 0.0;
   }
 
-  Return_t RPAPressure::evaluate(ParticleSet& P, vector<NonLocalData>& Txy) {
+  Return_t HRPAPressure::evaluate(ParticleSet& P, vector<NonLocalData>& Txy) {
     return evaluate(P);
   }
 
-  bool RPAPressure::put(xmlNodePtr cur, ParticleSet& P, int VNUM) {
-    MyName = "RPAZVZBP";
+  bool HRPAPressure::put(xmlNodePtr cur, ParticleSet& P, ParticleSet& source) {
+    MyName = "HRPAZVZBP";
     RealType tlen=std::pow(0.75/M_PI*P.Lattice.Volume/static_cast<RealType>(P.getTotalNum()),1.0/3.0);
     drsdV= tlen/(3.0* P.Lattice.Volume);
+    
     RPAJastrow* rpajastrow = new RPAJastrow(P);
     rpajastrow->put(cur);
     dPsi.push_back(rpajastrow);
     
-    vNum = VNUM;
-    vHistory = vector<Return_t>(vNum,0.0);
-    overvNum = 1.0/vNum;
-
+    Communicate* cpt = new Communicate();
+    TrialWaveFunction* tempPsi = new TrialWaveFunction(cpt);
+    singleRPAJastrowBuilder* jb = new singleRPAJastrowBuilder(P, *tempPsi, source );
+    OrbitalBase* Hrpajastrow = jb->getOrbital();
+    dPsi.push_back(Hrpajastrow);
+    delete jb;
+    delete tempPsi;
+    delete cpt;
+    
     return true;
   }
 
 
-  QMCHamiltonianBase* RPAPressure::makeClone(ParticleSet& P, TrialWaveFunction& psi)
+  QMCHamiltonianBase* HRPAPressure::makeClone(ParticleSet& P, TrialWaveFunction& psi)
   {
-    RPAPressure* myClone = new RPAPressure(P);
+    HRPAPressure* myClone = new HRPAPressure(P);
     
     vector<OrbitalBase*>::iterator dit(dPsi.begin()), dit_end(dPsi.end());
     while(dit != dit_end) {

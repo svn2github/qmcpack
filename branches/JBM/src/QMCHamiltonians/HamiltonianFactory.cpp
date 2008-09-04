@@ -37,6 +37,7 @@
 #include "OhmmsData/AttributeSet.h"
 #include "QMCHamiltonians/Pressure.h"
 #include "QMCHamiltonians/RPAPressure.h"
+#include "QMCHamiltonians/HRPAPressure.h"
 #include "QMCHamiltonians/HePressure.h"
 #include "QMCHamiltonians/HFDHE2Potential.h"
 #include "QMCHamiltonians/HFDHE2PotentialShift.h"
@@ -108,13 +109,14 @@ namespace qmcplusplus {
         int indx1 = targetPtcl->mySpecies.findSpecies(defaultKE);
         int indx2 = targetPtcl->mySpecies.addAttribute(tgt);
         mass = targetPtcl->mySpecies(indx2,indx1);
-        cout<<"  Kinetic energy operator:: Mass "<<mass<<endl;
+//         cout<<"  Kinetic energy operator:: Mass "<<mass<<endl;
         targetH->addOperator(new BareKineticEnergy(mass),"Kinetic");
       }
     }
 
     cur = cur->children;
     while(cur != NULL) {
+      int VNUM=100;
       string cname((const char*)cur->name);
       string potType("0");
       string potName("any");
@@ -127,6 +129,7 @@ namespace qmcplusplus {
       attrib.add(potType,"type");
       attrib.add(potName,"name");
       attrib.add(estType,"potential");
+      attrib.add(VNUM,"vNum");
       attrib.put(cur);
       renameProperty(sourceInp);
       renameProperty(targetInp);
@@ -182,8 +185,22 @@ namespace qmcplusplus {
             targetH->addOperator(BP,"HePress",false);
           } else if (estType=="RPAZVZB"){
             RPAPressure* BP = new RPAPressure(*targetPtcl);
-            BP-> put(cur, *targetPtcl);
+            BP-> put(cur, *targetPtcl,VNUM);
             targetH->addOperator(BP,"RPAZVZBP",false);
+          } else if (estType=="HRPAZVZB"){
+            string a("ion0");
+            OhmmsAttributeSet hAttrib;
+            hAttrib.add(a,"source"); 
+            hAttrib.put(cur);
+            renameProperty(a);
+            PtclPoolType::iterator pit(ptclPool.find(a));
+            if(pit == ptclPool.end()) {
+              ERRORMSG("Missing source ParticleSet" << a)
+            }
+            ParticleSet* source = (*pit).second;
+            HRPAPressure* HBP = new HRPAPressure(*targetPtcl);
+            HBP-> put(cur, *targetPtcl,*source);
+            targetH->addOperator(HBP,"HRPAZVZBP",false);
           }
         }
       }

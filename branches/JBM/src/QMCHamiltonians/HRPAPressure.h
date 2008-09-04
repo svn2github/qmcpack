@@ -14,8 +14,8 @@
 //   Materials Computation Center, UIUC
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
-#ifndef QMCPLUSPLUS_RPAPRESSURECORRECTION_H
-#define QMCPLUSPLUS_RPAPRESSURECORRECTION_H
+#ifndef QMCPLUSPLUS_HRPAPRESSURECORRECTION_H
+#define QMCPLUSPLUS_HRPAPRESSURECORRECTION_H
 #include "Particle/ParticleSet.h"
 #include "Particle/WalkerSetRef.h"
 #include "QMCHamiltonians/QMCHamiltonianBase.h"
@@ -28,44 +28,35 @@
 namespace qmcplusplus {
 
   /** @ingroup hamiltonian
-   @brief Evaluate the RPA ZVZB Pressure
+   @brief Evaluate the Hydrogen RPA ZVZB Pressure
   **/
 
-  struct RPAPressure: public QMCHamiltonianBase {
+  struct HRPAPressure: public QMCHamiltonianBase {
     typedef RealType Return_t;
     ///Laplacian and Gradient for derivative of wave function with respect to r_s
     PtclOnLatticeTraits::ParticleGradient_t dG;
     PtclOnLatticeTraits::ParticleLaplacian_t dL;
     vector<OrbitalBase*> dPsi;
     Return_t Rs;
-    Return_t tValue,vValue,vSum,overvNum;
-    int vNum;
-    vector<Return_t> vHistory;
+    Return_t tValue;
     Return_t drsdV;
     Return_t pNorm;
     Return_t ZVCorrection;
     Return_t Press,Energy;
-
-    /** constructor
-     *
-     * Pressure operators need to be re-evaluated during optimization.
-     */
-    RPAPressure(ParticleSet& P): dG(P.G),dL(P.L),vNum(500),vSum(0.0) {
+ 
+    HRPAPressure(ParticleSet& P): dG(P.G),dL(P.L) {
       UpdateMode.set(OPTIMIZABLE,1);
       pNorm = 1.0/(P.Lattice.DIM*P.Lattice.Volume);
-      
-
     };
     
     ///destructor
-    ~RPAPressure() {
+    ~HRPAPressure() {
     };
     
     
     void addObservables(PropertySetType& plist)
     {
-      myIndex=plist.add("EVsumterm");
-      plist.add("Vsumterm");
+      myIndex=plist.add("EPterm");
       plist.add("ZVterm");
       plist.add("dpsi");
       plist.add("Edpsi");
@@ -74,12 +65,11 @@ namespace qmcplusplus {
 
     void setObservables(PropertySetType& plist)
     {
-      plist[myIndex]=Energy*vSum*Tau*pNorm;
-      plist[myIndex+1]=vSum*Tau*pNorm;
-      plist[myIndex+2]=Value;
-      plist[myIndex+3]=tValue;
-      plist[myIndex+4]=Energy*tValue;
-      plist[myIndex+5]=Press;
+      plist[myIndex]=Energy*Press;
+      plist[myIndex+1]=Value;
+      plist[myIndex+2]=tValue;
+      plist[myIndex+3]=Energy*tValue;
+      plist[myIndex+4]=Press;
       
     }
 
@@ -90,17 +80,13 @@ namespace qmcplusplus {
 
     inline Return_t 
     evaluate(ParticleSet& P, vector<NonLocalData>& Txy) ;
-    
-    /** implements the virtual function.
-     * 
-     * Nothing is done but should check the mass
-     */
+
     bool put(xmlNodePtr cur ) {return true;}
     
-    bool put(xmlNodePtr cur, ParticleSet& P, int VNUM);
+    bool put(xmlNodePtr cur, ParticleSet& P, ParticleSet& source);
 
     bool get(std::ostream& os) const {
-      os << "RPAZVZBP";
+      os << "HRPAZVZBP";
       return true;
     }
 

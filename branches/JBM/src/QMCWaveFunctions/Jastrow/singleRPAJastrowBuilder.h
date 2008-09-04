@@ -49,8 +49,7 @@ namespace qmcplusplus {
     JneType* J1s;
     ParticleSet* sourcePtcl;
 
-    singleRPAJastrowBuilder(ParticleSet& target, TrialWaveFunction& psi,
-			 ParticleSet& source) : 
+    singleRPAJastrowBuilder(ParticleSet& target, TrialWaveFunction& psi, ParticleSet& source) : 
         OrbitalBuilderBase(target,psi), sourcePtcl(&source), myHandler(0) {
         tlen = std::pow(3.0/4.0/M_PI*target.Lattice.Volume/ static_cast<RealType>(target.getTotalNum()) ,1.0/3.0);
 //         indx = target.SK->KLists.ksq.size()-1;
@@ -61,8 +60,12 @@ namespace qmcplusplus {
         ng=source.getSpeciesSet().getTotalNum();
 //         J1s = new JneType (source,target);
       }
-
-    bool put(xmlNodePtr cur);
+      ~singleRPAJastrowBuilder(){
+//         delete myHandler;
+      };
+      
+      OrbitalBase* getOrbital();
+   bool put(xmlNodePtr cur);
 
 
   };
