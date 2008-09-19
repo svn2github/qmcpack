@@ -1,7 +1,9 @@
 #ifndef CUDA_ALLOCATOR_H
 #define CUDA_ALLOCATOR_H
 
-#include <cuda_runtime_api.h>
+#ifdef QMC_CUDA
+  #include <cuda_runtime_api.h>
+#endif
 #include <malloc.h>
 #include <iostream>
 
@@ -48,10 +50,13 @@ public:
   
   pointer allocate(size_type s, cuda_allocator<void>::const_pointer hint = 0)
   {
-    std::cerr << "Called allocate with s = " << s << std::endl;
+#ifdef QMC_CUDA   
     pointer mem;
     cudaMalloc ((void**)&mem, s*sizeof(T));
     return mem;
+#else
+    return malloc(s*sizeof(T));
+#endif
   }
   
   void deallocate(pointer p, size_type n)
@@ -78,12 +83,35 @@ template<typename T>
 class cuda_vector : public std::vector<T, cuda_allocator<T> >
 {
 public:
-  cuda_vector& operator=(const std::vector<T,std::allocator<T> > &vec)
+  cuda_vector(const cuda_vector<T> &vec)
   {
     if (this->size() != vec.size())
       resize(vec.size());
-    cudaMemcpy (&((*this)[0]), &(vec[0]), this->size(), cudaMemcpyHostToDevice);
+    if (this->size()) 
+      cudaMemcpy (&(this[0]), &(vec[0]), this->size()*sizeof(T),
+		  cudaMemcpyDeviceToDevice);
   }
+
+  cuda_vector& 
+  operator=(const cuda_vector<T> &vec)
+  {
+    if (this->size() != vec.size())
+      resize(vec.size());
+    cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
+		cudaMemcpyHostToDevice);
+    return *this;
+  }
+
+  cuda_vector& 
+  operator=(const std::vector<T,std::allocator<T> > &vec)
+  {
+    if (this->size() != vec.size())
+      resize(vec.size());
+    cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
+		cudaMemcpyHostToDevice);
+    return *this;
+  }
+
 
 };
 

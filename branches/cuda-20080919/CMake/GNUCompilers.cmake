@@ -1,7 +1,7 @@
 #GNU compilers
 IF(CMAKE_COMPILER_IS_GNUCXX) 
   ADD_DEFINITIONS(-Drestrict=__restrict__ -DADD_ -DINLINE_ALL=inline)
-  SET(CMAKE_CXX_FLAGS "-O6 -ftemplate-depth-60 -Drestrict=__restrict__ -fstrict-aliasing -funroll-all-loops   -finline-limit=1000 -ffast-math -Wno-deprecated ")
+  SET(CMAKE_CXX_FLAGS "-O6 -ftemplate-depth-60 -Drestrict=__restrict__ -fstrict-aliasing -funroll-all-loops   -finline-limit=1000 -ffast-math -Wno-deprecated -msse3 -fopenmp")
   SET(CMAKE_C_FLAGS "-O3 -Drestrict=__restrict__ -fstrict-aliasing -funroll-all-loops   -finline-limit=1000 -ffast-math -std=gnu99 -fomit-frame-pointer ")
 
   SET(CMAKE_TRY_GNU_CC_FLAGS "-mmmx")
@@ -24,6 +24,12 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
 
   SET(CMAKE_TRY_GNU_CC_FLAGS "-msse3")
   CHECK_C_COMPILER_FLAG(${CMAKE_TRY_GNU_CC_FLAGS} GNU_CC_FLAGS)
+  IF(GNU_CC_FLAGS)
+    SET(HAVE_SSE3 1)
+  ENDIF(GNU_CC_FLAGS)
+
+  SET(CMAKE_TRY_GNU_CXX_FLAGS "-msse3")
+  CHECK_C_COMPILER_FLAG(${CMAKE_TRY_GNU_CXX_FLAGS} GNU_CXX_FLAGS)
   IF(GNU_CC_FLAGS)
     SET(HAVE_SSE3 1)
   ENDIF(GNU_CC_FLAGS)
