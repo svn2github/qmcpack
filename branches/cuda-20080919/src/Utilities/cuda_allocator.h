@@ -55,13 +55,15 @@ public:
     cudaMalloc ((void**)&mem, s*sizeof(T));
     return mem;
 #else
-    return malloc(s*sizeof(T));
+    return (pointer) malloc(s*sizeof(T));
 #endif
   }
   
   void deallocate(pointer p, size_type n)
   {
+#ifdef QMC_CUDA
     cudaFree (p);
+#endif
   }
 
   size_type max_size() const throw()
@@ -79,17 +81,29 @@ public:
 
 #include <vector>
 
+template<typename T> class host_vector;
+
 template<typename T>
 class cuda_vector : public std::vector<T, cuda_allocator<T> >
 {
 public:
-  cuda_vector(const cuda_vector<T> &vec)
+  cuda_vector() : std::vector<T, cuda_allocator<T> >()
+  {
+
+  }
+
+  cuda_vector(const host_vector<T> &vec);
+
+  cuda_vector(const cuda_vector<T> &vec) :
+    std::vector<T, cuda_allocator<T> > ()
   {
     if (this->size() != vec.size())
       resize(vec.size());
+#ifdef QMC_CUDA
     if (this->size()) 
       cudaMemcpy (&(this[0]), &(vec[0]), this->size()*sizeof(T),
 		  cudaMemcpyDeviceToDevice);
+#endif
   }
 
   cuda_vector& 
@@ -97,8 +111,10 @@ public:
   {
     if (this->size() != vec.size())
       resize(vec.size());
+#ifdef QMC_CUDA
     cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
 		cudaMemcpyHostToDevice);
+#endif
     return *this;
   }
 
@@ -107,15 +123,85 @@ public:
   {
     if (this->size() != vec.size())
       resize(vec.size());
+#ifdef QMC_CUDA
     cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
 		cudaMemcpyHostToDevice);
+#endif
     return *this;
   }
 
+  cuda_vector& 
+  operator=(const host_vector<T> &vec)
+  {
+    if (this->size() != vec.size())
+      resize(vec.size());
+#ifdef QMC_CUDA
+    cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
+		cudaMemcpyHostToDevice);
+#endif
+    return *this;
+  }
 
 };
 
 
 
+
+template<typename T>
+class host_vector : public std::vector<T>
+{
+public:
+  host_vector() : std::vector<T>()
+  { }
+
+  host_vector(const host_vector<T> &vec) :
+    std::vector<T> (vec)
+  {  }
+
+  host_vector(const cuda_vector<T> &vec) :
+    std::vector<T> (vec.size())
+  {
+#ifdef QMC_CUDA
+    cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
+		cudaMemcpyDeviceToHost);
+#endif
+  }
+
+
+  host_vector& 
+  operator=(const host_vector<T> &vec)
+  {
+    if (this->size() != vec.size())
+      resize(vec.size());
+#ifdef QMC_CUDA
+    cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
+		cudaMemcpyHostToDevice);
+#endif
+    return *this;
+  }
+
+  host_vector& 
+  operator=(const cuda_vector<T> &vec)
+  {
+    if (this->size() != vec.size())
+      resize(vec.size());
+#ifdef QMC_CUDA
+    cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
+		cudaMemcpyDeviceToHost);
+#endif
+    return *this;
+  }
+};
+
+template<typename T>
+cuda_vector<T>::cuda_vector(const host_vector<T> &vec) :
+  std::vector<T, cuda_allocator<T> > (vec.size())
+{
+#ifdef QMC_CUDA
+  cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
+	      cudaMemcpyDeviceToHost);
+#endif
+  
+}
 
 #endif
