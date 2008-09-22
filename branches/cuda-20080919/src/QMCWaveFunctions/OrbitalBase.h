@@ -69,6 +69,8 @@ namespace qmcplusplus {
     typedef ParticleAttrib<ValueType> ValueVectorType;
     typedef ParticleAttrib<GradType>  GradVectorType;
     typedef PooledData<RealType>      BufferType;
+    typedef Walker<ValueType,PosType>    Walker_t;
+
 
     /** boolean to set optimization
      *
@@ -276,6 +278,31 @@ namespace qmcplusplus {
     // * It is up to the derived classes to determine to use deep, shallow and mixed copy methods.
     // */
     //virtual void copyFrom(const OrbitalBase& old);
+
+    /////////////////////////////////////////////////////
+    // Functions for vectorized evaluation and updates //
+    /////////////////////////////////////////////////////
+    /** Evaluate the log of the WF for all walkers
+     *  @param walkers   vector of all walkers
+     *  @param logPsi    output vector of log(psi)
+     */
+    void evaluateLog (vector<Walker_t> &walkers,
+		      vector<RealType> &logPsi);
+    
+    /** Evaluate the wave-function ratio w.r.t. moving particle iat
+     *  for all walkers
+     *  @param walkers     vector of all walkers
+     *  @param iat         particle which is moving
+     *  @param psi_ratios  output vector with psi_new/psi_old
+     */
+    void ratio (vector<Walker_t> &walkers, int iat,
+		vector<ValueType> &psi_ratios);
+
+    // Returns the WF ratio and gradient w.r.t. iat for each walker
+    // in the respective vectors
+    void ratio (vector<Walker_t>  &walkers, int iat,
+		vector<ValueType> &psi_ratios,
+		vector<PosType>   &grad);		
   };
 }
 #endif
