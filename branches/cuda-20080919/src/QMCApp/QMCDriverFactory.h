@@ -49,16 +49,17 @@ namespace qmcplusplus {
     /*! enum to set the bit to determine the QMC mode */
     enum QMCModeEnum 
     {
-      UPDATE_MODE,  /**< bit for move: walker or pbyp */
-      MULTIPLE_MODE, /**< bit for multple configuration */
-      SPACEWARP_MODE /**< bit for space-warping */
+      UPDATE_MODE,    /**< bit for move: walker or pbyp */
+      MULTIPLE_MODE,  /**< bit for multple configuration */
+      SPACEWARP_MODE, /**< bit for space-warping */
+      GPU_MODE
     };
 
     ///current QMC mode determined by curQmcModeBits
     unsigned long curQmcMode;
 
     ///3-bit (SPACEWARP_MODE, MULTIPLE_MODE, UPDATE_MODE)
-    std::bitset<3> curQmcModeBits;
+    std::bitset<4> curQmcModeBits;
 
     ///type of qmcdriver
     QMCRunType curRunType;

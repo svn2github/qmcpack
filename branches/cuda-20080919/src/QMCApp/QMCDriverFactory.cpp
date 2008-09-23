@@ -89,6 +89,7 @@ namespace qmcplusplus {
     string multi_tag("no");
     string warp_tag("no");
     string append_tag("no");
+    string gpu_tag("no");
 
     OhmmsAttributeSet aAttrib;
     aAttrib.add(qmc_mode,"method");
@@ -96,13 +97,15 @@ namespace qmcplusplus {
     aAttrib.add(multi_tag,"multiple");
     aAttrib.add(warp_tag,"warp");
     aAttrib.add(append_tag,"append");
+    aAttrib.add(gpu_tag,"gpu");
     aAttrib.put(cur);
 
     bool append_run =(append_tag == "yes");
-    bitset<3>  WhatToDo;
-    WhatToDo[SPACEWARP_MODE]= (warp_tag == "yes");
-    WhatToDo[MULTIPLE_MODE]= (multi_tag == "yes");
-    WhatToDo[UPDATE_MODE]= (update_mode == "pbyp");
+    bitset<4>  WhatToDo;
+    WhatToDo[SPACEWARP_MODE] = (warp_tag    == "yes");
+    WhatToDo[MULTIPLE_MODE ] = (multi_tag   == "yes");
+    WhatToDo[UPDATE_MODE   ] = (update_mode == "pbyp");
+    WhatToDo[GPU_MODE      ] = (gpu_tag     == "yes");
 
     QMCRunType newRunType = DUMMY_RUN;
     if(curName != "qmc") qmc_mode=curName;

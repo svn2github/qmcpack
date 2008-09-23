@@ -19,6 +19,11 @@
 #if defined(ENABLE_OPENMP)
 #include "QMCDrivers/VMC/VMCSingleOMP.h"
 #endif
+
+#ifdef QMC_CUDA
+#include "QMCDrivers/VMC/VMCcuda.h"
+#endif
+
 //#include "QMCDrivers/VMC/VMCMultiple.h"
 //#include "QMCDrivers/VMC/VMCPbyPMultiple.h"
 #if !defined(QMC_COMPLEX)
@@ -34,9 +39,12 @@ namespace qmcplusplus {
       QMCHamiltonian& h, ParticleSetPool& ptclpool, HamiltonianPool& hpool) {
     int np=omp_get_max_threads();
 
-    //(SPACEWARP_MODE,MULTIPE_MODE,UPDATE_MODE)
+    // (GPU_MODE, SPACEWARP_MODE,MULTIPE_MODE,UPDATE_MODE)
     QMCDriver* qmc=0;
-    if(VMCMode == 0 || VMCMode == 1) //(0,0,0) (0,0,1)
+    if (VMCMode & 8) {
+      qmc = new VMCcuda(w,psi,h);
+    }
+    else if(VMCMode == 0 || VMCMode == 1) //(0,0,0) (0,0,1)
     {
 #if defined(ENABLE_OPENMP)
       if(np>1)
