@@ -15,12 +15,14 @@
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
 #include "QMCDrivers/VMC/VMCcuda.h"
+#include "OhmmsApp/RandomNumberControl.h"
+#include "Utilities/RandomGenerator.h"
 
 namespace qmcplusplus { 
 
   /// Constructor.
   VMCcuda::VMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h):
-    QMCDriver(w,psi,h), myWarmupSteps(0), Mover(0), UseDrift("yes")
+    QMCDriver(w,psi,h), myWarmupSteps(0), UseDrift("yes")
   { 
     RootName = "vmc";
     QMCType ="VMCcuda";
@@ -35,7 +37,7 @@ namespace qmcplusplus {
 
     resetRun();
 
-    Mover->startRun(nBlocks,true);
+    //Mover->startRun(nBlocks,true);
 
     IndexType block = 0;
     IndexType nAcceptTot = 0;
@@ -50,9 +52,9 @@ namespace qmcplusplus {
     vector<ValueType> ratios(nw);
     vector<GradType> oldG(nw);
     vector<GradType> newG(nw);
-    vector<Walker_t*> moved(nw);
+    vector<Walker_t*> accepted(nw);
     do {
-      Mover->startBlock(nSteps);
+      //Mover->startBlock(nSteps);
       IndexType step = 0;
       do
       {
@@ -60,23 +62,23 @@ namespace qmcplusplus {
         for(int iat=0; iat<nat; ++iat)
         {
           //calculate drift
-          Psi.getGradient(W->WalkerList,iat,oldG);
+          Psi.getGradient(W.WalkerList,iat,oldG);
 
           //create a 3N-Dimensional Gaussian with variance=1
-          makeGaussRandomWithEngine(delpos,RandomGen);
+          //makeGaussRandomWithEngine(delpos,Random);
           for(int iw=0; iw<nw; ++iw)
-            newPos[iw]=W[iw]->R[iat]+m_sqrttau*deltaR[iw];
+            newpos[iw]=W[iw]->R[iat]+m_sqrttau*deltaR[iw];
 
-          Psi.ratio(W->WalkerList,iat,newpos,ratios,newG);
+          Psi.ratio(W.WalkerList,iat,newpos,ratios,newG);
 
-          moved.clear();
-          for(int iw=0; iw<nw: ++iw)
+          accepted.clear();
+          for(int iw=0; iw<nw; ++iw)
             if(ratios[iw]*ratios[iw]<Random()) 
             {
-              moved.push_back(W[iw]);
+              accepted.push_back(W[iw]);
             }
 
-          Psi.update(moved,iat);
+          Psi.update(accepted,iat);
         }
 
 
@@ -98,7 +100,7 @@ namespace qmcplusplus {
 
     } while(block<nBlocks);
 
-    Mover->stopRun();
+    //Mover->stopRun();
 
     //finalize a qmc section
     return finalize(block);

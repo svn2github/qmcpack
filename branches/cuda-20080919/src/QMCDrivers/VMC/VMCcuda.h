@@ -32,6 +32,8 @@ namespace qmcplusplus {
     bool put(xmlNodePtr cur);
  
   private:
+    /// Whether to use drift or not
+    string UseDrift;
     ///number of warmup steps
     int myWarmupSteps;
     ///period for walker dump

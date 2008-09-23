@@ -259,6 +259,9 @@ namespace qmcplusplus {
       }
     }
 
+    ///a collection of walkers
+    WalkerList_t WalkerList;
+
   protected:
 
     ///boolean for cleanup
@@ -273,9 +276,6 @@ namespace qmcplusplus {
     int UpdateMode;
 
     RealType LocalEnergy;
-
-    ///a collection of walkers
-    WalkerList_t WalkerList;
 
    private:
 

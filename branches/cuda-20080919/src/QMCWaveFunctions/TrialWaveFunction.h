@@ -51,7 +51,7 @@ namespace qmcplusplus {
     typedef OrbitalBase::PosType         PosType;
     typedef OrbitalBase::GradType        GradType;
     typedef OrbitalBase::BufferType      BufferType;
-    typedef Walker<ValueType,PosType>    Walker_t;
+    typedef ParticleSet::Walker_t        Walker_t;
 
     ///differential gradients
     ParticleSet::ParticleGradient_t G;
@@ -131,15 +131,23 @@ namespace qmcplusplus {
     /////////////////////////
     // Vectorized versions //
     /////////////////////////
-    void evaluateLog (vector<Walker_t> &walkers,
+    void getGradient (vector<Walker_t*> &walkers, int iat,
+		      vector<GradType> &grad);
+    void evaluateLog (vector<Walker_t*> &walkers,
 		      vector<RealType> &logPsi);
-    void ratio (vector<Walker_t> &walkers, int iat,
+    void ratio (vector<Walker_t*> &walkers, int iat,
+		vector<PosType> &newpos, 
 		vector<ValueType> &psi_ratios);
+    void ratio (vector<Walker_t*> &walkers, int iat,
+		vector<PosType> &newpos, 
+		vector<ValueType> &psi_ratios,
+		vector<GradType> &newG);
     // Returns the WF ratio and gradient w.r.t. iat for each walker
     // in the respective vectors
-    void ratio (vector<Walker_t>  &walkers, int iat,
+    void ratio (vector<Walker_t*>  &walkers, int iat,
 		vector<ValueType> &psi_ratios,
-		vector<PosType>   &grad);		
+		vector<GradType>   &grad);
+    void update (vector<Walker_t*> &walkers, int iat);
 
 //    RealType logRatio(ParticleSet& P, int iat, 
 //		    ParticleSet::ParticleGradient_t& dG,

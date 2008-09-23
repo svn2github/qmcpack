@@ -40,6 +40,12 @@ SET(QMCDRIVERS
   ../Estimators/MJPolymerEstimator.cpp
   ../Estimators/HFDHE2PolymerEstimator.cpp
 )
+
+IF(QMC_CUDA)
+   SET(QMCDRIVERS ${QMCDRIVERS}
+   VMC/VMCcuda.cpp)
+ENDIF(QMC_CUDA)
+
 #  ../Estimators/PairCorrEstimator.cpp
 
 IF(ENABLE_OPENMP) 
