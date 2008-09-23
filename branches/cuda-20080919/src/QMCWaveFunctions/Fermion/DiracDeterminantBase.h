@@ -163,6 +163,14 @@ namespace qmcplusplus {
 
     OrbitalBasePtr makeClone(ParticleSet& tqp) const;
 
+    /////////////////////////////////////////////////////
+    // Functions for vectorized evaluation and updates //
+    /////////////////////////////////////////////////////
+    void update (vector<Walker_t*> &walkers, int iat)
+    {
+
+    }
+
     ///flag to turn on/off to skip some calculations
     bool UseRatioOnly;
     ///total number of particles

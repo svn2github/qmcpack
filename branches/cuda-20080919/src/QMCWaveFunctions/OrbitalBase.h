@@ -295,9 +295,10 @@ namespace qmcplusplus {
      *  @param iat         particle which is moving
      *  @param psi_ratios  output vector with psi_new/psi_old
      */
-    void ratio (vector<Walker_t*> &walkers, int iat,
-		vector<PosType> &new_pos,
-		vector<ValueType> &psi_ratios)
+    virtual void 
+    ratio (vector<Walker_t*> &walkers, int iat,
+	   vector<PosType> &new_pos,
+	   vector<ValueType> &psi_ratios)
     {
       app_error() << "Need specialization of OrbitalBase::ratio.\n";
       abort();
@@ -305,23 +306,26 @@ namespace qmcplusplus {
 
     // Returns the WF ratio and gradient w.r.t. iat for each walker
     // in the respective vectors
-    void ratio (vector<Walker_t*> &walkers, int iat,
-		vector<PosType> &new_pos,
-		vector<ValueType> &psi_ratios,
-		vector<GradType>  &grad)
+    virtual void 
+    ratio (vector<Walker_t*> &walkers, int iat,
+	   vector<PosType> &new_pos,
+	   vector<ValueType> &psi_ratios,
+	   vector<GradType>  &grad)
     {
       app_error() << "Need specialization of OrbitalBase::ratio.\n";
       abort();
     }
 
-    void addGradient(vector<Walker_t*> &walkers, int iat,
-		     vector<GradType> &grad) 
+    virtual void 
+    addGradient(vector<Walker_t*> &walkers, int iat,
+		vector<GradType> &grad) 
     {
       app_error() << "Need specialization of OrbitalBase::addGradient.\n";
       abort();
     }
 
-    void update (vector<Walker_t*> &walkers, int iat)
+    virtual void 
+    update (vector<Walker_t*> &walkers, int iat)
     {
       app_error() << "Need specialization of OrbitalBase::update.\n";
       abort();

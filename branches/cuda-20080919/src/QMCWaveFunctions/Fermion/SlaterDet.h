@@ -104,6 +104,14 @@ namespace qmcplusplus {
 
     OrbitalBasePtr makeClone(ParticleSet& tqp) const;
 
+    /////////////////////////////////////////////////////
+    // Functions for vectorized evaluation and updates //
+    /////////////////////////////////////////////////////
+    void update (vector<Walker_t*> &walkers, int iat)
+    {
+      Dets[DetID[iat]]->update(walkers, iat);
+    }
+
   private:
     vector<int> M;
     vector<int> DetID;
