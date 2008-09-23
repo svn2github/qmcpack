@@ -496,6 +496,44 @@ namespace qmcplusplus {
     return myclone;
 
   }
+
+    ////////////////////////////////
+    // Vectorized member fuctions //
+    ////////////////////////////////
+  void
+  TrialWaveFunction::getGradient (vector<Walker_t*> &walkers, int iat,
+				  vector<GradType> &grad)
+  {
+
+
+  }
+
+  void
+  TrialWaveFunction::ratio (vector<Walker_t*> &walkers, int iat,
+			    vector<PosType> &newpos, 
+			    vector<ValueType> &psi_ratios,
+			    vector<GradType> &newG)
+  {
+
+  }
+
+
+  void 
+  TrialWaveFunction::ratio (vector<Walker_t*> &walkers, int iat,
+			    vector<PosType> &newpos, 
+			    vector<ValueType> &psi_ratios)
+  {
+
+
+  }
+
+  void
+  TrialWaveFunction::update (vector<Walker_t*> &walkers, int iat)
+  {
+
+  }
+
+
 }
 /***************************************************************************
  * $RCSfile$   $Author$
