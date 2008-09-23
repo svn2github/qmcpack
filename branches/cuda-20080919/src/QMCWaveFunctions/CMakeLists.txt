@@ -49,6 +49,12 @@ ELSE(QMC_COMPLEX)
      )
 ENDIF(QMC_COMPLEX)
 
+IF(QMC_CUDA)
+   SET(FERMION_SRCS ${FERMION_SRCS}
+       Fermion/determinant_update.cu
+      )
+ENDIF(QMC_CUDA)
+
 # wavefunctions only availbale to 3-dim problems
 IF(OHMMS_DIM MATCHES 3)
   SET(FERMION_SRCS ${FERMION_SRCS}
@@ -83,8 +89,11 @@ ENDIF(OHMMS_DIM MATCHES 3)
 ####################################
 # create libqmcwfs
 ####################################
-ADD_LIBRARY(qmcwfs ${WFBASE_SRCS} ${JASTROW_SRCS} ${FERMION_SRCS})
-
+IF(QMC_CUDA)
+  CUDA_ADD_LIBRARY(qmcwfs ${WFBASE_SRCS} ${JASTROW_SRCS} ${FERMION_SRCS})
+ELSE(QMC_CUDA)
+  ADD_LIBRARY(qmcwfs ${WFBASE_SRCS} ${JASTROW_SRCS} ${FERMION_SRCS})
+ENDIF(QMC_CUDA)
 #IF(QMC_BUILD_STATIC)
 #  ADD_LIBRARY(qmcwfs STATIC ${WFBASE_SRCS} ${JASTROW_SRCS} ${FERMION_SRCS})
 #ELSE(QMC_BUILD_STATIC)
