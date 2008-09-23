@@ -74,6 +74,11 @@ inline void makeGaussRandom(ParticleAttrib<TinyVector<T,D> >& a) {
   assignGaussRand(&(a[0][0]), a.size()*D, Random);
 }
 
+template<typename T, unsigned D>
+inline void makeGaussRandom(std::vector<TinyVector<T,D> >& a) {
+  assignGaussRand(&(a[0][0]), a.size()*D, Random);
+}
+
 template<typename T>
 inline void makeGaussRandom(ParticleAttrib<T>& a) {
   assignGaussRand(&(a[0]), a.size(), Random);
@@ -126,6 +131,11 @@ inline void makeSphereRandom(ParticleAttrib<TinyVector<T,2> >& a) {
 
 template<typename T, unsigned D, class RG>
 inline void makeGaussRandomWithEngine(ParticleAttrib<TinyVector<T,D> >& a, RG& rng) {
+  assignGaussRand(&(a[0][0]), a.size()*D, rng);
+}
+
+template<typename T, unsigned D, class RG>
+inline void makeGaussRandomWithEngine(std::vector<TinyVector<T,D> >& a, RG& rng) {
   assignGaussRand(&(a[0][0]), a.size()*D, rng);
 }
 

@@ -17,6 +17,7 @@
 #include "QMCDrivers/VMC/VMCcuda.h"
 #include "OhmmsApp/RandomNumberControl.h"
 #include "Utilities/RandomGenerator.h"
+#include "ParticleBase/RandomSeqGenerator.h"
 
 namespace qmcplusplus { 
 
@@ -65,7 +66,7 @@ namespace qmcplusplus {
           Psi.getGradient(W.WalkerList,iat,oldG);
 
           //create a 3N-Dimensional Gaussian with variance=1
-          //makeGaussRandomWithEngine(delpos,Random);
+          makeGaussRandomWithEngine(delpos,Random);
           for(int iw=0; iw<nw; ++iw)
             newpos[iw]=W[iw]->R[iat]+m_sqrttau*deltaR[iw];
 
