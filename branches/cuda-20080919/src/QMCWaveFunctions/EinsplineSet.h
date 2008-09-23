@@ -103,7 +103,7 @@ namespace qmcplusplus {
     /// Store the orbital objects.  Using template class allows us to
     /// avoid making separate real and complex versions of this class.
     //std::vector<EinsplineOrb<ValueType,OHMMS_DIM>*> Orbitals;
-    std::vector<EinsplineOrb<complex<double>,OHMMS_DIM>*> Orbitals;
+    std::vector<EinsplineOrb<complex<RealType>,OHMMS_DIM>*> Orbitals;
 
   public:
     SPOSetBase* makeClone() const;
@@ -143,6 +143,19 @@ namespace qmcplusplus {
   {  typedef multi_UBspline_3d_z SplineType;  };
 
 
+  template<> struct MultiOrbitalTraits<float,2>
+  {  typedef multi_UBspline_2d_s SplineType;  };
+
+  template<> struct MultiOrbitalTraits<float,3>
+  {  typedef multi_UBspline_3d_s SplineType;  };
+
+  template<> struct MultiOrbitalTraits<complex<float>,2>
+  {  typedef multi_UBspline_2d_c SplineType;  };
+
+  template<> struct MultiOrbitalTraits<complex<float>,3>
+  {  typedef multi_UBspline_3d_c SplineType;  };
+
+
 
   ////////////////////////////////////////////////////////////////////
   // Template class for evaluating multiple extended Bloch orbitals // 
@@ -161,16 +174,16 @@ namespace qmcplusplus {
     typedef typename OrbitalSetTraits<StorageType>::ValueVector_t StorageValueVector_t;
     typedef typename OrbitalSetTraits<StorageType>::GradVector_t  StorageGradVector_t;
     typedef typename OrbitalSetTraits<StorageType>::HessVector_t  StorageHessVector_t;
-    typedef Vector<double>                                        RealValueVector_t;
-    typedef Vector<complex<double> >                              ComplexValueVector_t;
-    typedef Vector<TinyVector<double,OHMMS_DIM> >                 RealGradVector_t;
-    typedef Vector<TinyVector<complex<double>,OHMMS_DIM> >        ComplexGradVector_t;
-    typedef Vector<Tensor<double,OHMMS_DIM> >                     RealHessVector_t;
-    typedef Vector<Tensor<complex<double>,OHMMS_DIM> >            ComplexHessVector_t;
-    typedef Matrix<double>                                        RealValueMatrix_t;
-    typedef Matrix<complex<double> >                              ComplexValueMatrix_t;
-    typedef Matrix<TinyVector<double,OHMMS_DIM> >                 RealGradMatrix_t;
-    typedef Matrix<TinyVector<complex<double>,OHMMS_DIM> >        ComplexGradMatrix_t;
+    typedef Vector<RealType>                                        RealValueVector_t;
+    typedef Vector<complex<RealType> >                              ComplexValueVector_t;
+    typedef Vector<TinyVector<RealType,OHMMS_DIM> >                 RealGradVector_t;
+    typedef Vector<TinyVector<complex<RealType>,OHMMS_DIM> >        ComplexGradVector_t;
+    typedef Vector<Tensor<RealType,OHMMS_DIM> >                     RealHessVector_t;
+    typedef Vector<Tensor<complex<RealType>,OHMMS_DIM> >            ComplexHessVector_t;
+    typedef Matrix<RealType>                                        RealValueMatrix_t;
+    typedef Matrix<complex<RealType> >                              ComplexValueMatrix_t;
+    typedef Matrix<TinyVector<RealType,OHMMS_DIM> >                 RealGradMatrix_t;
+    typedef Matrix<TinyVector<complex<RealType>,OHMMS_DIM> >        ComplexGradMatrix_t;
 //     typedef typename OrbitalSetTraits<ReturnType >::ValueVector_t ReturnValueVector_t;
 //     typedef typename OrbitalSetTraits<ReturnType >::GradVector_t  ReturnGradVector_t;
 //     typedef typename OrbitalSetTraits<ReturnType >::HessVector_t  ReturnHessVector_t;
@@ -194,14 +207,14 @@ namespace qmcplusplus {
     // True if we should unpack this orbital into two copies
     vector<bool>         MakeTwoCopies;
     // k-points for each orbital
-    Vector<TinyVector<double,OHMMS_DIM> > kPoints;
+    Vector<TinyVector<RealType,OHMMS_DIM> > kPoints;
 
     ///////////////////
     // Phase factors //
     ///////////////////
-    Vector<double> phase;
-    Vector<complex<double> > eikr;
-    inline void computePhaseFactors(TinyVector<double,OHMMS_DIM> r);
+    Vector<RealType> phase;
+    Vector<complex<RealType> > eikr;
+    inline void computePhaseFactors(TinyVector<RealType,OHMMS_DIM> r);
 
     ////////////
     // Timers //
@@ -249,20 +262,20 @@ namespace qmcplusplus {
   };
 
   template<typename StorageType>
-  inline void EinsplineSetExtended<StorageType>::computePhaseFactors(TinyVector<double,OHMMS_DIM> r)
+  inline void EinsplineSetExtended<StorageType>::computePhaseFactors(TinyVector<RealType,OHMMS_DIM> r)
   {
     for (int i=0; i<kPoints.size(); i++) phase[i] = -dot(r, kPoints[i]);
     eval_e2iphi(phase,eikr);
 //#ifdef HAVE_MKL
 //    for (int i=0; i<kPoints.size(); i++) 
 //      phase[i] = -dot(r, kPoints[i]);
-//    vzCIS(OrbitalSetSize, phase, (double*)eikr.data());
+//    vzCIS(OrbitalSetSize, phase, (RealType*)eikr.data());
 //#else
-//    double s, c;
+//    RealType s, c;
 //    for (int i=0; i<kPoints.size(); i++) {
 //      phase[i] = -dot(r, kPoints[i]);
 //      sincos (phase[i], &s, &c);
-//      eikr[i] = complex<double>(c,s);
+//      eikr[i] = complex<RealType>(c,s);
 //    }
 //#endif
   }

@@ -497,15 +497,18 @@ namespace qmcplusplus {
 
   }
 
-    ////////////////////////////////
-    // Vectorized member fuctions //
-    ////////////////////////////////
+  ////////////////////////////////
+  // Vectorized member fuctions //
+  ////////////////////////////////
   void
   TrialWaveFunction::getGradient (vector<Walker_t*> &walkers, int iat,
 				  vector<GradType> &grad)
   {
+    for (int wi=0; wi<grad.size(); wi++)
+      grad[wi] = GradType();
 
-
+    for(int i=0; i<Z.size(); i++) 
+      Z[i]->addGradient(walkers, iat, grad);
   }
 
   void
@@ -514,7 +517,12 @@ namespace qmcplusplus {
 			    vector<ValueType> &psi_ratios,
 			    vector<GradType> &newG)
   {
-
+    for (int wi=0; wi<walkers.size(); wi++) {
+      psi_ratios[wi] = 1.0;
+      newG[wi] = GradType();
+    }
+    for (int i=0; i<Z.size(); i++)
+      Z[i]->ratio (walkers, iat, newpos, psi_ratios, newG);
   }
 
 
@@ -523,14 +531,17 @@ namespace qmcplusplus {
 			    vector<PosType> &newpos, 
 			    vector<ValueType> &psi_ratios)
   {
-
-
+    for (int wi=0; wi<walkers.size(); wi++) 
+      psi_ratios[wi] = 1.0;
+    for (int i=0; i<Z.size(); i++)
+      Z[i]->ratio (walkers, iat, newpos, psi_ratios);
   }
 
   void
   TrialWaveFunction::update (vector<Walker_t*> &walkers, int iat)
   {
-
+    for (int i=0; i<Z.size(); i++)
+      Z[i]->update(walkers, iat);
   }
 
 

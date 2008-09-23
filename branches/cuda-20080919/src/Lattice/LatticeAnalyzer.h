@@ -66,10 +66,10 @@ namespace qmcplusplus
           for (int j=-1; j<=1; j++)
             for (int k=-1; k<=1; k++) 
               if ((i!=0) || (j!=0) || (k!=0)) {
-                SingleParticlePos_t L = ((double)i * a[0] +
-                    (double)j * a[1] +
-                    (double)k * a[2]);
-                double dist = 0.5*std::sqrt(dot(L,L));
+                SingleParticlePos_t L = (static_cast<T>(i) * a[0] +
+					 static_cast<T>(j) * a[1] +
+					 static_cast<T>(k) * a[2]);
+                T dist = 0.5*std::sqrt(dot(L,L));
                 rMin = std::min(rMin, dist);
               }
         return rMin;

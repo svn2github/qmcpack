@@ -224,6 +224,10 @@ namespace qmcplusplus {
       convert (a[i], b[i]);
   }
 
+  //////////////////////
+  // Double precision //
+  //////////////////////
+
   // Real evaluation functions
   inline void 
   EinsplineMultiEval (multi_UBspline_3d_d *restrict spline,
@@ -246,9 +250,7 @@ namespace qmcplusplus {
 				  (double*)hess.data());
   }
 
-  //////////////////////////////////
-  // Complex evaluation functions //
-  //////////////////////////////////
+  // Complex evaluation functions 
   inline void 
   EinsplineMultiEval (multi_UBspline_3d_z *restrict spline,
 		      TinyVector<double,3> r, 
@@ -270,6 +272,59 @@ namespace qmcplusplus {
 				  (complex<double>*)grad.data(), 
 				  (complex<double>*)hess.data());
   }
+
+  //////////////////////
+  // Single precision //
+  //////////////////////
+
+  // Real evaluation functions
+  inline void 
+  EinsplineMultiEval (multi_UBspline_3d_s *restrict spline,
+		      TinyVector<float,3> r, 
+		      Vector<float> &psi)
+  {
+    eval_multi_UBspline_3d_s (spline, r[0], r[1], r[2], psi.data());
+  }
+
+  inline void
+  EinsplineMultiEval (multi_UBspline_3d_s *restrict spline,
+		      TinyVector<float,3> r,
+		      Vector<float> &psi,
+		      Vector<TinyVector<float,3> > &grad,
+		      Vector<Tensor<float,3> > &hess)
+  {
+    eval_multi_UBspline_3d_s_vgh (spline, r[0], r[1], r[2],
+				  psi.data(), 
+				  (float*)grad.data(), 
+				  (float*)hess.data());
+  }
+
+  // Complex evaluation functions 
+
+  inline void 
+  EinsplineMultiEval (multi_UBspline_3d_c *restrict spline,
+		      TinyVector<float,3> r, 
+		      Vector<complex<float> > &psi)
+  {
+    eval_multi_UBspline_3d_c (spline, r[0], r[1], r[2], psi.data());
+  }
+
+
+  inline void
+  EinsplineMultiEval (multi_UBspline_3d_c *restrict spline,
+		      TinyVector<float,3> r,
+		      Vector<complex<float> > &psi,
+		      Vector<TinyVector<complex<float>,3> > &grad,
+		      Vector<Tensor<complex<float>,3> > &hess)
+  {
+    eval_multi_UBspline_3d_c_vgh (spline, r[0], r[1], r[2],
+				  psi.data(), 
+				  (complex<float>*)grad.data(), 
+				  (complex<float>*)hess.data());
+  }
+
+
+
 			   
 
   template<typename StorageType> void

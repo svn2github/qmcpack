@@ -69,7 +69,7 @@ namespace qmcplusplus {
     typedef ParticleAttrib<ValueType> ValueVectorType;
     typedef ParticleAttrib<GradType>  GradVectorType;
     typedef PooledData<RealType>      BufferType;
-    typedef Walker<ValueType,PosType>    Walker_t;
+    typedef ParticleSet::Walker_t     Walker_t;
 
 
     /** boolean to set optimization
@@ -286,7 +286,7 @@ namespace qmcplusplus {
      *  @param walkers   vector of all walkers
      *  @param logPsi    output vector of log(psi)
      */
-    void evaluateLog (vector<Walker_t> &walkers,
+    void evaluateLog (vector<Walker_t*> &walkers,
 		      vector<RealType> &logPsi);
     
     /** Evaluate the wave-function ratio w.r.t. moving particle iat
@@ -295,14 +295,38 @@ namespace qmcplusplus {
      *  @param iat         particle which is moving
      *  @param psi_ratios  output vector with psi_new/psi_old
      */
-    void ratio (vector<Walker_t> &walkers, int iat,
-		vector<ValueType> &psi_ratios);
+    void ratio (vector<Walker_t*> &walkers, int iat,
+		vector<PosType> &new_pos,
+		vector<ValueType> &psi_ratios)
+    {
+      app_error() << "Need specialization of OrbitalBase::ratio.\n";
+      abort();
+    }
 
     // Returns the WF ratio and gradient w.r.t. iat for each walker
     // in the respective vectors
-    void ratio (vector<Walker_t>  &walkers, int iat,
+    void ratio (vector<Walker_t*> &walkers, int iat,
+		vector<PosType> &new_pos,
 		vector<ValueType> &psi_ratios,
-		vector<PosType>   &grad);		
+		vector<GradType>  &grad)
+    {
+      app_error() << "Need specialization of OrbitalBase::ratio.\n";
+      abort();
+    }
+
+    void addGradient(vector<Walker_t*> &walkers, int iat,
+		     vector<GradType> &grad) 
+    {
+      app_error() << "Need specialization of OrbitalBase::addGradient.\n";
+      abort();
+    }
+
+    void update (vector<Walker_t*> &walkers, int iat)
+    {
+      app_error() << "Need specialization of OrbitalBase::update.\n";
+      abort();
+    }
+
   };
 }
 #endif
