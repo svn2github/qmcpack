@@ -109,6 +109,16 @@ namespace qmcplusplus {
 
   void VMCcuda::resetRun()
   {
+    // Compute the size of data needed for each walker on the GPU card
+    PointerPool<Walker_t::cuda_Buffer_t > pool;
+    Psi.reserve (pool);
+
+    // Now allocate memory on the GPU card for each walker
+    for (int iw=0; iw<W.WalkerList.size(); iw++) {
+      Walker_t &walker = *(W.WalkerList[iw]);
+      pool.allocate(walker.cuda_DataSet);
+    }
+
 
     //int samples_tot=W.getActiveWalkers()*nBlocks*nSteps*myComm->size();
     //myPeriod4WalkerDump=(nTargetSamples>0)?samples_tot/nTargetSamples:Period4WalkerDump;

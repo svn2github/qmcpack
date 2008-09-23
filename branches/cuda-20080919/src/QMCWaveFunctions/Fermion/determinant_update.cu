@@ -142,3 +142,95 @@ update_inverse_cuda(double *A_g[], double *Ainv_g[], double *u_g[],
     (Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
 }
 
+
+template<typename T, int BS>
+__global__ void
+calc_ratios (T *Ainv_list[], T *new_row_list[], 
+	     T *ratio, int N, int row_stride, int elec)
+{
+  int tid = threadIdx.x;
+
+  int col = /*blockIdx.x*BS * */tid;
+  __shared__ T *Ainv, *new_row;
+
+  if (col < N) {
+    if (tid == 0) {
+      Ainv = Ainv_list[blockIdx.x];
+      new_row = new_row_list[blockIdx.x];
+    }
+    __syncthreads();
+    __shared__ T new_row_shared[BS];
+    
+    new_row_shared[tid] = new_row[tid];
+    
+    __shared__ T Ainv_colk_shared[BS];
+    // This is *highly* uncoallesced, but we just have to eat it to allow
+    // other kernels to operate quickly.
+    Ainv_colk_shared[tid] = Ainv[col*row_stride + elec];
+    __syncthreads();
+
+    __shared__ T Ainv_new_row[BS];
+    Ainv_new_row[tid] = Ainv_colk_shared[tid] * new_row_shared[tid];
+    
+    __syncthreads();
+    // Now, we have to dot
+    for (unsigned int s=BS/2; s>0; s>>=1) {
+      if (tid < s)
+	Ainv_new_row[tid] += Ainv_new_row[tid + s];
+      __syncthreads();
+    }
+    if (tid == 0)      ratio[blockIdx.x] = Ainv_new_row[0];
+  }
+}
+
+
+void
+determinant_ratios_cuda (float *Ainv_list[], float *new_row_list[],
+			 float *ratios, int N, int row_stride, int iat,
+			 int numWalkers)
+{
+  dim3 dimBlock(N);
+  dim3 dimGrid(numWalkers);
+
+  if (N <= 32) 
+    calc_ratios<float,32><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
+  else if (N <= 64)
+    calc_ratios<float,64><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
+  else if (N <= 128)
+    calc_ratios<float,128><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
+  else if (N <= 256)
+    calc_ratios<float,256><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
+  else if (N <= 512)
+    calc_ratios<float,512><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
+  else if (N <= 1024)
+    calc_ratios<float,1024><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
+  else {
+    fprintf (stdout, "Error:  N too large for CUDA evaluation.\n");
+    abort();
+  }
+}
+
+void
+determinant_ratios_cuda (double *Ainv_list[], double *new_row_list[],
+			 double *ratios, int N, int row_stride, int iat,
+			 int numWalkers)
+{
+  dim3 dimBlock(N);
+  dim3 dimGrid(numWalkers);
+
+  if (N <= 32) 
+    calc_ratios<double,32><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
+  else if (N <= 64)
+    calc_ratios<double,64><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
+  else if (N <= 128)
+    calc_ratios<double,128><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
+  else if (N <= 256)
+    calc_ratios<double,256><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
+  else if (N <= 512)
+    calc_ratios<double,512><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
+  else {
+    fprintf (stdout, "Error:  N too large for CUDA evaluation.\n");
+    abort();
+  }
+}
+

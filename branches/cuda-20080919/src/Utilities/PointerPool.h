@@ -18,12 +18,12 @@
 
 #include <vector>
 
-template<typename T, typename CONT=vector<T,std::allocator<T> > >
+template<typename CONT>
 class PointerPool 
 {
 public:
-  typedef T* pointer;
   typedef CONT buffer_type;
+  typedef typename CONT::pointer pointer;
 
   // Local data routines
   pointer getPointer (int index, buffer_type &buffer)
