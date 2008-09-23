@@ -21,6 +21,7 @@
 #define QMCPLUSPLUS_DIRACDETERMINANTWITHBASE_H
 #include "QMCWaveFunctions/OrbitalBase.h"
 #include "QMCWaveFunctions/SPOSetBase.h"
+#include "QMCWaveFunctions/Fermion/determinant_update.h"
 
 namespace qmcplusplus {
 
@@ -166,10 +167,54 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
+    size_t AOffset, AinvOffset, newRowOffset, AinvDeltaOffset, AinvColkOffset;
+
+    vector<RealType*> AList, AinvList, newRowList, AinvDeltaList, AinvColkList;
+    cuda_vector<RealType*> AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d;
+
+    void resizeLists(int numWalkers)
+    {
+      AList.resize(numWalkers);            AList_d.resize(numWalkers);
+      AinvList.resize(numWalkers);         AinvList_d.resize(numWalkers);
+      newRowList.resize(numWalkers);       newRowList_d.resize(numWalkers);
+      AinvDeltaList.resize(numWalkers);    AinvDeltaList_d.resize(numWalkers);
+      AinvColkList.resize(numWalkers);     AinvColkList_d.resize(numWalkers);
+    }
+
     void update (vector<Walker_t*> &walkers, int iat)
     {
-
+      if (AList.size() > walkers.size())
+	resizeLists(walkers.size());
+      for (int iw=0; iw<walkers.size(); iw++) {
+	Walker_t::cuda_Buffer_t data = walkers[iw]->cuda_DataSet;
+	AList[iw]         =  &(data[AOffset]);
+	AinvList[iw]      =  &(data[AinvOffset]);
+	newRowList[iw]    =  &(data[newRowOffset]);
+	AinvDeltaList[iw] =  &(data[AinvDeltaOffset]);
+	AinvColkList[iw]  =  &(data[AinvColkOffset]);
+      }
+      // Copy pointers to the GPU
+      AList_d         = AList;
+      AinvList_d      = AinvList;
+      newRowList_d    = newRowList;
+      AinvDeltaList_d = AinvDeltaList;
+      AinvColkList_d  = AinvColkList;
+      // Call kernel wrapper function
+      update_inverse_cuda(&(AList_d[0]),&(AinvList_d[0]), &(newRowList_d[0]),
+			  &(AinvDeltaList_d[0]), &(AinvColkList_d[0]),
+			  NumPtcls, NumPtcls, iat, walkers.size());
     }
+
+
+    void reserve (PointerPool<cuda_vector<RealType> > &pool)
+    {
+      AOffset         = pool.reserve((size_t)NumPtcls * NumOrbitals);
+      AinvOffset      = pool.reserve((size_t)NumPtcls * NumOrbitals);
+      newRowOffset    = pool.reserve((size_t)1        * NumOrbitals);
+      AinvDeltaOffset = pool.reserve((size_t)1        * NumOrbitals);
+      AinvColkOffset  = pool.reserve((size_t)1        * NumOrbitals);
+    }
+      
 
     ///flag to turn on/off to skip some calculations
     bool UseRatioOnly;

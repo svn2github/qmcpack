@@ -38,7 +38,7 @@ public:
 
   // Reserves size elements and returns the offset to the member 
   // in the buffer
-  size_t reserveStorage (size_t size)
+  size_t reserve (size_t size)
   {
     size_t off = totalSize;
     offsets.push_back(off);

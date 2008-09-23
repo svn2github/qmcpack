@@ -282,6 +282,10 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
+    
+    virtual void reserve (PointerPool<cuda_vector<RealType> > &pool)
+    { }
+
     /** Evaluate the log of the WF for all walkers
      *  @param walkers   vector of all walkers
      *  @param logPsi    output vector of log(psi)

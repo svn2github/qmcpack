@@ -501,6 +501,13 @@ namespace qmcplusplus {
   // Vectorized member fuctions //
   ////////////////////////////////
   void
+  TrialWaveFunction::reserve(PointerPool<cuda_vector<RealType> > &pool)
+  {
+    for(int i=0; i<Z.size(); i++) 
+      Z[i]->reserve(pool);
+  }
+
+  void
   TrialWaveFunction::getGradient (vector<Walker_t*> &walkers, int iat,
 				  vector<GradType> &grad)
   {
