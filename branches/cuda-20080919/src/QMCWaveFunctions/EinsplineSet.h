@@ -28,6 +28,9 @@
 #include "Configuration.h"
 #include "Numerics/e2iphi.h"
 
+#include <einspline/multi_bspline_create_cuda.h>
+
+
 namespace qmcplusplus {
 
   class EinsplineSetBuilder;
@@ -131,29 +134,56 @@ namespace qmcplusplus {
   template<typename StorageType, int dim>  struct MultiOrbitalTraits{};
 
   template<> struct MultiOrbitalTraits<double,2>
-  {  typedef multi_UBspline_2d_d SplineType;  };
+  {  
+    typedef multi_UBspline_2d_d SplineType;  
+    typedef multi_UBspline_2d_s_cuda CudaSplineType;  
+  };
 
   template<> struct MultiOrbitalTraits<double,3>
-  {  typedef multi_UBspline_3d_d SplineType;  };
+  {  
+    typedef multi_UBspline_3d_d SplineType;  
+    typedef multi_UBspline_3d_s_cuda CudaSplineType; 
+  };
 
   template<> struct MultiOrbitalTraits<complex<double>,2>
-  {  typedef multi_UBspline_2d_z SplineType;  };
+  {  
+    typedef multi_UBspline_2d_z SplineType;  
+    typedef multi_UBspline_2d_c_cuda CudaSplineType;  
+  };
 
   template<> struct MultiOrbitalTraits<complex<double>,3>
-  {  typedef multi_UBspline_3d_z SplineType;  };
+  {  
+    typedef multi_UBspline_3d_z SplineType;  
+    typedef multi_UBspline_3d_c_cuda CudaSplineType;  
+  };
 
 
   template<> struct MultiOrbitalTraits<float,2>
-  {  typedef multi_UBspline_2d_s SplineType;  };
+  {  
+    typedef multi_UBspline_2d_s SplineType;  
+    typedef multi_UBspline_2d_s_cuda CudaSplineType;  
+  };
 
   template<> struct MultiOrbitalTraits<float,3>
-  {  typedef multi_UBspline_3d_s SplineType;  };
+  {  
+    typedef multi_UBspline_3d_s SplineType;  
+    typedef multi_UBspline_3d_s_cuda CudaSplineType;  
+  };
 
   template<> struct MultiOrbitalTraits<complex<float>,2>
-  {  typedef multi_UBspline_2d_c SplineType;  };
+  {  
+    typedef multi_UBspline_2d_c SplineType;  
+    typedef multi_UBspline_2d_c_cuda CudaSplineType;  
+  };
 
   template<> struct MultiOrbitalTraits<complex<float>,3>
-  {  typedef multi_UBspline_3d_c SplineType;  };
+  {  
+    typedef multi_UBspline_3d_c SplineType;  
+    typedef multi_UBspline_3d_c_cuda CudaSplineType;  
+  };
+
+
+  
 
 
 
@@ -171,6 +201,7 @@ namespace qmcplusplus {
     //////////////////////
     //typedef CrystalLattice<RealType,OHMMS_DIM> UnitCellType;
     typedef typename MultiOrbitalTraits<StorageType,OHMMS_DIM>::SplineType SplineType; 
+    typedef typename MultiOrbitalTraits<StorageType,OHMMS_DIM>::CudaSplineType CudaSplineType; 
     typedef typename OrbitalSetTraits<StorageType>::ValueVector_t StorageValueVector_t;
     typedef typename OrbitalSetTraits<StorageType>::GradVector_t  StorageGradVector_t;
     typedef typename OrbitalSetTraits<StorageType>::HessVector_t  StorageHessVector_t;
@@ -196,6 +227,7 @@ namespace qmcplusplus {
     /// Orbital storage object //
     /////////////////////////////
     SplineType *MultiSpline;
+    CudaSplineType *CudaMultiSpline;
     // Temporary storage for Eispline calls
     StorageValueVector_t StorageValueVector, StorageLaplVector;
     StorageGradVector_t  StorageGradVector;
@@ -221,6 +253,10 @@ namespace qmcplusplus {
     ////////////
     NewTimer ValueTimer, VGLTimer, VGLMatTimer;
     NewTimer EinsplineTimer;
+
+    // Data for vectorized evaluations
+    host_vector<PosType> hostPos;
+    cuda_vector<PosType> cudaPos;
   public:
     void registerTimers();
 
@@ -239,6 +275,12 @@ namespace qmcplusplus {
     void evaluate(const ParticleSet& P, int first, int last,
 		  ComplexValueMatrix_t& psi, ComplexGradMatrix_t& dpsi, 
 		  ComplexValueMatrix_t& d2psi);
+
+    // Vectorized evaluation functions
+    void evaluate (vector<Walker_t*> &walkers, int iat, 
+		   cuda_vector<RealType*> phi);
+    void evaluate (vector<Walker_t*> &walkers, int iat, 
+		   cuda_vector<ComplexType*> phi);
     
     void resetParameters(const opt_variables_type& active);
     void resetTargetParticleSet(ParticleSet& e);
@@ -251,7 +293,8 @@ namespace qmcplusplus {
       ValueTimer  ("EinsplineSetExtended::ValueOnly"),
       VGLTimer    ("EinsplineSetExtended::VGL"),
       VGLMatTimer ("EinsplineSetExtended::VGLMatrix"),
-      EinsplineTimer("libeinspline")
+      EinsplineTimer("libeinspline"),
+      MultiSpline(NULL), CudaMultiSpline(NULL)
     {
       className = "EinsplineSetExtended";
       TimerManager.addTimer (&ValueTimer);

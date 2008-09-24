@@ -60,7 +60,7 @@ namespace qmcplusplus {
     ///typedef for the property container, fixed size
     typedef Matrix<T>      PropertyContainer_t;
     typedef PooledData<T>  Buffer_t;
-    typedef cuda_vector<T> cuda_Buffer_t;
+    typedef cuda_vector<CUDA_PRECISION> cuda_Buffer_t;
 
     ///id reserved for forward walking
     long ID;

@@ -1,7 +1,7 @@
 #GNU compilers
 IF(CMAKE_COMPILER_IS_GNUCXX) 
   ADD_DEFINITIONS(-Drestrict=__restrict__ -DADD_ -DINLINE_ALL=inline)
-  SET(CMAKE_CXX_FLAGS "-O6 -ftemplate-depth-60 -Drestrict=__restrict__ -fstrict-aliasing -funroll-all-loops   -finline-limit=1000 -ffast-math -Wno-deprecated -msse3 -fopenmp")
+  SET(CMAKE_CXX_FLAGS "-g -O6 -ftemplate-depth-60 -Drestrict=__restrict__ -fstrict-aliasing -funroll-all-loops   -finline-limit=1000 -ffast-math -Wno-deprecated -msse3 -fopenmp")
   SET(CMAKE_C_FLAGS "-O3 -Drestrict=__restrict__ -fstrict-aliasing -funroll-all-loops   -finline-limit=1000 -ffast-math -std=gnu99 -fomit-frame-pointer ")
 
   SET(CMAKE_TRY_GNU_CC_FLAGS "-mmmx")

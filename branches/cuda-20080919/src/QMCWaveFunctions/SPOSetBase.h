@@ -140,7 +140,11 @@ namespace qmcplusplus {
     // Walker-parallel vectorized functions //
     //////////////////////////////////////////
     virtual void
-    evaluate (vector<Walker_t*> &walkers, int iat, cuda_vector<ValueType*> phi)
+    reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
+    { }
+
+    virtual void
+    evaluate (vector<Walker_t*> &walkers, int iat, cuda_vector<CudaValueType*> phi)
     {
       app_error() << "Need specialization of vectorized evaluate in SPOSetBase.\n";
       abort();

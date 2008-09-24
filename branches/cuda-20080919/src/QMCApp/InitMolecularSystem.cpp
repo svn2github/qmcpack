@@ -115,7 +115,7 @@ namespace qmcplusplus {
 
     vector<LoneElectron> loneQ;
 
-    double rmin=cutoff; 
+    ParticleSet::RealType rmin=cutoff; 
     for(int iat=0; iat<Centers; iat++) { 
       for(int nn=d_ii->M[iat]; nn<d_ii->M[iat+1]; nn++){
         rmin = std::min(rmin,d_ii->r(nn));

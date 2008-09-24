@@ -47,6 +47,7 @@ namespace qmcplusplus {
   public:
 
     typedef OrbitalBase::RealType        RealType;
+    typedef OrbitalBase::CudaRealType    CudaRealType;
     typedef OrbitalBase::ValueType       ValueType;
     typedef OrbitalBase::PosType         PosType;
     typedef OrbitalBase::GradType        GradType;
@@ -131,7 +132,7 @@ namespace qmcplusplus {
     /////////////////////////
     // Vectorized versions //
     /////////////////////////
-    void reserve (PointerPool<cuda_vector<RealType> > &pool);
+    void reserve (PointerPool<cuda_vector<CudaRealType> > &pool);
 
     void getGradient (vector<Walker_t*> &walkers, int iat,
 		      vector<GradType> &grad);

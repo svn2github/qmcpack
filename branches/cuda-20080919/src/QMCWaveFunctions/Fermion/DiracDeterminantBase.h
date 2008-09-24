@@ -170,8 +170,8 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     size_t AOffset, AinvOffset, newRowOffset, AinvDeltaOffset, AinvColkOffset;
 
-    vector<RealType*> AList, AinvList, newRowList, AinvDeltaList, AinvColkList;
-    cuda_vector<RealType*> AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d;
+    vector<CudaRealType*> AList, AinvList, newRowList, AinvDeltaList, AinvColkList;
+    cuda_vector<CudaRealType*> AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d;
 
     void resizeLists(int numWalkers)
     {
@@ -184,13 +184,14 @@ namespace qmcplusplus {
 
     void update (vector<Walker_t*> &walkers, int iat);
 
-    void reserve (PointerPool<cuda_vector<RealType> > &pool)
+    void reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
     {
       AOffset         = pool.reserve((size_t)NumPtcls * NumOrbitals);
       AinvOffset      = pool.reserve((size_t)NumPtcls * NumOrbitals);
       newRowOffset    = pool.reserve((size_t)1        * NumOrbitals);
       AinvDeltaOffset = pool.reserve((size_t)1        * NumOrbitals);
       AinvColkOffset  = pool.reserve((size_t)1        * NumOrbitals);
+      Phi->reserve(pool);
     }
       
     void 

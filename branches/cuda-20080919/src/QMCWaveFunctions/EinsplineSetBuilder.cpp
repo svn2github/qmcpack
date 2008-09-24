@@ -369,11 +369,14 @@ namespace qmcplusplus {
     OhmmsAttributeSet attribs;
     int numOrbs = 0;
     bool sortBands = true;
+    bool useGPU = false;
     attribs.add (H5FileName, "href");
     attribs.add (TileFactor, "tile");
     attribs.add (sortBands,  "sort");
     attribs.add (TileMatrix, "tilematrix");
     attribs.add (TwistNum,   "twistnum");
+    attribs.add (useGPU,     "gpu");    
+    attribs.add (useGPU,     "cuda");
     attribs.put (XMLRoot);
     attribs.add (numOrbs,    "size");
     attribs.add (numOrbs,    "norbs");
@@ -514,8 +517,14 @@ namespace qmcplusplus {
 #pragma omp critical(read_extended_orbs)
       {
 	ReadBands(spinSet, orbitalSet);
+	if (useGPU) {
+	  app_log() << "Copying einspline orbitals to GPU.\n";
+	  orbitalSet->CudaMultiSpline = create_multi_UBspline_3d_c_cuda_conv (orbitalSet->MultiSpline);
+	}
       }
     }
+
+
 
     if (myComm->rank()==0 && OrbitalSet->MuffinTins.size() > 0) {
       FILE *fout  = fopen ("TestMuffins.dat", "w");
