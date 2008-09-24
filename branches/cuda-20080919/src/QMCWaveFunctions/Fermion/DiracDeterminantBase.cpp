@@ -513,6 +513,7 @@ namespace qmcplusplus {
     AinvDeltaList_d = AinvDeltaList;
     AinvColkList_d  = AinvColkList;
     // Call kernel wrapper function
+    app_log() << "Walkers.size() = " << walkers.size() << endl;
     update_inverse_cuda(&(AList_d[0]),&(AinvList_d[0]), &(newRowList_d[0]),
 			&(AinvDeltaList_d[0]), &(AinvColkList_d[0]),
 			NumPtcls, NumPtcls, iat, walkers.size());
@@ -536,6 +537,31 @@ namespace qmcplusplus {
     // Now, compute determinant
 
   }
+
+  void 
+  DiracDeterminantBase::addGradient(vector<Walker_t*> &walkers, int iat,
+				    vector<GradType> &grad)
+  {
+    cerr << "DiracDeterminantBase::addGradient.\n";
+  }
+
+  void DiracDeterminantBase::ratio (vector<Walker_t*> &walkers, 
+				    int iat, vector<PosType> &new_pos,
+				    vector<ValueType> &psi_ratios)
+  {
+    app_log() << "DiracDeterminantBase::ratio w/o grad.\n";
+
+  }
+
+  void DiracDeterminantBase::ratio (vector<Walker_t*> &walkers, int iat, 
+				    vector<PosType> &new_pos, 
+				    vector<ValueType> &psi_ratios, 
+				    vector<GradType>  &grad)
+  {
+    app_log() << "DiracDeterminantBase::ratio with grad.\n";
+  }
+
+
 
 }
 /***************************************************************************

@@ -294,7 +294,8 @@ namespace qmcplusplus {
     addLog (vector<Walker_t*> &walkers,
 	    vector<RealType> &logPsi)
     {
-      app_error() << "Need specialization of OrbitalBase::addLog.\n";
+      app_error() << "Need specialization of OrbitalBase::addLog for "
+		  << OrbitalName << ".\n";
       abort();
     }
     
@@ -305,8 +306,7 @@ namespace qmcplusplus {
      *  @param psi_ratios  output vector with psi_new/psi_old
      */
     virtual void 
-    ratio (vector<Walker_t*> &walkers, int iat,
-	   vector<PosType> &new_pos,
+    ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
 	   vector<ValueType> &psi_ratios)
     {
       app_error() << "Need specialization of OrbitalBase::ratio.\n";
@@ -316,10 +316,8 @@ namespace qmcplusplus {
     // Returns the WF ratio and gradient w.r.t. iat for each walker
     // in the respective vectors
     virtual void 
-    ratio (vector<Walker_t*> &walkers, int iat,
-	   vector<PosType> &new_pos,
-	   vector<ValueType> &psi_ratios,
-	   vector<GradType>  &grad)
+    ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad)
     {
       app_error() << "Need specialization of OrbitalBase::ratio.\n";
       abort();
@@ -329,7 +327,8 @@ namespace qmcplusplus {
     addGradient(vector<Walker_t*> &walkers, int iat,
 		vector<GradType> &grad) 
     {
-      app_error() << "Need specialization of OrbitalBase::addGradient.\n";
+      app_error() << "Need specialization of OrbitalBase::addGradient for "
+		  << OrbitalName << ".\n";
       abort();
     }
 

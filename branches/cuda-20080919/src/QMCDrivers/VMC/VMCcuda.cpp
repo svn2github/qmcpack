@@ -38,8 +38,6 @@ namespace qmcplusplus {
 
     resetRun();
 
-    //Mover->startRun(nBlocks,true);
-
     IndexType block = 0;
     IndexType nAcceptTot = 0;
     IndexType nRejectTot = 0;
@@ -75,11 +73,9 @@ namespace qmcplusplus {
           accepted.clear();
           for(int iw=0; iw<nw; ++iw)
             if(ratios[iw]*ratios[iw]<Random()) 
-            {
               accepted.push_back(W[iw]);
-            }
-
-          Psi.update(accepted,iat);
+	  if (accepted.size())
+	    Psi.update(accepted,iat);
         }
 
 
@@ -109,6 +105,8 @@ namespace qmcplusplus {
 
   void VMCcuda::resetRun()
   {
+    app_log() << "W.WalkerList.size() = " << W.WalkerList.size() << endl;
+
     // Compute the size of data needed for each walker on the GPU card
     PointerPool<Walker_t::cuda_Buffer_t > pool;
     Psi.reserve (pool);

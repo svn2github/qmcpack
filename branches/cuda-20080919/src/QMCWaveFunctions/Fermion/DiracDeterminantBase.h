@@ -194,8 +194,16 @@ namespace qmcplusplus {
       Phi->reserve(pool);
     }
       
-    void 
-    addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi);
+    void addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi);
+
+    void addGradient(vector<Walker_t*> &walkers, int iat,
+		     vector<GradType> &grad);
+
+    void ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+		vector<ValueType> &psi_ratios);
+
+    void ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+		vector<ValueType> &psi_ratios,	vector<GradType>  &grad);
 
 
     ///flag to turn on/off to skip some calculations
