@@ -87,7 +87,9 @@ namespace qmcplusplus {
     typedef std::complex<OHMMS_PRECISION>  ComplexType;
     typedef std::complex<CUDA_PRECISION>   CudaComplexType;
     typedef TinyVector<RealType,DIM>       PosType;
+    typedef TinyVector<CudaRealType,DIM>   CudaPosType;
     typedef TinyVector<ValueType,DIM>      GradType;
+    typedef TinyVector<CudaValueType,DIM>  CudaGradType;
     typedef Tensor<RealType,DIM>           TensorType;
     ///define PropertyList_t
     typedef RecordNamedProperty<RealType> PropertySetType;
