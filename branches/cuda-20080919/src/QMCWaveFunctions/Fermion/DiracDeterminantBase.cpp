@@ -490,6 +490,53 @@ namespace qmcplusplus {
     return Phi->makeClone();
   }
 
+  /////////////////////////////////////
+  // Vectorized evaluation functions //
+  /////////////////////////////////////
+  void 
+  DiracDeterminantBase::update (vector<Walker_t*> &walkers, int iat)
+  {
+    if (AList.size() > walkers.size())
+      resizeLists(walkers.size());
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t::cuda_Buffer_t data = walkers[iw]->cuda_DataSet;
+      AList[iw]         =  &(data[AOffset]);
+      AinvList[iw]      =  &(data[AinvOffset]);
+      newRowList[iw]    =  &(data[newRowOffset]);
+      AinvDeltaList[iw] =  &(data[AinvDeltaOffset]);
+      AinvColkList[iw]  =  &(data[AinvColkOffset]);
+    }
+    // Copy pointers to the GPU
+    AList_d         = AList;
+    AinvList_d      = AinvList;
+    newRowList_d    = newRowList;
+    AinvDeltaList_d = AinvDeltaList;
+    AinvColkList_d  = AinvColkList;
+    // Call kernel wrapper function
+    update_inverse_cuda(&(AList_d[0]),&(AinvList_d[0]), &(newRowList_d[0]),
+			&(AinvDeltaList_d[0]), &(AinvColkList_d[0]),
+			NumPtcls, NumPtcls, iat, walkers.size());
+  }
+  
+
+
+  void 
+  DiracDeterminantBase::addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi)
+  {
+    // Fill in the A matrix row by row   
+    for (int iat=FirstIndex; iat<LastIndex; iat++) {
+      int off = (iat-FirstIndex)*NumOrbitals;
+      for (int iw=0; iw<walkers.size(); iw++) {
+	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+	newRowList[iw]    =  &(data[AOffset+off]);
+	newRowList_d = newRowList;
+	Phi->evaluate (walkers, iat, newRowList_d);
+      }
+    }
+    // Now, compute determinant
+
+  }
+
 }
 /***************************************************************************
  * $RCSfile$   $Author$

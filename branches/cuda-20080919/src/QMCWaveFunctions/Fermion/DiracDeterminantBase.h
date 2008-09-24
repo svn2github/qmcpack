@@ -33,6 +33,7 @@ namespace qmcplusplus {
     typedef SPOSetBase::ValueMatrix_t ValueMatrix_t;
     typedef SPOSetBase::GradVector_t  GradVector_t;
     typedef SPOSetBase::GradMatrix_t  GradMatrix_t;
+    typedef ParticleSet::Walker_t     Walker_t;
 
     /** constructor
      *@param spos the single-particle orbital set
@@ -181,30 +182,7 @@ namespace qmcplusplus {
       AinvColkList.resize(numWalkers);     AinvColkList_d.resize(numWalkers);
     }
 
-    void update (vector<Walker_t*> &walkers, int iat)
-    {
-      if (AList.size() > walkers.size())
-	resizeLists(walkers.size());
-      for (int iw=0; iw<walkers.size(); iw++) {
-	Walker_t::cuda_Buffer_t data = walkers[iw]->cuda_DataSet;
-	AList[iw]         =  &(data[AOffset]);
-	AinvList[iw]      =  &(data[AinvOffset]);
-	newRowList[iw]    =  &(data[newRowOffset]);
-	AinvDeltaList[iw] =  &(data[AinvDeltaOffset]);
-	AinvColkList[iw]  =  &(data[AinvColkOffset]);
-      }
-      // Copy pointers to the GPU
-      AList_d         = AList;
-      AinvList_d      = AinvList;
-      newRowList_d    = newRowList;
-      AinvDeltaList_d = AinvDeltaList;
-      AinvColkList_d  = AinvColkList;
-      // Call kernel wrapper function
-      update_inverse_cuda(&(AList_d[0]),&(AinvList_d[0]), &(newRowList_d[0]),
-			  &(AinvDeltaList_d[0]), &(AinvColkList_d[0]),
-			  NumPtcls, NumPtcls, iat, walkers.size());
-    }
-
+    void update (vector<Walker_t*> &walkers, int iat);
 
     void reserve (PointerPool<cuda_vector<RealType> > &pool)
     {
@@ -215,6 +193,9 @@ namespace qmcplusplus {
       AinvColkOffset  = pool.reserve((size_t)1        * NumOrbitals);
     }
       
+    void 
+    addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi);
+
 
     ///flag to turn on/off to skip some calculations
     bool UseRatioOnly;

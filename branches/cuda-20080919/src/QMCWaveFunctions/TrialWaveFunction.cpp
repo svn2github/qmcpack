@@ -508,6 +508,17 @@ namespace qmcplusplus {
       Z[i]->reserve(pool);
   }
 
+  void 
+  TrialWaveFunction::evaluateLog (vector<Walker_t*> &walkers,
+				  vector<RealType> &logPsi)
+  {
+    for (int wi=0; wi<logPsi.size(); wi++)
+      logPsi[wi] = RealType();
+    for (int i=0; i<Z.size(); i++) 
+      Z[i]->addLog (walkers, logPsi);
+  }
+
+
   void
   TrialWaveFunction::getGradient (vector<Walker_t*> &walkers, int iat,
 				  vector<GradType> &grad)

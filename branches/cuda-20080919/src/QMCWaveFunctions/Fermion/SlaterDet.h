@@ -107,6 +107,13 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
+    void 
+    addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi)
+    {
+      for (int id=0; id<Dets.size(); id++)
+	Dets[id]->addLog(walkers, logPsi);
+    }
+
     void update (vector<Walker_t*> &walkers, int iat)
     {
       Dets[DetID[iat]]->update(walkers, iat);

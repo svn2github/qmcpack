@@ -38,6 +38,8 @@ namespace qmcplusplus {
     typedef OrbitalSetTraits<ValueType>::ValueMatrix_t ValueMatrix_t;
     typedef OrbitalSetTraits<ValueType>::GradVector_t  GradVector_t;
     typedef OrbitalSetTraits<ValueType>::GradMatrix_t  GradMatrix_t;
+    typedef ParticleSet::Walker_t                      Walker_t;
+
     ///true if C is an identity matrix
     bool Identity;
     ///number of Single-particle orbtials
@@ -133,6 +135,17 @@ namespace qmcplusplus {
       APP_ABORT("Missing  SPOSetBase::makeClone for "+className);
       return 0;
     }
+
+    //////////////////////////////////////////
+    // Walker-parallel vectorized functions //
+    //////////////////////////////////////////
+    virtual void
+    evaluate (vector<Walker_t*> &walkers, int iat, cuda_vector<ValueType*> phi)
+    {
+      app_error() << "Need specialization of vectorized evaluate in SPOSetBase.\n";
+      abort();
+    }
+
 
 protected:
     bool putOccupation(xmlNodePtr occ_ptr);

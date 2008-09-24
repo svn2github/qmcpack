@@ -126,6 +126,13 @@ update_inverse_cuda(float *A_g[], float *Ainv_g[], float *u_g[],
     (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
   update_inverse_cuda2<float><<<dimGrid,dimBlock>>>
     (Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in update_inverse_cuda:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 void
@@ -140,6 +147,15 @@ update_inverse_cuda(double *A_g[], double *Ainv_g[], double *u_g[],
     (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
   update_inverse_cuda2<double><<<dimGrid,dimBlock>>>
     (Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in update_inverse_cuda:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
 }
 
 
@@ -208,6 +224,15 @@ determinant_ratios_cuda (float *Ainv_list[], float *new_row_list[],
     fprintf (stdout, "Error:  N too large for CUDA evaluation.\n");
     abort();
   }
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in determinant_ratios_cuda:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
 }
 
 void
@@ -230,6 +255,13 @@ determinant_ratios_cuda (double *Ainv_list[], double *new_row_list[],
     calc_ratios<double,512><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);
   else {
     fprintf (stdout, "Error:  N too large for CUDA evaluation.\n");
+    abort();
+  }
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in determinant_ratios_cuda:\n  %s\n",
+	     cudaGetErrorString(err));
     abort();
   }
 }

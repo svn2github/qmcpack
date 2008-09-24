@@ -290,8 +290,13 @@ namespace qmcplusplus {
      *  @param walkers   vector of all walkers
      *  @param logPsi    output vector of log(psi)
      */
-    void evaluateLog (vector<Walker_t*> &walkers,
-		      vector<RealType> &logPsi);
+    virtual void 
+    addLog (vector<Walker_t*> &walkers,
+	    vector<RealType> &logPsi)
+    {
+      app_error() << "Need specialization of OrbitalBase::addLog.\n";
+      abort();
+    }
     
     /** Evaluate the wave-function ratio w.r.t. moving particle iat
      *  for all walkers
