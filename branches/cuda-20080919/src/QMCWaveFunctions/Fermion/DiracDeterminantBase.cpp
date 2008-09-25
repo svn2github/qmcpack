@@ -496,10 +496,16 @@ namespace qmcplusplus {
   void 
   DiracDeterminantBase::update (vector<Walker_t*> &walkers, int iat)
   {
+    // cerr << "AOffset         = " << AOffset << endl;
+    // cerr << "AinvOffset      = " << AinvOffset << endl;
+    // cerr << "newRowOffset    = " << newRowOffset << endl;
+    // cerr << "AinvDeltaOffset = " << AinvDeltaOffset << endl;
+    // cerr << "AinvColkOffset  = " << AinvColkOffset << endl;
+
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
     for (int iw=0; iw<walkers.size(); iw++) {
-      Walker_t::cuda_Buffer_t data = walkers[iw]->cuda_DataSet;
+      Walker_t::cuda_Buffer_t &data = walkers[iw]->cuda_DataSet;
       AList[iw]         =  &(data[AOffset]);
       AinvList[iw]      =  &(data[AinvOffset]);
       newRowList[iw]    =  &(data[newRowOffset]);
@@ -515,7 +521,7 @@ namespace qmcplusplus {
     // Call kernel wrapper function
     update_inverse_cuda(&(AList_d[0]),&(AinvList_d[0]), &(newRowList_d[0]),
 			&(AinvDeltaList_d[0]), &(AinvColkList_d[0]),
-			NumPtcls, NumPtcls, iat, walkers.size());
+			NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
   }
   
 
