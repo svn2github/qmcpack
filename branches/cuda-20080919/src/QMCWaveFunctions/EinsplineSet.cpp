@@ -977,9 +977,39 @@ namespace qmcplusplus {
   //////////////////////////////////////////////
   template<> void 
   EinsplineSetExtended<double>::evaluate 
-  (vector<Walker_t*> &walkers, int iat, cuda_vector<CudaRealType*> &phi)
+  (vector<Walker_t*> &walkers, int iat,
+   cuda_vector<CudaRealType*> &phi)
+  {
+    // app_log() << "Start EinsplineSet CUDA evaluation\n";
+    int N = walkers.size();
+    if (cudaPos.size() < N) {
+      hostPos.resize(N);
+      cudaPos.resize(N);
+    }
+    for (int iw=0; iw < N; iw++) {
+      PosType r = walkers[iw]->R[iat];
+      PosType ru(PrimLattice.toUnit(r));
+      ru[0] -= std::floor (ru[0]);
+      ru[1] -= std::floor (ru[1]);
+      ru[2] -= std::floor (ru[2]);
+      hostPos[iw][0] = ru[0];
+      hostPos[iw][1] = ru[1];
+      hostPos[iw][2] = ru[2];
+    }
+
+    cudaPos = hostPos;
+    eval_multi_multi_UBspline_3d_s_cuda 
+      (CudaMultiSpline, (float*)&(cudaPos[0]), &(phi[0]), N);
+    //app_log() << "End EinsplineSet CUDA evaluation\n";
+  }
+
+  template<> void 
+  EinsplineSetExtended<complex<double> >::evaluate 
+  (vector<Walker_t*> &walkers, int iat,
+   cuda_vector<CudaRealType*> &phi)
   {
     int N = walkers.size();
+
     if (cudaPos.size() < N) {
       hostPos.resize(N);
       cudaPos.resize(N);
@@ -994,13 +1024,44 @@ namespace qmcplusplus {
     }
 
     cudaPos = hostPos;
+
+    // eval_multi_multi_UBspline_3d_c_cuda 
+    //   (CudaMultiSpline, (float*)&(cudaPos[0]), &(phi[0]), N);
+  }
+
+
+  template<> void 
+  EinsplineSetExtended<double>::evaluate 
+  (vector<Walker_t*> &walkers, vector<PosType> &newpos,
+   cuda_vector<CudaRealType*> &phi)
+  {
+    // app_log() << "Start EinsplineSet CUDA evaluation\n";
+    int N = walkers.size();
+    if (cudaPos.size() < N) {
+      hostPos.resize(N);
+      cudaPos.resize(N);
+    }
+    for (int iw=0; iw < N; iw++) {
+      PosType r = newpos[iw];
+      PosType ru(PrimLattice.toUnit(r));
+      ru[0] -= std::floor (ru[0]);
+      ru[1] -= std::floor (ru[1]);
+      ru[2] -= std::floor (ru[2]);
+      hostPos[iw][0] = ru[0];
+      hostPos[iw][1] = ru[1];
+      hostPos[iw][2] = ru[2];
+    }
+
+    cudaPos = hostPos;
     eval_multi_multi_UBspline_3d_s_cuda 
       (CudaMultiSpline, (float*)&(cudaPos[0]), &(phi[0]), N);
+    //app_log() << "End EinsplineSet CUDA evaluation\n";
   }
 
   template<> void 
   EinsplineSetExtended<complex<double> >::evaluate 
-  (vector<Walker_t*> &walkers, int iat, cuda_vector<CudaRealType*> &phi)
+  (vector<Walker_t*> &walkers, vector<PosType> &newpos,
+   cuda_vector<CudaRealType*> &phi)
   {
     int N = walkers.size();
 
@@ -1009,7 +1070,7 @@ namespace qmcplusplus {
       cudaPos.resize(N);
     }
     for (int iw=0; iw < N; iw++) {
-      PosType r = walkers[iw]->R[iat];
+      PosType r = newpos[iw];
       PosType ru(PrimLattice.toUnit(r));
       ru[0] -= std::floor (ru[0]);
       ru[1] -= std::floor (ru[1]);

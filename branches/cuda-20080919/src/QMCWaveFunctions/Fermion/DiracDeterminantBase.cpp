@@ -523,6 +523,8 @@ namespace qmcplusplus {
   void 
   DiracDeterminantBase::addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi)
   {
+    app_log() << "addLog called.  NumPtcls = " << NumPtcls 
+	      << "   NumOrbitals = " << NumOrbitals << endl;
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
 
@@ -537,6 +539,47 @@ namespace qmcplusplus {
       Phi->evaluate (walkers, iat, newRowList_d);
     }
     // Now, compute determinant
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+      // HACK HACK HACK
+      host_vector<CUDA_PRECISION> host_data(data);
+      host_data = data;
+      Vector<double> A(NumPtcls*NumOrbitals);
+      for (int i=0; i<NumPtcls*NumOrbitals; i++)
+	A[i] = host_data[AOffset+i];
+      logPsi[iw] += std::log(Invert(A.data(), NumPtcls, NumOrbitals));
+      int N = NumPtcls;
+      bool passed = true;
+
+      for (int i=0; i<NumPtcls*NumOrbitals; i++)
+	host_data[AinvOffset+i] = A[i];
+      data = host_data;
+
+      for (int i=0; i<N; i++)
+	for (int j=0; j<N; j++) {
+	  double val = 0.0;
+	  for (int k=0; k<N; k++) {
+	    double aval = host_data[AOffset+i*N+k];
+	    double ainv = host_data[AinvOffset+k*N+j];
+	    val += aval * ainv;
+	  }
+	  if (i == j) {
+	    if (std::fabs(val - 1.0) > 1.0e-3) {
+	      app_error() << "Error in inverse, (i,j) = " << i << ", " << j << ".\n";
+	      passed = false;
+	    }
+	  }
+	  else
+	    if (std::fabs(val) > 1.0e-3) {
+	      app_error() << "Error in inverse, (i,j) = " << i << ", " << j << ".\n";
+	      passed = false;
+	    }
+	
+	}
+      if (!passed)
+	app_log() << (passed ? "Passed " : "Failed " ) << "inverse test.\n";
+    }
+
 
   }
 
@@ -561,13 +604,19 @@ namespace qmcplusplus {
       newRowList[iw]    =  &(data[newRowOffset]);
     }
     newRowList_d = newRowList;
-    Phi->evaluate (walkers, iat, newRowList_d);
+    Phi->evaluate (walkers, new_pos, newRowList_d);
     AinvList_d   = AinvList;
 
     // Now evaluate ratios
     determinant_ratios_cuda 
       (&(AinvList_d[0]), &(newRowList_d[0]), &(ratio_d[0]), 
 	 NumPtcls, NumPtcls, iat, walkers.size());
+    
+    // Copy back to host
+    ratio_host = ratio_d;
+
+    for (int iw=0; iw<psi_ratios.size(); iw++)
+      psi_ratios[iw] *= ratio_host[iw];
   }
 
   void DiracDeterminantBase::ratio (vector<Walker_t*> &walkers, int iat, 
@@ -575,7 +624,7 @@ namespace qmcplusplus {
 				    vector<ValueType> &psi_ratios, 
 				    vector<GradType>  &grad)
   {
-    app_log() << "DiracDeterminantBase::ratio with grad.\n";
+    app_log() << "DiracDeterminantBase::ratio with grad not implemented.\n";
   }
 
 

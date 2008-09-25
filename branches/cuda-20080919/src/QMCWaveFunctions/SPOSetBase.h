@@ -144,7 +144,16 @@ namespace qmcplusplus {
     { }
 
     virtual void
-    evaluate (vector<Walker_t*> &walkers, int iat, cuda_vector<CudaValueType*> &phi)
+    evaluate (vector<Walker_t*> &walkers, int iat,
+	      cuda_vector<CudaValueType*> &phi)
+    {
+      app_error() << "Need specialization of vectorized evaluate in SPOSetBase.\n";
+      abort();
+    }
+
+    virtual void
+    evaluate (vector<Walker_t*> &walkers, vector<PosType> &new_pos, 
+	      cuda_vector<CudaValueType*> &phi)
     {
       app_error() << "Need specialization of vectorized evaluate in SPOSetBase.\n";
       abort();

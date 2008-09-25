@@ -57,6 +57,7 @@ namespace qmcplusplus {
       IndexType step = 0;
       do
       {
+	cerr << "step = " << step << endl;
         ++step;++CurrentStep;
         for(int iat=0; iat<nat; ++iat)
         {
@@ -65,27 +66,33 @@ namespace qmcplusplus {
 
           //create a 3N-Dimensional Gaussian with variance=1
           makeGaussRandomWithEngine(delpos,Random);
-          for(int iw=0; iw<nw; ++iw)
-            newpos[iw]=W[iw]->R[iat]+m_sqrttau*deltaR[iw];
+          for(int iw=0; iw<nw; ++iw) {
+            newpos[iw]=W[iw]->R[iat]+m_sqrttau*delpos[iw];
+	    ratios[iw] = 1.0;
+	  }
 
           // Psi.ratio(W.WalkerList,iat,newpos,ratios,newG);
           Psi.ratio(W.WalkerList,iat,newpos,ratios);
+	  // for (int iw=0; iw<ratios.size(); iw++) 
+	  //   app_log() << "ratios[" << iw << "] = " << ratios[iw] << endl;
 
           accepted.clear();
-          for(int iw=0; iw<nw; ++iw)
-            if(ratios[iw]*ratios[iw]<Random()) 
+          for(int iw=0; iw<nw; ++iw) {
+            if(ratios[iw]*ratios[iw] > Random()) {
               accepted.push_back(W[iw]);
-	  if (accepted.size())
-	    Psi.update(accepted,iat);
-        }
+	      W[iw]->R[iat] = newpos[iw];
+	    }
+	  // if (accepted.size())
+	  //   Psi.update(accepted,iat);
+	  }
 
-
+	}
         //Mover->advanceWalkers(W.begin(),W.end(),true); //step==nSteps);
         //Estimators->accumulate(W);
         //if(CurrentStep%updatePeriod==0) Mover->updateWalkers(W.begin(),W.end());
         //if(CurrentStep%myPeriod4WalkerDump==0) W.saveEnsemble();
       } while(step<nSteps);
-
+      
       nAcceptTot += nAccept;
       nRejectTot += nReject;
       ++block;
@@ -106,7 +113,13 @@ namespace qmcplusplus {
 
   void VMCcuda::resetRun()
   {
-    app_log() << "W.WalkerList.size() = " << W.WalkerList.size() << endl;
+    SpeciesSet tspecies(W.getSpeciesSet());
+    int massind=tspecies.addAttribute("mass");
+    RealType mass = tspecies(massind,0);
+    RealType oneovermass = 1.0/mass;
+    RealType oneoversqrtmass = std::sqrt(oneovermass);
+    m_oneover2tau = 0.5/Tau;
+    m_sqrttau = std::sqrt(Tau/mass);
 
     // Compute the size of data needed for each walker on the GPU card
     PointerPool<Walker_t::cuda_Buffer_t > pool;
@@ -119,7 +132,7 @@ namespace qmcplusplus {
       Walker_t &walker = *(W.WalkerList[iw]);
       pool.allocate(walker.cuda_DataSet);
     }
-    vector<RealType> logPsi(W.WalkerList.size());
+    vector<RealType> logPsi(W.WalkerList.size(), 0.0);
     Psi.evaluateLog(W.WalkerList, logPsi);
     
     //int samples_tot=W.getActiveWalkers()*nBlocks*nSteps*myComm->size();

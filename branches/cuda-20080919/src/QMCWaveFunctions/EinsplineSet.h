@@ -277,9 +277,13 @@ namespace qmcplusplus {
 		  ComplexValueMatrix_t& d2psi);
 
     // Vectorized evaluation functions
-    void evaluate (vector<Walker_t*> &walkers, int iat, 
+    void evaluate (vector<Walker_t*> &walkers, int iat,
 		   cuda_vector<CudaRealType*> &phi);
-    void evaluate (vector<Walker_t*> &walkers, int iat, 
+    void evaluate (vector<Walker_t*> &walkers, int iat,
+		   cuda_vector<CudaComplexType*> &phi);
+    void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+		   cuda_vector<CudaRealType*> &phi);
+    void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,
 		   cuda_vector<CudaComplexType*> &phi);
     
     void resetParameters(const opt_variables_type& active);
