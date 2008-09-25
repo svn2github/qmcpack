@@ -108,6 +108,12 @@ namespace qmcplusplus {
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
     void 
+    reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
+    {
+      for (int id=0; id<Dets.size(); id++)
+	Dets[id]->reserve(pool);
+    }
+    void 
     addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi)
     {
       for (int id=0; id<Dets.size(); id++)

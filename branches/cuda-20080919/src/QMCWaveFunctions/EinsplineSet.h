@@ -278,9 +278,9 @@ namespace qmcplusplus {
 
     // Vectorized evaluation functions
     void evaluate (vector<Walker_t*> &walkers, int iat, 
-		   cuda_vector<CudaRealType*> phi);
+		   cuda_vector<CudaRealType*> &phi);
     void evaluate (vector<Walker_t*> &walkers, int iat, 
-		   cuda_vector<CudaComplexType*> phi);
+		   cuda_vector<CudaComplexType*> &phi);
     
     void resetParameters(const opt_variables_type& active);
     void resetTargetParticleSet(ParticleSet& e);

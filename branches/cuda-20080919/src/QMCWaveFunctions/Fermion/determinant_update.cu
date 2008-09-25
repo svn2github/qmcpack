@@ -175,34 +175,35 @@ calc_ratios (T *Ainv_list[], T *new_row_list[],
   int col = /*blockIdx.x*BS * */tid;
   __shared__ T *Ainv, *new_row;
 
-  if (col < N) {
-    if (tid == 0) {
-      Ainv = Ainv_list[blockIdx.x];
-      new_row = new_row_list[blockIdx.x];
-    }
-    __syncthreads();
-    __shared__ T new_row_shared[BS];
-    
+  if (tid == 0) {
+    Ainv = Ainv_list[blockIdx.x];
+    new_row = new_row_list[blockIdx.x];
+  }
+  __syncthreads();
+  __shared__ T new_row_shared[BS];
+   
+  if (col < N) 
     new_row_shared[tid] = new_row[tid];
     
-    __shared__ T Ainv_colk_shared[BS];
-    // This is *highly* uncoallesced, but we just have to eat it to allow
-    // other kernels to operate quickly.
+  __shared__ T Ainv_colk_shared[BS];
+  // This is *highly* uncoallesced, but we just have to eat it to allow
+  // other kernels to operate quickly.
+  if (col < N)
     Ainv_colk_shared[tid] = Ainv[col*row_stride + elec];
-    __syncthreads();
+  __syncthreads();
 
-    __shared__ T Ainv_new_row[BS];
+  __shared__ T Ainv_new_row[BS];
+  if (col < N)
     Ainv_new_row[tid] = Ainv_colk_shared[tid] * new_row_shared[tid];
     
-    __syncthreads();
+  __syncthreads();
     // Now, we have to dot
-    for (unsigned int s=BS/2; s>0; s>>=1) {
-      if (tid < s)
-	Ainv_new_row[tid] += Ainv_new_row[tid + s];
-      __syncthreads();
-    }
-    if (tid == 0)      ratio[blockIdx.x] = Ainv_new_row[0];
+  for (unsigned int s=BS/2; s>0; s>>=1) {
+    if (tid < s && (tid+s) < N)
+      Ainv_new_row[tid] += Ainv_new_row[tid + s];
+    __syncthreads();
   }
+  if (tid == 0)      ratio[blockIdx.x] = Ainv_new_row[0];
 }
 
 
@@ -213,6 +214,14 @@ determinant_ratios_cuda (float *Ainv_list[], float *new_row_list[],
 {
   dim3 dimBlock(N);
   dim3 dimGrid(numWalkers);
+
+  cudaThreadSynchronize();
+  cudaError_t err1 = cudaGetLastError();
+  if (err1 != cudaSuccess) {
+    fprintf (stderr, "CUDA error before determinant_ratios_cuda:\n  %s\n",
+	     cudaGetErrorString(err1));
+    abort();
+  }
 
   if (N <= 32) 
     calc_ratios<float,32><<<dimGrid,dimBlock>>>(Ainv_list, new_row_list, ratios, N, row_stride, iat);

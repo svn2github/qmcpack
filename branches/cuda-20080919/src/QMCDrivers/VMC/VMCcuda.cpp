@@ -61,7 +61,7 @@ namespace qmcplusplus {
         for(int iat=0; iat<nat; ++iat)
         {
           //calculate drift
-          Psi.getGradient(W.WalkerList,iat,oldG);
+          //Psi.getGradient(W.WalkerList,iat,oldG);
 
           //create a 3N-Dimensional Gaussian with variance=1
           makeGaussRandomWithEngine(delpos,Random);
@@ -111,6 +111,8 @@ namespace qmcplusplus {
     // Compute the size of data needed for each walker on the GPU card
     PointerPool<Walker_t::cuda_Buffer_t > pool;
     Psi.reserve (pool);
+    app_log() << "Each walker requires " << pool.getTotalSize() * sizeof(CudaRealType)
+	      << " bytes in GPU memory.\n";
 
     // Now allocate memory on the GPU card for each walker
     for (int iw=0; iw<W.WalkerList.size(); iw++) {

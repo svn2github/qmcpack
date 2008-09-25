@@ -50,9 +50,18 @@ public:
   
   pointer allocate(size_type s, cuda_allocator<void>::const_pointer hint = 0)
   {
-#ifdef QMC_CUDA   
+#ifdef QMC_CUDA 
+    //fprintf (stderr, "Allocating %ld bytes on GPU card.\n", s*sizeof(T));
     pointer mem;
     cudaMalloc ((void**)&mem, s*sizeof(T));
+
+    //fprintf (stderr, "mem = %p\n", mem);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+      fprintf (stderr, "Failed to allocate %ld:\n  %s\n",
+	       s*sizeof(T), cudaGetErrorString(err));
+      abort();
+    }
     return mem;
 #else
     return (pointer) malloc(s*sizeof(T));
@@ -62,6 +71,7 @@ public:
   void deallocate(pointer p, size_type n)
   {
 #ifdef QMC_CUDA
+    //fprintf (stderr, "Freeing pointer on GPU card.\n");
     cudaFree (p);
 #endif
   }
@@ -100,9 +110,16 @@ public:
     if (this->size() != vec.size())
       resize(vec.size());
 #ifdef QMC_CUDA
-    if (this->size()) 
-      cudaMemcpy (&(this[0]), &(vec[0]), this->size()*sizeof(T),
+    if (this->size() != 0) {
+      cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T),
 		  cudaMemcpyDeviceToDevice);
+      cudaError_t err = cudaGetLastError();
+      if (err != cudaSuccess) {
+	fprintf (stderr, "CUDA error in cuda_vector::copy constructor:\n  %s\n",
+		 cudaGetErrorString(err));
+	abort();
+      }
+    }
 #endif
   }
 
@@ -113,7 +130,13 @@ public:
       resize(vec.size());
 #ifdef QMC_CUDA
     cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
-		cudaMemcpyHostToDevice);
+		cudaMemcpyDeviceToDevice);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+      fprintf (stderr, "CUDA error in cuda_vector::operator=():\n  %s\n",
+	       cudaGetErrorString(err));
+      abort();
+    }
 #endif
     return *this;
   }
@@ -126,6 +149,12 @@ public:
 #ifdef QMC_CUDA
     cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
 		cudaMemcpyHostToDevice);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+      fprintf (stderr, "CUDA error in cuda_vector::operator=():\n  %s\n",
+	       cudaGetErrorString(err));
+      abort();
+    }
 #endif
     return *this;
   }
@@ -133,11 +162,17 @@ public:
   cuda_vector& 
   operator=(const host_vector<T> &vec)
   {
-    if (this->size() != vec.size())
-      resize(vec.size());
+    if (this->size() != vec.size()) 
+      this->resize(vec.size());
 #ifdef QMC_CUDA
     cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
 		cudaMemcpyHostToDevice);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+      fprintf (stderr, "CUDA error in cuda_vector::operator=():\n  %s\n",
+	       cudaGetErrorString(err));
+      abort();
+    }
 #endif
     return *this;
   }
@@ -164,6 +199,12 @@ public:
 #ifdef QMC_CUDA
     cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
 		cudaMemcpyDeviceToHost);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+      fprintf (stderr, "CUDA error in host_vector::copy constructor():\n  %s\n",
+	       cudaGetErrorString(err));
+      abort();
+    }
 #endif
   }
 
@@ -176,6 +217,13 @@ public:
 #ifdef QMC_CUDA
     cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
 		cudaMemcpyHostToDevice);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+      fprintf (stderr, "CUDA error in host_vector::operator=():\n  %s\n",
+	       cudaGetErrorString(err));
+      abort();
+    }
+
 #endif
     return *this;
   }
@@ -188,6 +236,12 @@ public:
 #ifdef QMC_CUDA
     cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
 		cudaMemcpyDeviceToHost);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+      fprintf (stderr, "CUDA error in host_vector::operator=():\n  %s\n",
+	       cudaGetErrorString(err));
+      abort();
+    }
 #endif
     return *this;
   }
@@ -200,6 +254,13 @@ cuda_vector<T>::cuda_vector(const host_vector<T> &vec) :
 #ifdef QMC_CUDA
   cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
 	      cudaMemcpyDeviceToHost);
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in host_vector::operator=():\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
 #endif
   
 }

@@ -51,9 +51,16 @@ public:
     totalSize = 0;
   }
 
+  size_t getTotalSize()
+  { return totalSize; }
+
+  PointerPool() : totalSize(0)
+  { }
+
 protected:
   size_t totalSize;
   vector<size_t> offsets;
+  
 };
 
 #endif

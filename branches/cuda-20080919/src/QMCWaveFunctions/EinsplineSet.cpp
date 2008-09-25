@@ -977,7 +977,7 @@ namespace qmcplusplus {
   //////////////////////////////////////////////
   template<> void 
   EinsplineSetExtended<double>::evaluate 
-  (vector<Walker_t*> &walkers, int iat, cuda_vector<CudaRealType*> phi)
+  (vector<Walker_t*> &walkers, int iat, cuda_vector<CudaRealType*> &phi)
   {
     int N = walkers.size();
     if (cudaPos.size() < N) {
@@ -1000,9 +1000,10 @@ namespace qmcplusplus {
 
   template<> void 
   EinsplineSetExtended<complex<double> >::evaluate 
-  (vector<Walker_t*> &walkers, int iat, cuda_vector<CudaRealType*> phi)
+  (vector<Walker_t*> &walkers, int iat, cuda_vector<CudaRealType*> &phi)
   {
     int N = walkers.size();
+
     if (cudaPos.size() < N) {
       hostPos.resize(N);
       cudaPos.resize(N);
@@ -1017,6 +1018,7 @@ namespace qmcplusplus {
     }
 
     cudaPos = hostPos;
+
     // eval_multi_multi_UBspline_3d_c_cuda 
     //   (CudaMultiSpline, (float*)&(cudaPos[0]), &(phi[0]), N);
   }
