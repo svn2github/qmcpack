@@ -82,10 +82,9 @@ namespace qmcplusplus {
               accepted.push_back(W[iw]);
 	      W[iw]->R[iat] = newpos[iw];
 	    }
-	  // if (accepted.size())
-	  //   Psi.update(accepted,iat);
 	  }
-
+	  if (accepted.size())
+	    Psi.update(accepted,iat);
 	}
         //Mover->advanceWalkers(W.begin(),W.end(),true); //step==nSteps);
         //Estimators->accumulate(W);

@@ -125,10 +125,10 @@ update_inverse_cuda(float *A_g[], float *Ainv_g[], float *u_g[],
   fprintf (stderr, "dimBlock = %d\n", dimBlock.x);
   fprintf (stderr, "dimGrid  = (%d, %d)\n", dimGrid.x, dimGrid.y);
 
-  update_inverse_cuda1<float><<<dimGrid,dimBlock>>>
-    (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
-  update_inverse_cuda2<float><<<dimGrid,dimBlock>>>
-    (Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
+  // update_inverse_cuda1<float><<<dimGrid,dimBlock>>>
+  //   (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
+  // update_inverse_cuda2<float><<<dimGrid,dimBlock>>>
+  //   (Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
