@@ -68,7 +68,8 @@ namespace qmcplusplus {
           for(int iw=0; iw<nw; ++iw)
             newpos[iw]=W[iw]->R[iat]+m_sqrttau*deltaR[iw];
 
-          Psi.ratio(W.WalkerList,iat,newpos,ratios,newG);
+          // Psi.ratio(W.WalkerList,iat,newpos,ratios,newG);
+          Psi.ratio(W.WalkerList,iat,newpos,ratios);
 
           accepted.clear();
           for(int iw=0; iw<nw; ++iw)
@@ -116,8 +117,9 @@ namespace qmcplusplus {
       Walker_t &walker = *(W.WalkerList[iw]);
       pool.allocate(walker.cuda_DataSet);
     }
-
-
+    vector<RealType> logPsi(W.WalkerList.size());
+    Psi.evaluateLog(W.WalkerList, logPsi);
+    
     //int samples_tot=W.getActiveWalkers()*nBlocks*nSteps*myComm->size();
     //myPeriod4WalkerDump=(nTargetSamples>0)?samples_tot/nTargetSamples:Period4WalkerDump;
     //if(myPeriod4WalkerDump==0 || QMCDriverMode[QMC_WARMUP]) 

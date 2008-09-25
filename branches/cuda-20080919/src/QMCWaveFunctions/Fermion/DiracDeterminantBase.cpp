@@ -496,7 +496,7 @@ namespace qmcplusplus {
   void 
   DiracDeterminantBase::update (vector<Walker_t*> &walkers, int iat)
   {
-    if (AList.size() > walkers.size())
+    if (AList.size() < walkers.size())
       resizeLists(walkers.size());
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t::cuda_Buffer_t data = walkers[iw]->cuda_DataSet;
@@ -513,7 +513,6 @@ namespace qmcplusplus {
     AinvDeltaList_d = AinvDeltaList;
     AinvColkList_d  = AinvColkList;
     // Call kernel wrapper function
-    app_log() << "Walkers.size() = " << walkers.size() << endl;
     update_inverse_cuda(&(AList_d[0]),&(AinvList_d[0]), &(newRowList_d[0]),
 			&(AinvDeltaList_d[0]), &(AinvColkList_d[0]),
 			NumPtcls, NumPtcls, iat, walkers.size());
@@ -524,15 +523,18 @@ namespace qmcplusplus {
   void 
   DiracDeterminantBase::addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi)
   {
+    if (AList.size() < walkers.size())
+      resizeLists(walkers.size());
+
     // Fill in the A matrix row by row   
     for (int iat=FirstIndex; iat<LastIndex; iat++) {
       int off = (iat-FirstIndex)*NumOrbitals;
       for (int iw=0; iw<walkers.size(); iw++) {
 	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
 	newRowList[iw]    =  &(data[AOffset+off]);
-	newRowList_d = newRowList;
-	Phi->evaluate (walkers, iat, newRowList_d);
       }
+      newRowList_d = newRowList;
+      Phi->evaluate (walkers, iat, newRowList_d);
     }
     // Now, compute determinant
 
@@ -549,8 +551,23 @@ namespace qmcplusplus {
 				    int iat, vector<PosType> &new_pos,
 				    vector<ValueType> &psi_ratios)
   {
-    app_log() << "DiracDeterminantBase::ratio w/o grad.\n";
+    if (AList.size() < walkers.size())
+      resizeLists(walkers.size());
 
+    // First evaluate orbitals
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+      AinvList[iw]      =  &(data[AinvOffset]);
+      newRowList[iw]    =  &(data[newRowOffset]);
+    }
+    newRowList_d = newRowList;
+    Phi->evaluate (walkers, iat, newRowList_d);
+    AinvList_d   = AinvList;
+
+    // Now evaluate ratios
+    determinant_ratios_cuda 
+      (&(AinvList_d[0]), &(newRowList_d[0]), &(ratio_d[0]), 
+	 NumPtcls, NumPtcls, iat, walkers.size());
   }
 
   void DiracDeterminantBase::ratio (vector<Walker_t*> &walkers, int iat, 

@@ -172,6 +172,8 @@ namespace qmcplusplus {
 
     vector<CudaRealType*> AList, AinvList, newRowList, AinvDeltaList, AinvColkList;
     cuda_vector<CudaRealType*> AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d;
+    cuda_vector<CudaRealType> ratio_d;
+    host_vector<CudaRealType> ratio_host;
 
     void resizeLists(int numWalkers)
     {
@@ -180,6 +182,7 @@ namespace qmcplusplus {
       newRowList.resize(numWalkers);       newRowList_d.resize(numWalkers);
       AinvDeltaList.resize(numWalkers);    AinvDeltaList_d.resize(numWalkers);
       AinvColkList.resize(numWalkers);     AinvColkList_d.resize(numWalkers);
+      ratio_d.resize(numWalkers);          ratio_host.resize(numWalkers);
     }
 
     void update (vector<Walker_t*> &walkers, int iat);

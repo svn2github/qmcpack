@@ -125,7 +125,7 @@ namespace qmcplusplus {
     ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
 	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad)
     {
-      //Dets[DetID[iat]]->ratio(walkers, iat, new_pos, psi_ratios, grad);
+      Dets[DetID[iat]]->ratio(walkers, iat, new_pos, psi_ratios, grad);
     }
 
 

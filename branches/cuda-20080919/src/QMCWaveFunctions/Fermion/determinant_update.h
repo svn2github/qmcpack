@@ -12,4 +12,9 @@ update_inverse_cuda(double *A_g[], double *Ainv_g[], double *u_g[],
 		    int N, int rowstride, int iat, int numWalkers);
 
 
+void
+determinant_ratios_cuda (float *Ainv_list[], float *new_row_list[],
+			 float *ratios, int N, int row_stride, int iat,
+			 int numWalkers);
+
 #endif
