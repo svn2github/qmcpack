@@ -357,13 +357,41 @@ calc_all_ratios (float *Ainv_list[], float *new_mat_list[],
 }
 
 
+#define SCALE_BS 64
+
+__constant__ float GGt[3][3];
+
+
 template<typename T>
 __global__ void
 scale_grad_lapl (T *grad_list[], T *hess_list[],
-		 T *grad_lapl_list[], int N)
+		 T *grad_lapl_list[], float Linv[], int N)
 {
+  __shared__ float gradBlock[3][SCALE_BS];
+  __shared__ float hessBlock[6][SCALE_BS];
+  __shared__ float outBlock [4][SCALE_BS];
+  __shared__ float G[3][3];
+  __shared__ float *grad, *hess, *out;
   
+  if (threadIdx.x == 0) {
+    grad = grad_list[blockIdx.y];
+    hess = hess_list[blockIdx.y];
+    out  = grad_lapl_list[blockIdx.y];
+  }
+  if (threadIdx.x < 9)
+    G[threadIdx.x/3][threadIdx.x%3] = Linv[threadIdx.x];
 
+  
+  // Load the gradients into shared memory
+  for (int i=0; i<3; i++) {
+    unsigned int gIndex = (3 * blockIdx.x+i) * SCALE_BS + threadIdx.x;
+    if (gIndex < 3*N)  gradBlock[i][threadIdx.x] = grad[gIndex];
+  }
+  // Load the hessian into shared memory
+  for (int i=0; i<6; i++) {
+    unsigned int hIndex = (6 * blockIdx.x+i) * SCALE_BS + threadIdx.x;
+    if (hIndex < 6*N)  hessBlock[i][threadIdx.x] = grad[hIndex];
+  }
 
 }
 
