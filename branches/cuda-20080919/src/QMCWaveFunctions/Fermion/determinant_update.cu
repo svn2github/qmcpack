@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 
 // The first kernel just computes AinvT * u and also stores the kth
@@ -378,8 +379,9 @@ all_ratios_grad_lapl_kernel (T *Ainv_list[], T *grad_lapl_list[],
   if (threadIdx.x == 0 && threadIdx.y == 0) {
     Ainv     = Ainv_list[blockIdx.x];
     gl_array = grad_lapl_list[blockIdx.x];
-    out    = out_list[blockIdx.x];
+    out      = out_list[blockIdx.x];
   }
+  __syncthreads();
 
   __shared__ float Ainv_block[RATIO_BS][RATIO_BS+1];
   __shared__ float grad_lapl_block[4][RATIO_BS][RATIO_BS+1];
@@ -387,7 +389,9 @@ all_ratios_grad_lapl_kernel (T *Ainv_list[], T *grad_lapl_list[],
   if (N & 15)
     numBlocks++;
 
+  __syncthreads();
   for (unsigned int yBlock=0; yBlock<numBlocks; yBlock++) {
+    __syncthreads();
     grad_lapl_block[0][threadIdx.y][threadIdx.x] = 0.0f;
     grad_lapl_block[1][threadIdx.y][threadIdx.x] = 0.0f;
     grad_lapl_block[2][threadIdx.y][threadIdx.x] = 0.0f;
@@ -398,12 +402,12 @@ all_ratios_grad_lapl_kernel (T *Ainv_list[], T *grad_lapl_list[],
       unsigned int yIndex = xBlock * RATIO_BS + threadIdx.y;
       unsigned int index  = yIndex*row_stride + xIndex;
       if ((xIndex < N) && (yIndex < N))
-	Ainv_block[threadIdx.x][threadIdx.y] = Ainv[index];
+       	Ainv_block[threadIdx.x][threadIdx.y] = Ainv[index];
       __syncthreads();
       xIndex = xBlock * RATIO_BS + threadIdx.x;
       yIndex = yBlock * RATIO_BS + threadIdx.y;
       index  = 4*yIndex*row_stride + xIndex;
-
+      __syncthreads();
       if ((xIndex < N) && (yIndex < N)) {
 	grad_lapl_block[0][threadIdx.y][threadIdx.x] +=
 	  gl_array[index+0*row_stride] * Ainv_block[threadIdx.y][threadIdx.x];
@@ -414,70 +418,83 @@ all_ratios_grad_lapl_kernel (T *Ainv_list[], T *grad_lapl_list[],
 	grad_lapl_block[3][threadIdx.y][threadIdx.x] +=
 	  gl_array[index+3*row_stride] * Ainv_block[threadIdx.y][threadIdx.x];
       }
+      __syncthreads();
     }
-    __syncthreads();
     // Now, we have to do the reduction across the lapl_blocks
     
     if (threadIdx.x < 8) {
       grad_lapl_block[0][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[0][threadIdx.y][threadIdx.x+8];
+    	grad_lapl_block[0][threadIdx.y][threadIdx.x+8];
       grad_lapl_block[1][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[1][threadIdx.y][threadIdx.x+8];
+    	grad_lapl_block[1][threadIdx.y][threadIdx.x+8];
       grad_lapl_block[2][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[2][threadIdx.y][threadIdx.x+8];
+    	grad_lapl_block[2][threadIdx.y][threadIdx.x+8];
       grad_lapl_block[3][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[3][threadIdx.y][threadIdx.x+8];
+    	grad_lapl_block[3][threadIdx.y][threadIdx.x+8];
     }
+    __syncthreads();
     if (threadIdx.x < 4) {
       grad_lapl_block[0][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[0][threadIdx.y][threadIdx.x+4];
+    	grad_lapl_block[0][threadIdx.y][threadIdx.x+4];
       grad_lapl_block[1][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[1][threadIdx.y][threadIdx.x+4];
+    	grad_lapl_block[1][threadIdx.y][threadIdx.x+4];
       grad_lapl_block[2][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[2][threadIdx.y][threadIdx.x+4];
+    	grad_lapl_block[2][threadIdx.y][threadIdx.x+4];
       grad_lapl_block[3][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[3][threadIdx.y][threadIdx.x+4];
+    	grad_lapl_block[3][threadIdx.y][threadIdx.x+4];
     }
+    __syncthreads();
     if (threadIdx.x < 2) {
       grad_lapl_block[0][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[0][threadIdx.y][threadIdx.x+2];
+    	grad_lapl_block[0][threadIdx.y][threadIdx.x+2];
       grad_lapl_block[1][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[1][threadIdx.y][threadIdx.x+2];
+    	grad_lapl_block[1][threadIdx.y][threadIdx.x+2];
       grad_lapl_block[2][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[2][threadIdx.y][threadIdx.x+2];
+    	grad_lapl_block[2][threadIdx.y][threadIdx.x+2];
       grad_lapl_block[3][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[3][threadIdx.y][threadIdx.x+2];
+    	grad_lapl_block[3][threadIdx.y][threadIdx.x+2];
     }
+    __syncthreads();
     if (threadIdx.x < 1) {
       grad_lapl_block[0][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[0][threadIdx.y][threadIdx.x+1];
+    	grad_lapl_block[0][threadIdx.y][threadIdx.x+1];
       grad_lapl_block[1][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[1][threadIdx.y][threadIdx.x+1];
+    	grad_lapl_block[1][threadIdx.y][threadIdx.x+1];
       grad_lapl_block[2][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[2][threadIdx.y][threadIdx.x+1];
+    	grad_lapl_block[2][threadIdx.y][threadIdx.x+1];
       grad_lapl_block[3][threadIdx.y][threadIdx.x] +=
-	grad_lapl_block[3][threadIdx.y][threadIdx.x+1];
+    	grad_lapl_block[3][threadIdx.y][threadIdx.x+1];
     }
     __syncthreads();
 
-    if (threadIdx.y == 0 && (yBlock * RATIO_BS + threadIdx.x) < N) {
-      out[(4*yBlock+0) * RATIO_BS + threadIdx.x] = grad_lapl_block[0][threadIdx.x][0];
-      out[(4*yBlock+1) * RATIO_BS + threadIdx.x] = grad_lapl_block[1][threadIdx.x][0];
-      out[(4*yBlock+2) * RATIO_BS + threadIdx.x] = grad_lapl_block[2][threadIdx.x][0];
-      out[(4*yBlock+3) * RATIO_BS + threadIdx.x] = grad_lapl_block[3][threadIdx.x][0];
-    }
+    // unsigned int yIndex = yBlock * RATIO_BS + threadIdx.x;
+
+    // if (threadIdx.y == 0 && yIndex < N) {
+    //   out[4*yIndex+0] = grad_lapl_block[0][threadIdx.x][0];
+    //   out[4*yIndex+1] = grad_lapl_block[1][threadIdx.x][0];
+    //   out[4*yIndex+2] = grad_lapl_block[2][threadIdx.x][0];
+    //   out[4*yIndex+3] = grad_lapl_block[3][threadIdx.x][0];
+    // }
+    //unsigned int yIndex = 4*yBlock*RATIO_BS + 4*threadIdx.y + threadIdx.x;
+
+    unsigned int ix = 16*threadIdx.y + threadIdx.x;
+
+    if (ix < 64) 
+      out[64*yBlock + ix] = grad_lapl_block[ix&3][ix>>2][0];
+    // IMPORTANT!!!
+    __syncthreads();
   }      
 }
 
 void
-calc_grad_lapl (float *Ainv_list[], float *new_mat_list[],
-		float *ratio_list[], int N, int row_stride, int num_mats)
+calc_grad_lapl (float *Ainv_list[], float *grad_lapl_list[],
+		float *out_list[], int N, int row_stride, int num_mats)
 {
   dim3 dimBlock(RATIO_BS, RATIO_BS);
   dim3 dimGrid (num_mats);
 
   all_ratios_grad_lapl_kernel<float><<<dimGrid,dimBlock>>>
-    (Ainv_list, new_mat_list, ratio_list, N, row_stride);
+    (Ainv_list, grad_lapl_list, out_list, N, row_stride);
 }
 
 
@@ -554,13 +571,93 @@ test_all_ratios_kernel()
 }
 
 
+
+void
+test_all_grad_lapl_kernel()
+{
+  int N = 128;
+
+  float *A, *A_d, *Ainv, *Ainv_d, *ratio, *ratio_d;
+
+  cudaMalloc ((void**)&A_d,     4*N*N*sizeof(float));
+  cudaMalloc ((void**)&Ainv_d,  N*N*sizeof(float));  
+  cudaMalloc ((void**)&ratio_d, 4*N*sizeof(float));
+  A     = (float *)malloc (4*N*N*sizeof(float));
+  Ainv  = (float *)malloc (1*N*N*sizeof(float));
+  ratio = (float *)malloc (4*N*sizeof(float));
+
+  float ratio2[4*N];
+  for (int i=0; i<N; i++)
+    for (int j=0; j<N; j++) {
+      Ainv[i*N+j] = 1.0f+drand48();
+      for (int k=0; k<4; k++)
+	A[4*(i*N+j)+k] = 1.0f+drand48();
+    }
+  
+  cudaMemcpy (A_d,     A,    4*N*N*sizeof(float), cudaMemcpyHostToDevice);  
+  cudaMemcpy (Ainv_d,  Ainv, 1*N*N*sizeof(float), cudaMemcpyHostToDevice);
+
+  float **A_list, **A_list_d, **Ainv_list, **Ainv_list_d, **ratio_list, **ratio_list_d;
+  int numMats = 2000;
+
+
+  cudaMalloc ((void**)&A_list_d,     numMats*sizeof(float*));
+  cudaMalloc ((void**)&Ainv_list_d,  numMats*sizeof(float*));
+  cudaMalloc ((void**)&ratio_list_d, numMats*sizeof(float*));
+  A_list     = (float **)malloc (numMats*sizeof(float*));
+  Ainv_list  = (float **)malloc (numMats*sizeof(float*));
+  ratio_list = (float **)malloc (numMats*sizeof(float*));
+
+  for (int i=0; i<numMats; i++) {
+    A_list[i] = A_d;
+    Ainv_list[i] = Ainv_d;
+    ratio_list[i] = ratio_d;
+  }
+
+  cudaMemcpy (A_list_d,    A_list,      numMats*sizeof(float*), cudaMemcpyHostToDevice);
+  cudaMemcpy (Ainv_list_d, Ainv_list,   numMats*sizeof(float*), cudaMemcpyHostToDevice);
+  cudaMemcpy (ratio_list_d, ratio_list, numMats*sizeof(float*), cudaMemcpyHostToDevice);
+
+  struct timeval tstart, tend;
+  gettimeofday(&tstart, NULL);
+  for (int i=0; i<100; i++) 
+    calc_grad_lapl (Ainv_list_d, A_list_d, ratio_list_d, N, N, numMats);
+  cudaMemcpy (ratio, ratio_d, 4*N*sizeof(float), cudaMemcpyDeviceToHost);
+  gettimeofday(&tend, NULL);
+  double start = (double)tstart.tv_sec + 1.0e-6 * (double)tstart.tv_usec;  
+  double end   = (double)tend.tv_sec   + 1.0e-6 * (double)tend.tv_usec;
+  fprintf (stderr, "start = %f\n", start);
+  fprintf (stderr, "end = %f\n", end);
+  double rate = 100.0/(end-start);
+  fprintf (stderr, "Rate = %1.2f generations per second.\n", rate);
+
+
+
+  for (int i=0; i<N; i++) {
+    for (int k=0; k<4; k++)
+      ratio2[4*i+k] = 0.0f;
+    for (int j=0; j<N; j++)
+      for (int k=0; k<4; k++)
+	ratio2[4*i+k] += A[(4*i+k)*N+j]*Ainv[j*N+i];
+    for (int k=0; k<4; k++)
+    fprintf (stderr, "%3d  %10.6f  %10.6f\n", 4*i+k, ratio2[4*i+k], ratio[4*i+k]);
+  }
+ 
+
+}
+
+
+
+
+
 #ifdef CUDA_TEST_MAIN
 
 // Compile with:
 // nvcc -o test_all_ratios -DCUDA_TEST_MAIN ../src/QMCWaveFunctions/Fermion/determinant_update.cu
 main()
 {
-  test_all_ratios_kernel();
+  //test_all_ratios_kernel();
+  test_all_grad_lapl_kernel();
 }
 
 
