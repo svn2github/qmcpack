@@ -55,6 +55,7 @@ namespace qmcplusplus {
     do {
       //Mover->startBlock(nSteps);
       IndexType step = 0;
+      nAccept = nReject = 0;
       do
       {
 	cerr << "step = " << step << endl;
@@ -80,8 +81,11 @@ namespace qmcplusplus {
           for(int iw=0; iw<nw; ++iw) {
             if(ratios[iw]*ratios[iw] > Random()) {
               accepted.push_back(W[iw]);
+	      nAccept++;
 	      W[iw]->R[iat] = newpos[iw];
 	    }
+	    else
+	      nReject++;
 	  }
 	  if (accepted.size())
 	    Psi.update(accepted,iat);
@@ -92,6 +96,8 @@ namespace qmcplusplus {
         //if(CurrentStep%myPeriod4WalkerDump==0) W.saveEnsemble();
       } while(step<nSteps);
       
+      app_log() << "Block accept ratio = " << (double)nAccept/(double)(nAccept+nReject) << endl;
+
       nAcceptTot += nAccept;
       nRejectTot += nReject;
       ++block;
