@@ -279,3 +279,76 @@ determinant_ratios_cuda (double *Ainv_list[], double *new_row_list[],
   }
 }
 
+#define RATIO_BS 16
+
+template<typename T>
+__global__ void
+all_ratios (T *Ainv_list[], T *new_mat_list[], 
+	    T *ratio_list[], int N, int row_stride)
+{
+  __shared__ T *Ainv, *new_mat, *ratio;
+  
+  if (threadIdx.x == 0 && threadIdx.y == 0) {
+    Ainv    = Ainv_list[blockIdx.x];
+    new_mat = new_mat_list[blockIdx.x];
+    ratio   = ratio_list[blockIdx.x];
+  }
+
+  __shared__ float Ainv_block[RATIO_BS][RATIO_BS+1];
+  // __shared__ float new_block[RATIO_BS][RATIO_BS+1];
+  __shared__ float ratio_block[RATIO_BS][RATIO_BS+1];
+  unsigned int numBlocks = N >> 4;
+  if (N & 15)
+    numBlocks++;
+
+  for (unsigned int yBlock=0; yBlock<numBlocks; yBlock++) {
+    ratio_block[threadIdx.y][threadIdx.x] = 0.0f;
+    __syncthreads();
+    for (unsigned int xBlock=0; xBlock<numBlocks; xBlock++) {
+      unsigned int Ainv_xIndex = blockIdx.y * RATIO_BS + threadIdx.x;
+      unsigned int Ainv_yIndex = blockIdx.x * RATIO_BS + threadIdx.y;
+      unsigned int Ainv_index  = Ainv_yIndex*row_stride + Ainv_xIndex;
+      if ((Ainv_xIndex < N) && (Ainv_yIndex < N))
+	Ainv_block[threadIdx.x][threadIdx.y] = Ainv[Ainv_index];
+      __syncthreads();
+      unsigned int new_xIndex = blockIdx.x * RATIO_BS + threadIdx.x;
+      unsigned int new_yIndex = blockIdx.y * RATIO_BS + threadIdx.y;
+      unsigned int new_index  = new_yIndex*row_stride + new_xIndex;
+
+      if ((new_xIndex < N) && (new_yIndex < N))
+	ratio_block[threadIdx.y][threadIdx.x] +=
+	  new_mat[new_index] * Ainv_block[threadIdx.y][threadIdx.x];
+    }
+    // Now, we have to do the reduction across the ratio_blocks
+    
+    if (threadIdx.x < 8)
+      ratio_block[threadIdx.y][threadIdx.x] +=
+	ratio_block[threadIdx.y][threadIdx.x+8];
+    if (threadIdx.x < 4)
+      ratio_block[threadIdx.y][threadIdx.x] +=
+	ratio_block[threadIdx.y][threadIdx.x+4];
+    if (threadIdx.x < 2)
+      ratio_block[threadIdx.y][threadIdx.x] +=
+	ratio_block[threadIdx.y][threadIdx.x+2];
+    if (threadIdx.x < 1) {
+      ratio_block[threadIdx.y][threadIdx.x] +=
+	ratio_block[threadIdx.y][threadIdx.x+1];
+    }
+    if (threadIdx.y == 0)
+      ratio[blockIdx.y * RATIO_BS + threadIdx.x] = ratio_block[threadIdx.x][0];
+  }      
+}
+
+
+void
+all_ratios (float *Ainv_list[], float *new_mat_list[],
+	    float *ratio_list[], int N, int row_stride, int num_mats)
+{
+  dim3 dimBlock(RATIO_BS, RATIO_BS);
+  dim3 dimGrid (num_mats);
+
+  all_ratios<float><<<dimGrid,dimBlock>>>
+    (Ainv_list, new_mat_list, ratio_list, N, row_stride);
+
+
+}
