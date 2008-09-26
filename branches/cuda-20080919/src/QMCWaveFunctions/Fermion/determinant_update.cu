@@ -283,8 +283,8 @@ determinant_ratios_cuda (double *Ainv_list[], double *new_row_list[],
 
 template<typename T>
 __global__ void
-all_ratios (T *Ainv_list[], T *new_mat_list[], 
-	    T *ratio_list[], int N, int row_stride)
+all_ratios_kernel (T *Ainv_list[], T *new_mat_list[], 
+		   T *ratio_list[], int N, int row_stride)
 {
   __shared__ T *Ainv, *new_mat, *ratio;
   
@@ -305,20 +305,21 @@ all_ratios (T *Ainv_list[], T *new_mat_list[],
     ratio_block[threadIdx.y][threadIdx.x] = 0.0f;
     __syncthreads();
     for (unsigned int xBlock=0; xBlock<numBlocks; xBlock++) {
-      unsigned int Ainv_xIndex = blockIdx.y * RATIO_BS + threadIdx.x;
-      unsigned int Ainv_yIndex = blockIdx.x * RATIO_BS + threadIdx.y;
+      unsigned int Ainv_xIndex = yBlock * RATIO_BS + threadIdx.x;
+      unsigned int Ainv_yIndex = xBlock * RATIO_BS + threadIdx.y;
       unsigned int Ainv_index  = Ainv_yIndex*row_stride + Ainv_xIndex;
       if ((Ainv_xIndex < N) && (Ainv_yIndex < N))
 	Ainv_block[threadIdx.x][threadIdx.y] = Ainv[Ainv_index];
       __syncthreads();
-      unsigned int new_xIndex = blockIdx.x * RATIO_BS + threadIdx.x;
-      unsigned int new_yIndex = blockIdx.y * RATIO_BS + threadIdx.y;
+      unsigned int new_xIndex = xBlock * RATIO_BS + threadIdx.x;
+      unsigned int new_yIndex = yBlock * RATIO_BS + threadIdx.y;
       unsigned int new_index  = new_yIndex*row_stride + new_xIndex;
 
       if ((new_xIndex < N) && (new_yIndex < N))
 	ratio_block[threadIdx.y][threadIdx.x] +=
 	  new_mat[new_index] * Ainv_block[threadIdx.y][threadIdx.x];
     }
+    __syncthreads();
     // Now, we have to do the reduction across the ratio_blocks
     
     if (threadIdx.x < 8)
@@ -334,21 +335,89 @@ all_ratios (T *Ainv_list[], T *new_mat_list[],
       ratio_block[threadIdx.y][threadIdx.x] +=
 	ratio_block[threadIdx.y][threadIdx.x+1];
     }
-    if (threadIdx.y == 0)
-      ratio[blockIdx.y * RATIO_BS + threadIdx.x] = ratio_block[threadIdx.x][0];
+    __syncthreads();
+    if (threadIdx.y == 0 && (yBlock * RATIO_BS + threadIdx.x) < N)
+      ratio[yBlock * RATIO_BS + threadIdx.x] = ratio_block[threadIdx.x][0];
   }      
 }
 
 
 void
-all_ratios (float *Ainv_list[], float *new_mat_list[],
-	    float *ratio_list[], int N, int row_stride, int num_mats)
+all_ratios_kernel (float *Ainv_list[], float *new_mat_list[],
+		   float *ratio_list[], int N, int row_stride, int num_mats)
 {
   dim3 dimBlock(RATIO_BS, RATIO_BS);
   dim3 dimGrid (num_mats);
 
-  all_ratios<float><<<dimGrid,dimBlock>>>
+  all_ratios_kernel<float><<<dimGrid,dimBlock>>>
     (Ainv_list, new_mat_list, ratio_list, N, row_stride);
+}
 
+
+#include <stdlib.h>
+
+void
+test_all_ratios_kernel()
+{
+  int N = 128;
+
+  float *A, *A_d, *Ainv, *Ainv_d, *ratio, *ratio_d;
+
+  cudaMalloc ((void**)&A_d,    N*N*sizeof(float));
+  cudaMalloc ((void**)&Ainv_d, N*N*sizeof(float));  
+  cudaMalloc ((void**)&ratio_d, 1*N*sizeof(float));
+  A     = (float *)malloc (N*N*sizeof(float));
+  Ainv  = (float *)malloc (N*N*sizeof(float));
+  ratio = (float *)malloc (1*N*sizeof(float));
+
+  float ratio2[N];
+  for (int i=0; i<N; i++)
+    for (int j=0; j<N; j++) {
+      A[i*N+j] = 1.0f+drand48();
+      Ainv[i*N+j] = 1.0f+drand48();
+    }
+  
+  cudaMemcpy (A_d,     A,    N*N*sizeof(float), cudaMemcpyHostToDevice);  
+  cudaMemcpy (Ainv_d,  Ainv, N*N*sizeof(float), cudaMemcpyHostToDevice);
+
+  float **A_list, **A_list_d, **Ainv_list, **Ainv_list_d, **ratio_list, **ratio_list_d;
+  cudaMalloc ((void**)&A_list_d,     sizeof(float*));
+  cudaMalloc ((void**)&Ainv_list_d,  sizeof(float*));
+  cudaMalloc ((void**)&ratio_list_d, sizeof(float*));
+  A_list     = (float **)malloc (sizeof(float*));
+  Ainv_list  = (float **)malloc (sizeof(float*));
+  ratio_list = (float **)malloc (sizeof(float*));
+
+  A_list[0] = A_d;
+  Ainv_list[0] = Ainv_d;
+  ratio_list[0] = ratio_d;
+
+  cudaMemcpy (A_list_d,    A_list,      sizeof(float*), cudaMemcpyHostToDevice);
+  cudaMemcpy (Ainv_list_d, Ainv_list,   sizeof(float*), cudaMemcpyHostToDevice);
+  cudaMemcpy (ratio_list_d, ratio_list, sizeof(float*), cudaMemcpyHostToDevice);
+
+  all_ratios_kernel (Ainv_list_d, A_list_d, ratio_list_d, N, N, 1);
+
+
+  cudaMemcpy (ratio, ratio_d, N*sizeof(float), cudaMemcpyDeviceToHost);
+
+  for (int i=0; i<N; i++) {
+    ratio2[i] = 0.0f;
+    for (int j=0; j<N; j++)
+      ratio2[i] += A[i*N+j]*Ainv[j*N+i];
+    fprintf (stderr, "%3d  %10.6f  %10.6f\n", i, ratio2[i], ratio[i]);
+  }
+  
 
 }
+
+
+#ifdef CUDA_TEST_MAIN
+main()
+{
+  test_all_ratios_kernel();
+}
+
+
+
+#endif
