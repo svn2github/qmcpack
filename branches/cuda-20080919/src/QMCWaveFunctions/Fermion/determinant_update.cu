@@ -123,12 +123,6 @@ update_inverse_cuda(float *A_g[], float *Ainv_g[], float *u_g[],
   dim3 dimBlock(DET_BLOCK_SIZE);
   dim3 dimGrid(N/DET_BLOCK_SIZE, numWalkers);
 
-  // fprintf (stderr, "N=%d  rowstride=%d  iat=%d  numWalkers=%d\n",
-  // 	   N, rowstride, iat, numWalkers);
-
-  // fprintf (stderr, "dimBlock = %d\n", dimBlock.x);
-  // fprintf (stderr, "dimGrid  = (%d, %d)\n", dimGrid.x, dimGrid.y);
-
   update_inverse_cuda1<float><<<dimGrid,dimBlock>>>
     (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
   update_inverse_cuda2<float><<<dimGrid,dimBlock>>>
