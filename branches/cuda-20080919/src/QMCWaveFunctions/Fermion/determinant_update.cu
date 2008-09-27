@@ -364,13 +364,13 @@ __constant__ float GGt[3][3];
 
 template<typename T>
 __global__ void
-scale_grad_lapl (T *grad_list[], T *hess_list[],
-		 T *grad_lapl_list[], float Linv[], int N)
+scale_grad_lapl_kernel (T *grad_list[], T *hess_list[],
+			T *grad_lapl_list[], T Linv[], int N)
 {
   __shared__ float gradBlock[3][SCALE_BS];
   __shared__ float hessBlock[6][SCALE_BS];
-  __shared__ float outBlock [4][SCALE_BS];
-  __shared__ float G[3][3];
+  //  __shared__ float outBlock [4][SCALE_BS];
+  __shared__ float G[3][3], GGt[3][3];
   __shared__ float *grad, *hess, *out;
   
   if (threadIdx.x == 0) {
@@ -378,9 +378,17 @@ scale_grad_lapl (T *grad_list[], T *hess_list[],
     hess = hess_list[blockIdx.y];
     out  = grad_lapl_list[blockIdx.y];
   }
-  if (threadIdx.x < 9)
-    G[threadIdx.x/3][threadIdx.x%3] = Linv[threadIdx.x];
 
+  int i = threadIdx.x/3;
+  int j = threadIdx.x%3;
+
+  if (threadIdx.x < 9) 
+    G[i][j] = Linv[threadIdx.x];
+  __syncthreads();
+
+  GGt[i][j] = (G[i][0] * G[0][j] +
+	       G[i][1] * G[1][j] +
+	       G[i][2] * G[2][j]);
   
   // Load the gradients into shared memory
   for (int i=0; i<3; i++) {
@@ -393,8 +401,67 @@ scale_grad_lapl (T *grad_list[], T *hess_list[],
     if (hIndex < 6*N)  hessBlock[i][threadIdx.x] = grad[hIndex];
   }
 
+  // Now, loop through the rows that I own and compute the
+  // dimensioned gradients and laplacians from the 
+  // dimensionless gradients and Hessians.
+  int row = blockIdx.x*SCALE_BS;
+
+  float val;
+  // x component of gradient
+  val = (G[0][0]*gradBlock[0][threadIdx.x] +
+	 G[0][1]*gradBlock[1][threadIdx.x] +
+	 G[0][2]*gradBlock[2][threadIdx.x]);
+  out[row + 0*N + threadIdx.x] = val;
+
+  // y component of gradient
+  val = (G[1][0]*gradBlock[0][threadIdx.x] +
+	 G[1][1]*gradBlock[1][threadIdx.x] +
+	 G[1][2]*gradBlock[2][threadIdx.x]);
+  out[row + 1*N + threadIdx.x] = val;
+
+  // z component of gradient
+  val = (G[2][0]*gradBlock[0][threadIdx.x] +
+	 G[2][1]*gradBlock[1][threadIdx.x] +
+	 G[2][2]*gradBlock[2][threadIdx.x]);
+  out[row + 2*N + threadIdx.x] = val;
+
+  
+  // Hessian = H00 H01 H02 H11 H12 H22
+  // Matrix = [0 1 2]
+  //          [1 3 4]
+  //          [2 4 5]
+  // laplacian = Trace(GGt*Hessian)
+  val = (GGt[0][0]*hessBlock[0][threadIdx.x] +
+	 GGt[0][1]*hessBlock[1][threadIdx.x] +
+	 GGt[0][2]*hessBlock[2][threadIdx.x] +
+
+	 GGt[1][0]*hessBlock[1][threadIdx.x] +
+	 GGt[1][1]*hessBlock[3][threadIdx.x] +
+	 GGt[1][2]*hessBlock[4][threadIdx.x] +
+
+	 GGt[2][0]*hessBlock[2][threadIdx.x] +
+	 GGt[2][1]*hessBlock[4][threadIdx.x] +
+	 GGt[2][2]*hessBlock[5][threadIdx.x]);
+
+  out[row + 3*N + threadIdx.x] = val;
+
 }
 
+
+
+void
+scale_grad_lapl(float *grad_list[], float *hess_list[],
+		float *grad_lapl_list[], float Linv[], int N,
+		int num_walkers)
+{
+  dim3 dimBlock(SCALE_BS);
+  dim3 dimGrid(N/SCALE_BS, num_walkers);
+  if (N%SCALE_BS)
+    dimGrid.x++;
+  
+  scale_grad_lapl_kernel<float><<<dimGrid,dimBlock>>>
+    (grad_list, hess_list, grad_lapl_list, Linv, N);
+}
 
 
 template<typename T>
