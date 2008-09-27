@@ -448,6 +448,13 @@ scale_grad_lapl_kernel (T *grad_list[], T *hess_list[],
 }
 
 
+// This function reads the vectors pointed to by grad_list and 
+// hess_list.  These are in memory as
+// [grad0_x grad0_y grad0_z grad1_x grad1_y ... ] and
+// [hess0_xx hess0_xy hess0_xy hess0_yy hess0_yz hess0_zz ...]
+// It the writes the data into memory as
+// [grad0_x grad1_x ... grad(N-1)_x grad0_y ... grad(N-1)_x lapl0
+// lapl1...]
 
 void
 scale_grad_lapl(float *grad_list[], float *hess_list[],
