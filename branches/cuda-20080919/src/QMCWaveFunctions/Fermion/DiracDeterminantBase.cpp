@@ -520,8 +520,62 @@ namespace qmcplusplus {
     AinvColkList_d  = AinvColkList;
     // Call kernel wrapper function
     update_inverse_cuda(&(AList_d[0]),&(AinvList_d[0]), &(newRowList_d[0]),
-			&(AinvDeltaList_d[0]), &(AinvColkList_d[0]),
-			NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
+    			&(AinvDeltaList_d[0]), &(AinvColkList_d[0]),
+    			NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
+
+#ifdef DEBUG_CUDA
+    
+    float Ainv[NumPtcls][NumPtcls], A[NumPtcls][NumPtcls];
+    float new_row[NumPtcls], Ainv_delta[NumPtcls];
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t::cuda_Buffer_t &data = walkers[iw]->cuda_DataSet;
+      cudaMemcpy (A, &(data[AOffset]),
+		  NumPtcls*NumPtcls*sizeof(CudaValueType), cudaMemcpyDeviceToHost);
+      cudaMemcpy (Ainv, &(data[AinvOffset]),
+		  NumPtcls*NumPtcls*sizeof(CudaValueType), cudaMemcpyDeviceToHost);
+      cudaMemcpy (new_row, &(data[newRowOffset]),
+		  NumPtcls*sizeof(CudaValueType), cudaMemcpyDeviceToHost);
+
+      // for (int i=0; i<NumPtcls; i++) 
+      //  	cerr << "new_row(" << i << ") = " << new_row[i] 
+      // 	     << "  old_row = " << A[iat-FirstIndex][i] << endl;
+
+      // float Ainv_k[NumPtcls];
+      // for (int i=0; i<NumPtcls; i++) {
+      // 	Ainv_delta[i] = 0.0f;
+      // 	Ainv_k[i] = Ainv[i][iat-FirstIndex];
+      // 	for (int j=0; j<NumPtcls; j++)
+      // 	  Ainv_delta[i] += Ainv[j][i] * (new_row[j] - A[(iat-FirstIndex)][j]);
+      // }
+      // double prefact = 1.0/(1.0+Ainv_delta[iat-FirstIndex]);
+      // for (int i=0; i<NumPtcls; i++)
+      // 	for (int j=0; j<NumPtcls; j++)
+      // 	  Ainv[i][j] += prefact * Ainv_delta[j]*Ainv_k[i];
+      // for (int j=0; j<NumPtcls; j++)
+      // 	A[iat-FirstIndex][j] = new_row[j];
+
+      for (int i=0; i<NumPtcls; i++) 
+	for (int j=0; j<NumPtcls; j++) {
+	  float val = 0.0;
+	  for (int k=0; k<NumPtcls; k++)
+	    val += Ainv[i][k]*A[k][j];
+	  if (i==j && (std::fabs(val-1.0) > 1.0e-2))
+	    cerr << "Error in inverse at (i,j) = (" << i << ", " << j 
+		 << ")  val = " << val << "  walker = " << iw << endl;
+	  else if ((i!=j) && (std::fabs(val) > 1.0e-2))
+	    cerr << "Error in inverse at (i,j) = (" << i << ", " << j 
+		 << ")  val = " << val << "  walker = " << iw << endl;
+	}
+    }
+#endif
+    
+    // Copy gradLapl into matrices
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t::cuda_Buffer_t &data = walkers[iw]->cuda_DataSet;
+      int off = 4*(iat-FirstIndex)*NumOrbitals;
+      cudaMemcpy (&(data[gradLaplOffset+off]), &(data[newGradLaplOffset]),
+    		  4*NumOrbitals*sizeof(CudaValueType), cudaMemcpyDeviceToDevice);
+    }
   }
   
 
@@ -625,16 +679,92 @@ namespace qmcplusplus {
       psi_ratios[iw] *= ratio_host[iw];
   }
 
+
   void DiracDeterminantBase::ratio (vector<Walker_t*> &walkers, int iat, 
 				    vector<PosType> &new_pos, 
 				    vector<ValueType> &psi_ratios, 
 				    vector<GradType>  &grad)
   {
-    app_log() << "DiracDeterminantBase::ratio with grad not implemented.\n";
+    
+
   }
 
+  void DiracDeterminantBase::ratio (vector<Walker_t*> &walkers, int iat, 
+				    vector<PosType> &new_pos, 
+				    vector<ValueType> &psi_ratios, 
+				    vector<GradType>  &grad,
+				    vector<ValueType> &lapl)
+  {
+    if (AList.size() < walkers.size())
+      resizeLists(walkers.size());
 
+    // First evaluate orbitals
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+      AinvList[iw]        =  &(data[AinvOffset]);
+      newRowList[iw]      =  &(data[newRowOffset]);
+      newGradLaplList[iw] =  &(data[newGradLaplOffset]);
+    }
+    newRowList_d = newRowList;
+    newGradLaplList_d = newGradLaplList;
+    cerr << "In grad_lapl ratio.\n";
+    Phi->evaluate (walkers, new_pos, newRowList_d, newGradLaplList_d, NumOrbitals);
+    //Phi->evaluate (walkers, new_pos, newRowList_d);
 
+    AinvList_d   = AinvList;
+    
+    // Now evaluate ratios
+    determinant_ratios_cuda 
+      (&(AinvList_d[0]), &(newRowList_d[0]), &(ratio_d[0]), 
+	 NumPtcls, NumPtcls, iat, walkers.size());
+    
+    // Copy back to host
+    ratio_host = ratio_d;
+    
+    for (int iw=0; iw<psi_ratios.size(); iw++)
+      psi_ratios[iw] *= ratio_host[iw];
+
+    // Calculate gradient and laplacian
+    
+
+  }
+
+  void 
+  DiracDeterminantBase::gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
+				  ValueMatrix_t &lapl)
+  {
+    if (AList.size() < walkers.size())
+      resizeLists(walkers.size());
+
+    // First evaluate orbitals
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+      AinvList[iw]        =  &(data[AinvOffset]);
+      gradLaplList[iw]    =  &(data[gradLaplOffset]);
+      newGradLaplList[iw] =  &(gradLapl_d[4*NumPtcls*iw]);
+    }
+    AinvList_d      = AinvList;
+    gradLaplList_d = gradLaplList;
+    newGradLaplList_d = newGradLaplList;
+
+    calc_grad_lapl (&(AinvList_d[0]), &(gradLaplList_d[0]),
+		    &(newGradLaplList_d[0]), NumOrbitals, 
+		    NumOrbitals, walkers.size());
+    // Now copy data into the output matrices
+    gradLapl_host = gradLapl_d;
+    // for (int i=0; i<gradLapl_host.size(); i++)
+    //   cerr << "i = " << i << "  gradLapl_host = " << gradLapl_host[i] << endl;
+
+    for (int iw=0; iw<walkers.size(); iw++) {
+      for(int iat=0; iat < NumPtcls; iat++) {
+	grads(iw,iat+FirstIndex)[0] += gradLapl_host[4*(iw*NumPtcls + iat)+0];
+	grads(iw,iat+FirstIndex)[1] += gradLapl_host[4*(iw*NumPtcls + iat)+1];
+	grads(iw,iat+FirstIndex)[2] += gradLapl_host[4*(iw*NumPtcls + iat)+2];
+	lapl(iw,iat+FirstIndex)     += gradLapl_host[4*(iw*NumPtcls + iat)+3];
+      }
+    }
+
+  }
 }
 /***************************************************************************
  * $RCSfile$   $Author$

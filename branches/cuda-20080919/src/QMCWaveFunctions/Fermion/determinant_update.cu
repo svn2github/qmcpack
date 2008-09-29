@@ -1,4 +1,4 @@
-#define DET_BLOCK_SIZE 64
+#define DET_BLOCK_SIZE  64
 
 #include <stdio.h>
 #include <unistd.h>
@@ -22,26 +22,27 @@ update_inverse_cuda1 (T *A_g[], T *Ainv_g[], T *u_g[],
     Ainv_delta  = Ainv_delta_g[blockIdx.y];
     Ainv_colk   = Ainv_colk_g[blockIdx.y];
   }
-
   __syncthreads();
 
   // Store the product Ainv * u in shared memory
   __shared__ T Ainv_delta_shared[DET_BLOCK_SIZE], 
     Ainv_colk_shared[DET_BLOCK_SIZE], u_shared[DET_BLOCK_SIZE],
     uold_shared[DET_BLOCK_SIZE];
-  Ainv_delta_shared[threadIdx.x] = 0.0;
+  Ainv_delta_shared[threadIdx.x] = 0.0f;
   int col = blockIdx.x*DET_BLOCK_SIZE + threadIdx.x;
   int numblocks = N / DET_BLOCK_SIZE;
 
   // If the column I need to pull from Ainv is in this thread block
   // domain, do the following
+  __syncthreads();
   if (blockIdx.x*DET_BLOCK_SIZE <= k && k < (blockIdx.x+1)*DET_BLOCK_SIZE) {
     for (int block=0; block<numblocks; block++) {
       u_shared[threadIdx.x] = u[block*DET_BLOCK_SIZE+threadIdx.x];
-      uold_shared[threadIdx.x] = 
-      	A[k*rowstride + block*DET_BLOCK_SIZE+threadIdx.x];
+      __syncthreads();
+      uold_shared[threadIdx.x] = A[k*rowstride + block*DET_BLOCK_SIZE + threadIdx.x];
+      __syncthreads();
       // Write new row into A matrix
-      A[k*rowstride + block*DET_BLOCK_SIZE+threadIdx.x] = u_shared[threadIdx.x];
+      //A[k*rowstride + block*DET_BLOCK_SIZE + threadIdx.x] = u_shared[threadIdx.x];
       __syncthreads();
       for (int i=0; i<DET_BLOCK_SIZE; i++) {
       	int row = block*DET_BLOCK_SIZE + i;
@@ -59,9 +60,11 @@ update_inverse_cuda1 (T *A_g[], T *Ainv_g[], T *u_g[],
     for (int block=0; block<numblocks; block++) {
       u_shared[threadIdx.x] = u[block*DET_BLOCK_SIZE+threadIdx.x];
       uold_shared[threadIdx.x] = 
-  	A[k*rowstride + block*DET_BLOCK_SIZE+threadIdx.x];
+  	A[k*rowstride + block*DET_BLOCK_SIZE + threadIdx.x];
+      __syncthreads();
       // Write new row into A matrix
-      A[k*rowstride + block*DET_BLOCK_SIZE+threadIdx.x] = u_shared[threadIdx.x];
+      // Can't do this!
+      //A[k*rowstride + block*DET_BLOCK_SIZE+threadIdx.x] = u_shared[threadIdx.x];
       __syncthreads();
       for (int i=0; i<DET_BLOCK_SIZE; i++) {
   	int row = block*DET_BLOCK_SIZE + i;
@@ -80,14 +83,17 @@ update_inverse_cuda1 (T *A_g[], T *Ainv_g[], T *u_g[],
 
 template<typename T>
 __global__ void
-update_inverse_cuda2 (T *Ainv_g[], T *u_g[], T *Ainv_delta_g[],
-		      T *Ainv_colk_g[], int N, int rowstride, int k)
+update_inverse_cuda2 (T *A_g[], T *Ainv_g[], T *u_g[],
+		      T *Ainv_delta_g[], T *Ainv_colk_g[], 
+		      int N, int rowstride, int k)
 {
-  __shared__ T *Ainv, *Ainv_delta, *Ainv_colk;
+  __shared__ T *A, *u, *Ainv, *Ainv_delta, *Ainv_colk;
   if (threadIdx.x==0) {
-    Ainv     = Ainv_g[blockIdx.y];
-    Ainv_delta    = Ainv_delta_g[blockIdx.y];
-    Ainv_colk = Ainv_colk_g[blockIdx.y];
+    A          = A_g[blockIdx.y];
+    u          = u_g[blockIdx.y];
+    Ainv       = Ainv_g[blockIdx.y];
+    Ainv_delta = Ainv_delta_g[blockIdx.y];
+    Ainv_colk  = Ainv_colk_g[blockIdx.y];
   }
   __syncthreads();
 
@@ -97,6 +103,9 @@ update_inverse_cuda2 (T *Ainv_g[], T *u_g[], T *Ainv_delta_g[],
   // Read the data back from global memory
   Ainv_delta_shared[threadIdx.x] = Ainv_delta[col];
   Ainv_colk_shared[threadIdx.x] = Ainv_colk[col];
+
+  A[k*rowstride + col] = u[col];
+
   __shared__ T prefact;
   if (threadIdx.x == 0)
     prefact = -1.0f/(1.0f+Ainv_delta[k]);
@@ -127,8 +136,8 @@ update_inverse_cuda(float *A_g[], float *Ainv_g[], float *u_g[],
   update_inverse_cuda1<float><<<dimGrid,dimBlock>>>
     (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
   update_inverse_cuda2<float><<<dimGrid,dimBlock>>>
-    (Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
-  cudaThreadSynchronize();
+    (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
+
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
     fprintf (stderr, "CUDA error in update_inverse_cuda:\n  %s\n",
@@ -151,7 +160,7 @@ update_inverse_cuda(double *A_g[], double *Ainv_g[], double *u_g[],
   update_inverse_cuda1<double><<<dimGrid,dimBlock>>>
     (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
   update_inverse_cuda2<double><<<dimGrid,dimBlock>>>
-    (Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
+    (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
 
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
@@ -162,6 +171,56 @@ update_inverse_cuda(double *A_g[], double *Ainv_g[], double *u_g[],
   }
 
 }
+
+
+template<typename T, int MAXN> 
+__global__ void
+update_inverse_transpose_cuda(T *A_g[], T *AinvT_g[], T *u_g[], 
+			      int N, int row_stride, int elec)
+{
+  __shared__ float delta[MAXN];
+  int numBlocks = N/blockDim.x;
+
+}
+
+
+template<typename T, int BS>
+__global__ void
+calc_ratios_transpose (T *AinvT_list[], T *new_row_list[], 
+		       T *ratio_out, int N, int row_stride, int elec,
+		       int numMats)
+{  
+  __shared__ float *AinvT[BS], *new_row[BS];
+  int matNum = blockIdx.x*BS + threadIdx.x;
+
+  if (matNum < numMats) {
+    AinvT[threadIdx.x]  = AinvT_list[matNum] + row_stride * BS;
+    new_row[threadIdx.x] = new_row_list[matNum];
+  }
+  
+  __shared__ float AinvT_phi[BS][BS+1];
+  __shared__ float ratio[BS];
+
+  ratio[threadIdx.x] = 0.0;
+
+  int numBlocks = N / BS;
+  if (numBlocks*BS < N)
+    numBlocks++;
+  
+  for (int block=0; block<numBlocks; block++) {
+    int col = block*BS + threadIdx.x;
+    // First, read the data into shared memory
+    for (int i=0; i<BS; i++)
+      AinvT_phi[i][threadIdx.x] = (AinvT[i])[col] * (new_row[i])[col];
+    __syncthreads();
+    // Now sum
+    for (int i=0; i<BS; i++)
+      ratio[threadIdx.x] += AinvT_phi[threadIdx.x][i];
+  }
+  if (matNum < numMats)
+    ratio_out[matNum] = ratio[threadIdx.x];
+}
+
 
 
 template<typename T, int BS>
@@ -354,6 +413,14 @@ calc_all_ratios (float *Ainv_list[], float *new_mat_list[],
 
   all_ratios_kernel<float><<<dimGrid,dimBlock>>>
     (Ainv_list, new_mat_list, ratio_list, N, row_stride);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in cal_all_ratios:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 
@@ -385,10 +452,12 @@ scale_grad_lapl_kernel (T *grad_list[], T *hess_list[],
   if (threadIdx.x < 9) 
     G[i][j] = Linv[threadIdx.x];
   __syncthreads();
-
-  GGt[i][j] = (G[i][0] * G[0][j] +
-	       G[i][1] * G[1][j] +
-	       G[i][2] * G[2][j]);
+  
+  if (threadIdx.x < 9) {
+    GGt[i][j] = (G[i][0] * G[0][j] +
+		 G[i][1] * G[1][j] +
+		 G[i][2] * G[2][j]);
+  }
   
   // Load the gradients into shared memory
   for (int i=0; i<3; i++) {
@@ -597,6 +666,14 @@ calc_grad_lapl (float *Ainv_list[], float *grad_lapl_list[],
 
   all_ratios_grad_lapl_kernel<float><<<dimGrid,dimBlock>>>
     (Ainv_list, grad_lapl_list, out_list, N, row_stride);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in cal_grad_lapl:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 
@@ -749,17 +826,225 @@ test_all_grad_lapl_kernel()
 }
 
 
-
-
-
 #ifdef CUDA_TEST_MAIN
+
+
+
+// Replaces A with its inverse by gauss-jordan elimination with full pivoting
+// Adapted from Numerical Recipes in C
+void GJInverse (double *A, int n)
+{
+  const int maxSize = 2000;
+
+  if (n == 2) { // Special case for 2x2
+    double a=A[0]; double b=A[1];
+    double c=A[2]; double d=A[3];
+    double detInv = 1.0/(a*d-b*c);
+    A[0] = d*detInv;
+    A[1] = -b*detInv;
+    A[2] = -c*detInv;
+    A[3] =  a*detInv;
+    return;
+  }
+
+  int colIndex[maxSize], rowIndex[maxSize], ipiv[maxSize];
+  double big, pivInv;
+  int icol, irow;
+  
+  for (int j=0; j<n; j++)
+    ipiv[j] = -1;
+
+  for (int i=0; i<n; i++) {
+    big = 0.0;
+    for (int j=0; j<n; j++) 
+      if (ipiv[j] != 0)
+	for (int k=0; k<n; k++) {
+	  if (ipiv[k] == -1) {
+	    if (fabs(A[n*j+k]) >= big) {
+	      big = fabs(A[n*j+k]);
+	      irow = j; 
+	      icol = k;
+	    }
+	  }
+	  else if (ipiv[k] > 0) {
+	    fprintf (stderr, "GJInverse: Singular matrix!\n");
+	    exit(1);
+	  }
+	}
+    ++(ipiv[icol]); 
+    
+    if (irow != icol) 
+      for (int l=0; l<n; l++) {
+	double tmp = A[n*irow+l];
+	A[n*irow+l] = A[n*icol+l];
+	A[n*icol+l] = tmp;
+	// swap (A[n*irow+l], A[n*icol+l]);
+      }
+			     
+    
+    rowIndex[i] = irow;
+    colIndex[i] = icol;
+    if (A[n*icol+icol] == 0.0) { 
+      fprintf (stderr, "GJInverse: Singular matrix!\n");
+      exit(1);
+    }
+    pivInv = 1.0/A[n*icol+icol];
+    A[n*icol+icol] = 1.0;
+    for (int l=0; l<n; l++)
+      A[n*icol+l] *= pivInv;
+    for (int ll=0; ll<n; ll++)
+      if (ll != icol) {
+	double dum = A[n*ll+icol];
+	A[n*ll+icol] = 0.0;
+	for (int l=0; l<n; l++)
+	  A[n*ll+l] -= A[n*icol+l]*dum;
+      }
+  }
+  // Now unscramble the permutations
+  for (int l=n-1; l>=0; l--) {
+    if (rowIndex[l] != colIndex[l])
+      for (int k=0; k<n ; k++) {
+	double tmp = A[n*k+rowIndex[l]];
+	A[n*k+rowIndex[l]] = A[n*k+colIndex[l]];
+	A[n*k+colIndex[l]] = tmp;
+	// swap (A(k,rowIndex[l]),A(k, colIndex[l]));
+      }
+  }
+}
+
+
+#define MAT_SIZE 128
+#define NUM_MATS 1000
+
+void 
+test_update()
+{
+  int N = MAT_SIZE;
+  double *A, *Ainv;
+  int numMats = NUM_MATS;
+  float *A_h, *Ainv_h, *u_h;
+  float *Ainv_d, *Ainv_u_d, *Ainv_colk_d, *u_d;
+
+  A       = (double*)malloc (N*N*sizeof(double));
+  Ainv    = (double*)malloc (N*N*sizeof(double));
+  Ainv_h  = (float*) malloc (N*N*sizeof(float));
+  A_h     = (float*) malloc (N*N*sizeof(float));
+  u_h     = (float*) malloc (N*sizeof(float));
+  cudaMalloc((void**)&Ainv_d,  N*N*sizeof(float));
+  cudaMalloc((void**)&Ainv_d, N*N*sizeof(float));
+  cudaMalloc((void**)&u_d, N*sizeof(float));
+  cudaMalloc((void**)&Ainv_u_d, N*sizeof(float));
+  cudaMalloc((void**)&Ainv_colk_d, N*sizeof(float));
+  
+  float **AinvList, **Ainv_uList, **AList, 
+    **Ainv_colkList, **uList;
+
+  AList        = (float**)malloc(NUM_MATS*sizeof(float*));
+  AinvList     = (float**)malloc(NUM_MATS*sizeof(float*));
+  Ainv_uList    = (float**)malloc(NUM_MATS*sizeof(float*));
+  Ainv_colkList = (float**)malloc(NUM_MATS*sizeof(float*));
+  uList         = (float**)malloc(NUM_MATS*sizeof(float*));
+
+  float **AList_d, **AinvList_d, **Ainv_uList_d, **Ainv_colkList_d, **uList_d;
+  cudaMalloc((void**)&AList_d,         numMats*sizeof(float*));
+  cudaMalloc((void**)&AinvList_d,      numMats*sizeof(float*));
+  cudaMalloc((void**)&Ainv_uList_d,    numMats*sizeof(float*));
+  cudaMalloc((void**)&Ainv_colkList_d, numMats*sizeof(float*));
+  cudaMalloc((void**)&uList_d,         numMats*sizeof(float*));
+
+  fprintf (stderr, "N = %d\n", N);
+
+  
+  for (int mat=0; mat<numMats; mat++) {
+    cudaMalloc((void**)&(AList[mat])        , N*N*sizeof(float));
+    cudaMalloc((void**)&(AinvList[mat])     , N*N*sizeof(float));
+    cudaMalloc((void**)&(Ainv_uList[mat])   ,   N*sizeof(float));
+    cudaMalloc((void**)&(Ainv_colkList[mat]),   N*sizeof(float));
+    cudaMalloc((void**)&(uList[mat])        ,   N*sizeof(float));
+  }
+
+  fprintf (stderr, "N = %d\n", N);
+
+
+  cudaMemcpy (AList_d, AList, numMats*sizeof(float*), 
+	      cudaMemcpyHostToDevice);
+  cudaMemcpy (AinvList_d, AinvList, numMats*sizeof(float*), 
+	      cudaMemcpyHostToDevice);
+  cudaMemcpy (Ainv_uList_d, Ainv_uList, numMats*sizeof(float*), 
+	      cudaMemcpyHostToDevice);
+  cudaMemcpy (Ainv_colkList_d, Ainv_colkList, numMats*sizeof(float*), 
+	      cudaMemcpyHostToDevice);
+  cudaMemcpy (uList_d, uList, numMats*sizeof(float*), 
+	      cudaMemcpyHostToDevice);
+  
+  srand48((long int) 12341313);
+
+  fprintf (stderr, "N = %d\n", N);
+
+
+  int row = 1;
+
+  for (int mat=0; mat<numMats; mat++) {
+    if (mat == 0 ) {
+      for (int i=0; i<N; i++) {
+	u_h[i] = drand48();
+	for (int j=0; j<N; j++) 
+	  A[i*N+j] = Ainv[i*N+j] = A_h[i*N+j] = drand48();
+      }
+      GJInverse(Ainv, N);
+      for (int i=0; i<N; i++)
+	for (int j=0; j<N; j++) 
+	  Ainv_h[i*N+j] = (float)Ainv[i*N+j];
+    }
+
+    // for (int i=0; i<N; i++)
+    //   u_h[i] = A_h[row*N+i];
+
+    cudaMemcpy (AList[mat], A_h, N*N*sizeof(float), 
+		cudaMemcpyHostToDevice);
+    cudaMemcpy (AinvList[mat], Ainv_h, N*N*sizeof(float), 
+		cudaMemcpyHostToDevice);
+    cudaMemcpy (uList[mat], u_h, N*sizeof(float), cudaMemcpyHostToDevice);
+  }
+
+  dim3 dimBlock2(DET_BLOCK_SIZE);
+  dim3 dimGrid2(N/DET_BLOCK_SIZE, NUM_MATS);
+
+
+
+  update_inverse_cuda1<float><<<dimGrid2,dimBlock2>>>
+    (AList_d, AinvList_d, uList_d, Ainv_uList_d, Ainv_colkList_d, N, N, row);
+  update_inverse_cuda2<float><<<dimGrid2,dimBlock2>>>
+    (AList_d, AinvList_d, uList_d, Ainv_uList_d, Ainv_colkList_d, N, N, row);
+
+  cudaMemcpy (Ainv_h, AinvList[1], N*N*sizeof(float),cudaMemcpyDeviceToHost);
+
+  for (int i=0; i<N; i++)
+    A[row*N+i] = u_h[i];
+  for (int i=0; i<N; i++)
+    for (int j=0; j<N; j++) {
+      double ident = 0.0;
+      for (int k=0; k<N; k++)
+  	ident += Ainv_h[i*N+k]*A[k*N+j];
+      if ((i==j && fabs(ident - 1.0) > 1.0e-4) ||
+  	  (i!=j && fabs(ident) > 1.0e-4))
+	fprintf (stderr, "Error in matrix inverse, (%d, %d) = %1.8f\n", i, j, ident);
+    }
+  fprintf (stderr, "Finished.\n");
+}
+
+
+
+
+
 
 // Compile with:
 // nvcc -o test_all_ratios -DCUDA_TEST_MAIN ../src/QMCWaveFunctions/Fermion/determinant_update.cu
 main()
 {
   //test_all_ratios_kernel();
-  test_all_grad_lapl_kernel();
+  // test_all_grad_lapl_kernel();
+  test_update();
 }
 
 

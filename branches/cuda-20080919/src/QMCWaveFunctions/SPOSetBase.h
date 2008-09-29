@@ -159,6 +159,17 @@ namespace qmcplusplus {
       abort();
     }
 
+    virtual void
+    evaluate (vector<Walker_t*> &walkers,
+	      vector<PosType> &new_pos,
+	      cuda_vector<CudaValueType*> &phi,
+	      cuda_vector<CudaValueType*> &grad_lapl_list, 
+	      int row_stride)
+    {
+      app_error() << "Need specialization of vectorized eval_grad_lapl in SPOSetBase.\n";
+      abort();
+    }
+
 
 protected:
     bool putOccupation(xmlNodePtr occ_ptr);

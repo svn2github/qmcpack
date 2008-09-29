@@ -524,6 +524,12 @@ namespace qmcplusplus {
 	    app_log() << "Copying einspline orbitals to GPU.\n";
 	    orbitalSet->CudaMultiSpline = 
 	      create_multi_UBspline_3d_s_cuda_conv (orbitalSet->MultiSpline);
+	    host_vector<CudaRealType> Linv_host;
+	    Linv_host.resize(9);
+	    for (int i=0; i<3; i++)
+	      for (int j=0; j<3; j++)
+		Linv_host[i*3+j] = (float)orbitalSet->PrimLattice.G(i,j);
+	    orbitalSet->Linv_cuda = Linv_host;
 	  }
 	}
       }
@@ -538,6 +544,13 @@ namespace qmcplusplus {
 	    app_log() << "Copying einspline orbitals to GPU.\n";
 	    orbitalSet->CudaMultiSpline = 
 	      create_multi_UBspline_3d_c_cuda_conv (orbitalSet->MultiSpline);
+
+	    host_vector<CudaRealType> Linv_host;
+	    Linv_host.resize(9);
+	    for (int i=0; i<3; i++)
+	      for (int j=0; j<3; j++)
+		Linv_host[i*3+j] = OrbitalSet->PrimLattice.G(i,j);
+	    orbitalSet->Linv_cuda = Linv_host;
 	  }
 	}
       }

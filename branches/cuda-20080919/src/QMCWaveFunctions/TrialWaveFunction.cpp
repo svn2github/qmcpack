@@ -545,6 +545,22 @@ namespace qmcplusplus {
   }
 
 
+  void
+  TrialWaveFunction::ratio (vector<Walker_t*> &walkers, int iat,
+			    vector<PosType> &newpos, 
+			    vector<ValueType> &psi_ratios,
+			    vector<GradType> &newG, vector<ValueType> &newL)
+  {
+    for (int wi=0; wi<walkers.size(); wi++) {
+      psi_ratios[wi] = 1.0;
+      newG[wi] = GradType();
+      newL[wi] = ValueType();
+    }
+    for (int i=0; i<Z.size(); i++)
+      Z[i]->ratio (walkers, iat, newpos, psi_ratios, newG, newL);
+  }
+
+
   void 
   TrialWaveFunction::ratio (vector<Walker_t*> &walkers, int iat,
 			    vector<PosType> &newpos, 
@@ -563,7 +579,18 @@ namespace qmcplusplus {
       Z[i]->update(walkers, iat);
   }
 
-
+  void   
+  TrialWaveFunction::gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
+			       ValueMatrix_t &lapl)
+  {
+    for (int i=0; i<grads.rows(); i++)
+      for (int j=0; j<grads.cols(); j++) {
+	grads(i,j) = GradType();
+	lapl(i,j)  = ValueType();
+      }
+    for (int i=0; i<Z.size(); i++)
+      Z[i]->gradLapl (walkers, grads, lapl);
+  }
 }
 /***************************************************************************
  * $RCSfile$   $Author$

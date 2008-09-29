@@ -168,12 +168,14 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
-    size_t AOffset, AinvOffset, newRowOffset, AinvDeltaOffset, AinvColkOffset;
+    size_t AOffset, AinvOffset, newRowOffset, AinvDeltaOffset, AinvColkOffset, gradLaplOffset, newGradLaplOffset;
 
-    vector<CudaRealType*> AList, AinvList, newRowList, AinvDeltaList, AinvColkList;
-    cuda_vector<CudaRealType*> AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d;
+    vector<CudaRealType*> AList, AinvList, newRowList, AinvDeltaList, AinvColkList, gradLaplList, newGradLaplList;
+    cuda_vector<CudaRealType*> AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d, gradLaplList_d, newGradLaplList_d;
     cuda_vector<CudaRealType> ratio_d;
     host_vector<CudaRealType> ratio_host;
+    cuda_vector<CudaRealType> gradLapl_d;
+    host_vector<CudaRealType> gradLapl_host;
 
     void resizeLists(int numWalkers)
     {
@@ -183,19 +185,24 @@ namespace qmcplusplus {
       AinvDeltaList.resize(numWalkers);    AinvDeltaList_d.resize(numWalkers);
       AinvColkList.resize(numWalkers);     AinvColkList_d.resize(numWalkers);
       ratio_d.resize(numWalkers);          ratio_host.resize(numWalkers);
+      gradLaplList.resize(numWalkers);     gradLaplList_d.resize(numWalkers);
+      newGradLaplList.resize(numWalkers);  newGradLaplList_d.resize(numWalkers);
+
+      gradLapl_d.resize   (numWalkers*NumPtcls*4);
+      gradLapl_host.resize(numWalkers*NumPtcls*4);
     }
 
     void update (vector<Walker_t*> &walkers, int iat);
 
     void reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
     {
-      app_log() << "NumPtcls    = " << NumPtcls << endl;
-      app_log() << "NumOrbitals = " << NumPtcls << endl;
-      AOffset         = pool.reserve((size_t)NumPtcls * NumOrbitals);
-      AinvOffset      = pool.reserve((size_t)NumPtcls * NumOrbitals);
-      newRowOffset    = pool.reserve((size_t)1        * NumOrbitals);
-      AinvDeltaOffset = pool.reserve((size_t)1        * NumOrbitals);
-      AinvColkOffset  = pool.reserve((size_t)1        * NumOrbitals);
+      AOffset           = pool.reserve((size_t)    NumPtcls * NumOrbitals);
+      AinvOffset        = pool.reserve((size_t)    NumPtcls * NumOrbitals);      
+      gradLaplOffset    = pool.reserve((size_t)4 * NumPtcls * NumOrbitals);
+      newRowOffset      = pool.reserve((size_t)1            * NumOrbitals);
+      AinvDeltaOffset   = pool.reserve((size_t)1            * NumOrbitals);
+      AinvColkOffset    = pool.reserve((size_t)1            * NumOrbitals);
+      newGradLaplOffset = pool.reserve((size_t)4            * NumOrbitals);
       Phi->reserve(pool);
     }
       
@@ -207,9 +214,15 @@ namespace qmcplusplus {
     void ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
 		vector<ValueType> &psi_ratios);
 
+
     void ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
 		vector<ValueType> &psi_ratios,	vector<GradType>  &grad);
 
+    void ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+		vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
+		vector<ValueType> &lapl);
+    void gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
+		   ValueMatrix_t &lapl);
 
     ///flag to turn on/off to skip some calculations
     bool UseRatioOnly;

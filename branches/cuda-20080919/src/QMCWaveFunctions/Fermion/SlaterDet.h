@@ -134,6 +134,15 @@ namespace qmcplusplus {
       Dets[DetID[iat]]->ratio(walkers, iat, new_pos, psi_ratios, grad);
     }
 
+    void 
+    ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
+	   vector<ValueType> &lapl)
+    {
+      Dets[DetID[iat]]->ratio(walkers, iat, new_pos, psi_ratios, grad, lapl);
+    }
+
+
 
     void 
     addGradient(vector<Walker_t*> &walkers, int iat,
@@ -145,6 +154,14 @@ namespace qmcplusplus {
     void update (vector<Walker_t*> &walkers, int iat)
     {
       Dets[DetID[iat]]->update(walkers, iat);
+    }
+
+    
+    void 
+    gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
+	      ValueMatrix_t &lapl) {
+      for (int id=0; id<Dets.size(); id++)
+	Dets[id]->gradLapl(walkers, grads, lapl);
     }
 
   private:

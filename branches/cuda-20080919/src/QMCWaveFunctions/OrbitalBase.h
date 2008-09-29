@@ -71,6 +71,9 @@ namespace qmcplusplus {
     typedef PooledData<RealType>      BufferType;
     typedef ParticleSet::Walker_t     Walker_t;
 
+    typedef OrbitalSetTraits<ValueType>::ValueMatrix_t ValueMatrix_t;
+    typedef OrbitalSetTraits<ValueType>::GradMatrix_t  GradMatrix_t;
+
 
     /** boolean to set optimization
      *
@@ -324,6 +327,15 @@ namespace qmcplusplus {
     }
 
     virtual void 
+    ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
+	   vector<ValueType> &lapl)
+    {
+      app_error() << "Need specialization of OrbitalBase::ratio.\n";
+      abort();
+    }
+
+    virtual void 
     addGradient(vector<Walker_t*> &walkers, int iat,
 		vector<GradType> &grad) 
     {
@@ -331,6 +343,16 @@ namespace qmcplusplus {
 		  << OrbitalName << ".\n";
       abort();
     }
+
+    virtual void 
+    gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
+	      ValueMatrix_t &lapl)
+    {
+      app_error() << "Need specialization of OrbitalBase::gradLapl for "
+		  << OrbitalName << ".\n";
+      abort();
+    }
+    
 
     virtual void 
     update (vector<Walker_t*> &walkers, int iat)

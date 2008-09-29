@@ -257,6 +257,9 @@ namespace qmcplusplus {
     // Data for vectorized evaluations
     host_vector<CudaPosType> hostPos;
     cuda_vector<CudaPosType> cudaPos;
+    // This stores the inverse of the lattice vector matrix in
+    // GPU memory.
+    cuda_vector<CudaRealType> Linv_cuda;
   public:
     void registerTimers();
 
@@ -285,6 +288,14 @@ namespace qmcplusplus {
 		   cuda_vector<CudaRealType*> &phi);
     void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,
 		   cuda_vector<CudaComplexType*> &phi);
+    void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+		   cuda_vector<CudaRealType*> &phi,
+		   cuda_vector<CudaRealType*> &grad_lapl,
+		   int row_stride);
+    void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+		   cuda_vector<CudaComplexType*> &phi,
+		   cuda_vector<CudaComplexType*> &grad_lapl,
+		   int row_stride);
     
     void resetParameters(const opt_variables_type& active);
     void resetTargetParticleSet(ParticleSet& e);

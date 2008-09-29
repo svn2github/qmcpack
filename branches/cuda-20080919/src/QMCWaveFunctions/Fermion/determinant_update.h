@@ -17,4 +17,14 @@ determinant_ratios_cuda (float *Ainv_list[], float *new_row_list[],
 			 float *ratios, int N, int row_stride, int iat,
 			 int numWalkers);
 
+void
+scale_grad_lapl(float *grad_list[], float *hess_list[],
+		float *grad_lapl_list[], float Linv[], int N,
+		int num_walkers);
+
+void
+calc_grad_lapl (float *Ainv_list[], float *grad_lapl_list[],
+		float *out_list[], int N, int row_stride, int num_mats);
+
+
 #endif
