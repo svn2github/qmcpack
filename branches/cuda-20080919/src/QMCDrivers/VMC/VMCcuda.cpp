@@ -61,6 +61,7 @@ namespace qmcplusplus {
       IndexType step = 0;
       nAccept = nReject = 0;
       Esum = 0.0;
+      clock_t block_start = clock();
       do
       {
 	// cerr << "step = " << step << endl;
@@ -128,9 +129,6 @@ namespace qmcplusplus {
 
 	Esum += Energy;
 
-
-
-	
         //Mover->advanceWalkers(W.begin(),W.end(),true); //step==nSteps);
         //Estimators->accumulate(W);
         //if(CurrentStep%updatePeriod==0) Mover->updateWalkers(W.begin(),W.end());
@@ -140,14 +138,17 @@ namespace qmcplusplus {
       //Psi.evaluateLog(W.WalkerList, logPsi);
       
       double accept_ratio = (double)nAccept/(double)(nAccept+nReject);
-      fprintf (stderr, "Block energy = %10.5f    Block accept ratio = %8.3f\n",
-	       Esum/(double)nSteps, accept_ratio);
-
       nAcceptTot += nAccept;
       nRejectTot += nReject;
       ++block;
 
       recordBlock(block);
+
+      clock_t block_end = clock();
+      double block_time = (double)(block_end-block_start)/CLOCKS_PER_SEC;
+      fprintf (stderr, "Block energy = %10.5f    Block accept ratio = %5.3f  Block time = %8.3f\n",
+	       Esum/(double)nSteps, accept_ratio, block_time);
+
 
       ////periodically re-evaluate everything for pbyp
       //if(QMCDriverMode[QMC_UPDATE_MODE] && CurrentStep%100 == 0) 
