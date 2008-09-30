@@ -823,10 +823,12 @@ namespace qmcplusplus {
 
     for (int iw=0; iw<walkers.size(); iw++) {
       for(int iat=0; iat < NumPtcls; iat++) {
-	grads(iw,iat+FirstIndex)[0] += gradLapl_host[4*(iw*NumPtcls + iat)+0];
-	grads(iw,iat+FirstIndex)[1] += gradLapl_host[4*(iw*NumPtcls + iat)+1];
-	grads(iw,iat+FirstIndex)[2] += gradLapl_host[4*(iw*NumPtcls + iat)+2];
-	lapl(iw,iat+FirstIndex)     += gradLapl_host[4*(iw*NumPtcls + iat)+3];
+	GradType g(gradLapl_host[4*(iw*NumPtcls + iat)+0],
+		   gradLapl_host[4*(iw*NumPtcls + iat)+1],
+		   gradLapl_host[4*(iw*NumPtcls + iat)+2]);
+	grads(iw,iat+FirstIndex) += g;
+	lapl(iw,iat+FirstIndex)  += gradLapl_host[4*(iw*NumPtcls + iat)+3] - dot(g,g);
+
       }
     }
     
