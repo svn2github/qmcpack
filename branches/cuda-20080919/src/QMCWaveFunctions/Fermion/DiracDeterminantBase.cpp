@@ -828,7 +828,6 @@ namespace qmcplusplus {
 		   gradLapl_host[4*(iw*NumPtcls + iat)+2]);
 	grads(iw,iat+FirstIndex) += g;
 	lapl(iw,iat+FirstIndex)  += gradLapl_host[4*(iw*NumPtcls + iat)+3] - dot(g,g);
-
       }
     }
     
