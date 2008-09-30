@@ -197,7 +197,7 @@ namespace qmcplusplus {
     void reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
     {
       AOffset           = pool.reserve((size_t)    NumPtcls * NumOrbitals);
-      AinvOffset        = pool.reserve((size_t)    NumPtcls * NumOrbitals);      
+      AinvOffset        = pool.reserve((size_t)    NumPtcls * NumOrbitals);
       gradLaplOffset    = pool.reserve((size_t)4 * NumPtcls * NumOrbitals);
       newRowOffset      = pool.reserve((size_t)1            * NumOrbitals);
       AinvDeltaOffset   = pool.reserve((size_t)1            * NumOrbitals);

@@ -1,4 +1,4 @@
-#define DET_BLOCK_SIZE  64
+#define DET_BLOCK_SIZE 64
 
 #include <stdio.h>
 #include <unistd.h>

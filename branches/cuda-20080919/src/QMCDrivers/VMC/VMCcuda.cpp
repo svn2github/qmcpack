@@ -60,9 +60,10 @@ namespace qmcplusplus {
       //Mover->startBlock(nSteps);
       IndexType step = 0;
       nAccept = nReject = 0;
+      Esum = 0.0;
       do
       {
-	cerr << "step = " << step << endl;
+	// cerr << "step = " << step << endl;
         ++step;++CurrentStep;
         for(int iat=0; iat<nat; ++iat)
         {
@@ -78,36 +79,65 @@ namespace qmcplusplus {
 
           // Psi.ratio(W.WalkerList,iat,newpos,ratios,newG);
           //Psi.ratio(W.WalkerList,iat,newpos,ratios);
+#ifdef CUDA_DEBUG
+	  vector<RealType> logPsi1(W.WalkerList.size(), 0.0);
+	  Psi.evaluateLog(W.WalkerList, logPsi1);
+#endif
           Psi.ratio(W.WalkerList,iat,newpos,ratios,newG, newL);
-	  // for (int iw=0; iw<ratios.size(); iw++) 
-	  //   app_log() << "ratios[" << iw << "] = " << ratios[iw] << endl;
-
+	  
           accepted.clear();
+	  vector<bool> acc(nw, false);
           for(int iw=0; iw<nw; ++iw) {
             if(ratios[iw]*ratios[iw] > Random()) {
               accepted.push_back(W[iw]);
 	      nAccept++;
 	      W[iw]->R[iat] = newpos[iw];
+	      acc[iw] = true;
 	    }
-	    else
+	    else 
 	      nReject++;
 	  }
 	  if (accepted.size())
 	    Psi.update(accepted,iat);
+
+#ifdef CUDA_DEBUG
+	  vector<RealType> logPsi2(W.WalkerList.size(), 0.0);
+	  Psi.evaluateLog(W.WalkerList, logPsi2);
+	  for (int iw=0; iw<nw; iw++) {
+	    if (acc[iw])
+	      cerr << "ratio[" << iw << "] = " << ratios[iw]
+		   << "  exp(Log2-Log1) = " << std::exp(logPsi2[iw]-logPsi1[iw]) << endl;
+	  }
+#endif
+	  
 	}
-	Psi.gradLapl(W.WalkerList, grad, lapl);
 	double Energy = 0.0;
-	cerr << "grad(0,0) = " << grad(0,0) << endl; 
-	cerr << "lapl(0,0) = " << lapl(0,0) << endl; 
+	Psi.gradLapl(W.WalkerList, grad, lapl);
+
+	// GradType psiPlus, psiMinus; 	
+	// for (int i=0; i<3; i++) {
+	//   W[0]->R[0][0] += 1.0e-3;
+
+
 	for (int iw=0; iw<nw; iw++)
 	  for (int iat=0; iat<nat; iat++)
-	    Energy += 0.5*(grad(iw,iat)[0]*grad(iw,iat)[0] +
-			   grad(iw,iat)[1]*grad(iw,iat)[1] +
-			   grad(iw,iat)[2]*grad(iw,iat)[2] + 
-			   +lapl(iw,iat));
-	
-	app_log() << "Step KE = " << Energy/(double)nw << endl;
+	    Energy += 0.25*(dot (grad(iw,iat),grad(iw,iat))  - lapl(iw,iat));
+	Energy /= (double)nw;
+	// app_log() << "Step KE before = " << Energy << endl;
+	vector<RealType> logPsi(W.WalkerList.size(), 0.0);
+
+	// Psi.evaluateLog(W.WalkerList, logPsi);
+	// cerr << "logPsi = " << logPsi[0] << endl;
+	// Psi.gradLapl(W.WalkerList, grad, lapl);
+	// Energy = 0.0;
+	// Psi.gradLapl(W.WalkerList, grad, lapl);
+	// for (int iw=0; iw<nw; iw++)
+	//   for (int iat=0; iat<nat; iat++)
+	//     Energy += 0.5*(dot (grad(iw,iat),grad(iw,iat))  - lapl(iw,iat));
+	// app_log() << "Step KE after = " << Energy/(double)nw << endl;
 	Esum += Energy;
+
+
 
 	
         //Mover->advanceWalkers(W.begin(),W.end(),true); //step==nSteps);
@@ -115,7 +145,9 @@ namespace qmcplusplus {
         //if(CurrentStep%updatePeriod==0) Mover->updateWalkers(W.begin(),W.end());
         //if(CurrentStep%myPeriod4WalkerDump==0) W.saveEnsemble();
       } while(step<nSteps);
-      
+      cerr << "Block energy = " << Esum / (double)nSteps << endl;
+      vector<RealType> logPsi(W.WalkerList.size(), 0.0);
+      Psi.evaluateLog(W.WalkerList, logPsi);
       app_log() << "Block accept ratio = " << (double)nAccept/(double)(nAccept+nReject) << endl;
 
       nAcceptTot += nAccept;

@@ -999,7 +999,7 @@ namespace qmcplusplus {
 
     cudaPos = hostPos;
     eval_multi_multi_UBspline_3d_s_cuda 
-      (CudaMultiSpline, (float*)&(cudaPos[0]), &(phi[0]), N);
+      (CudaMultiSpline, (float*)(cudaPos.data()), phi.data(), N);
     //app_log() << "End EinsplineSet CUDA evaluation\n";
   }
 
@@ -1054,7 +1054,7 @@ namespace qmcplusplus {
 
     cudaPos = hostPos;
     eval_multi_multi_UBspline_3d_s_cuda 
-      (CudaMultiSpline, (float*)cudaPos.data(), phi.data(), N);
+      (CudaMultiSpline, (float*)(cudaPos.data()), phi.data(), N);
     //app_log() << "End EinsplineSet CUDA evaluation\n";
   }
 
