@@ -49,9 +49,13 @@ namespace qmcplusplus {
     vector<PosType> delpos(nw);
     vector<PosType> newpos(nw);
     vector<ValueType> ratios(nw);
-    vector<GradType> oldG(nw);
-    vector<GradType> newG(nw);
+    vector<GradType> oldG(nw), newG(nw);
+    vector<ValueType> oldL(nw), newL(nw);
     vector<Walker_t*> accepted(nw);
+    Matrix<ValueType> lapl(nw, nat);
+    Matrix<GradType>  grad(nw, nat);
+    double Esum;
+
     do {
       //Mover->startBlock(nSteps);
       IndexType step = 0;
@@ -68,12 +72,13 @@ namespace qmcplusplus {
           //create a 3N-Dimensional Gaussian with variance=1
           makeGaussRandomWithEngine(delpos,Random);
           for(int iw=0; iw<nw; ++iw) {
-            newpos[iw]=W[iw]->R[iat]+m_sqrttau*delpos[iw];
+            newpos[iw]=W[iw]->R[iat] + m_sqrttau*delpos[iw];
 	    ratios[iw] = 1.0;
 	  }
 
           // Psi.ratio(W.WalkerList,iat,newpos,ratios,newG);
-          Psi.ratio(W.WalkerList,iat,newpos,ratios);
+          //Psi.ratio(W.WalkerList,iat,newpos,ratios);
+          Psi.ratio(W.WalkerList,iat,newpos,ratios,newG, newL);
 	  // for (int iw=0; iw<ratios.size(); iw++) 
 	  //   app_log() << "ratios[" << iw << "] = " << ratios[iw] << endl;
 
@@ -90,6 +95,21 @@ namespace qmcplusplus {
 	  if (accepted.size())
 	    Psi.update(accepted,iat);
 	}
+	Psi.gradLapl(W.WalkerList, grad, lapl);
+	double Energy = 0.0;
+	cerr << "grad(0,0) = " << grad(0,0) << endl; 
+	cerr << "lapl(0,0) = " << lapl(0,0) << endl; 
+	for (int iw=0; iw<nw; iw++)
+	  for (int iat=0; iat<nat; iat++)
+	    Energy += 0.5*(grad(iw,iat)[0]*grad(iw,iat)[0] +
+			   grad(iw,iat)[1]*grad(iw,iat)[1] +
+			   grad(iw,iat)[2]*grad(iw,iat)[2] + 
+			   +lapl(iw,iat));
+	
+	app_log() << "Step KE = " << Energy/(double)nw << endl;
+	Esum += Energy;
+
+	
         //Mover->advanceWalkers(W.begin(),W.end(),true); //step==nSteps);
         //Estimators->accumulate(W);
         //if(CurrentStep%updatePeriod==0) Mover->updateWalkers(W.begin(),W.end());

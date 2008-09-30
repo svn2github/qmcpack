@@ -104,6 +104,14 @@ public:
 
   cuda_vector(const host_vector<T> &vec);
 
+  void resize (size_t size)
+  {
+    std::vector<T,cuda_allocator<T> >::resize(size);
+#ifdef QMC_CUDA
+    cudaMemset((void*)data(), 0, this->size()*sizeof(T));
+#endif
+  }
+
   cuda_vector(const cuda_vector<T> &vec) :
     std::vector<T, cuda_allocator<T> > ()
   {
@@ -176,6 +184,10 @@ public:
 #endif
     return *this;
   }
+
+  T* 
+  data()
+  { return &((*this)[0]); }
 
 };
 

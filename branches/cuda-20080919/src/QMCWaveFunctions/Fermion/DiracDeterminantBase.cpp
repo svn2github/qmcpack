@@ -670,7 +670,7 @@ namespace qmcplusplus {
     // Now evaluate ratios
     determinant_ratios_cuda 
       (&(AinvList_d[0]), &(newRowList_d[0]), &(ratio_d[0]), 
-	 NumPtcls, NumPtcls, iat, walkers.size());
+	 NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
     
     // Copy back to host
     ratio_host = ratio_d;
@@ -707,7 +707,6 @@ namespace qmcplusplus {
     }
     newRowList_d = newRowList;
     newGradLaplList_d = newGradLaplList;
-    cerr << "In grad_lapl ratio.\n";
     Phi->evaluate (walkers, new_pos, newRowList_d, newGradLaplList_d, NumOrbitals);
     //Phi->evaluate (walkers, new_pos, newRowList_d);
 
@@ -716,7 +715,7 @@ namespace qmcplusplus {
     // Now evaluate ratios
     determinant_ratios_cuda 
       (&(AinvList_d[0]), &(newRowList_d[0]), &(ratio_d[0]), 
-	 NumPtcls, NumPtcls, iat, walkers.size());
+	 NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
     
     // Copy back to host
     ratio_host = ratio_d;

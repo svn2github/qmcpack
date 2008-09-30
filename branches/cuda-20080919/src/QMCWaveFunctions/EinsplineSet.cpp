@@ -1110,6 +1110,24 @@ namespace qmcplusplus {
     eval_multi_multi_UBspline_3d_s_vgl_cuda
       (CudaMultiSpline, (float*)cudaPos.data(), Linv_cuda.data(), 
        phi.data(), grad_lapl.data(), N, row_stride);
+    
+    // float Linv[9];
+    // cudaMemcpy (Linv, Linv_cuda.data(), 9*sizeof(float), cudaMemcpyDeviceToHost);
+    // for (int i=0; i<3; i++)
+    //   fprintf (stderr, "[%8.4f %8.4f %8.4f]\n", Linv[3*i+0], Linv[3*i+1], Linv[3*i+2]);
+
+
+    // float grad_lapl_h[4*N];
+    // float *gl_d;
+
+    // cudaMemcpy (&(gl_d), grad_lapl.data(), sizeof(float*), cudaMemcpyDeviceToHost);
+    // cudaMemcpy (grad_lapl_h, gl_d, 4*N*sizeof(float),	   cudaMemcpyDeviceToHost);
+    // for (int i=0; i<N; i++)
+    //   fprintf (stderr, "%10.6e %10.6e %10.6e    %10.6e\n",
+    // 	       grad_lapl_h[4*i], grad_lapl_h[4*i+1], grad_lapl_h[4*i+2],
+    // 	       grad_lapl_h[4*i+3]);
+
+
   }
 
 
