@@ -26,5 +26,7 @@ void
 calc_grad_lapl (float *Ainv_list[], float *grad_lapl_list[],
 		float *out_list[], int N, int row_stride, int num_mats);
 
+void
+multi_copy (float *dest[], float *src[], int len, int num);
 
 #endif

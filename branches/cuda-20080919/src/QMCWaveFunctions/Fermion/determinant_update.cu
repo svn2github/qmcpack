@@ -676,6 +676,34 @@ calc_grad_lapl (float *Ainv_list[], float *grad_lapl_list[],
   }
 }
 
+#define COPY_BS 256
+
+template<typename T>
+__global__ void
+multi_copy (T* dest[], T* src[], int len)
+{
+  __shared__ T *mysrc, *mydest;
+  if (threadIdx.x ==0) {
+    mysrc = src[blockIdx.y];
+    mydest = dest[blockIdx.y];
+  }
+  __syncthreads();
+  int i = blockIdx.x * COPY_BS + threadIdx.x;
+  if (i < len)
+    mydest[i] = mysrc[i];
+}
+
+void
+multi_copy (float *dest[], float *src[], int len, int num)
+{
+  dim3 dimBlock(COPY_BS);
+  dim3 dimGrid (len/COPY_BS, num);
+  if (len % COPY_BS)
+    dimGrid.x++;
+  
+  multi_copy<float><<<dimGrid,dimBlock>>>(dest, src, len);
+}
+
 
 
 #include <stdlib.h>
