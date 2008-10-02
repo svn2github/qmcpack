@@ -508,14 +508,16 @@ test_inverse_many()
   dim3 dimGrid(numMats);
 
   clock_t start = clock();
-  inverse_many<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
-    (Alist_d, worklist_d, N, N);
-  cudaThreadSynchronize();
+  for (int i=0; i<20; i++) {
+    inverse_many<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
+      (Alist_d, worklist_d, N, N);
+    cudaThreadSynchronize();
+  }
   clock_t end = clock();
   
   double time = (double)(end-start)/(double)CLOCKS_PER_SEC
     / (double)numMats;
-  double rate = 1.0/time;
+  double rate = 20.0/time;
   fprintf (stderr, "Rate is %1.3f matrix inversions per second.\n",
 	   rate);
 
