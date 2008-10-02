@@ -410,5 +410,5 @@ main()
       float diff = (i==j) ? 1.0-val : val;
       nrm += diff*diff;
     }
-  fprintf (stderr, "Error = %1.6e\n", nrm);
+  fprintf (stderr, "Error = %1.6e\n", sqrt(nrm/(double)(N*N)));
 }
