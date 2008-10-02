@@ -1,6 +1,5 @@
 #include <stdio.h>
 
-
 template<typename T, int BS>
 __global__ void
 block_inverse (float A[], int N, int stride)
@@ -20,16 +19,20 @@ block_inverse (float A[], int N, int stride)
     // first k rows through the mask.
     maxval[tid] = mask[tid] * fabsf(A[tid*stride + k]);
     __syncthreads();
-    if (threadIdx.x < 16) maxval[threadIdx.x] = maxval[threadIdx.x+16];
-    if (threadIdx.x < 8 ) maxval[threadIdx.x] = maxval[threadIdx.x+8];
-    if (threadIdx.x < 4 ) maxval[threadIdx.x] = maxval[threadIdx.x+4];
-    if (threadIdx.x < 2 ) maxval[threadIdx.x] = maxval[threadIdx.x+2];
-    if (threadIdx.x < 1 ) maxval[threadIdx.x] = maxval[threadIdx.x+1];
+    if (threadIdx.x < 16) maxval[threadIdx.x] = 
+      max(maxval[threadIdx.x], maxval[threadIdx.x+16]);
+    if (threadIdx.x < 8 ) maxval[threadIdx.x] = 
+      max(maxval[threadIdx.x], maxval[threadIdx.x+8]);
+    if (threadIdx.x < 4 ) maxval[threadIdx.x] = 
+      max(maxval[threadIdx.x], maxval[threadIdx.x+4]);
+    if (threadIdx.x < 2 ) maxval[threadIdx.x] = 
+      max(maxval[threadIdx.x], maxval[threadIdx.x+2]);
+    if (threadIdx.x < 1 ) maxval[threadIdx.x] = 
+      max(maxval[threadIdx.x], maxval[threadIdx.x+1]);
     __syncthreads();
     if ((mask[tid] * fabsf(A[tid*stride + k])) > 0.999* maxval[0]) {
       kb = tid;
-      pivotInv = 1.0f/A[tid*stride + kb];
-      fprintf (stderr, "kb = %d\n", kb);
+      pivotInv = 1.0f/A[tid*stride + k];
     }
     __syncthreads();
     // Now kb holds pivot row and pivot the value
@@ -59,7 +62,7 @@ block_inverse (float A[], int N, int stride)
     Acolk[tid] = A[stride*tid +   k];
     __syncthreads();
     for (int i=0; i<N; i++) 
-      A[i*stride+tid] += Arowk[i]*Acolk[tid];
+      A[i*stride+tid] += Arowk[tid]*Acolk[i];
     __syncthreads();
 
     // Row k update
@@ -69,6 +72,7 @@ block_inverse (float A[], int N, int stride)
       A[k*stride+k] = pivotInv;
       mask[k] = 0.0;
     }
+    __syncthreads();
   }
   // Finally, do backward pivoting
   for (int i=0; i<N; i++) {
@@ -96,7 +100,15 @@ main()
 
   dim3 dimBlock(N);
   dim3 dimGrid(1);
-  block_inverse<float,32><<<dimGrid,dimBlock>>> (A, N, N);
+  block_inverse<float,32><<<dimGrid,dimBlock>>> (A_d, N, N);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in block_inverse:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 
   cudaMemcpy (A, A_d, N*N*sizeof(float),
 	      cudaMemcpyDeviceToHost);
