@@ -233,8 +233,11 @@ __device__ void block_mul_set (float A[BS][BS+1],
 
 template<typename T, int BS>
 __global__ void
-inverse (T A[], T Atmp[], T pivot_tmp[], int N, int stride)
+inverse (T A[], T work[], int N, int stride)
 {
+  float *Atmp = work;
+  float *pivot_tmp = work+N*stride;
+
   __shared__ T pivot[BS][BS+1], in[BS][BS+1];
   int NB = N/BS;
   if (N%BS) NB++;
@@ -314,8 +317,6 @@ inverse (T A[], T Atmp[], T pivot_tmp[], int N, int stride)
     	  A[(row+j)*stride + col+tid] = pivot[j][tid];
       }
     }	
-
-
   }
 }
 
@@ -330,17 +331,18 @@ test_inverse()
   dim3 dimGrid(1);
 
   float *A_d, *Atmp_d, *work_d;
-  
+  int lwork = N*N + INVERSE_BS * INVERSE_BS;
+
+
   cudaMalloc((void**)&A_d, N*N*sizeof(float));
-  cudaMalloc((void**)&Atmp_d, N*N*sizeof(float));
-  cudaMalloc((void**)&work_d, INVERSE_BS*INVERSE_BS*sizeof(float));
+  cudaMalloc((void**)&work_d, lwork*sizeof(float));
   
   float A[N*N], Ainv[N*N];
   for (int i=0; i<N*N; i++)
-    A[i] = 1.0-2.0*drand48();
+    A[i] = drand48();
   cudaMemcpy(A_d, A, N*N*sizeof(float), cudaMemcpyHostToDevice);
   
-  inverse<float,INVERSE_BS><<<dimGrid,dimBlock>>> (A_d, Atmp_d, work_d, N, N);
+  inverse<float,INVERSE_BS><<<dimGrid,dimBlock>>> (A_d, work_d, N, N);
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
