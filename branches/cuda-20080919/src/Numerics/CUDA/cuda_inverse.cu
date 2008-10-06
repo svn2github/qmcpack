@@ -19,22 +19,36 @@ block_inverse (float A[], int N, int stride)
     // first k rows through the mask.
     maxval[tid] = mask[tid] * fabsf(A[tid*stride + k]);
     __syncthreads();
-    if (threadIdx.x < 16) maxval[threadIdx.x] = 
-      max(maxval[threadIdx.x], maxval[threadIdx.x+16]);
-    if (threadIdx.x < 8 ) maxval[threadIdx.x] = 
-      max(maxval[threadIdx.x], maxval[threadIdx.x+8]);
-    if (threadIdx.x < 4 ) maxval[threadIdx.x] = 
-      max(maxval[threadIdx.x], maxval[threadIdx.x+4]);
-    if (threadIdx.x < 2 ) maxval[threadIdx.x] = 
-      max(maxval[threadIdx.x], maxval[threadIdx.x+2]);
-    if (threadIdx.x < 1 ) maxval[threadIdx.x] = 
-      max(maxval[threadIdx.x], maxval[threadIdx.x+1]);
-    __syncthreads();
+    for (int bs = BS>>1; bs>0; bs=bs>>1) {
+      if (tid < bs) 
+	maxval[tid] =  max(maxval[tid], maxval[tid+bs]);
+      __syncthreads();
+    }
+//     if (threadIdx.x < 16) maxval[threadIdx.x] = 
+//       max(maxval[threadIdx.x], maxval[threadIdx.x+16]);
+//     //__syncthreads();
+//     if (threadIdx.x < 8 ) maxval[threadIdx.x] = 
+//       max(maxval[threadIdx.x], maxval[threadIdx.x+8]);
+//     //__syncthreads();
+//     if (threadIdx.x < 4 ) maxval[threadIdx.x] = 
+//       max(maxval[threadIdx.x], maxval[threadIdx.x+4]);
+//     // __syncthreads();
+//     if (threadIdx.x < 2 ) maxval[threadIdx.x] = 
+//       max(maxval[threadIdx.x], maxval[threadIdx.x+2]);
+//     //__syncthreads();
+//     if (threadIdx.x < 1 ) maxval[threadIdx.x] = 
+//       max(maxval[threadIdx.x], maxval[threadIdx.x+1]);
+    // __syncthreads();
     if ((mask[tid] * fabsf(A[tid*stride + k])) > 0.999* maxval[0]) {
       kb = tid;
       pivotInv = 1.0f/A[tid*stride + k];
     }
     __syncthreads();
+    // HACK HACK HACK
+    //kb = k;
+    //pivotInv = 1.0f/A[k*stride + k];
+    //__syncthreads();
+
     // Now kb holds pivot row and pivot the value
     
     // Swap rows
@@ -102,22 +116,19 @@ block_inverse1 (T A[BS][BS+1])
     // first k rows through the mask.
     maxval[tid] = mask[tid] * fabsf(A[tid][k]);
     __syncthreads();
-    if (threadIdx.x < 16) maxval[threadIdx.x] = 
-      max(maxval[threadIdx.x], maxval[threadIdx.x+16]);
-    if (threadIdx.x < 8 ) maxval[threadIdx.x] = 
-      max(maxval[threadIdx.x], maxval[threadIdx.x+8]);
-    if (threadIdx.x < 4 ) maxval[threadIdx.x] = 
-      max(maxval[threadIdx.x], maxval[threadIdx.x+4]);
-    if (threadIdx.x < 2 ) maxval[threadIdx.x] = 
-      max(maxval[threadIdx.x], maxval[threadIdx.x+2]);
-    if (threadIdx.x < 1 ) maxval[threadIdx.x] = 
-      max(maxval[threadIdx.x], maxval[threadIdx.x+1]);
-    __syncthreads();
-    if ((mask[tid] * fabsf(A[tid][k])) > 0.999* maxval[0]) {
+
+    for (int bs = BS>>1; bs>0; bs=bs>>1) {
+      if (tid < bs) 
+	maxval[tid] =  max(maxval[tid], maxval[tid+bs]);
+      __syncthreads();
+    }
+
+    if ((mask[tid] * fabsf(A[tid][k])) == maxval[0]) {
       kb = tid;
       pivotInv = 1.0f/A[tid][k];
     }
     __syncthreads();
+
     // Now kb holds pivot row and pivot the value
     
     // Swap rows
@@ -196,10 +207,6 @@ __device__ void block_mul_add (float A[BS][BS+1],
       Crow[tid] += A[i][k]*B[k][tid];
     C[i*Cstride + tid] = Crow[tid];
   }
-  // for (int i=0; i<N; i++)
-  //   for (int k=0; k<N; k++)
-  //     C[i,tid] += A(i,k)*B(k,tid);
-
 }  
 
 template<typename T, int BS>
@@ -217,17 +224,7 @@ __device__ void block_mul_set (float A[BS][BS+1],
       Crow[tid] += A[i][k]*B[k][tid];
     C[i*Cstride + tid] = Crow[tid];
   }
-
-
-  // for (int k=0; k<BS; k++) {
-  //   Crow[tid] = 0.0f;
-  //   for (int i=0; i<BS; i++)
-  //     Crow[tid] += A[i][k]*B[k][tid];
-  //   C[k*Cstride + tid] = Crow[tid];
-  // }
 }  
-
-
 
 
 
@@ -383,11 +380,8 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
       for (int i=0; i<BS; i++)
     	in[i][tid] = A[(ib*BS+i)*stride + kb*BS + tid];
       for (int jb=0; jb<NB; jb++) {
-    	for (int i=0; i<BS; i++) {
+    	for (int i=0; i<BS; i++) 
     	  pivot[i][tid] = A[(kb*BS+i)*stride + jb*BS + tid];
-    	  // Atmp[(ib*BS+i)*stride + (jb*BS+tid)] = 
-    	  //   A[(ib*BS+i)*stride + (jb*BS+tid)];
-    	}
     	block_mul_add<T,BS>(in, pivot,  Atmp+(ib*BS)*stride + jb*BS,
     			    stride);
       }
@@ -422,16 +416,36 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
 
 
 
-#define INVERSE_BS 32
+#define INVERSE_BS 16
+
+void
+cuda_inverse_many (float *Alist_d[], float *worklist_d[],
+		   int N, int num_mats)
+{
+  dim3 dimBlock(INVERSE_BS);
+  dim3 dimGrid(num_mats);
+  
+  inverse_many<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
+    (Alist_d, worklist_d, N, N);
+}
+
+
+//////////////////////////////////////////////////////
+//                  Test routines                   //
+//////////////////////////////////////////////////////
+
+
+
+#ifdef CUDA_TEST_MAIN
 
 void 
 test_inverse()
 {
-  int N = 128;
-  dim3 dimBlock(32);
+  int N = 32;
+  dim3 dimBlock(INVERSE_BS);
   dim3 dimGrid(1);
 
-  float *A_d, *Atmp_d, *work_d;
+  float *A_d, *work_d;
   int lwork = N*N + INVERSE_BS * INVERSE_BS;
 
 
@@ -504,11 +518,11 @@ test_inverse_many()
   cudaMemcpy(worklist_d, worklist, numMats*sizeof(float*), 
 	     cudaMemcpyHostToDevice);
   
-  dim3 dimBlock(32);
+  dim3 dimBlock(INVERSE_BS);
   dim3 dimGrid(numMats);
 
   clock_t start = clock();
-  for (int i=0; i<20; i++) {
+  for (int i=0; i<1; i++) {
     inverse_many<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
       (Alist_d, worklist_d, N, N);
     cudaThreadSynchronize();
@@ -517,7 +531,7 @@ test_inverse_many()
   
   double time = (double)(end-start)/(double)CLOCKS_PER_SEC
     / (double)numMats;
-  double rate = 20.0/time;
+  double rate = 1.0/time;
   fprintf (stderr, "Rate is %1.3f matrix inversions per second.\n",
 	   rate);
 
@@ -531,7 +545,7 @@ test_inverse_many()
 
   // Copy Ainv back to host memory
   float Ainv[N*N];
-  cudaMemcpy(Ainv, Alist[0], N*N*sizeof(float), cudaMemcpyDeviceToHost);
+  cudaMemcpy(Ainv, Alist[10], N*N*sizeof(float), cudaMemcpyDeviceToHost);
 
   float error = 0.0;
   for (int i=0; i<N; i++)
@@ -594,3 +608,4 @@ main()
   //   }
   // fprintf (stderr, "Error = %1.6e\n", sqrt(nrm/(double)(N*N)));
 }
+#endif
