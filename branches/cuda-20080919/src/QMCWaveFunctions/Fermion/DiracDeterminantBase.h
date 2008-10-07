@@ -22,6 +22,7 @@
 #include "QMCWaveFunctions/OrbitalBase.h"
 #include "QMCWaveFunctions/SPOSetBase.h"
 #include "QMCWaveFunctions/Fermion/determinant_update.h"
+#include "Numerics/CUDA/cuda_inverse.h"
 
 namespace qmcplusplus {
 
@@ -206,7 +207,7 @@ namespace qmcplusplus {
       AinvDeltaOffset   = pool.reserve((size_t)1            * NumOrbitals);
       AinvColkOffset    = pool.reserve((size_t)1            * NumOrbitals);
       newGradLaplOffset = pool.reserve((size_t)4            * NumOrbitals);
-      workOffset        = pool.reserve((size_t)    NumPtcls * NumOrbitals + 32*32);
+      workOffset        = pool.reserve(cuda_inverse_many_double_worksize(NumOrbitals));
       Phi->reserve(pool);
     }
     

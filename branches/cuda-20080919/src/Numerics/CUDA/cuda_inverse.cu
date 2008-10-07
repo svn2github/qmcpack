@@ -554,6 +554,27 @@ inverse_many_pivot (T *A_list[], T *work_list[], int N, int stride)
   }
 }
 
+#define CONVERT_BS 256
+
+
+template<typename Tdest, typename Tsrc>
+__global__ void
+convert (Tdest *dest_list[], Tsrc *src_list[], int len)
+{
+  __shared__ Tsrc *mysrc;
+  __shared__ Tdest *mydest;
+  if (threadIdx.x ==0) {
+    mysrc = src_list[blockIdx.y];
+    mydest = dest_list[blockIdx.y];
+  }
+  __syncthreads();
+  int i = blockIdx.x * CONVERT_BS + threadIdx.x;
+  if (i < len)
+    mydest[i] = (Tdest)mysrc[i];
+
+}
+
+
 
 
 
@@ -569,6 +590,77 @@ cuda_inverse_many (float *Alist_d[], float *worklist_d[],
   inverse_many_pivot<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
     (Alist_d, worklist_d, N, N);
 }
+
+
+size_t
+cuda_inverse_many_worksize(int N)
+{
+  return (N*N + INVERSE_BS*INVERSE_BS);
+}
+
+
+size_t
+cuda_inverse_many_double_worksize(int N)
+{
+  return 2*(2*N*N + INVERSE_BS*INVERSE_BS);
+}
+
+void
+cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
+			  int N, int num_mats)
+{
+  dim3 dimBlockConvert (CONVERT_BS);
+  dim3 dimGridConvert(N*N/CONVERT_BS, num_mats);
+  if (N*N % CONVERT_BS)
+    dimGridConvert.x++;
+  convert<<<dimGridConvert,dimBlockConvert>>> 
+    ((double**)worklist_d, Alist_d, N*N);
+
+  float *Alist_new[num_mats], *Alist_h[num_mats];
+  float *worklist_h[num_mats];
+  double *worklist_double_h[num_mats];
+
+  cudaMemcpy (worklist_h, worklist_d, num_mats*sizeof(float*),
+	      cudaMemcpyDeviceToHost);
+  cudaMemcpy (Alist_h, Alist_d, num_mats*sizeof(float*),
+	      cudaMemcpyDeviceToHost);
+
+  for (int i=0; i<num_mats; i++) {
+    Alist_new[i] = worklist_h[i];
+    worklist_double_h[i] = (double*)(worklist_h[i]) +N*N;
+  }
+  cudaMemcpy (worklist_d, worklist_double_h, num_mats*sizeof(double*),
+	      cudaMemcpyHostToDevice);
+  cudaMemcpy (Alist_d, Alist_new, num_mats*sizeof(double*),
+	      cudaMemcpyHostToDevice);
+
+
+  dim3 dimBlock(INVERSE_BS);
+  dim3 dimGrid(num_mats);
+  
+  inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+    ((double**)Alist_d, (double**)worklist_d, N, N);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in inverse_many_pivot<double,%d>:\n  %s\n",
+	     INVERSE_BS, cudaGetErrorString(err));
+    abort();
+  }
+
+  cudaMemcpy (Alist_d, Alist_h, num_mats*sizeof(float*),
+	      cudaMemcpyHostToDevice);
+
+  cudaMemcpy (worklist_d, worklist_h, num_mats*sizeof(float*),
+	      cudaMemcpyHostToDevice);
+
+  convert<<<dimGridConvert,dimBlockConvert>>> 
+    (Alist_d, (double**) worklist_d, N*N);
+
+}
+
+
 
 
 void

@@ -134,10 +134,10 @@ namespace qmcplusplus {
         //if(CurrentStep%updatePeriod==0) Mover->updateWalkers(W.begin(),W.end());
         //if(CurrentStep%myPeriod4WalkerDump==0) W.saveEnsemble();
       } while(step<nSteps);
-      //Psi.recompute(W.WalkerList);
+      Psi.recompute(W.WalkerList);
 
-      vector<RealType> logPsi(W.WalkerList.size(), 0.0);
-      Psi.evaluateLog(W.WalkerList, logPsi);
+      // vector<RealType> logPsi(W.WalkerList.size(), 0.0);
+      // Psi.evaluateLog(W.WalkerList, logPsi);
       
       double accept_ratio = (double)nAccept/(double)(nAccept+nReject);
       nAcceptTot += nAccept;
