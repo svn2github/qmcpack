@@ -9,7 +9,7 @@ block_inverse (float A[], int N, int stride)
   __shared__ T maxval[BS], mask[BS], pivotInv;
   __shared__ T Arowk[BS], Acolk[BS];
   ipiv[threadIdx.x] = threadIdx.x;
-  mask[threadIdx.x] = 1.0f;
+  mask[threadIdx.x] = (T)1.0;
   __syncthreads();
 
   unsigned int tid = threadIdx.x;
@@ -26,7 +26,7 @@ block_inverse (float A[], int N, int stride)
     }
     if ((mask[tid] * fabsf(A[tid*stride + k])) > 0.999* maxval[0]) {
       kb = tid;
-      pivotInv = 1.0f/A[tid*stride + k];
+      pivotInv = (T)1.0/A[tid*stride + k];
     }
     __syncthreads();
     // HACK HACK HACK
@@ -53,7 +53,7 @@ block_inverse (float A[], int N, int stride)
     if (tid != k)
       A[stride*tid+k] = -pivotInv*A[stride*tid+k];
     else
-      A[stride*k+k] = 0.0f;
+      A[stride*k+k] = (T)0.0;
     __syncthreads();
 
     // Rank-1 update
@@ -91,14 +91,14 @@ block_inverse1 (T A[BS][BS+1])
   __shared__ T maxval[BS], mask[BS], pivotInv;
   __shared__ T Arowk[BS], Acolk[BS];
   ipiv[threadIdx.x] = threadIdx.x;
-  mask[threadIdx.x] = 1.0f;
+  mask[threadIdx.x] = (T)1.0;
   __syncthreads();
 
   unsigned int tid = threadIdx.x;
 
-  __shared__ float det;
+  __shared__ T det;
   if (tid == 0)
-    det = 1.0f;
+    det = (T)1.0;
 
 
   for (int k=0; k<BS; k++) {
@@ -115,7 +115,7 @@ block_inverse1 (T A[BS][BS+1])
 
     if ((mask[tid] * fabsf(A[tid][k])) == maxval[0]) {
       kb = tid;
-      pivotInv = 1.0f/A[tid][k];
+      pivotInv = (T)1.0/A[tid][k];
       if (kb == k)	det *= A[tid][k];
       else              det *= -A[tid][k];
     }
@@ -142,7 +142,7 @@ block_inverse1 (T A[BS][BS+1])
     if (tid != k)
       A[tid][k] = -pivotInv*A[tid][k];
     else
-      A[k][k] = 0.0f;
+      A[k][k] = (T)0.0;
     __syncthreads();
 
     // Rank-1 update
@@ -173,13 +173,13 @@ block_inverse1 (T A[BS][BS+1])
 
 
 template<typename T, int BS>
-__device__ void block_mul (float A[BS][BS+1],
-			   float B[BS][BS+1],
-			   float C[BS][BS+1])
+__device__ void block_mul (T A[BS][BS+1],
+			   T B[BS][BS+1],
+			   T C[BS][BS+1])
 {
   int tid = threadIdx.x;
   for (int row=0; row<BS; row++)
-    C[row][tid] = 0.0f;
+    C[row][tid] = (T)0.0;
   __syncthreads();
 
   for (int k=0; k<BS; k++)
@@ -189,9 +189,9 @@ __device__ void block_mul (float A[BS][BS+1],
 
 
 template<typename T, int BS>
-__device__ void block_mul_add (float A[BS][BS+1],
-			       float B[BS][BS+1],
-			       float *C, int Cstride)
+__device__ void block_mul_add (T A[BS][BS+1],
+			       T B[BS][BS+1],
+			       T *C, int Cstride)
 {
   int tid = threadIdx.x;
   __shared__ T Crow[BS];
@@ -205,16 +205,16 @@ __device__ void block_mul_add (float A[BS][BS+1],
 }  
 
 template<typename T, int BS>
-__device__ void block_mul_set (float A[BS][BS+1],
-			       float B[BS][BS+1],
-			       float *C, int Cstride)
+__device__ void block_mul_set (T A[BS][BS+1],
+			       T B[BS][BS+1],
+			       T *C, int Cstride)
 {
   int tid = threadIdx.x;
   __shared__ T Crow[BS];
 
 
   for (int i=0; i<BS; i++) {
-    Crow[tid] = 0.0f;
+    Crow[tid] = (T)0.0;
     for (int k=0; k<BS; k++) 
       Crow[tid] += A[i][k]*B[k][tid];
     C[i*Cstride + tid] = Crow[tid];
@@ -227,8 +227,8 @@ template<typename T, int BS>
 __global__ void
 inverse (T A[], T work[], int N, int stride)
 {
-  float *Atmp = work;
-  float *pivot_tmp = work+N*stride;
+  T *Atmp = work;
+  T *pivot_tmp = work+N*stride;
 
   __shared__ T pivot[BS][BS+1], in[BS][BS+1];
   int NB = N/BS;
@@ -257,7 +257,7 @@ inverse (T A[], T work[], int N, int stride)
       }
       else {
     	for (int j=0; j<BS; j++)
-    	  A[(row+j)*stride + col+tid] = 0.0f;
+    	  A[(row+j)*stride + col+tid] = (T)0.0;
       }
     }	
 
@@ -319,15 +319,15 @@ __global__ void
 inverse_many (T *A_list[], T *work_list[], int N, int stride)
 {
   int tid = threadIdx.x;
-  __shared__ float *A, *work;
+  __shared__ T *A, *work;
   if (tid == 0) {
     A    = A_list[blockIdx.x];
     work = work_list[blockIdx.x];
   }
   __syncthreads();
 
-  float *Atmp = work;
-  float *pivot_tmp = work+N*stride;
+  T *Atmp = work;
+  T *pivot_tmp = work+N*stride;
 
   __shared__ T pivot[BS][BS+1], in[BS][BS+1];
   int NB = N/BS;
@@ -355,7 +355,7 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
       }
       else {
     	for (int j=0; j<BS; j++)
-    	  A[(row+j)*stride + col+tid] = 0.0f;
+    	  A[(row+j)*stride + col+tid] = (T)0.0;
       }
     }	
 
@@ -414,20 +414,20 @@ __global__ void
 inverse_many_pivot (T *A_list[], T *work_list[], int N, int stride)
 {
   int tid = threadIdx.x;
-  __shared__ float *A, *work;
-  float maxdet, blockdet, det;
+  __shared__ T *A, *work;
+  T maxdet, blockdet, det;
   __shared__ int ipiv[MAX_BLOCKS];
 
   if (tid == 0) {
     A    = A_list[blockIdx.x];
     work = work_list[blockIdx.x];
-    det = 1.0f;
+    det = (T)1.0;
   }
   ipiv[tid] = tid;
   __syncthreads();
 
-  float *Atmp = work;
-  float *pivot_tmp = work+N*stride;
+  T *Atmp = work;
+  T *pivot_tmp = work+N*stride;
 
   __shared__ T pivot[BS][BS+1], in[BS][BS+1];
 
@@ -437,7 +437,7 @@ inverse_many_pivot (T *A_list[], T *work_list[], int N, int stride)
 
   for (int kb=0; kb<NB; kb++) {
     int imax = kb;
-    maxdet = 0.0f;
+    maxdet = (T)0.0;
     // Find pivot block
     for (int block=kb; block<NB; block++) {
       // load pivot block
@@ -464,7 +464,7 @@ inverse_many_pivot (T *A_list[], T *work_list[], int N, int stride)
       int rowb = imax * BS + j;
       for (int n=0; n<NB; n++) {
     	int col = n*BS + tid;
-    	float tmp = A[rowa*stride + col];
+    	T tmp = A[rowa*stride + col];
     	__syncthreads();
     	A[rowa*stride + col] = A[rowb*stride + col];
     	__syncthreads();
@@ -492,7 +492,7 @@ inverse_many_pivot (T *A_list[], T *work_list[], int N, int stride)
       }
       else {
     	for (int j=0; j<BS; j++)
-    	  A[(row+j)*stride + col+tid] = 0.0f;
+    	  A[(row+j)*stride + col+tid] = (T)0.0;
       }
     }	
 
@@ -569,6 +569,19 @@ cuda_inverse_many (float *Alist_d[], float *worklist_d[],
   inverse_many_pivot<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
     (Alist_d, worklist_d, N, N);
 }
+
+
+void
+cuda_inverse_many (double *Alist_d[], double *worklist_d[],
+		   int N, int num_mats)
+{
+  dim3 dimBlock(INVERSE_BS);
+  dim3 dimGrid(num_mats);
+  
+  inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+    (Alist_d, worklist_d, N, N);
+}
+
 
 
 //////////////////////////////////////////////////////
