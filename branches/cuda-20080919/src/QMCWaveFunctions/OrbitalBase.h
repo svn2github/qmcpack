@@ -285,7 +285,10 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
-    
+
+    virtual void recompute(vector<Walker_t*> &walkers)
+    { }
+
     virtual void reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
     { }
 

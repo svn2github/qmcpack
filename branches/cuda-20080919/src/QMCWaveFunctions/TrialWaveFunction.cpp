@@ -499,7 +499,16 @@ namespace qmcplusplus {
 
   ////////////////////////////////
   // Vectorized member fuctions //
-  ////////////////////////////////
+  ///////////////////////////////
+  void
+  TrialWaveFunction::recompute
+  (vector<Walker_t*> &walkers)
+  {
+    for(int i=0; i<Z.size(); i++) 
+      Z[i]->recompute(walkers);
+  }
+
+
   void
   TrialWaveFunction::reserve
   (PointerPool<cuda_vector<CudaRealType> > &pool)

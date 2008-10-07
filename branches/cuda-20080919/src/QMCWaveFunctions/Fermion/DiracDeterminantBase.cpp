@@ -18,6 +18,7 @@
 #include "QMCWaveFunctions/Fermion/DiracDeterminantBase.h"
 #include "Numerics/DeterminantOperators.h"
 #include "Numerics/OhmmsBlas.h"
+#include "Numerics/CUDA/cuda_inverse.h"
 
 namespace qmcplusplus {
 
@@ -590,7 +591,48 @@ namespace qmcplusplus {
 #endif
   }
   
+  void
+  DiracDeterminantBase::recompute(vector<Walker_t*> &walkers)
+  {
+    if (AList.size() < walkers.size())
+      resizeLists(walkers.size());
 
+    // Recompute A matrices;
+    vector<PosType> R(walkers.size());
+    for (int iat=FirstIndex; iat<LastIndex; iat++) {
+      int off = (iat-FirstIndex)*NumOrbitals;
+      for (int iw=0; iw<walkers.size(); iw++) {
+	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+	newRowList[iw]    =  &(data[AOffset+off]);
+	gradLaplList[iw]  =  &(data[gradLaplOffset+4*off]);
+	R[iw] = walkers[iw]->R[iat];
+      }
+      newRowList_d = newRowList;
+      gradLaplList_d = gradLaplList;
+      //Phi->evaluate (walkers, iat, newRowList_d);
+      //Phi->evaluate (walkers, R, newRowList_d);
+      Phi->evaluate (walkers, R, newRowList_d, gradLaplList_d, NumOrbitals);
+      //Phi->evaluate (walkers, R, newRowList_d);
+    }
+    
+
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+      AList[iw]    = &(data[AOffset]);
+      AinvList[iw] = &(data[AinvOffset]);
+      workList[iw] = &(data[workOffset]);
+    }
+    AList_d = AList;
+    AinvList_d = AinvList;
+    workList_d = workList;
+
+    // Copy A into Ainv
+    multi_copy (AinvList_d.data(), AList_d.data(),
+		NumOrbitals*NumOrbitals, walkers.size());
+    // Invert
+    cuda_inverse_many (AinvList_d.data(), workList_d.data(), 
+		       NumOrbitals, walkers.size());
+  }
 
   void 
   DiracDeterminantBase::addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi)
@@ -620,10 +662,9 @@ namespace qmcplusplus {
     // Now, compute determinant
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
-      // HACK HACK HACK
       host_vector<CUDA_PRECISION> host_data(data);
-      //host_data = data;
-      Vector<double> A(NumPtcls*NumOrbitals);
+      //Vector<double> A(NumPtcls*NumOrbitals);
+      Vector<CUDA_PRECISION> A(NumPtcls*NumOrbitals);
       for (int i=0; i<NumPtcls*NumOrbitals; i++)
 	A[i] = host_data[AOffset+i];
       logPsi[iw] += std::log(std::fabs(Invert(A.data(), NumPtcls, NumOrbitals)));
@@ -634,29 +675,29 @@ namespace qmcplusplus {
 	host_data[AinvOffset+i] = A[i];
       data = host_data;
 
-      for (int i=0; i<N; i++)
-	for (int j=0; j<N; j++) {
-	  double val = 0.0;
-	  for (int k=0; k<N; k++) {
-	    double aval = host_data[AOffset+i*N+k];
-	    double ainv = host_data[AinvOffset+k*N+j];
-	    val += aval * ainv;
-	  }
-	  if (i == j) {
-	    if (std::fabs(val - 1.0) > 1.0e-2) {
-	      app_error() << "Error in inverse, (i,j) = " << i << ", " << j << ".\n";
-	      passed = false;
-	    }
-	  }
-	  else
-	    if (std::fabs(val) > 1.0e-2) {
-	      app_error() << "Error in inverse, (i,j) = " << i << ", " << j << ".\n";
-	      passed = false;
-	    }
+      // for (int i=0; i<N; i++)
+      // 	for (int j=0; j<N; j++) {
+      // 	  double val = 0.0;
+      // 	  for (int k=0; k<N; k++) {
+      // 	    double aval = host_data[AOffset+i*N+k];
+      // 	    double ainv = host_data[AinvOffset+k*N+j];
+      // 	    val += aval * ainv;
+      // 	  }
+      // 	  if (i == j) {
+      // 	    if (std::fabs(val - 1.0) > 1.0e-2) {
+      // 	      app_error() << "Error in inverse, (i,j) = " << i << ", " << j << ".\n";
+      // 	      passed = false;
+      // 	    }
+      // 	  }
+      // 	  else
+      // 	    if (std::fabs(val) > 1.0e-2) {
+      // 	      app_error() << "Error in inverse, (i,j) = " << i << ", " << j << ".\n";
+      // 	      passed = false;
+      // 	    }
 	
-	}
-      if (!passed)
-	app_log() << (passed ? "Passed " : "Failed " ) << "inverse test.\n";
+      // 	}
+      // if (!passed)
+      // 	app_log() << (passed ? "Passed " : "Failed " ) << "inverse test.\n";
     }
 
 

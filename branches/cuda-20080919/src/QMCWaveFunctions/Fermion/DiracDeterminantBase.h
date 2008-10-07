@@ -168,10 +168,12 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
-    size_t AOffset, AinvOffset, newRowOffset, AinvDeltaOffset, AinvColkOffset, gradLaplOffset, newGradLaplOffset;
+    size_t AOffset, AinvOffset, newRowOffset, AinvDeltaOffset, 
+      AinvColkOffset, gradLaplOffset, newGradLaplOffset, workOffset;
 
-    vector<CudaRealType*> AList, AinvList, newRowList, AinvDeltaList, AinvColkList, gradLaplList, newGradLaplList;
-    cuda_vector<CudaRealType*> AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d, gradLaplList_d, newGradLaplList_d;
+    vector<CudaRealType*> AList, AinvList, newRowList, AinvDeltaList, 
+      AinvColkList, gradLaplList, newGradLaplList, workList;
+    cuda_vector<CudaRealType*> AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d, gradLaplList_d, newGradLaplList_d, workList_d;
     cuda_vector<CudaRealType> ratio_d;
     host_vector<CudaRealType> ratio_host;
     cuda_vector<CudaRealType> gradLapl_d;
@@ -187,6 +189,7 @@ namespace qmcplusplus {
       ratio_d.resize(numWalkers);          ratio_host.resize(numWalkers);
       gradLaplList.resize(numWalkers);     gradLaplList_d.resize(numWalkers);
       newGradLaplList.resize(numWalkers);  newGradLaplList_d.resize(numWalkers);
+      workList.resize(numWalkers);         workList_d.resize(numWalkers);
 
       gradLapl_d.resize   (numWalkers*NumPtcls*4);
       gradLapl_host.resize(numWalkers*NumPtcls*4);
@@ -203,9 +206,12 @@ namespace qmcplusplus {
       AinvDeltaOffset   = pool.reserve((size_t)1            * NumOrbitals);
       AinvColkOffset    = pool.reserve((size_t)1            * NumOrbitals);
       newGradLaplOffset = pool.reserve((size_t)4            * NumOrbitals);
+      workOffset        = pool.reserve((size_t)    NumPtcls * NumOrbitals + 32*32);
       Phi->reserve(pool);
     }
-      
+    
+    void recompute (vector<Walker_t*> &walkers);
+    
     void addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi);
 
     void addGradient(vector<Walker_t*> &walkers, int iat,

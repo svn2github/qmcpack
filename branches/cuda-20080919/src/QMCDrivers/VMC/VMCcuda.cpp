@@ -113,12 +113,12 @@ namespace qmcplusplus {
 	  
 	}
 	double Energy = 0.0;
+	// Psi.recompute(W.WalkerList);
 	Psi.gradLapl(W.WalkerList, grad, lapl);
 
 	// GradType psiPlus, psiMinus; 	
 	// for (int i=0; i<3; i++) {
 	//   W[0]->R[0][0] += 1.0e-3;
-
 
 	for (int iw=0; iw<nw; iw++)
 	  for (int iat=0; iat<nat; iat++)
@@ -134,8 +134,10 @@ namespace qmcplusplus {
         //if(CurrentStep%updatePeriod==0) Mover->updateWalkers(W.begin(),W.end());
         //if(CurrentStep%myPeriod4WalkerDump==0) W.saveEnsemble();
       } while(step<nSteps);
+      //Psi.recompute(W.WalkerList);
+
       vector<RealType> logPsi(W.WalkerList.size(), 0.0);
-      //Psi.evaluateLog(W.WalkerList, logPsi);
+      Psi.evaluateLog(W.WalkerList, logPsi);
       
       double accept_ratio = (double)nAccept/(double)(nAccept+nReject);
       nAcceptTot += nAccept;

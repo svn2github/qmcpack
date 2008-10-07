@@ -135,6 +135,8 @@ namespace qmcplusplus {
     /////////////////////////
     // Vectorized versions //
     /////////////////////////
+    void recompute (vector<Walker_t*> &walkers);
+
     void reserve (PointerPool<cuda_vector<CudaRealType> > &pool);
 
     void getGradient (vector<Walker_t*> &walkers, int iat,
