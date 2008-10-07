@@ -24,21 +24,6 @@ block_inverse (float A[], int N, int stride)
 	maxval[tid] =  max(maxval[tid], maxval[tid+bs]);
       __syncthreads();
     }
-//     if (threadIdx.x < 16) maxval[threadIdx.x] = 
-//       max(maxval[threadIdx.x], maxval[threadIdx.x+16]);
-//     //__syncthreads();
-//     if (threadIdx.x < 8 ) maxval[threadIdx.x] = 
-//       max(maxval[threadIdx.x], maxval[threadIdx.x+8]);
-//     //__syncthreads();
-//     if (threadIdx.x < 4 ) maxval[threadIdx.x] = 
-//       max(maxval[threadIdx.x], maxval[threadIdx.x+4]);
-//     // __syncthreads();
-//     if (threadIdx.x < 2 ) maxval[threadIdx.x] = 
-//       max(maxval[threadIdx.x], maxval[threadIdx.x+2]);
-//     //__syncthreads();
-//     if (threadIdx.x < 1 ) maxval[threadIdx.x] = 
-//       max(maxval[threadIdx.x], maxval[threadIdx.x+1]);
-    // __syncthreads();
     if ((mask[tid] * fabsf(A[tid*stride + k])) > 0.999* maxval[0]) {
       kb = tid;
       pivotInv = 1.0f/A[tid*stride + k];
@@ -98,7 +83,7 @@ block_inverse (float A[], int N, int stride)
 
 
 template<typename T, int BS>
-__device__ void
+__device__ T
 block_inverse1 (T A[BS][BS+1])
 {
   __shared__ unsigned int ipiv[BS];
@@ -110,6 +95,11 @@ block_inverse1 (T A[BS][BS+1])
   __syncthreads();
 
   unsigned int tid = threadIdx.x;
+
+  __shared__ float det;
+  if (tid == 0)
+    det = 1.0f;
+
 
   for (int k=0; k<BS; k++) {
     // First, find locate of maximum of kth column, excluding the
@@ -126,7 +116,11 @@ block_inverse1 (T A[BS][BS+1])
     if ((mask[tid] * fabsf(A[tid][k])) == maxval[0]) {
       kb = tid;
       pivotInv = 1.0f/A[tid][k];
+      if (kb == k)	det *= A[tid][k];
+      else              det *= -A[tid][k];
     }
+
+
     __syncthreads();
 
     // Now kb holds pivot row and pivot the value
@@ -174,6 +168,7 @@ block_inverse1 (T A[BS][BS+1])
     __syncthreads();
     A[i][ipiv[tid]] = Arowk[tid];
   }
+  return det;
 }
 
 
@@ -412,6 +407,152 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
   }
 }
 
+#define MAX_BLOCKS 32
+
+template<typename T, int BS>
+__global__ void
+inverse_many_pivot (T *A_list[], T *work_list[], int N, int stride)
+{
+  int tid = threadIdx.x;
+  __shared__ float *A, *work;
+  float maxdet, blockdet, det;
+  __shared__ int ipiv[MAX_BLOCKS];
+
+  if (tid == 0) {
+    A    = A_list[blockIdx.x];
+    work = work_list[blockIdx.x];
+    det = 1.0f;
+  }
+  ipiv[tid] = tid;
+  __syncthreads();
+
+  float *Atmp = work;
+  float *pivot_tmp = work+N*stride;
+
+  __shared__ T pivot[BS][BS+1], in[BS][BS+1];
+
+
+  int NB = N/BS;
+  if (N%BS) NB++;
+
+  for (int kb=0; kb<NB; kb++) {
+    int imax = kb;
+    maxdet = 0.0f;
+    // Find pivot block
+    for (int block=kb; block<NB; block++) {
+      // load pivot block
+      int row = block*BS;
+      for (int j=0; j<BS; j++)
+    	if (row+tid < N)
+    	  in[j][tid] = A[(row+j)*stride + kb*BS + tid];
+      __syncthreads();
+      // invert pivot
+      blockdet = block_inverse1<T,BS> (in);
+      __syncthreads();
+      if (fabsf(blockdet) > fabs(maxdet)) {
+      //if (block == kb) {
+    	imax = block;
+    	maxdet = blockdet;
+    	for (int j=0; j<BS; j++)
+    	  pivot[j][tid] = in[j][tid];
+      }
+    }
+	
+    // Now, swap row blocks
+    for (int j=0; j<BS; j++) {
+      int rowa = kb   * BS + j;
+      int rowb = imax * BS + j;
+      for (int n=0; n<NB; n++) {
+    	int col = n*BS + tid;
+    	float tmp = A[rowa*stride + col];
+    	__syncthreads();
+    	A[rowa*stride + col] = A[rowb*stride + col];
+    	__syncthreads();
+    	A[rowb*stride + col] = tmp;
+      }
+    }
+    if (tid == 0) {
+      int tmp = ipiv[kb];
+      ipiv[kb] = ipiv[imax];
+      ipiv[imax] = tmp;
+      if (imax == kb)
+    	det *= blockdet;
+      else
+    	det *= -blockdet;
+    }
+
+    // Column scaling
+    int col = kb*BS;
+    for (int jb=0; jb < NB; jb++) {
+      int row = jb*BS;
+      if (kb != jb) {
+    	for (int j=0; j<BS; j++)
+    	  in[j][tid] = -A[(row+j)*stride + col + tid];
+    	block_mul_set<T,BS>(in, pivot, A+row*stride+col, stride);
+      }
+      else {
+    	for (int j=0; j<BS; j++)
+    	  A[(row+j)*stride + col+tid] = 0.0f;
+      }
+    }	
+
+    // Save pivot to global memory here!
+    // We use it for temporary space in the rank-1 update
+    for (int j=0; j<BS; j++)
+      pivot_tmp[j*BS+tid] = pivot[j][tid];
+
+
+    // Copy Ato Atmp
+    for (int ib=0; ib<NB; ib++)
+      for (int row=0; row<N; row++)
+    	Atmp[row*stride+ib*BS+tid] =  A[row*stride+ib*BS+tid];
+    
+    // Rank-1 update
+    for (int ib=0; ib < NB; ib++) {
+      for (int i=0; i<BS; i++)
+    	in[i][tid] = A[(ib*BS+i)*stride + kb*BS + tid];
+      for (int jb=0; jb<NB; jb++) {
+    	for (int i=0; i<BS; i++) 
+    	  pivot[i][tid] = A[(kb*BS+i)*stride + jb*BS + tid];
+    	block_mul_add<T,BS>(in, pivot,  Atmp+(ib*BS)*stride + jb*BS,
+    			    stride);
+      }
+    }
+    // Copy Atmp back to A
+    for (int ib=0; ib<NB; ib++)
+      for (int row=0; row<N; row++)
+    	A[row*stride+ib*BS+tid] =  Atmp[row*stride+ib*BS+tid];
+
+    // Restore pivot from global memory here!
+    for (int j=0; j<BS; j++)
+      pivot[j][tid] = pivot_tmp[j*BS+tid];
+
+    // Row-scaling
+    for (int ib=0; ib<NB; ib++) {
+      int row = kb*BS;
+      int col = ib*BS;
+      if (kb != ib) {
+    	for (int j=0; j<BS; j++)
+    	  in[j][tid] = A[(row+j)*stride + col+tid];
+    	block_mul_set<T,BS>(pivot, in, A+row*stride+col, stride);
+      }
+      else {
+    	for (int j=0; j<BS; j++) 
+    	  A[(row+j)*stride + col+tid] = pivot[j][tid];
+      }
+    }	
+  }
+
+  // Note:  the following assumes that N <= BS*BS
+  // Finally, reverse pivoting
+  for (int row=0; row<N; row++) {
+    for (int block=0; block < NB; block++) 
+      in[block][tid] = A[row*stride + BS*block + tid];
+    __syncthreads();
+    for (int block=0; block<NB; block++)
+      A[row*stride + BS*ipiv[block] + tid] = in[block][tid];
+  }
+}
 
 
 
@@ -425,7 +566,7 @@ cuda_inverse_many (float *Alist_d[], float *worklist_d[],
   dim3 dimBlock(INVERSE_BS);
   dim3 dimGrid(num_mats);
   
-  inverse_many<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
+  inverse_many_pivot<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
     (Alist_d, worklist_d, N, N);
 }
 
@@ -488,7 +629,7 @@ test_inverse()
 void 
 test_inverse_many()
 {
-  int numMats = 1000;
+  int numMats = 100;
 
   int N = 128;
 
@@ -523,8 +664,10 @@ test_inverse_many()
 
   clock_t start = clock();
   for (int i=0; i<1; i++) {
-    inverse_many<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
+    inverse_many_pivot<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
       (Alist_d, worklist_d, N, N);
+    // inverse_many<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
+    //   (Alist_d, worklist_d, N, N);
     cudaThreadSynchronize();
   }
   clock_t end = clock();
