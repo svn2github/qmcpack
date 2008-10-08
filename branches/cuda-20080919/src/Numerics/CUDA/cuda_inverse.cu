@@ -596,7 +596,7 @@ void
 cuda_inverse_many (float *Alist_d[], float *worklist_d[],
 		   int N, int num_mats)
 {
-  dim3 dimBlock(INVERSE_BS);
+  dim3 dimBlock(INVERSE_BS,2);
   dim3 dimGrid(num_mats);
   
   inverse_many_pivot<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
@@ -647,7 +647,7 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
 	      cudaMemcpyHostToDevice);
 
 
-  dim3 dimBlock(INVERSE_BS);
+  dim3 dimBlock(INVERSE_BS,2);
   dim3 dimGrid(num_mats);
   
   inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
@@ -783,8 +783,8 @@ test_inverse_many()
   for (int i=0; i<1; i++) {
     inverse_many_pivot<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
       (Alist_d, worklist_d, N, N);
-    // inverse_many<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
-    //   (Alist_d, worklist_d, N, N);
+//     inverse_many<float,INVERSE_BS><<<dimGrid,dimBlock>>> 
+//       (Alist_d, worklist_d, N, N);
     cudaThreadSynchronize();
   }
   clock_t end = clock();
@@ -861,8 +861,8 @@ test_inverse_many_double()
   for (int i=0; i<1; i++) {
     inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
       (Alist_d, worklist_d, N, N);
-    // inverse_many<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
-    //   (Alist_d, worklist_d, N, N);
+//     inverse_many<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+//       (Alist_d, worklist_d, N, N);
     cudaThreadSynchronize();
   }
   clock_t end = clock();
