@@ -90,6 +90,9 @@ block_inverse1 (T A[BS][BS+1])
   __shared__ unsigned int kb;
   __shared__ T maxval[BS], mask[BS], pivotInv;
   __shared__ T Arowk[BS], Acolk[BS];
+  bool write = threadIdx.y == 0;
+
+
   ipiv[threadIdx.x] = threadIdx.x;
   mask[threadIdx.x] = (T)1.0;
   __syncthreads();
@@ -104,16 +107,17 @@ block_inverse1 (T A[BS][BS+1])
   for (int k=0; k<BS; k++) {
     // First, find locate of maximum of kth column, excluding the
     // first k rows through the mask.
-    maxval[tid] = mask[tid] * fabsf(A[tid][k]);
+    if (write) 
+      maxval[tid] = mask[tid] * fabsf(A[tid][k]);
     __syncthreads();
 
     for (int bs = BS>>1; bs>0; bs=bs>>1) {
-      if (tid < bs) 
+      if (tid < bs && write) 
 	maxval[tid] =  max(maxval[tid], maxval[tid+bs]);
       __syncthreads();
     }
 
-    if ((mask[tid] * fabsf(A[tid][k])) == maxval[0]) {
+    if ((mask[tid] * fabsf(A[tid][k])) == maxval[0] && write) {
       kb = tid;
       pivotInv = (T)1.0/A[tid][k];
       if (kb == k)	det *= A[tid][k];
@@ -126,12 +130,14 @@ block_inverse1 (T A[BS][BS+1])
     // Now kb holds pivot row and pivot the value
     
     // Swap rows
-    T tmp = A[k][tid];
-    A[k][tid] = A[kb][tid];
-    A[kb][tid] = tmp;
+    if (write) {
+      T tmp = A[k][tid];
+      A[k][tid] = A[kb][tid];
+      A[kb][tid] = tmp;
+    }
     
     // Swap pivot
-    if (tid == 0) {
+    if (tid == 0 && write) {
       int itmp = ipiv[kb];
       ipiv[kb] = ipiv[k];
       ipiv[k]  = itmp;
@@ -139,34 +145,40 @@ block_inverse1 (T A[BS][BS+1])
     __syncthreads();
 
     // Col k update
-    if (tid != k)
-      A[tid][k] = -pivotInv*A[tid][k];
-    else
-      A[k][k] = (T)0.0;
+    if (write) {
+      if (tid != k)
+	A[tid][k] = -pivotInv*A[tid][k];
+      else
+	A[k][k] = (T)0.0;
+    }
     __syncthreads();
 
     // Rank-1 update
     Arowk[tid] = A[k][tid];
     Acolk[tid] = A[tid][k];
     __syncthreads();
-    for (int i=0; i<BS; i++) 
-      A[i][tid] += Arowk[tid]*Acolk[i];
+    for (int i=0; i<BS; i+=blockDim.y) 
+      A[i+threadIdx.y][tid] += Arowk[tid]*Acolk[i+threadIdx.y];
     __syncthreads();
 
     // Row k update
-    if (tid != k) 
-      A[k][tid] *= pivotInv;
-    else {
-      A[k][k] = pivotInv;
-      mask[k] = 0.0;
+    if (write) {
+      if (tid != k) 
+	A[k][tid] *= pivotInv;
+      else {
+	A[k][k] = pivotInv;
+	mask[k] = 0.0;
+      }
     }
     __syncthreads();
   }
   // Finally, do backward pivoting
   for (int i=0; i<BS; i++) {
-    Arowk[tid] = A[i][tid];
+    if (write)
+      Arowk[tid] = A[i][tid];
     __syncthreads();
-    A[i][ipiv[tid]] = Arowk[tid];
+    if (write)
+      A[i][ipiv[tid]] = Arowk[tid];
   }
   return det;
 }
@@ -194,13 +206,13 @@ __device__ void block_mul_add (T A[BS][BS+1],
 			       T *C, int Cstride)
 {
   int tid = threadIdx.x;
-  __shared__ T Crow[BS];
+  __shared__ T Crow[2][BS];
 
-  for (int i=0; i<BS; i++) {
-    Crow[tid] = C[i*Cstride + tid];
+  for (int i=0; i<BS; i+=blockDim.y) {
+    Crow[threadIdx.y][tid] = C[(i+threadIdx.y)*Cstride + tid];
     for (int k=0; k<BS; k++) 
-      Crow[tid] += A[i][k]*B[k][tid];
-    C[i*Cstride + tid] = Crow[tid];
+      Crow[threadIdx.y][tid] += A[i+threadIdx.y][k]*B[k][tid];
+    C[(i+threadIdx.y)*Cstride + tid] = Crow[threadIdx.y][tid];
   }
 }  
 
@@ -210,14 +222,14 @@ __device__ void block_mul_set (T A[BS][BS+1],
 			       T *C, int Cstride)
 {
   int tid = threadIdx.x;
-  __shared__ T Crow[BS];
+  __shared__ T Crow[2][BS];
 
 
-  for (int i=0; i<BS; i++) {
-    Crow[tid] = (T)0.0;
+  for (int i=0; i<BS; i+=blockDim.y) {
+    Crow[threadIdx.y][tid] = (T)0.0;
     for (int k=0; k<BS; k++) 
-      Crow[tid] += A[i][k]*B[k][tid];
-    C[i*Cstride + tid] = Crow[tid];
+      Crow[threadIdx.y][tid] += A[i+threadIdx.y][k]*B[k][tid];
+    C[(i+threadIdx.y)*Cstride + tid] = Crow[threadIdx.y][tid];
   }
 }  
 
@@ -688,7 +700,7 @@ void
 test_inverse()
 {
   int N = 32;
-  dim3 dimBlock(INVERSE_BS);
+  dim3 dimBlock(INVERSE_BS,2);
   dim3 dimGrid(1);
 
   float *A_d, *work_d;
@@ -734,7 +746,7 @@ test_inverse()
 void 
 test_inverse_many()
 {
-  int numMats = 100;
+  int numMats = 1000;
 
   int N = 128;
 
@@ -764,7 +776,7 @@ test_inverse_many()
   cudaMemcpy(worklist_d, worklist, numMats*sizeof(float*), 
 	     cudaMemcpyHostToDevice);
   
-  dim3 dimBlock(INVERSE_BS);
+  dim3 dimBlock(INVERSE_BS,2);
   dim3 dimGrid(numMats);
 
   clock_t start = clock();
@@ -809,6 +821,85 @@ test_inverse_many()
 }
 
 
+void 
+test_inverse_many_double()
+{
+  int numMats = 1000;
+
+  int N = 128;
+
+  int lwork = N*N + INVERSE_BS * INVERSE_BS;
+  fprintf (stderr, "lwork = %d\n", lwork);
+
+  double **Alist, **worklist;
+  double **Alist_d, **worklist_d;
+
+  Alist    = (double**)malloc(numMats*sizeof(double*));
+  worklist = (double**)malloc(numMats*sizeof(double*));
+  cudaMalloc((void**)&Alist_d,    numMats*sizeof(double*));
+  cudaMalloc((void**)&worklist_d, numMats*sizeof(double*));
+
+  double A[N*N];
+  for (int i=0; i<N*N; i++)
+    A[i] = drand48();
+
+  for (int mat=0; mat<numMats; mat++) {
+    cudaMalloc ((void**)&(Alist[mat]),    N*N*sizeof(double));
+    cudaMalloc ((void**)&(worklist[mat]), lwork*sizeof(double));
+    cudaMemcpy(Alist[mat], A, N*N*sizeof(double), cudaMemcpyHostToDevice);
+  }
+
+  cudaMemcpy(Alist_d   ,    Alist, numMats*sizeof(double*), 
+	     cudaMemcpyHostToDevice);
+  cudaMemcpy(worklist_d, worklist, numMats*sizeof(double*), 
+	     cudaMemcpyHostToDevice);
+  
+  dim3 dimBlock(INVERSE_BS,2);
+  dim3 dimGrid(numMats);
+
+  clock_t start = clock();
+  for (int i=0; i<1; i++) {
+    inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+      (Alist_d, worklist_d, N, N);
+    // inverse_many<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+    //   (Alist_d, worklist_d, N, N);
+    cudaThreadSynchronize();
+  }
+  clock_t end = clock();
+  
+  double time = (double)(end-start)/(double)CLOCKS_PER_SEC
+    / (double)numMats;
+  double rate = 1.0/time;
+  fprintf (stderr, "Rate is %1.3f matrix inversions per second.\n",
+	   rate);
+
+
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in block_inverse:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
+  // Copy Ainv back to host memory
+  double Ainv[N*N];
+  cudaMemcpy(Ainv, Alist[10], N*N*sizeof(double), cudaMemcpyDeviceToHost);
+
+  double error = 0.0;
+  for (int i=0; i<N; i++)
+    for (int j=0; j<N; j++) {
+      double val = 0.0;
+      for (int k=0; k<N; k++)
+	val += Ainv[i*N+k]*A[k*N+j];
+      double diff = (i==j) ? (1.0f-val) : val;
+      error += diff*diff;
+    }
+  fprintf (stderr, "error = %1.8e\n", sqrt(error/(double)(N*N)));
+
+}
+
+
+
 
 
 
@@ -817,6 +908,7 @@ test_inverse_many()
 main()
 {
   test_inverse_many();
+  test_inverse_many_double();
 
   // int N=32;
   // float A[N*N], Acopy[N*N];
