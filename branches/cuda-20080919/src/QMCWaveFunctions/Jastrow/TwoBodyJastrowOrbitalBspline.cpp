@@ -48,6 +48,8 @@ namespace qmcplusplus {
       SumHost.resize(walkers.size());
       RlistGPU.resize(walkers.size());
       RlistHost.resize(walkers.size());
+      RnewHost.resize (OHMMS_DIM*walkers.size());
+      RnewGPU.resize  (OHMMS_DIM*walkers.size());
     }
 
     int numR = 3*N*walkers.size();
@@ -68,10 +70,9 @@ namespace qmcplusplus {
     RGPU = RHost;
     RlistGPU = RlistHost;
 
-    DTD_BConds<double,3,SUPERCELL_BULK> bconds;
+//     DTD_BConds<double,3,SUPERCELL_BULK> bconds;
+//     double host_sum = 0.0;
 
-
-    double host_sum = 0.0;
     for (int group1=0; group1<PtclRef.groups(); group1++) {
       int first1 = PtclRef.first(group1);
       int last1  = PtclRef.last(group1) -1;
@@ -79,14 +80,14 @@ namespace qmcplusplus {
 	int first2 = PtclRef.first(group2);
 	int last2  = PtclRef.last(group2) -1;
 
-	double factor = (group1 == group2) ? 0.5 : 1.0;
-	for (int e1=first1; e1 <= last1; e1++)
-	  for (int e2=first2; e2 <= last2; e2++) {
-	    PosType disp = walkers[0]->R[e2] - walkers[0]->R[e1];
-	    double dist = std::sqrt(bconds.apply(PtclRef.Lattice, disp));
-	    if (e1 != e2)
-	      host_sum -= factor * F[group2*NumGroups + group1]->evaluate(dist);
-	  }
+// 	double factor = (group1 == group2) ? 0.5 : 1.0;
+// 	for (int e1=first1; e1 <= last1; e1++)
+// 	  for (int e2=first2; e2 <= last2; e2++) {
+// 	    PosType disp = walkers[0]->R[e2] - walkers[0]->R[e1];
+// 	    double dist = std::sqrt(bconds.apply(PtclRef.Lattice, disp));
+// 	    if (e1 != e2)
+// 	      host_sum -= factor * F[group2*NumGroups + group1]->evaluate(dist);
+// 	  }
 	
 	  CudaSpline<CudaReal> &spline = *(GPUSplines[group1*NumGroups+group2]);
 	  two_body_sum (RlistGPU.data(), first1, last1, first2, last2, 
@@ -98,11 +99,10 @@ namespace qmcplusplus {
     // Copy data back to CPU memory
     
     SumHost = SumGPU;
-    for (int iw=0; iw<walkers.size(); iw++) {
+    for (int iw=0; iw<walkers.size(); iw++) 
       logPsi[iw] -= SumHost[iw];
-    }
-    fprintf (stderr, "host = %25.16f\n", host_sum);
-    fprintf (stderr, "cuda = %25.16f\n", logPsi[0]);
+//     fprintf (stderr, "host = %25.16f\n", host_sum);
+//     fprintf (stderr, "cuda = %25.16f\n", logPsi[0]);
   }
   
   void
@@ -117,7 +117,53 @@ namespace qmcplusplus {
    vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
    vector<ValueType> &lapl)
   {
+    if (SumGPU.size() < walkers.size()) {
+      SumGPU.resize   (walkers.size());
+      SumHost.resize  (walkers.size());
+      RlistGPU.resize (walkers.size());
+      RlistHost.resize(walkers.size());
+      RnewHost.resize (OHMMS_DIM*walkers.size());
+      RnewGPU.resize  (OHMMS_DIM*walkers.size());
+    }
+
+    int numR = 3*N*walkers.size();
+    if (RGPU.size() < numR) {
+      RHost.resize(numR);
+      RGPU.resize(numR);
+    }
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t &walker = *(walkers[iw]);
+      SumHost[iw] = 0.0;
+      for (int ptcl=0; ptcl<N; ptcl++)
+	for (int dim=0; dim<OHMMS_DIM; dim++)
+	  RHost[OHMMS_DIM*(N*iw+ptcl)+dim] = walker.R[ptcl][dim];
+      for (int dim=0; dim<OHMMS_DIM; dim++)
+	RnewHost[OHMMS_DIM*iw+dim] = new_pos[iw][dim];
+      RlistHost[iw] = &(RGPU[OHMMS_DIM*N*iw]);
+    }
+    SumGPU = SumHost;
+    RGPU = RHost;
+    RlistGPU = RlistHost;
+    RnewGPU = RnewHost;
+
+    int newGroup = PtclRef.GroupID[iat];
+
+    for (int group=0; group<PtclRef.groups(); group++) {
+      int first = PtclRef.first(group);
+      int last  = PtclRef.last(group) -1;
+	
+      CudaSpline<CudaReal> &spline = *(GPUSplines[group*NumGroups+newGroup]);
+      two_body_ratio (RlistGPU.data(), first, last, 
+		      RnewGPU.data(), iat, 
+		      spline.coefs.data(), spline.coefs.size(),
+		      spline.rMax, L.data(), Linv.data(),
+		      SumGPU.data(), walkers.size());
+    }
+    // Copy data back to CPU memory
     
+    SumHost = SumGPU;
+    for (int iw=0; iw<walkers.size(); iw++) 
+      psi_ratios[iw] *= std::exp(-SumHost[iw]);
   }
 
   void

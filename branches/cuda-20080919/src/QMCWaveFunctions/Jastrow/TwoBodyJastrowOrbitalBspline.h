@@ -41,9 +41,9 @@ namespace qmcplusplus {
     ParticleSet &PtclRef;
     cuda_vector<CudaReal> L, Linv;
     cuda_vector<CudaReal*> RlistGPU;
-    cuda_vector<CudaReal> SumGPU, RGPU;
+    cuda_vector<CudaReal> SumGPU, RGPU, RnewGPU;
     host_vector<CudaReal*> RlistHost;
-    host_vector<CudaReal> SumHost, RHost;
+    host_vector<CudaReal> SumHost, RHost, RnewHost;
 
   public:
     typedef BsplineFunctor<OrbitalBase::RealType> FT;
