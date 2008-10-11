@@ -21,6 +21,7 @@ SET(JASTROW_SRCS
   Jastrow/kSpaceJastrowBuilder.cpp
   Jastrow/RPAJastrow.cpp
   Jastrow/singleRPAJastrowBuilder.cpp
+  Jastrow/TwoBodyJastrowOrbitalBspline.cpp
 )
 
 #  Jastrow/BsplineFunctor.cpp
@@ -51,7 +52,10 @@ ENDIF(QMC_COMPLEX)
 
 IF(QMC_CUDA)
    SET(FERMION_SRCS ${FERMION_SRCS}
-       Fermion/determinant_update.cu
+       Fermion/determinant_update.cu 
+      )
+   SET(JASTROW_SRCS ${JASTROW_SRCS}
+       Jastrow/CudaSpline.cu
       )
 ENDIF(QMC_CUDA)
 

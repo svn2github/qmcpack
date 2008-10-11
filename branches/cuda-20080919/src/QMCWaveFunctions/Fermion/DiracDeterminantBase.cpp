@@ -631,7 +631,10 @@ namespace qmcplusplus {
 		NumOrbitals*NumOrbitals, walkers.size());
     // Invert
     cuda_inverse_many_double (AinvList_d.data(), workList_d.data(), 
-			      NumOrbitals, walkers.size());
+     			      NumOrbitals, walkers.size());
+    // cuda_inverse_many(AinvList_d.data(), workList_d.data(), 
+    // 		      NumOrbitals, walkers.size());
+
   }
 
   void 

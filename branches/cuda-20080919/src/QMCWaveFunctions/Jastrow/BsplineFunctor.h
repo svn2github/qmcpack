@@ -24,7 +24,7 @@ namespace qmcplusplus {
 
   template<class T>
   struct BsplineFunctor: public OptimizableFunctorBase {
-
+    friend class TwoBodyJastrowOrbitalBspline;
     int NumParams;
     int Dummy;
     const TinyVector<real_type,16> A, dA, d2A;

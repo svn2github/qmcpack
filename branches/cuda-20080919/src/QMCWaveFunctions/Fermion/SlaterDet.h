@@ -119,26 +119,27 @@ namespace qmcplusplus {
       for (int id=0; id<Dets.size(); id++)
 	Dets[id]->reserve(pool);
     }
+
     void 
     addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi)
     {
       for (int id=0; id<Dets.size(); id++)
-	Dets[id]->addLog(walkers, logPsi);
+    	Dets[id]->addLog(walkers, logPsi);
     }
 
-    void 
-    ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
-	   vector<ValueType> &psi_ratios)
-    {
-      Dets[DetID[iat]]->ratio(walkers, iat, new_pos, psi_ratios);
-    }
+    // void 
+    // ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    // 	   vector<ValueType> &psi_ratios)
+    // {
+    //   Dets[DetID[iat]]->ratio(walkers, iat, new_pos, psi_ratios);
+    // }
 
-    void 
-    ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
-	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad)
-    {
-      Dets[DetID[iat]]->ratio(walkers, iat, new_pos, psi_ratios, grad);
-    }
+    // void 
+    // ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    // 	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad)
+    // {
+    //   Dets[DetID[iat]]->ratio(walkers, iat, new_pos, psi_ratios, grad);
+    // }
 
     void 
     ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
@@ -150,12 +151,12 @@ namespace qmcplusplus {
 
 
 
-    void 
-    addGradient(vector<Walker_t*> &walkers, int iat,
-		vector<GradType> &grad)
-    {
-      Dets[DetID[iat]]->addGradient(walkers, iat, grad);
-    }
+    // void 
+    // addGradient(vector<Walker_t*> &walkers, int iat,
+    // 		vector<GradType> &grad)
+    // {
+    //   Dets[DetID[iat]]->addGradient(walkers, iat, grad);
+    // }
 
     void update (vector<Walker_t*> &walkers, int iat)
     {

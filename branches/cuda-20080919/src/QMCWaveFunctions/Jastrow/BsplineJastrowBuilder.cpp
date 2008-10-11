@@ -19,6 +19,7 @@
 #include "QMCWaveFunctions/Jastrow/BsplineFunctor.h"
 #include "QMCWaveFunctions/Jastrow/OneBodyJastrowOrbital.h"
 #include "QMCWaveFunctions/Jastrow/TwoBodyJastrowOrbital.h"
+#include "QMCWaveFunctions/Jastrow/TwoBodyJastrowOrbitalBspline.h"
 #include "Utilities/ProgressReportEngine.h"
 
 namespace qmcplusplus {
@@ -104,7 +105,8 @@ namespace qmcplusplus {
     // Create a two-body Jastrow
     else 
     {
-      typedef TwoBodyJastrowOrbital<BsplineFunctor<RealType> > J2Type;
+      //typedef TwoBodyJastrowOrbital<BsplineFunctor<RealType> > J2Type;
+      typedef TwoBodyJastrowOrbitalBspline J2Type;
       //typedef DiffTwoBodyJastrowOrbital<BsplineFunctor<RealType> > dJ2Type;
 
       J2Type *J2 = new J2Type(targetPtcl);
