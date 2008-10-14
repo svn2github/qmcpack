@@ -102,6 +102,10 @@ public:
 
   }
 
+  cuda_vector(int size) : 
+    std::vector<T, cuda_allocator<T> > (size)
+  {  }
+
   cuda_vector(const host_vector<T> &vec);
 
   void resize (size_t size)
@@ -203,6 +207,10 @@ public:
 
   host_vector(const host_vector<T> &vec) :
     std::vector<T> (vec)
+  {  }
+
+  host_vector(int size) : 
+    std::vector<T> (size)
   {  }
 
   host_vector(const cuda_vector<T> &vec) :
