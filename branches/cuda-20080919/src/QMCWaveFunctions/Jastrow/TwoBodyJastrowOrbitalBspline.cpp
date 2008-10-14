@@ -200,7 +200,44 @@ namespace qmcplusplus {
     for (int i=0; i<walkers.size()*4*N; i++)
       GradLaplHost[i] = 0.0;
     GradLaplGPU = GradLaplHost;
-    
+
+
+#ifdef CUDA_DEBUG
+    vector<CudaReal> CPU_GradLapl(4*N);
+    DTD_BConds<double,3,SUPERCELL_BULK> bconds;
+
+    int iw = 0;
+
+    for (int group1=0; group1<PtclRef.groups(); group1++) {
+      int first1 = PtclRef.first(group1);
+      int last1  = PtclRef.last(group1) -1;
+      for (int ptcl1=first1; ptcl1<=last1; ptcl1++) {
+	PosType grad(0.0, 0.0, 0.0);
+	double lapl(0.0);
+	for (int group2=0; group2<PtclRef.groups(); group2++) {
+	  int first2 = PtclRef.first(group2);
+	  int last2  = PtclRef.last(group2) -1;
+	  int id = group2*NumGroups + group1;
+	  FT* func = F[id];
+	  for (int ptcl2=first2; ptcl2<=last2; ptcl2++) {
+	    if (ptcl1 != ptcl2 ) {
+	      PosType disp = walkers[iw]->R[ptcl2] - walkers[iw]->R[ptcl1];
+	      double dist = std::sqrt(bconds.apply(PtclRef.Lattice, disp));
+	      double u, du, d2u;
+	      u = func->evaluate(dist, du, d2u);
+	      du /= dist;
+	      grad += disp * du;
+	      lapl += d2u + 2.0*du;
+	    }
+	  }
+	}
+	CPU_GradLapl[ptcl1*4+0] = grad[0];
+	CPU_GradLapl[ptcl1*4+1] = grad[1];
+	CPU_GradLapl[ptcl1*4+2] = grad[2];
+	CPU_GradLapl[ptcl1*4+3] = lapl;
+      }
+    }
+#endif
     for (int group1=0; group1<PtclRef.groups(); group1++) {
       int first1 = PtclRef.first(group1);
       int last1  = PtclRef.last(group1) -1;
@@ -217,6 +254,13 @@ namespace qmcplusplus {
     }
     // Copy data back to CPU memory
     GradLaplHost = GradLaplGPU;
+
+#ifdef CUDA_DEBUG
+    fprintf (stderr, "GPU  grad = %12.5e %12.5e %12.5e   Lapl = %12.5e\n", 
+	     GradLaplHost[0],  GradLaplHost[1], GradLaplHost[2], GradLaplHost[3]);
+    fprintf (stderr, "CPU  grad = %12.5e %12.5e %12.5e   Lapl = %12.5e\n", 
+	     CPU_GradLapl[0],  CPU_GradLapl[1], CPU_GradLapl[2], CPU_GradLapl[3]);
+#endif
 
     for (int iw=0; iw<walkers.size(); iw++) {
       for (int ptcl=0; ptcl<N; ptcl++) {

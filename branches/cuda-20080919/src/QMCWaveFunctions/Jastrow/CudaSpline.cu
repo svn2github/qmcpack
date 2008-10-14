@@ -113,7 +113,7 @@ template<typename T>
 __device__ T 
 eval_1d_spline(T dist, T rmax, T drInv, T A[4][4], T coefs[])
 {
-  if (dist > rmax)  return (T)0.0;
+  if (dist >= rmax)  return (T)0.0;
 
   T s = dist * drInv;
   T sf = floorf (s);
@@ -315,8 +315,6 @@ two_body_ratio_kernel(T *R[], int first, int last, int Ntotal,
   }
   __syncthreads();
 
-  // HACK HACK HACK
-
   __shared__ T coefs[MAX_COEFS];
   __shared__ T r1[BS][3];
   __shared__ T L[3][3], Linv[3][3];
@@ -333,17 +331,18 @@ two_body_ratio_kernel(T *R[], int first, int last, int Ntotal,
     A[(tid>>2)][tid&3] = AcudaSpline[tid];
   __syncthreads();
 
-  return;
-
   int N = last - first + 1;
   int NB = N/BS + ((N % BS) ? 1 : 0);
 
-  double mysum = (T)0.0; 
+  __shared__ T shared_sum[BS];
+  shared_sum[tid] = (T)0.0;
   for (int b=0; b < NB; b++) {
     // Load block of positions from global memory
-    for (int i=0; i<3; i++)
+    for (int i=0; i<3; i++) {
+      int n = i*BS + tid;
       if ((3*b+i)*BS + tid < 3*N) 
-  	r1[0][i*BS + tid] = myR[3*first + (3*b+i)*BS + tid];
+  	r1[n/3][n%3] = myR[3*first + (3*b+i)*BS + tid];
+    }
     __syncthreads();
     int ptcl1 = first+b*BS + tid;
 
@@ -361,21 +360,18 @@ two_body_ratio_kernel(T *R[], int first, int last, int Ntotal,
     delta -= eval_1d_spline (dist, rMax, drInv, A, coefs);
     
     if (ptcl1 != inew && (ptcl1 < (N+first) ))
-      mysum += delta;
+      shared_sum[tid] += delta;
   }
-  
-  // __shared__ T shared_sum[BS];
-  // shared_sum[tid] = mysum;
-  // __syncthreads();
-  // for (int s=BS>>1; s>0; s >>=1) {
-  //   if (tid < s)
-  //     shared_sum[tid] += shared_sum[tid+s];
-  //   __syncthreads();
-  // }
+  __syncthreads();
+  for (int s=(BS/2); s>0; s/=2) {
+    if (tid < s)
+      shared_sum[tid] += shared_sum[tid+s];
+    __syncthreads();
+  }
 
   // //  float factor = (first <= inew && inew <= last) ? 0.5 : 1.0;
-  // if (tid==0)
-  //   sum[blockIdx.x] += /* factor * */ shared_sum[0];
+  if (tid==0)
+    sum[blockIdx.x] += /* factor * */ shared_sum[0];
 }
 
 
@@ -450,7 +446,7 @@ two_body_update_kernel (T *R[], int N, int iat)
 void
 two_body_update(float *R[], int N, int iat, int numWalkers)
 {
-  dim3 dimBlock(3);
+  dim3 dimBlock(32);
   dim3 dimGrid(numWalkers);
 
   two_body_update_kernel<float><<<dimGrid, dimBlock>>> (R, N, iat);
@@ -523,7 +519,7 @@ two_body_grad_lapl_kernel(T *R[], int e1_first, int e1_last,
   	r1[0][i*BS + tid] = myR[3*e1_first + (3*b1+i)*BS + tid];
     __syncthreads();
     int ptcl1 = e1_first+b1*BS + tid;
-    int offset = blockIdx.x * row_stride + 4*b1*BS;
+    int offset = blockIdx.x * row_stride + 4*b1*BS + 4*e1_first;
     sGradLapl[tid][0] = sGradLapl[tid][1] = 
       sGradLapl[tid][2] = sGradLapl[tid][3] = (T)0.0;
     for (int b2=0; b2 < NB2; b2++) {
@@ -544,9 +540,9 @@ two_body_grad_lapl_kernel(T *R[], int e1_first, int e1_last,
 	eval_1d_spline_vgl (dist, rMax, drInv, A, coefs, u, du, d2u);
   	if (ptcl1 != ptcl2 && (ptcl1 < (N1+e1_first) ) && (ptcl2 < (N2+e2_first))) {
 	  du /= dist;
-	  sGradLapl[tid][0] -= du * dx;
-	  sGradLapl[tid][1] -= du * dy;
-	  sGradLapl[tid][2] -= du * dz;
+	  sGradLapl[tid][0] += du * dx;
+	  sGradLapl[tid][1] += du * dy;
+	  sGradLapl[tid][2] += du * dz;
 	  sGradLapl[tid][3] -= d2u + 2.0*du;
 	}
       }
