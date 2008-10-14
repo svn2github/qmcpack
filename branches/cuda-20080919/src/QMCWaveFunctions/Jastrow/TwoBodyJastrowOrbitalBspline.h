@@ -35,16 +35,16 @@ namespace qmcplusplus {
   {
   private:
     typedef float CudaReal;
+    //typedef double CudaReal;
 
     int ROffset;
     vector<CudaSpline<CudaReal>*> GPUSplines, UniqueSplines;
     ParticleSet &PtclRef;
     cuda_vector<CudaReal> L, Linv;
-    cuda_vector<CudaReal*> RlistGPU;
-    cuda_vector<CudaReal> SumGPU, RGPU, RnewGPU;
-    host_vector<CudaReal*> RlistHost;
-    host_vector<CudaReal> SumHost, RHost, RnewHost;
-
+    cuda_vector<CudaReal*> RlistGPU, UpdateListGPU;
+    cuda_vector<CudaReal> SumGPU, RGPU, RnewGPU, GradLaplGPU;
+    host_vector<CudaReal*> RlistHost, UpdateListHost;
+    host_vector<CudaReal> SumHost, RHost, RnewHost, GradLaplHost;
   public:
     typedef BsplineFunctor<OrbitalBase::RealType> FT;
     typedef ParticleSet::Walker_t     Walker_t;

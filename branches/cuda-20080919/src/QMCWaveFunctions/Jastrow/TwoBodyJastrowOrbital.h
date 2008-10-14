@@ -230,7 +230,7 @@ namespace qmcplusplus {
           //DiffVal += U[ij]-F[pairid[jat]]->evaluate(d_table->Temp[jat].r1);
         }
       }
-      return std::exp(DiffVal);
+      return std::exp(0.0*DiffVal);
     }
 
     /** later merge the loop */
@@ -262,7 +262,7 @@ namespace qmcplusplus {
       }
       dG[iat] += sumg;
       dL[iat] += suml;     
-      return std::exp(DiffVal);
+      return std::exp(0.0*DiffVal);
     }
 
     /** later merge the loop */
@@ -294,7 +294,7 @@ namespace qmcplusplus {
       }
       dG[iat] += sumg;
       dL[iat] += suml;     
-      return DiffVal;
+      return 0.0*DiffVal;
     }
 
     inline void restore(int iat) {}
