@@ -313,12 +313,16 @@ two_body_ratio_kernel(T *R[], int first, int last, int Ntotal,
     // Store RNew into R, so that we can copy it if we wish to accept the move
     myR[3*Ntotal+tid] = myRnew[tid];
   }
+  __syncthreads();
+
+  // HACK HACK HACK
 
   __shared__ T coefs[MAX_COEFS];
-  if (tid < numCoefs)
-    coefs[tid] = spline_coefs[tid];
   __shared__ T r1[BS][3];
   __shared__ T L[3][3], Linv[3][3];
+
+  if (tid < numCoefs)
+    coefs[tid] = spline_coefs[tid];
   if (tid < 9) {
     L[0][tid] = lattice[tid];
     Linv[0][tid] = latticeInv[tid];
@@ -326,8 +330,10 @@ two_body_ratio_kernel(T *R[], int first, int last, int Ntotal,
   
   __shared__ T A[4][4];
   if (tid < 16) 
-    A[tid>>2][tid&3] = AcudaSpline_double[tid];
+    A[(tid>>2)][tid&3] = AcudaSpline[tid];
   __syncthreads();
+
+  return;
 
   int N = last - first + 1;
   int NB = N/BS + ((N % BS) ? 1 : 0);
@@ -358,18 +364,18 @@ two_body_ratio_kernel(T *R[], int first, int last, int Ntotal,
       mysum += delta;
   }
   
-  __shared__ T shared_sum[BS];
-  shared_sum[tid] = mysum;
-  __syncthreads();
-  for (int s=BS>>1; s>0; s >>=1) {
-    if (tid < s)
-      shared_sum[tid] += shared_sum[tid+s];
-    __syncthreads();
-  }
+  // __shared__ T shared_sum[BS];
+  // shared_sum[tid] = mysum;
+  // __syncthreads();
+  // for (int s=BS>>1; s>0; s >>=1) {
+  //   if (tid < s)
+  //     shared_sum[tid] += shared_sum[tid+s];
+  //   __syncthreads();
+  // }
 
-  //  float factor = (first <= inew && inew <= last) ? 0.5 : 1.0;
-  if (tid==0)
-    sum[blockIdx.x] += /* factor * */ shared_sum[0];
+  // //  float factor = (first <= inew && inew <= last) ? 0.5 : 1.0;
+  // if (tid==0)
+  //   sum[blockIdx.x] += /* factor * */ shared_sum[0];
 }
 
 
@@ -386,13 +392,19 @@ two_body_ratio (float *R[], int first, int last, int N,
 
   const int BS = 128;
 
-  //  int numBlocks = numWalkers / BS + ((numWalkers %BS) ? 1 :
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
 
   two_body_ratio_kernel<float,BS><<<dimGrid,dimBlock>>>
     (R, first, last, N, Rnew, inew, spline_coefs, numCoefs, rMax, 
      lattice, latticeInv, sum);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in two_body_ratio:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 
@@ -412,6 +424,13 @@ two_body_ratio (double *R[], int first, int last, int N,
   two_body_ratio_kernel<double,128><<<dimGrid,dimBlock>>>
     (R, first, last, N, Rnew, inew, spline_coefs, numCoefs, rMax, 
      lattice, latticeInv, sum);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in two_body_ratio:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 
@@ -555,6 +574,14 @@ two_body_grad_lapl(float *R[], int e1_first, int e1_last,
   two_body_grad_lapl_kernel<float,BS><<<dimGrid,dimBlock>>>
     (R, e1_first, e1_last, e2_first, e2_last, spline_coefs, numCoefs, 
      rMax, lattice, latticeInv,  gradLapl, row_stride);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in two_body_grad_lapl:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 
@@ -572,6 +599,14 @@ two_body_grad_lapl(double *R[], int e1_first, int e1_last,
   two_body_grad_lapl_kernel<double,BS><<<dimGrid,dimBlock>>>
     (R, e1_first, e1_last, e2_first, e2_last, spline_coefs, numCoefs, 
      rMax, lattice, latticeInv,  gradLapl, row_stride);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in two_body_grad_lapl:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 

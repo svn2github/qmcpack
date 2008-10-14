@@ -13,7 +13,8 @@ namespace qmcplusplus {
   TwoBodyJastrowOrbitalBspline::reserve 
   (PointerPool<cuda_vector<CudaRealType> > &pool)
   {
-    int elemSize = sizeof(CudaReal)/sizeof(CUDA_PRECISION);
+    int elemSize = 
+      std::max((unsigned long)1,sizeof(CudaReal)/sizeof(CUDA_PRECISION));
     ROffset = pool.reserve(3*(N+1) * elemSize);
   }
   
@@ -43,7 +44,7 @@ namespace qmcplusplus {
   TwoBodyJastrowOrbitalBspline::addLog (vector<Walker_t*> &walkers, 
 					vector<RealType> &logPsi)
   {
-    // app_log() << "TwoBodyJastrowOrbitalBspline::addLog.\n";
+    app_log() << "TwoBodyJastrowOrbitalBspline::addLog.\n";
     if (SumGPU.size() < walkers.size()) {
       SumGPU.resize(walkers.size());
       SumHost.resize(walkers.size());
@@ -55,28 +56,25 @@ namespace qmcplusplus {
       UpdateListGPU.resize(walkers.size());
     }
 
-    int numR = 3*N*walkers.size();
-    if (RGPU.size() < numR) {
-      RHost.resize(numR);
-      GradLaplGPU.resize(4*N*walkers.size());
-      GradLaplHost.resize(4*N*walkers.size());
-      //RGPU.resize(numR);
+    int numGL = 4*N*walkers.size();
+    if (GradLaplGPU.size()  < numGL) {
+      GradLaplGPU.resize(numGL);
+      GradLaplHost.resize(numGL);
     }
+    CudaReal RHost[OHMMS_DIM*N*walkers.size()];
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;
       CudaReal *dest = (CudaReal*)&(walker.cuda_DataSet[ROffset]);
       for (int ptcl=0; ptcl<N; ptcl++)
       	for (int dim=0; dim<OHMMS_DIM; dim++)
-      	  RHost[OHMMS_DIM*(N*iw+ptcl)+dim] = walker.R[ptcl][dim];
-      cudaMemcpy(dest, &(RHost[OHMMS_DIM*N*iw]), 
+      	  RHost[OHMMS_DIM*(iw*N+ptcl)+dim] = walker.R[ptcl][dim];
+      cudaMemcpy(dest, &(RHost[OHMMS_DIM*iw*N]), 
 		 OHMMS_DIM*N*sizeof(CudaReal), cudaMemcpyHostToDevice);
-      //app_log() << "RHost[0] = " << RHost[OHMMS_DIM*N*iw] << endl;
-      RlistHost[iw] = (CudaReal*)dest;
+      RlistHost[iw] = dest;
     }
     
     SumGPU = SumHost;
-    //RGPU = RHost;
     RlistGPU = RlistHost;
 
 //     DTD_BConds<double,3,SUPERCELL_BULK> bconds;
@@ -111,7 +109,7 @@ namespace qmcplusplus {
     for (int iw=0; iw<walkers.size(); iw++) 
       logPsi[iw] -= SumHost[iw];
 //     fprintf (stderr, "host = %25.16f\n", host_sum);
-//     fprintf (stderr, "cuda = %25.16f\n", logPsi[0]);
+    fprintf (stderr, "cuda = %25.16f\n", logPsi[10]);
   }
   
   void
@@ -157,16 +155,14 @@ namespace qmcplusplus {
       psi_ratios[iw] *= std::exp(-sum);
     }
 #else
+
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;
       for (int dim=0; dim<OHMMS_DIM; dim++)
 	RnewHost[OHMMS_DIM*iw+dim] = new_pos[iw][dim];
-      //      RlistHost[iw] = &(RGPU[OHMMS_DIM*N*iw]);
     }
     SumGPU = SumHost;
-    //RGPU = RHost;
-    //RlistGPU = RlistHost;
     RnewGPU = RnewHost;
 
     int newGroup = PtclRef.GroupID[iat];
@@ -177,16 +173,16 @@ namespace qmcplusplus {
 	
       CudaSpline<CudaReal> &spline = *(GPUSplines[group*NumGroups+newGroup]);
       two_body_ratio (RlistGPU.data(), first, last, N, 
-		      RnewGPU.data(), iat, 
-		      spline.coefs.data(), spline.coefs.size(),
-		      spline.rMax, L.data(), Linv.data(),
-		      SumGPU.data(), walkers.size());
+      		      RnewGPU.data(), iat, 
+      		      spline.coefs.data(), spline.coefs.size(),
+      		      spline.rMax, L.data(), Linv.data(),
+      		      SumGPU.data(), walkers.size());
     }
     // Copy data back to CPU memory
     
     SumHost = SumGPU;
-    // for (int iw=0; iw<walkers.size(); iw++) 
-    //   psi_ratios[iw] *= std::exp(-SumHost[iw]);
+    for (int iw=0; iw<walkers.size(); iw++) 
+      psi_ratios[iw] *= std::exp(-SumHost[iw]);
 #endif
   }
 
@@ -198,11 +194,8 @@ namespace qmcplusplus {
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;
-      CudaReal *dest   = (CudaReal*)&(walker.cuda_DataSet[ROffset]);
-      RlistHost[iw]    = (CudaReal*)dest;
     }
     SumGPU = SumHost;
-    RlistGPU = RlistHost;
 
     for (int i=0; i<walkers.size()*4*N; i++)
       GradLaplHost[i] = 0.0;
@@ -224,10 +217,10 @@ namespace qmcplusplus {
     }
     // Copy data back to CPU memory
     GradLaplHost = GradLaplGPU;
-    
+
     for (int iw=0; iw<walkers.size(); iw++) {
       for (int ptcl=0; ptcl<N; ptcl++) {
-	for (int i=0; i<OHMMS_DIM; i++)
+	for (int i=0; i<OHMMS_DIM; i++) 
 	  grad(iw,ptcl)[i] += GradLaplHost[4*N*iw + 4*ptcl + i];
 	lapl(iw,ptcl) += GradLaplHost[4*N*iw+ + 4*ptcl +3];
       }

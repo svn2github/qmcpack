@@ -41,10 +41,12 @@ namespace qmcplusplus {
     vector<CudaSpline<CudaReal>*> GPUSplines, UniqueSplines;
     ParticleSet &PtclRef;
     cuda_vector<CudaReal> L, Linv;
+
     cuda_vector<CudaReal*> RlistGPU, UpdateListGPU;
-    cuda_vector<CudaReal> SumGPU, RGPU, RnewGPU, GradLaplGPU;
+    cuda_vector<CudaReal> SumGPU, RnewGPU, GradLaplGPU;
+
     host_vector<CudaReal*> RlistHost, UpdateListHost;
-    host_vector<CudaReal> SumHost, RHost, RnewHost, GradLaplHost;
+    host_vector<CudaReal> SumHost, RnewHost, GradLaplHost;
   public:
     typedef BsplineFunctor<OrbitalBase::RealType> FT;
     typedef ParticleSet::Walker_t     Walker_t;
