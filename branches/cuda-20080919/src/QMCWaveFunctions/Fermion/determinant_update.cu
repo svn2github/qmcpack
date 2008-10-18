@@ -26,8 +26,7 @@ update_inverse_cuda1 (T *A_g[], T *Ainv_g[], T *u_g[],
 
   // Store the product Ainv * u in shared memory
   __shared__ T Ainv_delta_shared[DET_BLOCK_SIZE], 
-    Ainv_colk_shared[DET_BLOCK_SIZE], u_shared[DET_BLOCK_SIZE],
-    uold_shared[DET_BLOCK_SIZE];
+    Ainv_colk_shared[DET_BLOCK_SIZE], delta[DET_BLOCK_SIZE];
   Ainv_delta_shared[threadIdx.x] = 0.0f;
  __syncthreads();
   int col = blockIdx.x*DET_BLOCK_SIZE + threadIdx.x;
@@ -37,40 +36,23 @@ update_inverse_cuda1 (T *A_g[], T *Ainv_g[], T *u_g[],
   // If the column I need to pull from Ainv is in this thread block
   // domain, do the following
   __syncthreads();
-  //  if (blockIdx.x == kBlock) {
-    for (int block=0; block<numblocks; block++) {
-      u_shared[threadIdx.x] = u[block*DET_BLOCK_SIZE+threadIdx.x];
-      uold_shared[threadIdx.x] = A[k*rowstride + block*DET_BLOCK_SIZE + threadIdx.x];
-      __syncthreads();
-
-      for (int i=0; i<DET_BLOCK_SIZE; i++) {
-      	int row = block*DET_BLOCK_SIZE + i;
-      	T a = Ainv[row*rowstride+col];
-      	if (col == k)
-      	  Ainv_colk_shared[i] = a;
-      	Ainv_delta_shared[threadIdx.x] += a*(u_shared[i]-uold_shared[i]);
-	__syncthreads();
-      }
-      if (blockIdx.x == kBlock) 
-	Ainv_colk[block*DET_BLOCK_SIZE+threadIdx.x] = Ainv_colk_shared[threadIdx.x];
+  for (int block=0; block<numblocks; block++) {
+    delta[threadIdx.x] = u[block*DET_BLOCK_SIZE+threadIdx.x] - 
+      A[k*rowstride + block*DET_BLOCK_SIZE + threadIdx.x];
+    __syncthreads();
+    
+    for (int i=0; i<DET_BLOCK_SIZE; i++) {
+      int row = block*DET_BLOCK_SIZE + i;
+      T a = Ainv[row*rowstride+col];
+      if (col == k)
+	Ainv_colk_shared[i] = a;
+      Ainv_delta_shared[threadIdx.x] += a*delta[i];
       __syncthreads();
     }
-    //}
-  // else {
-  //   for (int block=0; block<numblocks; block++) {
-  //     u_shared[threadIdx.x] = u[block*DET_BLOCK_SIZE+threadIdx.x];
-  //     __syncthreads();
-  //     uold_shared[threadIdx.x] = A[k*rowstride + block*DET_BLOCK_SIZE + threadIdx.x];
-  //     //uold_shared[threadIdx.x] = u_shared[threadIdx.x];
-  //     __syncthreads();
-
-  //     for (int i=0; i<DET_BLOCK_SIZE; i++) {
-  // 	int row = block*DET_BLOCK_SIZE + i;
-  // 	T a = Ainv[row*rowstride+col];
-  // 	Ainv_delta_shared[threadIdx.x] += a*(u_shared[i]- uold_shared[i]);
-  //     }
-  //   }
-  // }
+    if (blockIdx.x == kBlock) 
+      Ainv_colk[block*DET_BLOCK_SIZE+threadIdx.x] = Ainv_colk_shared[threadIdx.x];
+    __syncthreads();
+  }
 
   __syncthreads();
   
