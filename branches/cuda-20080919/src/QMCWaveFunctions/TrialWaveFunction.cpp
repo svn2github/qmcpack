@@ -60,16 +60,20 @@ namespace qmcplusplus {
 
     Z.push_back(aterm);
     //int n=Z.size();
-    char name1[64],name2[64];
+    char name1[64],name2[64],name3[64];
     sprintf(name1,"WaveFunction::%s_V",aname.c_str());
     sprintf(name2,"WaveFunction::%s_VGL",aname.c_str());
+    sprintf(name3,"WaveFunction::%s_accept",aname.c_str());
     NewTimer *vtimer=new NewTimer(name1);
     NewTimer *vgltimer=new NewTimer(name2);
+    NewTimer *accepttimer=new NewTimer(name3);
 
     myTimers.push_back(vtimer);
     myTimers.push_back(vgltimer);
+    myTimers.push_back(accepttimer);
     TimerManager.addTimer(vtimer);
     TimerManager.addTimer(vgltimer);
+    TimerManager.addTimer(accepttimer);
   }
 
   
@@ -196,7 +200,7 @@ namespace qmcplusplus {
   TrialWaveFunction::RealType
   TrialWaveFunction::ratio(ParticleSet& P,int iat) {
     ValueType r(1.0);
-    for(int i=0,ii=0; i<Z.size(); ++i,ii+=2) 
+    for(int i=0,ii=0; i<Z.size(); ++i,ii+=3) 
     {
       myTimers[ii]->start();
       r *= Z[i]->ratio(P,iat);
@@ -240,7 +244,7 @@ namespace qmcplusplus {
     dG = 0.0;
     dL = 0.0;
     ValueType r(1.0);
-    for(int i=0, ii=1; i<Z.size(); ++i, ii+=2) 
+    for(int i=0, ii=1; i<Z.size(); ++i, ii+=3) 
     {
       myTimers[ii]->start();
       r *= Z[i]->ratio(P,iat,dG,dL);
@@ -275,7 +279,11 @@ namespace qmcplusplus {
    */
   void   
   TrialWaveFunction::acceptMove(ParticleSet& P,int iat) {
-    for(int i=0; i<Z.size(); i++) Z[i]->acceptMove(P,iat);
+    for(int i=0,ii=2; i<Z.size(); i++, ii+=3) {
+      myTimers[ii]->start();
+      Z[i]->acceptMove(P,iat);
+      myTimers[ii]->stop();
+    }
   }
 
   //void TrialWaveFunction::resizeByWalkers(int nwalkers){
@@ -346,7 +354,7 @@ namespace qmcplusplus {
     PhaseValue=0.0;
     vector<OrbitalBase*>::iterator it(Z.begin());
     vector<OrbitalBase*>::iterator it_end(Z.end());
-    for(int ii=1; it!=it_end; ++it,ii+=2)
+    for(int ii=1; it!=it_end; ++it,ii+=3)
     {
       myTimers[ii]->start();
       logpsi += (*it)->updateBuffer(P,buf,fromscratch);
