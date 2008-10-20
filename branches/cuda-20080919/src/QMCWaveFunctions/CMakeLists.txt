@@ -22,6 +22,7 @@ SET(JASTROW_SRCS
   Jastrow/RPAJastrow.cpp
   Jastrow/singleRPAJastrowBuilder.cpp
   Jastrow/TwoBodyJastrowOrbitalBspline.cpp
+  Jastrow/OneBodyJastrowOrbitalBspline.cpp
 )
 
 #  Jastrow/BsplineFunctor.cpp
