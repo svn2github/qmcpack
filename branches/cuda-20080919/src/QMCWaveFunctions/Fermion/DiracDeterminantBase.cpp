@@ -31,6 +31,8 @@ namespace qmcplusplus {
   {
     Optimizable=false;
     OrbitalName="DiracDeterminantBase";
+    updateTimer = new NewTimer ("DetUpdate");
+    TimerManager.addTimer(updateTimer);
   }
 
   ///default destructor
@@ -239,7 +241,9 @@ namespace qmcplusplus {
     }
 
     //update psiM_temp with the row substituted
+    updateTimer->start();
     DetUpdate(psiM_temp,psiV,workV1,workV2,WorkingIndex,curRatio);
+    updateTimer->stop();
 
     //update dpsiM_temp and d2psiM_temp 
     for(int j=0; j<NumOrbitals; j++) {
@@ -299,7 +303,9 @@ namespace qmcplusplus {
     //CurrentDet *= curRatio;
     if(UseRatioOnly) 
     {
+      updateTimer->start();
       DetUpdate(psiM,psiV,workV1,workV2,WorkingIndex,curRatio);
+      updateTimer->stop();
     } 
     else 
     {
@@ -336,7 +342,10 @@ namespace qmcplusplus {
       ParticleSet::ParticleLaplacian_t& dL,
       int iat) {
 
+    updateTimer->start();
     DetUpdate(psiM,psiV,workV1,workV2,WorkingIndex,curRatio);
+    updateTimer->stop();
+
     for(int j=0; j<NumOrbitals; j++) {
       dpsiM(WorkingIndex,j)=dpsiV[j];
       d2psiM(WorkingIndex,j)=d2psiV[j];
@@ -483,6 +492,8 @@ namespace qmcplusplus {
   DiracDeterminantBase::DiracDeterminantBase(const DiracDeterminantBase& s): 
     OrbitalBase(s), NP(0),Phi(s.Phi),FirstIndex(s.FirstIndex)
   {
+    updateTimer = new NewTimer("DetUpdate");
+    TimerManager.addTimer(updateTimer);
     this->resize(s.NumPtcls,s.NumOrbitals);
   }
 

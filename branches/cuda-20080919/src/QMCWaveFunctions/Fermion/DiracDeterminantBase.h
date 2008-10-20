@@ -23,11 +23,14 @@
 #include "QMCWaveFunctions/SPOSetBase.h"
 #include "QMCWaveFunctions/Fermion/determinant_update.h"
 #include "Numerics/CUDA/cuda_inverse.h"
+#include "Utilities/NewTimer.h"
 
 namespace qmcplusplus {
 
   class DiracDeterminantBase: public OrbitalBase {
   public:
+
+    NewTimer *updateTimer;
 
     typedef SPOSetBase::IndexVector_t IndexVector_t;
     typedef SPOSetBase::ValueVector_t ValueVector_t;
