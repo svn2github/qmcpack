@@ -6,29 +6,9 @@
 #include "QMCWaveFunctions/Jastrow/TwoBodyJastrowOrbital.h"
 #include "QMCWaveFunctions/Jastrow/BsplineFunctor.h"
 #include "Configuration.h"
+#include "QMCWaveFunctions/Jastrow/CudaSpline.h"
 
 namespace qmcplusplus {
-
-  template<typename T>
-  struct CudaSpline
-  {
-    cuda_vector<T> coefs;
-    T rMax;
-
-    template<typename T2>
-    CudaSpline (BsplineFunctor<T2> &func)
-    {
-      int num_coefs = func.SplineCoefs.size();
-      host_vector<T> coefs_h(num_coefs);
-      for (int i=0; i<num_coefs; i++) {
-	coefs_h[i] = func.SplineCoefs[i];
-	app_log() << "coefs_h[" << i << "] = " << coefs_h[i] << endl;
-      }
-      coefs = coefs_h;
-      rMax = func.Rcut;
-    }
-  };
-
 
   class TwoBodyJastrowOrbitalBspline : 
     public TwoBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> > 
@@ -51,6 +31,8 @@ namespace qmcplusplus {
     typedef BsplineFunctor<OrbitalBase::RealType> FT;
     typedef ParticleSet::Walker_t     Walker_t;
 
+    
+    void checkInVariables(opt_variables_type& active);
     void addFunc(const string& aname, int ia, int ib, FT* j);
     void recompute(vector<Walker_t*> &walkers);
     void reserve (PointerPool<cuda_vector<CudaRealType> > &pool);

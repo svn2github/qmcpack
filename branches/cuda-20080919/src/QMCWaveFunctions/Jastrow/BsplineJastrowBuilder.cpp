@@ -17,7 +17,7 @@
 #include "Particle/DistanceTable.h"
 #include "QMCWaveFunctions/Jastrow/BsplineJastrowBuilder.h"
 #include "QMCWaveFunctions/Jastrow/BsplineFunctor.h"
-#include "QMCWaveFunctions/Jastrow/OneBodyJastrowOrbital.h"
+#include "QMCWaveFunctions/Jastrow/OneBodyJastrowOrbitalBspline.h"
 #include "QMCWaveFunctions/Jastrow/TwoBodyJastrowOrbital.h"
 #include "QMCWaveFunctions/Jastrow/TwoBodyJastrowOrbitalBspline.h"
 #include "Utilities/ProgressReportEngine.h"
@@ -35,7 +35,7 @@ namespace qmcplusplus {
     // Create a one-body Jastrow
     if (sourcePtcl) 
     {
-      typedef OneBodyJastrowOrbital<RadFuncType> J1Type;
+      typedef OneBodyJastrowOrbitalBspline J1Type;
       //typedef DiffOneBodyJastrowOrbital<RadFuncType> dJ1Type;
 
       J1Type *J1 = new J1Type(*sourcePtcl, targetPtcl);

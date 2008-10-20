@@ -17,6 +17,14 @@ namespace qmcplusplus {
       std::max((unsigned long)1,sizeof(CudaReal)/sizeof(CUDA_PRECISION));
     ROffset = pool.reserve(3*(N+1) * elemSize);
   }
+
+  void 
+  TwoBodyJastrowOrbitalBspline::checkInVariables(opt_variables_type& active)
+  {
+    TwoBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> >::checkInVariables(active);
+    for (int i=0; i<NumGroups*NumGroups; i++)
+      GPUSplines[i]->set(*F[i]);
+  }
   
   void 
   TwoBodyJastrowOrbitalBspline::addFunc(const string& aname, int ia, int ib, FT* j)
