@@ -85,9 +85,9 @@ namespace qmcplusplus {
     int efirst = 0;
     int elast = N-1;
 
-    for (int cgroup=0; cgroup<CenterRef.groups(); cgroup++) {
-      int cfirst = CenterRef.first(cgroup);
-      int clast  = CenterRef.last(cgroup) -1;
+    for (int cgroup=0; cgroup<NumCenterGroups; cgroup++) {
+      int cfirst = CenterFirst[cgroup];
+      int clast  = CenterLast[cgroup];
       
       CudaSpline<CudaReal> &spline = *(GPUSplines[cgroup]);
       if (GPUSplines[cgroup]) {
@@ -131,8 +131,8 @@ namespace qmcplusplus {
 
       int group2 = CenterRef.GroupID (iat);
       for (int cgroup=0; cgroup<CenterRef.groups(); cgroup++) {
-	int cfirst = CenterRef.first(cgroup);
-	int clast  = CenterRef.last(cgroup);
+	int cfirst = CenterFirst[cgroup];
+	int clast  = CenterLast[cgroup];
 	  double factor = (cgroup == group2) ? 0.5 : 1.0;
 	  int id = cgroup*NumGroups + group2;
 	  FT* func = Fs[id];
@@ -159,8 +159,8 @@ namespace qmcplusplus {
     RnewGPU = RnewHost;
     
     for (int group=0; group<CenterRef.groups(); group++) {
-      int first = CenterRef.first(group);
-      int last  = CenterRef.last(group) -1;
+      int first = CenterFirst[group];
+      int last  = CenterLast[group];
       
       if (GPUSplines[group]) {
 	CudaSpline<CudaReal> &spline = *(GPUSplines[group]);
@@ -202,13 +202,13 @@ namespace qmcplusplus {
     int iw = 0;
 
     for (int cgroup=0; cgroup<CenterRef.groups(); cgroup++) {
-      int cfirst = CenterRef.first(cgroup);
-      int clast  = CenterRef.last(cgroup) -1;
+      int cfirst = CenterFirst[cgroup];
+      int clast  = CenterLast[cgroup];
       for (int ptcl1=cfirst; ptcl1<=clast; ptcl1++) {
 	PosType grad(0.0, 0.0, 0.0);
 	double lapl(0.0);
 	int efirst = 0;
-	int elast2  = N;
+	int elast2  = N-1;
 	FT* func = Fs[cgroup];
 	for (int ptcl2=efirst2; ptcl2<=elast2; ptcl2++) {
 	  PosType disp = walkers[iw]->R[ptcl2] - walkers[iw]->R[ptcl1];
@@ -226,11 +226,11 @@ namespace qmcplusplus {
       }
     }
 #endif
-    for (int cgroup=0; cgroup<CenterRef.groups(); cgroup++) {
-      int cfirst = CenterRef.first(cgroup);
-      int clast  = CenterRef.last(cgroup) -1;
+    for (int cgroup=0; cgroup<NumCenterGroups; cgroup++) {
+      int cfirst = CenterFirst[cgroup];
+      int clast  = CenterLast[cgroup];
       int efirst = 0;
-      int elast  = N;
+      int elast  = N-1;
       if (GPUSplines[cgroup]) {
 	CudaSpline<CudaReal> &spline = *(GPUSplines[cgroup]);
 	one_body_grad_lapl (C.data(), RlistGPU.data(), cfirst, clast, efirst, elast, 

@@ -31,6 +31,7 @@ namespace qmcplusplus {
     host_vector<CudaReal*> RlistHost, UpdateListHost;
     host_vector<CudaReal> SumHost, RnewHost, GradLaplHost;
     int NumCenterGroups, NumElecGroups;
+    vector<int> CenterFirst, CenterLast;
     int N;
   public:
     typedef BsplineFunctor<OrbitalBase::RealType> FT;
@@ -54,7 +55,10 @@ namespace qmcplusplus {
       ElecRef(elecs)
     {
       NumElecGroups = elecs.groups();
-      NumCenterGroups  = centers.groups();
+      SpeciesSet &sSet = centers.getSpeciesSet();
+      NumCenterGroups = sSet.getTotalNum();
+      //      NumCenterGroups = centers.groups();
+      // cerr << "NumCenterGroups = " << NumCenterGroups << endl;
       GPUSplines.resize(NumCenterGroups,0);
       host_vector<CudaReal> LHost(OHMMS_DIM*OHMMS_DIM), 
 	LinvHost(OHMMS_DIM*OHMMS_DIM);
@@ -67,11 +71,25 @@ namespace qmcplusplus {
       Linv = LinvHost;
       N = elecs.getTotalNum();
 
-      // Copy center positions to GPU
-      host_vector<CudaReal> C_host(centers.getTotalNum());
-      for (int i=0; i<centers.getTotalNum(); i++) 
-	for (int dim=0; dim<OHMMS_DIM; dim++)
-	  C_host[OHMMS_DIM*i+dim] = centers.R[i][dim];
+      // Copy center positions to GPU, sorting by GroupID
+      host_vector<CudaReal> C_host(OHMMS_DIM*centers.getTotalNum());
+      int index=0;
+      for (int cgroup=0; cgroup<NumCenterGroups; cgroup++) {
+	CenterFirst.push_back(index);
+	for (int i=0; i<centers.getTotalNum(); i++) {
+	  if (centers.GroupID[i] == cgroup) {
+	    for (int dim=0; dim<OHMMS_DIM; dim++) 
+	      C_host[OHMMS_DIM*i+dim] = centers.R[i][dim];
+	    index++;
+	  }
+	}
+	CenterLast.push_back(index-1);
+      }
+
+      // host_vector<CudaReal> C_host(OHMMS_DIM*centers.getTotalNum());
+      // for (int i=0; i<centers.getTotalNum(); i++) 
+      // 	for (int dim=0; dim<OHMMS_DIM; dim++)
+      // 	  C_host[OHMMS_DIM*i+dim] = centers.R[i][dim];
       C = C_host;
 
     }

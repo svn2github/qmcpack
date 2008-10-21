@@ -658,8 +658,8 @@ one_body_sum_kernel(T C[], T *R[], int cfirst, int clast,
 
   int Nc = clast - cfirst + 1;
   int Ne = elast - efirst + 1;
-  int NBc = Nc/BS + ((Ne % BS) ? 1 : 0);
-  int NBe = Ne/BS + ((Nc % BS) ? 1 : 0);
+  int NBc = Nc/BS + ((Nc % BS) ? 1 : 0);
+  int NBe = Ne/BS + ((Ne % BS) ? 1 : 0);
 
   T mysum = (T)0.0; 
   for (int bc=0; bc < NBc; bc++) {
@@ -684,7 +684,7 @@ one_body_sum_kernel(T C[], T *R[], int cfirst, int clast,
   	dy = re[j][1] - rc[tid][1];
   	dz = re[j][2] - rc[tid][2];
   	T dist = min_dist(dx, dy, dz, L, Linv);
-  	if ((ptcl1 < (Ne+cfirst) ) && (ptcl2 < (Ne+efirst)))
+  	if ((ptcl1 < (Nc+cfirst) ) && (ptcl2 < (Ne+efirst)))
 	  mysum += eval_1d_spline (dist, rMax, drInv, A, coefs);
       }
     }
@@ -715,6 +715,8 @@ one_body_sum (float C[], float *R[], int cfirst, int clast, int efirst, int elas
 
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
+
+  fprintf (stderr, "numCoefs = %d\n", numCoefs);
 
   one_body_sum_kernel<float,BS><<<dimGrid,dimBlock>>>
     (C, R, cfirst, clast, efirst, elast, 
@@ -993,7 +995,7 @@ one_body_grad_lapl_kernel(T C[], T *R[], int cfirst, int clast,
 	  c[0][i*BS + tid] = C[3*cfirst + (3*bc+i)*BS + tid];
       __syncthreads();
       // Now, loop over particles
-      int end = (bc+1)*BS < Nc ? BS : Nc-bc*BS;
+      int end = ((bc+1)*BS < Nc) ? BS : Nc-bc*BS;
       for (int j=0; j<end; j++) {
   	int cptcl = cfirst + bc*BS+j;
   	T dx, dy, dz, u, du, d2u;
