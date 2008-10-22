@@ -711,12 +711,10 @@ one_body_sum (float C[], float *R[], int cfirst, int clast, int efirst, int elas
   if (!AisInitialized)
     cuda_spline_init();
 
-  const int BS = 128;
+  const int BS = 32;
 
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
-
-  fprintf (stderr, "numCoefs = %d\n", numCoefs);
 
   one_body_sum_kernel<float,BS><<<dimGrid,dimBlock>>>
     (C, R, cfirst, clast, efirst, elast, 
@@ -838,7 +836,7 @@ one_body_ratio (float C[], float *R[], int first, int last, int N,
   if (!AisInitialized)
     cuda_spline_init();
 
-  const int BS = 128;
+  const int BS = 32;
 
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
@@ -1006,9 +1004,9 @@ one_body_grad_lapl_kernel(T C[], T *R[], int cfirst, int clast,
 	eval_1d_spline_vgl (dist, rMax, drInv, A, coefs, u, du, d2u);
   	if (cptcl < (Nc+cfirst)  && (eptcl < (Ne+efirst))) {
 	  du /= dist;
-	  sGradLapl[tid][0] += du * dx;
-	  sGradLapl[tid][1] += du * dy;
-	  sGradLapl[tid][2] += du * dz;
+	  sGradLapl[tid][0] -= du * dx;
+	  sGradLapl[tid][1] -= du * dy;
+	  sGradLapl[tid][2] -= du * dz;
 	  sGradLapl[tid][3] -= d2u + 2.0*du;
 	}
       }

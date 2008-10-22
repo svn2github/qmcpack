@@ -78,10 +78,6 @@ namespace qmcplusplus {
     
     SumGPU = SumHost;
     RlistGPU = RlistHost;
-
-//     DTD_BConds<double,3,SUPERCELL_BULK> bconds;
-//     double host_sum = 0.0;
-
     int efirst = 0;
     int elast = N-1;
 
@@ -97,13 +93,28 @@ namespace qmcplusplus {
 		      SumGPU.data(), walkers.size());
       }
       // Copy data back to CPU memory
-      
-      SumHost = SumGPU;
-      for (int iw=0; iw<walkers.size(); iw++) 
-	logPsi[iw] -= SumHost[iw];
-      //     fprintf (stderr, "host = %25.16f\n", host_sum);
-      fprintf (stderr, "cuda = %25.16f\n", logPsi[10]);
     }
+    SumHost = SumGPU;
+    for (int iw=0; iw<walkers.size(); iw++) 
+      logPsi[iw] -= SumHost[iw];
+
+#ifdef CUDA_DEBUG
+    DTD_BConds<double,3,SUPERCELL_BULK> bconds;
+    double host_sum = 0.0;
+
+    for (int cptcl=0; cptcl < CenterRef.getTotalNum(); cptcl++) {
+      PosType c = CenterRef.R[cptcl];
+      for (int eptcl=0; eptcl<N; eptcl++) {
+	PosType r = walkers[0]->R[eptcl];
+	PosType disp = r - c;
+	double dist = std::sqrt(bconds.apply(ElecRef.Lattice, disp));
+	host_sum -= Fs[cptcl]->evaluate(dist);
+      }
+    }
+
+    fprintf (stderr, "host = %25.16f\n", host_sum);
+    fprintf (stderr, "cuda = %25.16f\n", logPsi[0]);
+#endif
   }
   
   void
@@ -129,21 +140,18 @@ namespace qmcplusplus {
       Walker_t &walker = *(walkers[iw]);
       double sum = 0.0;
 
-      int group2 = CenterRef.GroupID (iat);
       for (int cgroup=0; cgroup<CenterRef.groups(); cgroup++) {
 	int cfirst = CenterFirst[cgroup];
 	int clast  = CenterLast[cgroup];
-	  double factor = (cgroup == group2) ? 0.5 : 1.0;
-	  int id = cgroup*NumGroups + group2;
-	  FT* func = Fs[id];
-	  for (int ptcl1=0; ptcl1<N; ptcl1++) {
-	    PosType disp = walkers[iw]->R[ptcl1] - walkers[iw]->R[iat];
-	    double dist = std::sqrt(bconds.apply(ElecRef.Lattice, disp));
-	    sum += factor*func->evaluate(dist);
-	    disp = walkers[iw]->R[ptcl1] - new_pos[iw];
-	    dist = std::sqrt(bconds.apply(ElecRef.Lattice, disp));
-	    sum -= factor*func->evaluate(dist);
-	  }
+	FT* func = Fs[cgroup];
+	for (int ptcl1=0; ptcl1<N; ptcl1++) {
+	  PosType disp = walkers[iw]->R[ptcl1] - walkers[iw]->R[iat];
+	  double dist = std::sqrt(bconds.apply(ElecRef.Lattice, disp));
+	  sum += factor*func->evaluate(dist);
+	  disp = walkers[iw]->R[ptcl1] - new_pos[iw];
+	  dist = std::sqrt(bconds.apply(ElecRef.Lattice, disp));
+	  sum -= factor*func->evaluate(dist);
+	}
       }
       psi_ratios[iw] *= std::exp(-sum);
     }
@@ -158,7 +166,7 @@ namespace qmcplusplus {
     SumGPU = SumHost;
     RnewGPU = RnewHost;
     
-    for (int group=0; group<CenterRef.groups(); group++) {
+    for (int group=0; group<NumCenterGroups; group++) {
       int first = CenterFirst[group];
       int last  = CenterLast[group];
       
@@ -171,7 +179,7 @@ namespace qmcplusplus {
 			SumGPU.data(), walkers.size());
       }
     }
-      // Copy data back to CPU memory
+    // Copy data back to CPU memory
     
     SumHost = SumGPU;
     for (int iw=0; iw<walkers.size(); iw++) 
@@ -200,31 +208,26 @@ namespace qmcplusplus {
     DTD_BConds<double,3,SUPERCELL_BULK> bconds;
 
     int iw = 0;
-
-    for (int cgroup=0; cgroup<CenterRef.groups(); cgroup++) {
-      int cfirst = CenterFirst[cgroup];
-      int clast  = CenterLast[cgroup];
-      for (int ptcl1=cfirst; ptcl1<=clast; ptcl1++) {
-	PosType grad(0.0, 0.0, 0.0);
-	double lapl(0.0);
-	int efirst = 0;
-	int elast2  = N-1;
-	FT* func = Fs[cgroup];
-	for (int ptcl2=efirst2; ptcl2<=elast2; ptcl2++) {
-	  PosType disp = walkers[iw]->R[ptcl2] - walkers[iw]->R[ptcl1];
-	  double dist = std::sqrt(bconds.apply(ElecRef.Lattice, disp));
-	  double u, du, d2u;
-	  u = func->evaluate(dist, du, d2u);
-	  du /= dist;
-	  grad += disp * du;
-	  lapl += d2u + 2.0*du;
-	}
-	CPU_GradLapl[ptcl1*4+0] = grad[0];
-	CPU_GradLapl[ptcl1*4+1] = grad[1];
-	CPU_GradLapl[ptcl1*4+2] = grad[2];
-	CPU_GradLapl[ptcl1*4+3] = lapl;
+    
+    for (int eptcl=0; eptcl<N; eptcl++) {
+      PosType grad(0.0, 0.0, 0.0);
+      double lapl(0.0);
+      for (int cptcl=0; cptcl<CenterRef.getTotalNum(); cptcl++) {
+	FT* func = Fs[cptcl];
+	PosType disp = walkers[iw]->R[eptcl] - CenterRef.R[cptcl];
+	double dist = std::sqrt(bconds.apply(ElecRef.Lattice, disp));
+	double u, du, d2u;
+	u = func->evaluate(dist, du, d2u);
+	du /= dist;
+	grad += disp * du;
+	lapl += d2u + 2.0*du;
       }
+      CPU_GradLapl[eptcl*4+0] = grad[0];
+      CPU_GradLapl[eptcl*4+1] = grad[1];
+      CPU_GradLapl[eptcl*4+2] = grad[2];
+      CPU_GradLapl[eptcl*4+3] = lapl;
     }
+  
 #endif
     for (int cgroup=0; cgroup<NumCenterGroups; cgroup++) {
       int cfirst = CenterFirst[cgroup];
@@ -233,7 +236,8 @@ namespace qmcplusplus {
       int elast  = N-1;
       if (GPUSplines[cgroup]) {
 	CudaSpline<CudaReal> &spline = *(GPUSplines[cgroup]);
-	one_body_grad_lapl (C.data(), RlistGPU.data(), cfirst, clast, efirst, elast, 
+	one_body_grad_lapl (C.data(), RlistGPU.data(), 
+			    cfirst, clast, efirst, elast, 
 			    spline.coefs.data(), spline.coefs.size(),
 			    spline.rMax, L.data(), Linv.data(),
 			    GradLaplGPU.data(), 4*N, walkers.size());
