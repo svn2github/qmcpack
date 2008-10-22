@@ -41,7 +41,6 @@ namespace qmcplusplus {
    \f}
   */
   struct BareKineticEnergy: public QMCHamiltonianBase {
-
     ///mass of the particle
     RealType M;
     ///\f$ 1/(2 m^*) \f$
@@ -49,6 +48,9 @@ namespace qmcplusplus {
     
     ParticleSet::ParticleGradient_t Gtmp;
     ParticleSet::ParticleLaplacian_t Ltmp;
+    vector<ParticleSet::ParticleGradient_t> Gvector;
+    vector<ParticleSet::ParticleLaplacian_t> Lvector;
+    
 
     /** constructor
      *
@@ -110,6 +112,12 @@ namespace qmcplusplus {
       Ltmp=P.L+P.dL;
       NewValue = Dot(Gtmp,Gtmp) + Sum(Ltmp); 
       return NewValue*=-OneOver2M;
+    }
+
+    void addEnergy(vector<Walker_t*> &walkers, 
+		   vector<RealType> &LocalEnergy)
+    {
+      //Psi.gradLapl(walkers, Gvector, Lvector);
     }
 
     

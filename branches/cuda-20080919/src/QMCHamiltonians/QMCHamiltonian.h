@@ -31,11 +31,12 @@ namespace qmcplusplus {
 
   public:
   
-    typedef QMCHamiltonianBase::RealType  RealType;
-    typedef QMCHamiltonianBase::ValueType ValueType;
-    typedef QMCHamiltonianBase::Return_t  Return_t;
+    typedef QMCHamiltonianBase::RealType         RealType;
+    typedef QMCHamiltonianBase::ValueType        ValueType;
+    typedef QMCHamiltonianBase::Return_t         Return_t;
     typedef QMCHamiltonianBase::PropertySetType  PropertySetType;
-    typedef QMCHamiltonianBase::BufferType  BufferType;
+    typedef QMCHamiltonianBase::BufferType       BufferType;
+    typedef QMCHamiltonianBase::Walker_t         Walker_t;
     
     ///constructor
     QMCHamiltonian();
@@ -180,6 +181,22 @@ namespace qmcplusplus {
     /** return a clone */
     QMCHamiltonian* makeClone(ParticleSet& qp, TrialWaveFunction& psi); 
 
+    ////////////////////////////////////////////
+    // Vectorized evaluation routines for GPU //
+    ////////////////////////////////////////////
+    void evaluate (vector<Walker_t*> &walkers,
+		   vector<RealType> &LocalEnergy);
+
+    void saveProperty (vector<Walker_t*> &walkers)
+    {
+      for (int iw=0; iw<walkers.size(); iw++) {
+	RealType *first = walkers[iw]->getPropertyBase();
+	first[LOCALPOTENTIAL]= LocalEnergy-KineticEnergy;
+	std::copy(Observables.begin(),Observables.end(),first+myIndex);
+      }
+    }
+
+
   private:
     ///starting index
     int myIndex;
@@ -201,6 +218,10 @@ namespace qmcplusplus {
     PropertySetType Observables;
     ///reset Observables
     void resetObservables(int start);
+    /////////////////////
+    // Vectorized data //
+    /////////////////////
+    vector<Return_t> LocalEnergyVector, KineticEnergyVector;
   };
 }
 #endif

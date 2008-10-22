@@ -149,6 +149,41 @@ QMCHamiltonian::evaluate(ParticleSet& P)
   return LocalEnergy;
 }
 
+void
+QMCHamiltonian::evaluate(vector<Walker_t*> &walkers,
+			 vector<RealType> &energyVector)
+{
+  int nw = walkers.size();
+  if (LocalEnergyVector.size() != nw) {
+    LocalEnergyVector.resize(nw);
+    KineticEnergyVector.resize(nw);
+  }
+
+  if (energyVector.size() != nw)
+    energyVector.resize(nw);
+    
+    
+  for (int i=0; i<LocalEnergyVector.size(); i++)
+    LocalEnergyVector[i] = 0.0;
+
+  for(int i=0; i<H.size(); ++i)
+  {
+    myTimers[i]->start();
+    H[i]->addEnergy(walkers, LocalEnergyVector);
+    H[i]->setObservables(Observables);
+    myTimers[i]->stop();
+  }
+  KineticEnergyVector=H[0]->ValueVector;
+  // P.PropertyList[LOCALENERGY]=LocalEnergy;
+  // P.PropertyList[LOCALPOTENTIAL]=LocalEnergy-KineticEnergy;
+  for(int i=0; i<auxH.size(); ++i)
+  {
+    auxH[i]->evaluate(walkers);
+    auxH[i]->setObservables(Observables);
+  }
+}
+
+
 QMCHamiltonian::Return_t 
 QMCHamiltonian::evaluate(ParticleSet& P, vector<NonLocalData>& Txy) 
 {

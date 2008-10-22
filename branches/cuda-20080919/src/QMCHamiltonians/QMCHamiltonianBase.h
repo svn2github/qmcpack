@@ -55,12 +55,14 @@ namespace qmcplusplus {
      */
     typedef RealType Return_t;
     typedef ParticleSet::Walker_t::Buffer_t  BufferType;
+    typedef ParticleSet::Walker_t        Walker_t;
 
     enum {PRIMARY, OPTIMIZABLE, RATIOUPDATE, PHYSICAL};
     bitset<4> UpdateMode;
     int myIndex;
     RealType Tau;
     RealType Value;
+    vector<RealType> ValueVector;
     RealType NewValue;
     string myName;
    
@@ -97,6 +99,20 @@ namespace qmcplusplus {
     virtual Return_t evaluate(ParticleSet& P) = 0; 
 
     virtual Return_t evaluate(ParticleSet& P, vector<NonLocalData>& Txy) = 0; 
+
+    virtual void evaluate(vector<Walker_t*> &walkers)
+    { 
+      app_error() << "Need specialization for " << myName 
+		  << "::evaluate(vector<Walker_t*> &walkers).\n";
+    }
+
+    virtual void addEnergy(vector<Walker_t*> &walkers, 
+			   vector<RealType> &LocalEnergy)
+    { 
+      app_error() << "Need specialization for " << myName 
+		  << "::addEnergy(vector<Walker_t*> &walkers).\n";
+    }
+
 
     /*@{
      * @brief Functions to handle particle-by-particle move
