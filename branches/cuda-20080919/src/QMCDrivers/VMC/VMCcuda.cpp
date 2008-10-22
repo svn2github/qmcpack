@@ -29,7 +29,8 @@ namespace qmcplusplus {
     QMCType ="VMCcuda";
     QMCDriverMode.set(QMC_UPDATE_MODE,1);
     QMCDriverMode.set(QMC_WARMUP,0);
-    m_param.add(UseDrift,"useDrift","string"); m_param.add(UseDrift,"usedrift","string");
+    m_param.add(UseDrift,"useDrift","string"); 
+    m_param.add(UseDrift,"usedrift","string");
     m_param.add(myWarmupSteps,"warmupSteps","int");
     m_param.add(nTargetSamples,"targetWalkers","int");
   }
@@ -37,19 +38,22 @@ namespace qmcplusplus {
   bool VMCcuda::run() { 
 
     resetRun();
-
+    
     IndexType block = 0;
     IndexType nAcceptTot = 0;
     IndexType nRejectTot = 0;
-    IndexType updatePeriod=(QMCDriverMode[QMC_UPDATE_MODE])?Period4CheckProperties:(nBlocks+1)*nSteps;
-
-    int nat=W.getTotalNum();
-    int nw=W.getActiveWalkers();
-
-    vector<PosType> delpos(nw);
-    vector<PosType> newpos(nw);
+    IndexType updatePeriod= (QMCDriverMode[QMC_UPDATE_MODE]) 
+      ? Period4CheckProperties 
+      : (nBlocks+1)*nSteps;
+    
+    int nat = W.getTotalNum();
+    int nw  = W.getActiveWalkers();
+    
+    vector<RealType>  LocalEnergy(nw);
+    vector<PosType>   delpos(nw);
+    vector<PosType>   newpos(nw);
     vector<ValueType> ratios(nw);
-    vector<GradType> oldG(nw), newG(nw);
+    vector<GradType>  oldG(nw), newG(nw);
     vector<ValueType> oldL(nw), newL(nw);
     vector<Walker_t*> accepted(nw);
     Matrix<ValueType> lapl(nw, nat);
@@ -57,14 +61,12 @@ namespace qmcplusplus {
     double Esum;
 
     do {
-      //Mover->startBlock(nSteps);
       IndexType step = 0;
       nAccept = nReject = 0;
       Esum = 0.0;
       clock_t block_start = clock();
       do
       {
-	// cerr << "step = " << step << endl;
         ++step;++CurrentStep;
         for(int iat=0; iat<nat; ++iat)
         {
@@ -78,8 +80,6 @@ namespace qmcplusplus {
 	    ratios[iw] = 1.0;
 	  }
 
-          // Psi.ratio(W.WalkerList,iat,newpos,ratios,newG);
-          //Psi.ratio(W.WalkerList,iat,newpos,ratios);
 #ifdef CUDA_DEBUG
 	  vector<RealType> logPsi1(W.WalkerList.size(), 0.0);
 	  Psi.evaluateLog(W.WalkerList, logPsi1);
@@ -113,26 +113,18 @@ namespace qmcplusplus {
 	  
 	}
 	double Energy = 0.0;
-	// Psi.recompute(W.WalkerList);
+	//H.evaluate (W.WalkerList, LocalEnergy);
+	H.saveProperty (W.WalkerList);
 	Psi.gradLapl(W.WalkerList, grad, lapl);
-
-	// GradType psiPlus, psiMinus; 	
-	// for (int i=0; i<3; i++) {
-	//   W[0]->R[0][0] += 1.0e-3;
 
 	for (int iw=0; iw<nw; iw++)
 	  for (int iat=0; iat<nat; iat++)
 	    Energy -= 0.5*(dot (grad(iw,iat),grad(iw,iat))  + lapl(iw,iat));
 	Energy /= (double)nw;
-	// app_log() << "Step KE before = " << Energy << endl;
 	vector<RealType> logPsi(W.WalkerList.size(), 0.0);
 
 	Esum += Energy;
 
-        //Mover->advanceWalkers(W.begin(),W.end(),true); //step==nSteps);
-        //Estimators->accumulate(W);
-        //if(CurrentStep%updatePeriod==0) Mover->updateWalkers(W.begin(),W.end());
-        //if(CurrentStep%myPeriod4WalkerDump==0) W.saveEnsemble();
       } while(step<nSteps);
       Psi.recompute(W.WalkerList);
 
@@ -148,14 +140,10 @@ namespace qmcplusplus {
 
       clock_t block_end = clock();
       double block_time = (double)(block_end-block_start)/CLOCKS_PER_SEC;
-      fprintf (stderr, "Block energy = %10.5f    Block accept ratio = %5.3f  Block time = %8.3f\n",
+      fprintf (stderr, "Block energy = %10.5f    "
+	       "Block accept ratio = %5.3f  Block time = %8.3f\n",
 	       Esum/(double)nSteps, accept_ratio, block_time);
-
-
-      ////periodically re-evaluate everything for pbyp
-      //if(QMCDriverMode[QMC_UPDATE_MODE] && CurrentStep%100 == 0) 
-      //  Mover->updateWalkers(W.begin(),W.end());
-
+      
     } while(block<nBlocks);
 
     //Mover->stopRun();
@@ -187,19 +175,6 @@ namespace qmcplusplus {
     }
     vector<RealType> logPsi(W.WalkerList.size(), 0.0);
     Psi.evaluateLog(W.WalkerList, logPsi);
-    
-    //int samples_tot=W.getActiveWalkers()*nBlocks*nSteps*myComm->size();
-    //myPeriod4WalkerDump=(nTargetSamples>0)?samples_tot/nTargetSamples:Period4WalkerDump;
-    //if(myPeriod4WalkerDump==0 || QMCDriverMode[QMC_WARMUP]) 
-    //  myPeriod4WalkerDump=(nBlocks+1)*nSteps;
-    //W.clearEnsemble();
-    //samples_tot=W.getActiveWalkers()*((nBlocks*nSteps)/myPeriod4WalkerDump);
-    //W.setNumSamples(samples_tot);
-
-    ////do a warmup run
-    //for(int prestep=0; prestep<myWarmupSteps; ++prestep)
-    //  Mover->advanceWalkers(W.begin(),W.end(),true); 
-    //myWarmupSteps=0;
   }
 
   bool 
