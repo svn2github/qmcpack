@@ -607,6 +607,11 @@ namespace qmcplusplus {
       }
     for (int i=0; i<Z.size(); i++)
       Z[i]->gradLapl (walkers, grads, lapl);
+    for (int iw=0; iw<walkers.size(); iw++) 
+      for (int ptcl=0; ptcl<grads.cols(); ptcl++) {
+	walkers[iw]->Grad[ptcl] = grads(iw, ptcl);
+	walkers[iw]->Lap[ptcl]  = lapl(iw, ptcl);
+      }
   }
 }
 /***************************************************************************
