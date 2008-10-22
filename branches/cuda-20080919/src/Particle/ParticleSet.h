@@ -63,7 +63,7 @@ namespace qmcplusplus {
   public:
     
     ///define a Walker_t
-    typedef Walker<RealType,ParticlePos_t> Walker_t;
+    typedef Walker<RealType,ParticlePos_t,ParticleLaplacian_t> Walker_t;
     typedef Walker_t::PropertyContainer_t  PropertyContainer_t;
 
     ///property of an ensemble represented by this ParticleSet

@@ -51,7 +51,7 @@ namespace qmcplusplus {
    * - Properties  : 2D container. The first index corresponds to the H/Psi index and second index >=NUMPROPERTIES.
    * - DataSet : anonymous container. 
    */
-  template<typename T, typename PA, typename GA=PA>
+  template<typename T, typename PA, typename LA, typename GA=PA>
   struct Walker 
   {
     
@@ -83,9 +83,9 @@ namespace qmcplusplus {
     PA R;
 
     ///** \f$ \nabla_i d\log \Psi for the i-th particle */
-    //GA Grad;
+    GA Grad;
     ///** \f$ \nabla^2_i d\log \Psi for the i-th particle */
-    //LA Lap;
+    LA Lap;
 
     ///drift of the walker \f$ Drift({\bf R}) = \tau v_{drift}({\bf R}) \f$
     GA Drift;
@@ -264,8 +264,8 @@ namespace qmcplusplus {
 
   };
 
-  template<class T, class PA>
-    ostream& operator<<(ostream& out, const Walker<T,PA>& rhs)
+  template<class T, class PA, class LA>
+  ostream& operator<<(ostream& out, const Walker<T,PA,LA>& rhs)
     {
       copy(rhs.Properties.begin(), rhs.Properties.end(), 
       	   ostream_iterator<double>(out," "));
