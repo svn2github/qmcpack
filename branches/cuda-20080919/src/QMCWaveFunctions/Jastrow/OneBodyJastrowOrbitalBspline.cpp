@@ -133,30 +133,7 @@ namespace qmcplusplus {
    vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
    vector<ValueType> &lapl)
   {
-#ifdef CPU_RATIO
-    DTD_BConds<double,3,SUPERCELL_BULK> bconds;
-
-    for (int iw=0; iw<walkers.size(); iw++) {
-      Walker_t &walker = *(walkers[iw]);
-      double sum = 0.0;
-
-      for (int cgroup=0; cgroup<CenterRef.groups(); cgroup++) {
-	int cfirst = CenterFirst[cgroup];
-	int clast  = CenterLast[cgroup];
-	FT* func = Fs[cgroup];
-	for (int ptcl1=0; ptcl1<N; ptcl1++) {
-	  PosType disp = walkers[iw]->R[ptcl1] - walkers[iw]->R[iat];
-	  double dist = std::sqrt(bconds.apply(ElecRef.Lattice, disp));
-	  sum += factor*func->evaluate(dist);
-	  disp = walkers[iw]->R[ptcl1] - new_pos[iw];
-	  dist = std::sqrt(bconds.apply(ElecRef.Lattice, disp));
-	  sum -= factor*func->evaluate(dist);
-	}
-      }
-      psi_ratios[iw] *= std::exp(-sum);
-    }
-#else
-    
+    // Copy new particle positions to GPU
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;
@@ -180,11 +157,32 @@ namespace qmcplusplus {
       }
     }
     // Copy data back to CPU memory
-    
     SumHost = SumGPU;
+
     for (int iw=0; iw<walkers.size(); iw++) 
       psi_ratios[iw] *= std::exp(-SumHost[iw]);
+
+#ifdef CUDA_DEBUG
+    DTD_BConds<double,3,SUPERCELL_BULK> bconds;
+    int iw = 0;
+
+    Walker_t &walker = *(walkers[iw]);
+    double host_sum = 0.0;
+    
+    for (int cptcl=0; cptcl<CenterRef.getTotalNum(); cptcl++) {
+      FT* func = Fs[cptcl];
+      PosType disp = new_pos[iw] - CenterRef.R[cptcl];
+      double dist = std::sqrt(bconds.apply(ElecRef.Lattice, disp));
+      host_sum += func->evaluate(dist);
+      disp = walkers[iw]->R[iat] - CenterRef.R[cptcl];
+      dist = std::sqrt(bconds.apply(ElecRef.Lattice, disp));
+      host_sum -= func->evaluate(dist);
+    }
+    fprintf (stderr, "Host sum = %18.12e\n", host_sum);
+    fprintf (stderr, "CUDA sum = %18.12e\n", SumHost[0]);
+    
 #endif
+    
   }
 
   void
