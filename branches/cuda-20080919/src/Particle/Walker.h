@@ -128,8 +128,8 @@ namespace qmcplusplus {
     ///resize for n particles
     inline void resize(int nptcl) 
     {
-      //R.resize(nptcl); Grad.resize(nptcl),Lap.resize(nptcl),Drift.resize(nptcl); 
-      R.resize(nptcl); Drift.resize(nptcl); 
+      R.resize(nptcl); Grad.resize(nptcl),Lap.resize(nptcl),Drift.resize(nptcl); 
+      // R.resize(nptcl); Drift.resize(nptcl); 
     }
 
     ///copy the content of a walker
