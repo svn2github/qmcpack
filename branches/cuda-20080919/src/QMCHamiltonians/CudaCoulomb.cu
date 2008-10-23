@@ -1,6 +1,37 @@
+#include "CudaCoulomb.h"
+
 texture<float,1,cudaReadModeElementType> myTex;
 
 texture<float,1,cudaReadModeElementType> shortTex;
+
+#include <iostream>
+
+void
+TextureSpline::set(double data[], int numPoints, 
+		   double rmin, double rmax)
+{
+  rMin = rmin;
+  rMax = rmax;
+  std::cerr << "numPoints = " << numPoints << endl;
+  std::cerr << "rMax = " << rMax << endl;
+  NumPoints = numPoints;
+  float data_Host[numPoints];
+  for (int i=0; i<numPoints; i++)
+    data_Host[i] = data[i];
+  myArray;
+  cudaChannelFormatDesc channelDesc = 
+    cudaCreateChannelDesc(32,0,0,0,cudaChannelFormatKindFloat);
+  cudaMallocArray(&myArray, &channelDesc, numPoints);
+
+  cudaMemcpyToArray(myArray, 0, 0, data_Host, numPoints*sizeof(float), 
+		    cudaMemcpyHostToDevice);
+  myTex.addressMode[0] = cudaAddressModeClamp;
+  myTex.filterMode = cudaFilterModeLinear;
+  myTex.normalized = false;
+
+  cudaBindTextureToArray(shortTex, myArray, channelDesc);
+
+}
 
 
 template<typename T>
@@ -76,7 +107,7 @@ coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
   // Do diagonal blocks first
   for (int b=0; b<NB; b++) {
     for (int i=0; i<3; i++)
-      if ((3*b+i)*BS + tid < N)
+      if ((3*b+i)*BS + tid < 3*N)
 	r1[0][i*BS+tid] = myR[(3*b+i)*BS + tid];
     int ptcl1 = b*BS + tid;
     if (ptcl1 < N) {
@@ -89,7 +120,8 @@ coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
 	dz = r1[p2][2] - r1[tid][2];
 	T dist = min_dist(dx, dy, dz, L, Linv);
 	if (ptcl1 != ptcl2)
-	  mysum += tex1D(shortTex, nrm*dist+0.5);
+	  mysum += tex1D(shortTex, nrm*dist+0.5)/dist;
+	//	  mysum += dist;
       }
     }
   }
@@ -99,22 +131,22 @@ coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
   // Now do off-diagonal blocks
   for (int b1=0; b1<NB; b1++) {
     for (int i=0; i<3; i++)
-      if ((3*b1+i)*BS + tid < N)
+      if ((3*b1+i)*BS + tid < 3*N)
 	r1[0][i*BS+tid] = myR[(3*b1+i)*BS + tid];
     int ptcl1 = b1*BS + tid;
     if (ptcl1 < N) {
       for (int b2=b1+1; b2<NB; b2++) {
 	for (int i=0; i<3; i++)
-	  if ((3*b2+i)*BS + tid < N)
+	  if ((3*b2+i)*BS + tid < 3*N)
 	    r2[0][i*BS+tid] = myR[(3*b2+i)*BS + tid];
-	int end = (b2+1)*BS < N ? BS : N-b2*BS;
+	int end = ((b2+1)*BS < N) ? BS : (N-b2*BS);
 	for (int j=0; j<end; j++) {
 	  T dx, dy, dz;
 	  dx = r2[j][0] - r1[tid][0];
 	  dy = r2[j][1] - r1[tid][1];
 	  dz = r2[j][2] - r1[tid][2];
 	  T dist = min_dist(dx, dy, dz, L, Linv);
-	  mysum += tex1D(shortTex, nrm*dist+0.5);
+	  mysum += tex1D(shortTex, nrm*dist+0.5)/dist;
 	}
       }
     }
@@ -128,7 +160,7 @@ coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
     __syncthreads();
   }
   if (tid==0)
-    sum[blockIdx.x] = lastsum + shared_sum[0];
+    sum[blockIdx.x] = /* lastsum + */ shared_sum[0];
 }
 
 
@@ -144,6 +176,9 @@ CoulombAA_SR_Sum(float *R[], int N, float rMax, int Ntex,
   coulomb_AA_kernel<float,BS><<<dimGrid,dimBlock>>>
     (R, N, rMax, Ntex, lattice, latticeInv, sum);
 }
+
+
+#ifdef CUDA_COULOMB_TEST
 
 
 __global__ void
@@ -201,8 +236,10 @@ TestTexture()
 
 }
 
+
 main()
 {
   TestTexture();
 
 }
+#endif

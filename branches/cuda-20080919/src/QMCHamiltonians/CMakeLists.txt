@@ -24,7 +24,7 @@ ENDIF(OHMMS_DIM MATCHES 3)
 
 IF(QMC_CUDA)
    SET(HAMSRCS ${HAMSRCS}
-       Coulomb.cu 
+       CudaCoulomb.cu 
       )
 ENDIF(QMC_CUDA)
 

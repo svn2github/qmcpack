@@ -13,6 +13,7 @@
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
 #include "QMCHamiltonians/CoulombPBCAATemp.h"
+#include "QMCHamiltonians/CudaCoulomb.h"
 #include "Particle/DistanceTable.h"
 #include "Particle/DistanceTableData.h"
 #include "Utilities/ProgressReportEngine.h"
@@ -32,6 +33,18 @@ namespace qmcplusplus {
     initBreakup(ref);
     app_log() << "  Maximum K shell " << AA->MaxKshell << endl;
     app_log() << "  Number of k vectors " << AA->Fk.size() << endl;
+
+#ifdef QMC_CUDA
+    host_vector<CUDA_PRECISION> LHost(9), LinvHost(9);
+    for (int i=0; i<3; i++)
+      for (int j=0; j<3; j++) {
+	LHost[3*i+j]    = ref.Lattice.a(i)[j];
+	LinvHost[3*i+j] = ref.Lattice.b(i)[j];
+      }
+    L    = LHost;
+    Linv = LinvHost;
+
+#endif
 
     if(!is_active)
     {
@@ -230,6 +243,11 @@ namespace qmcplusplus {
       rVs = LRCoulombSingleton::createSpline4RbyVs(AA,myRcut,myGrid);
     }
 
+#ifdef QMC_CUDA
+    SRSpline.set(rVs->data(), rVs->size(), rVs->grid().rmin(), rVs->grid().rmax());
+#endif
+
+
   }
 
   CoulombPBCAATemp::Return_t
@@ -327,10 +345,31 @@ namespace qmcplusplus {
   CoulombPBCAATemp::addEnergy(vector<Walker_t*> &walkers, 
 			      vector<RealType> &LocalEnergy)
   {
-    
+    int nw = walkers.size();
+    int N = NumCenters;
+    if (RGPU.size() < OHMMS_DIM*nw*N) {
+      RGPU.resize(OHMMS_DIM*nw*N);   SumGPU.resize(nw);
+      RHost.resize(OHMMS_DIM*nw*N);  SumHost.resize(nw);
+      RlistGPU.resize(nw);
+      RlistHost.resize(nw);
+    }
+    for (int iw=0; iw<nw; iw++) {
+      RlistHost[iw] = &(RGPU[OHMMS_DIM*N*iw]);
+      for (int iat=0; iat<N; iat++)
+	for (int dim=0; dim<OHMMS_DIM; dim++)
+	  RHost[(iw*N+iat)*OHMMS_DIM + dim] = walkers[iw]->R[iat][dim];
+    }
+    RlistGPU = RlistHost;
+    RGPU = RHost;  
+    CoulombAA_SR_Sum(RlistGPU.data(), N, SRSpline.rMax, SRSpline.NumPoints, 
+		     L.data(), Linv.data(), SumGPU.data(), nw);
+    SumHost = SumGPU;
+    for (int iw=0; iw<walkers.size(); iw++) {
+      fprintf (stderr, "Energy = %18.6f\n", SumHost[iw]);
+      LocalEnergy[iw] += SumHost[iw];
+    }
 
   }
-
 }
 
 /***************************************************************************

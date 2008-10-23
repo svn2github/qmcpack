@@ -16,6 +16,7 @@
 #ifndef QMCPLUSPLUS_COULOMBPBCAA_TEMP_H
 #define QMCPLUSPLUS_COULOMBPBCAA_TEMP_H
 #include "QMCHamiltonians/QMCHamiltonianBase.h"
+#include "QMCHamiltonians/CudaCoulomb.h"
 #include "LongRange/LRCoulombSingleton.h"
 
 namespace qmcplusplus {
@@ -89,7 +90,16 @@ namespace qmcplusplus {
     Return_t evalLR(ParticleSet& P);
     Return_t evalConsts();
     Return_t evaluateForPbyP(ParticleSet& P);
-
+    
+    //////////////////////////////////
+    // Vectorized evaluation on GPU //
+    //////////////////////////////////
+    TextureSpline SRSpline;
+    cuda_vector<CUDA_PRECISION*> RlistGPU;
+    cuda_vector<CUDA_PRECISION>  RGPU, SumGPU;
+    cuda_vector<CUDA_PRECISION>  L, Linv;
+    host_vector<CUDA_PRECISION*> RlistHost;
+    host_vector<CUDA_PRECISION>  RHost, SumHost;
     void addEnergy(vector<Walker_t*> &walkers, 
 		   vector<RealType> &LocalEnergy);
   };
