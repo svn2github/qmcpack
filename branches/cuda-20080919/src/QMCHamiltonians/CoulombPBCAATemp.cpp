@@ -327,7 +327,7 @@ namespace qmcplusplus {
   CoulombPBCAATemp::addEnergy(vector<Walker_t*> &walkers, 
 			      vector<RealType> &LocalEnergy)
   {
-
+    
 
   }
 

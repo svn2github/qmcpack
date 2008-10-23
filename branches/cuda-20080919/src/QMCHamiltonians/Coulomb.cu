@@ -48,13 +48,24 @@ T min_dist (T& x, T& y, T& z,
 
 template<typename T, int BS>
 __global__ void
-coulomb_AA_kernel(T *R[], int N, int rMax, int Ntex,
+coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
 		  T lattice[], T latticeInv[], T sum[])
 {
   int tid = threadIdx.x;
   __shared__ T *myR;
-  if (tid == 0) 
+
+  __shared__ float lastsum;
+  if (tid == 0) {
     myR = R[blockIdx.x];
+    lastsum = sum[blockIdx.x];
+  }
+  __shared__ T L[3][3], Linv[3][3];
+  if (tid < 9) {
+    L[0][tid] = lattice[tid];
+    Linv[0][tid] = latticeInv[tid];
+  }
+
+  __syncthreads();
 
   T nrm = (T)(Ntex-1)/rMax;
   __shared__ float r1[BS][3], r2[BS][3];
@@ -68,24 +79,70 @@ coulomb_AA_kernel(T *R[], int N, int rMax, int Ntex,
       if ((3*b+i)*BS + tid < N)
 	r1[0][i*BS+tid] = myR[(3*b+i)*BS + tid];
     int ptcl1 = b*BS + tid;
-    int end = (b+1)*BS < N ? BS : N-b*BS;
-    for (int p2=0; p2<end; p2++) {
-      int ptcl2 = b*BS + p2;
-      T dx, dy, dz;
-      dx = r1[j][0] - r1[tid][0];
-      dy = r1[j][1] - r1[tid][1];
-      dz = r1[j][2] - r1[tid][2];
-      T dist = min_dist(dx, dy, dz, L, Linv);
-      if (ptcl1 != ptcl2 && (ptcl1 < N))
-	mysum += tex1D(shortTex, nrm*dist+0.5);
+    if (ptcl1 < N) {
+      int end = (b+1)*BS < N ? BS : N-b*BS;
+      for (int p2=0; p2<end; p2++) {
+	int ptcl2 = b*BS + p2;
+	T dx, dy, dz;
+	dx = r1[p2][0] - r1[tid][0];
+	dy = r1[p2][1] - r1[tid][1];
+	dz = r1[p2][2] - r1[tid][2];
+	T dist = min_dist(dx, dy, dz, L, Linv);
+	if (ptcl1 != ptcl2)
+	  mysum += tex1D(shortTex, nrm*dist+0.5);
+      }
     }
   }
-  // Avoid double-counting ont he diagonal blocks
+  // Avoid double-counting on the diagonal blocks
   mysum *= 0.5;
 
+  // Now do off-diagonal blocks
+  for (int b1=0; b1<NB; b1++) {
+    for (int i=0; i<3; i++)
+      if ((3*b1+i)*BS + tid < N)
+	r1[0][i*BS+tid] = myR[(3*b1+i)*BS + tid];
+    int ptcl1 = b1*BS + tid;
+    if (ptcl1 < N) {
+      for (int b2=b1+1; b2<NB; b2++) {
+	for (int i=0; i<3; i++)
+	  if ((3*b2+i)*BS + tid < N)
+	    r2[0][i*BS+tid] = myR[(3*b2+i)*BS + tid];
+	int end = (b2+1)*BS < N ? BS : N-b2*BS;
+	for (int j=0; j<end; j++) {
+	  T dx, dy, dz;
+	  dx = r2[j][0] - r1[tid][0];
+	  dy = r2[j][1] - r1[tid][1];
+	  dz = r2[j][2] - r1[tid][2];
+	  T dist = min_dist(dx, dy, dz, L, Linv);
+	  mysum += tex1D(shortTex, nrm*dist+0.5);
+	}
+      }
+    }
+  }
+  __shared__ T shared_sum[BS];
+  shared_sum[tid] = mysum;
+  __syncthreads();
+  for (int s=BS>>1; s>0; s >>=1) {
+    if (tid < s)
+      shared_sum[tid] += shared_sum[tid+s];
+    __syncthreads();
+  }
+  if (tid==0)
+    sum[blockIdx.x] = lastsum + shared_sum[0];
+}
 
 
+void
+CoulombAA_SR_Sum(float *R[], int N, float rMax, int Ntex,
+		 float lattice[], float latticeInv[], float sum[],
+		 int numWalkers)
+{
+  const int BS=32;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
 
+  coulomb_AA_kernel<float,BS><<<dimGrid,dimBlock>>>
+    (R, N, rMax, Ntex, lattice, latticeInv, sum);
 }
 
 

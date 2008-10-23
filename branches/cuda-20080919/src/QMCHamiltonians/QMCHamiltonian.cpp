@@ -170,7 +170,7 @@ QMCHamiltonian::evaluate(vector<Walker_t*> &walkers,
   {
     myTimers[i]->start();
     H[i]->addEnergy(walkers, LocalEnergyVector);
-    H[i]->setObservables(Observables);
+    //H[i]->setObservables(Observables);
     myTimers[i]->stop();
   }
   KineticEnergyVector=H[0]->ValueVector;
@@ -179,7 +179,7 @@ QMCHamiltonian::evaluate(vector<Walker_t*> &walkers,
   for(int i=0; i<auxH.size(); ++i)
   {
     auxH[i]->evaluate(walkers);
-    auxH[i]->setObservables(Observables);
+    //auxH[i]->setObservables(Observables);
   }
 }
 
