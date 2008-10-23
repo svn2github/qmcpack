@@ -89,6 +89,9 @@ namespace qmcplusplus {
     Return_t evalLR(ParticleSet& P);
     Return_t evalConsts();
     Return_t evaluateForPbyP(ParticleSet& P);
+
+    void addEnergy(vector<Walker_t*> &walkers, 
+		   vector<RealType> &LocalEnergy);
   };
 
 }

@@ -321,6 +321,16 @@ namespace qmcplusplus {
       else
         return new CoulombPBCAATemp(*this);//nothing needs to be re-evaluated
     }
+
+
+  void 
+  CoulombPBCAATemp::addEnergy(vector<Walker_t*> &walkers, 
+			      vector<RealType> &LocalEnergy)
+  {
+
+
+  }
+
 }
 
 /***************************************************************************
