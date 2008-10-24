@@ -74,9 +74,9 @@ namespace qmcplusplus {
   CoulombPBCAATemp::Return_t 
     CoulombPBCAATemp::evaluate(ParticleSet& P) 
     {
-      //      if(is_active) Value = evalLR(P)+evalSR(P)+myConst;
+      if(is_active) Value =  evalLR(P)+ evalSR(P) + myConst;
       // HACK HACK HACK
-      if(is_active) Value = evalLR(P);
+      // if(is_active) Value = evalLR(P);
       return Value;
     }
 
@@ -428,8 +428,8 @@ namespace qmcplusplus {
       int first = PtclRef.first(sp);
       int last  = PtclRef.last(sp)-1;
       eval_rhok_cuda(RlistGPU.data(), first, last, 
-		     kpointsGPU.data(), Numk, 
-		     RhoklistsGPU[sp].data(), walkers.size());
+    		     kpointsGPU.data(), Numk, 
+    		     RhoklistsGPU[sp].data(), walkers.size());
     }
 
 #ifdef DEBUG_CUDA_RHOK
@@ -456,15 +456,15 @@ namespace qmcplusplus {
     
     for (int sp1=0; sp1<NumSpecies; sp1++)
       for (int sp2=sp1; sp2<NumSpecies; sp2++) 
-	eval_vk_sum_cuda(RhoklistsGPU[sp1].data(), RhoklistsGPU[sp2].data(),
-			 FkGPU.data(), Numk, SumGPU.data(), nw);
+    	eval_vk_sum_cuda(RhoklistsGPU[sp1].data(), RhoklistsGPU[sp2].data(),
+    			 FkGPU.data(), Numk, SumGPU.data(), nw);
 
     SumHost = SumGPU;
     for (int iw=0; iw<walkers.size(); iw++) {
       // fprintf (stderr, "Energy = %18.6f\n", SumHost[iw]);
       walkers[iw]->getPropertyBase()[NUMPROPERTIES+myIndex] = 
-	SumHost[iw] ;//+ myConst;
-      LocalEnergy[iw] += SumHost[iw] ;//+ myConst;
+	SumHost[iw] + myConst;
+      LocalEnergy[iw] += SumHost[iw] + myConst;
     }
   }
 }

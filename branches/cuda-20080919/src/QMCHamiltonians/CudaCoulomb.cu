@@ -160,7 +160,7 @@ coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
     __syncthreads();
   }
   if (tid==0)
-    sum[blockIdx.x] = 0.0 * 0.5*shared_sum[0];
+    sum[blockIdx.x] = shared_sum[0];
 }
 
 
