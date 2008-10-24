@@ -174,6 +174,14 @@ QMCHamiltonian::evaluate(vector<Walker_t*> &walkers,
     myTimers[i]->stop();
   }
   KineticEnergyVector=H[0]->ValueVector;
+
+  for (int iw=0; iw<walkers.size(); iw++) {
+    walkers[iw]->getPropertyBase()[LOCALENERGY] = LocalEnergyVector[iw];
+    walkers[iw]->getPropertyBase()[LOCALPOTENTIAL] =
+      LocalEnergyVector[iw] - walkers[iw]->getPropertyBase()[NUMPROPERTIES];
+  }
+
+
   // P.PropertyList[LOCALENERGY]=LocalEnergy;
   // P.PropertyList[LOCALPOTENTIAL]=LocalEnergy-KineticEnergy;
   for(int i=0; i<auxH.size(); ++i)

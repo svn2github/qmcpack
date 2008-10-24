@@ -117,6 +117,14 @@ namespace qmcplusplus {
     void addEnergy(vector<Walker_t*> &walkers, 
 		   vector<RealType> &LocalEnergy)
     {
+      for (int iw=0; iw<walkers.size(); iw++) {
+	Walker_t &w = *(walkers[iw]);
+	double KE = 0.0;
+	for (int ptcl=0; ptcl<w.Grad.size(); ptcl++) 
+	  KE -= 0.5*(dot (w.Grad[ptcl],w.Grad[ptcl])  + w.Lap[ptcl]);
+	w.getPropertyBase()[NUMPROPERTIES+myIndex] = KE;
+	LocalEnergy[iw] += KE;
+      }
       //Psi.gradLapl(walkers, Gvector, Lvector);
     }
 

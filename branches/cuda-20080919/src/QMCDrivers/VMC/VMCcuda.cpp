@@ -113,9 +113,10 @@ namespace qmcplusplus {
 	  
 	}
 	double Energy = 0.0;
-	//H.evaluate (W.WalkerList, LocalEnergy);
-	H.saveProperty (W.WalkerList);
+	//H.saveProperty (W.WalkerList);
 	Psi.gradLapl(W.WalkerList, grad, lapl);
+	H.evaluate (W.WalkerList, LocalEnergy);
+	Estimators->accumulate(W);
 
 	for (int iw=0; iw<nw; iw++)
 	  for (int iat=0; iat<nat; iat++)
@@ -132,17 +133,19 @@ namespace qmcplusplus {
       // Psi.evaluateLog(W.WalkerList, logPsi);
       
       double accept_ratio = (double)nAccept/(double)(nAccept+nReject);
+      Estimators->stopBlock(accept_ratio);
+
       nAcceptTot += nAccept;
       nRejectTot += nReject;
       ++block;
-
+      
       recordBlock(block);
 
       clock_t block_end = clock();
       double block_time = (double)(block_end-block_start)/CLOCKS_PER_SEC;
-      fprintf (stderr, "Block energy = %10.5f    "
-	       "Block accept ratio = %5.3f  Block time = %8.3f\n",
-	       Esum/(double)nSteps, accept_ratio, block_time);
+      // fprintf (stderr, "Block energy = %10.5f    "
+      // 	       "Block accept ratio = %5.3f  Block time = %8.3f\n",
+      // 	       Esum/(double)nSteps, accept_ratio, block_time);
       
     } while(block<nBlocks);
 
@@ -175,6 +178,7 @@ namespace qmcplusplus {
     }
     vector<RealType> logPsi(W.WalkerList.size(), 0.0);
     Psi.evaluateLog(W.WalkerList, logPsi);
+    Estimators->start(nBlocks, true);
   }
 
   bool 
