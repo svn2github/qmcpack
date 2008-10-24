@@ -292,6 +292,20 @@ eval_rhok_cuda(float *R[], int numr, float kpoints[],
 }
 
 
+void
+eval_rhok_cuda(float *R[], int first, int last, float kpoints[], 
+	       int numk, float* rhok[], int numWalkers)
+{
+  const int BS=32;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  eval_rhok_kernel<float,BS><<<dimGrid,dimBlock>>>
+    (R, first, last, kpoints, numk, rhok);
+}
+
+
 template<typename T, int BS>
 __global__ void
 vk_sum_kernel(T *rhok[], T vk[], int numk,
@@ -313,7 +327,7 @@ vk_sum_kernel(T *rhok[], T vk[], int numk,
     if (2*b*BS + tid < 2*numk)
       rhok_s[tid] = myrhok[2*b*BS+tid];
     if ((2*b+1)*BS + tid < 2*numk)
-      rhok_s[tid] = myrhok[(2*b+1)*BS+tid];
+      rhok_s[BS+tid] = myrhok[(2*b+1)*BS+tid];
     __syncthreads();
 
     if (b*BS + tid < numk) 
@@ -323,6 +337,7 @@ vk_sum_kernel(T *rhok[], T vk[], int numk,
   
   __shared__ T shared_sum[BS];
   shared_sum[tid] = mysum;
+  __syncthreads();
   for (int s=(BS>>1); s>0; s >>= 1) {
     if (tid < s) 
       shared_sum[tid] += shared_sum[tid+s];
@@ -346,7 +361,6 @@ vk_sum_kernel2(T *rhok1[], T *rhok2[], T vk[], int numk,
     myrhok1 = rhok1[blockIdx.x];
     myrhok2 = rhok2[blockIdx.x];
   }
-
   __syncthreads();
   
   // Used to do coalesced global loads
@@ -360,8 +374,8 @@ vk_sum_kernel2(T *rhok1[], T *rhok2[], T vk[], int numk,
       rhok_s2[tid] = myrhok2[2*b*BS+tid];
     }
     if ((2*b+1)*BS + tid < 2*numk) {
-      rhok_s1[tid] = myrhok1[(2*b+1)*BS+tid]; 
-      rhok_s2[tid] = myrhok2[(2*b+1)*BS+tid]; 
+      rhok_s1[BS+tid] = myrhok1[(2*b+1)*BS+tid]; 
+      rhok_s2[BS+tid] = myrhok2[(2*b+1)*BS+tid]; 
     }
     __syncthreads();
 
@@ -372,15 +386,17 @@ vk_sum_kernel2(T *rhok1[], T *rhok2[], T vk[], int numk,
   
   __shared__ T shared_sum[BS];
   shared_sum[tid] = mysum;
+  __syncthreads();
   for (int s=(BS>>1); s>0; s >>= 1) {
     if (tid < s) 
       shared_sum[tid] += shared_sum[tid+s];
     __syncthreads();
   }
 
-  // Not sure if this 0.25 factor is correct.
+  T factor = (myrhok1 == myrhok2) ? 0.5f : 1.0f;
+
   if (tid == 0)
-    sum[blockIdx.x] += 0.25*shared_sum[0];
+    sum[blockIdx.x] += factor*shared_sum[0];
 }
 
 
@@ -390,7 +406,7 @@ void
 eval_vk_sum_cuda (float *rhok[], float vk[], int numk, float sum[],
 		  int numWalkers)
 {
-  const int BS=32;
+  const int BS=64;
 
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
@@ -404,7 +420,7 @@ eval_vk_sum_cuda (float *rhok1[], float *rhok2[],
 		  float vk[], int numk, float sum[],
 		  int numWalkers)
 {
-  const int BS=32;
+  const int BS=64;
 
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);

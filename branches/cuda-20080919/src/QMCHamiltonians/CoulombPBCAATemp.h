@@ -110,8 +110,8 @@ namespace qmcplusplus {
     cuda_vector<CUDA_PRECISION> FkGPU;
     // The first vector index is the species number
     // Complex, stored as float2
-    cuda_vector<CUDA_PRECISION*> RhoklistGPU;
-    host_vector<CUDA_PRECISION*> RhoklistHost;
+    vector<cuda_vector<CUDA_PRECISION*> > RhoklistsGPU;
+    vector<host_vector<CUDA_PRECISION*> > RhoklistsHost;
     cuda_vector<CUDA_PRECISION> RhokGPU;
     void setupLongRangeGPU(ParticleSet &P);
     void addEnergy(vector<Walker_t*> &walkers, 

@@ -382,11 +382,13 @@ namespace qmcplusplus {
   CoulombPBCAATemp::addEnergy(vector<Walker_t*> &walkers, 
 			      vector<RealType> &LocalEnergy)
   {
+    // Short-circuit for constant contribution (e.g. fixed ions)
     if (!is_active) {
       for (int iw=0; iw<walkers.size(); iw++) {
 	walkers[iw]->getPropertyBase()[NUMPROPERTIES+myIndex] = Value;
 	LocalEnergy[iw] += Value;
       }
+      return;
     }
 
     int nw = walkers.size();
@@ -394,19 +396,26 @@ namespace qmcplusplus {
     if (RGPU.size() < OHMMS_DIM*nw*N) {
       RGPU.resize(OHMMS_DIM*nw*N);   
       SumGPU.resize(nw);
-      RhokGPU.resize(2*nw*Numk);
+      RhokGPU.resize(2*nw*Numk*NumSpecies);
       RHost.resize(OHMMS_DIM*nw*N);  SumHost.resize(nw);
       RlistGPU.resize(nw);           RlistHost.resize(nw);
-      RhoklistGPU.resize(nw);        RhoklistHost.resize(nw);  
+      RhoklistsGPU.resize(NumSpecies);
+      RhoklistsHost.resize(NumSpecies);
+      for (int sp=0; sp<NumSpecies; sp++) {
+	RhoklistsGPU[sp].resize(nw);
+	RhoklistsHost[sp].resize(nw);
+      }
     }
     for (int iw=0; iw<nw; iw++) {
+      for (int sp=0; sp<NumSpecies; sp++) 
+	RhoklistsHost[sp][iw] = &(RhokGPU[2*nw*Numk*sp + 2*Numk*iw]);
       RlistHost[iw] = &(RGPU[OHMMS_DIM*N*iw]);
-      RhoklistHost[iw] = &(RhokGPU[2*Numk*iw]);
       for (int iat=0; iat<N; iat++)
 	for (int dim=0; dim<OHMMS_DIM; dim++)
 	  RHost[(iw*N+iat)*OHMMS_DIM + dim] = walkers[iw]->R[iat][dim];
     }
-    RhoklistGPU = RhoklistHost;
+    for (int sp=0; sp<NumSpecies; sp++)
+      RhoklistsGPU[sp] = RhoklistsHost[sp];
     RlistGPU = RlistHost;
     RGPU = RHost;  
 
@@ -415,8 +424,13 @@ namespace qmcplusplus {
      		     L.data(), Linv.data(), SumGPU.data(), nw);
     
     // Now, do long-range part:
-    eval_rhok_cuda(RlistGPU.data(), N, kpointsGPU.data(), Numk, 
-    		   RhoklistGPU.data(), walkers.size());
+    for (int sp=0; sp<NumSpecies; sp++) {
+      int first = PtclRef.first(sp);
+      int last  = PtclRef.last(sp)-1;
+      eval_rhok_cuda(RlistGPU.data(), first, last, 
+		     kpointsGPU.data(), Numk, 
+		     RhoklistsGPU[sp].data(), walkers.size());
+    }
 
 #ifdef DEBUG_CUDA_RHOK
     host_vector<CUDA_PRECISION> RhokHost;
@@ -432,16 +446,18 @@ namespace qmcplusplus {
     	rhok += complex<double>(c,s);
       }
 
-
+      
       fprintf (stderr, "GPU:   %d   %14.6f  %14.6f\n", 
     	       ik, RhokHost[2*ik+0], RhokHost[2*ik+1]);
       fprintf (stderr, "CPU:   %d   %14.6f  %14.6f\n", 
     	       ik, rhok.real(), rhok.imag());
     }
 #endif
-
-    eval_vk_sum_cuda(RhoklistGPU.data(), FkGPU.data(), Numk,
-     		     SumGPU.data(), nw);
+    
+    for (int sp1=0; sp1<NumSpecies; sp1++)
+      for (int sp2=sp1; sp2<NumSpecies; sp2++) 
+	eval_vk_sum_cuda(RhoklistsGPU[sp1].data(), RhoklistsGPU[sp2].data(),
+			 FkGPU.data(), Numk, SumGPU.data(), nw);
 
     SumHost = SumGPU;
     for (int iw=0; iw<walkers.size(); iw++) {
@@ -450,10 +466,8 @@ namespace qmcplusplus {
 	SumHost[iw] ;//+ myConst;
       LocalEnergy[iw] += SumHost[iw] ;//+ myConst;
     }
-
   }
 }
-
 /***************************************************************************
  * $RCSfile$   $Author$
  * $Revision$   $Date$
