@@ -160,7 +160,7 @@ coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
     __syncthreads();
   }
   if (tid==0)
-    sum[blockIdx.x] = /* lastsum + */ shared_sum[0];
+    sum[blockIdx.x] = 0.0 * 0.5*shared_sum[0];
 }
 
 
@@ -176,6 +176,243 @@ CoulombAA_SR_Sum(float *R[], int N, float rMax, int Ntex,
   coulomb_AA_kernel<float,BS><<<dimGrid,dimBlock>>>
     (R, N, rMax, Ntex, lattice, latticeInv, sum);
 }
+
+
+template<typename T, int BS>
+__global__ void
+eval_rhok_kernel (T *R[], int numr,
+		  T kpoints[], int numk, T* rhok[])
+{
+  int tid = threadIdx.x;
+  __shared__ float r[BS][3], k[BS][3], *myR, *myrhok;
+  if (tid == 0) {
+    myR    =    R[blockIdx.x];
+    myrhok = rhok[blockIdx.x];
+  }
+  __syncthreads();
+  
+  int NrBlock = numr/BS + ((numr%BS) ? 1 : 0);
+  int NkBlock = numk/BS + ((numk%BS) ? 1 : 0);
+  __shared__ float rhok_re[BS], rhok_im[BS], rhok_s[2*BS];
+  
+  for (int kBlock=0; kBlock<NkBlock; kBlock++) {
+    for (int i=0; i<3; i++)
+      if ((i+3*kBlock)*BS + tid < 3*numk)
+	k[0][BS*i+tid] = kpoints[(i+3*kBlock)*BS+tid];
+    rhok_re[tid] = rhok_im[tid] = 0.0f;
+    for (int rBlock=0; rBlock<NrBlock; rBlock++) {
+      for (int i=0; i<3; i++)
+	if ((i+3*rBlock)*BS + tid < 3*numr)
+	  r[0][BS*i+tid] = myR[(i+3*rBlock)*BS+tid];
+      int end = ((rBlock+1)*BS < numr) ? BS : (numr-rBlock*BS);
+      for (int j=0; j<end; j++) {
+	T phase = (k[tid][0] * r[j][0] +
+		   k[tid][1] * r[j][1] + 
+		   k[tid][2] * r[j][2]);
+	float s,c;
+	__sincosf (phase, &s, &c);
+	rhok_im[tid] += s;
+	rhok_re[tid] += c;
+      }
+    }
+    // Write rhok to global memory
+    rhok_s[2*tid+0] = rhok_re[tid];
+    rhok_s[2*tid+1] = rhok_im[tid];
+    __syncthreads();
+    if (2*(kBlock*BS)+tid < 2*numk)
+      myrhok[2*(kBlock*BS)+tid] = rhok_s[tid];
+    if (2*(kBlock*BS)+tid+BS < 2*numk)
+      myrhok[2*(kBlock*BS)+tid+BS] = rhok_s[tid+BS];
+  }
+}
+
+
+template<typename T, int BS>
+__global__ void
+eval_rhok_kernel (T *R[], int first, int last,
+		  T kpoints[], int numk, T* rhok[])
+{
+  int tid = threadIdx.x;
+  int numr = last-first+1;
+  __shared__ float r[BS][3], k[BS][3], *myR, *myrhok;
+  if (tid == 0) {
+    myR    =    R[blockIdx.x];
+    myrhok = rhok[blockIdx.x];
+  }
+  __syncthreads();
+  
+  int NrBlock = numr/BS + ((numr%BS) ? 1 : 0);
+  int NkBlock = numk/BS + ((numk%BS) ? 1 : 0);
+  __shared__ float rhok_re[BS], rhok_im[BS], rhok_s[2*BS];
+  
+  for (int kBlock=0; kBlock<NkBlock; kBlock++) {
+    for (int i=0; i<3; i++)
+      if ((i+3*kBlock)*BS + tid < 3*numk)
+	k[0][BS*i+tid] = kpoints[(i+3*kBlock)*BS+tid];
+    rhok_re[tid] = rhok_im[tid] = 0.0f;
+    for (int rBlock=0; rBlock<NrBlock; rBlock++) {
+      for (int i=0; i<3; i++)
+	if ((i+3*rBlock)*BS + tid < 3*numr)
+	  r[0][BS*i+tid] = myR[3*first+(i+3*rBlock)*BS+tid];
+      int end = ((rBlock+1)*BS < numr) ? BS : (numr-rBlock*BS);
+      for (int j=0; j<end; j++) {
+	T phase = (k[tid][0] * r[j][0] +
+		   k[tid][1] * r[j][1] + 
+		   k[tid][2] * r[j][2]);
+	float s,c;
+	__sincosf (phase, &s, &c);
+	rhok_im[tid] += s;
+	rhok_re[tid] += c;
+      }
+    }
+    // Write rhok to global memory
+    rhok_s[2*tid+0] = rhok_re[tid];
+    rhok_s[2*tid+1] = rhok_im[tid];
+    __syncthreads();
+    if (2*(kBlock*BS)+tid < 2*numk)
+      myrhok[2*(kBlock*BS)+tid] = rhok_s[tid];
+    if (2*(kBlock*BS)+tid+BS < 2*numk)
+      myrhok[2*(kBlock*BS)+tid+BS] = rhok_s[tid+BS];
+  }
+}
+
+
+
+void
+eval_rhok_cuda(float *R[], int numr, float kpoints[], 
+	       int numk, float* rhok[], int numWalkers)
+{
+  const int BS=32;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  eval_rhok_kernel<float,BS><<<dimGrid,dimBlock>>>
+    (R, numr, kpoints, numk, rhok);
+}
+
+
+template<typename T, int BS>
+__global__ void
+vk_sum_kernel(T *rhok[], T vk[], int numk,
+	      T sum[])
+{
+  int tid = threadIdx.x;
+  __shared__ float *myrhok;
+  if (tid == 0) 
+    myrhok = rhok[blockIdx.x];
+
+  __syncthreads();
+  
+  // Used to do coalesced global loads
+  __shared__ T rhok_s[2*BS];
+
+  int NB = numk/BS + ((numk%BS) ? 1 : 0);
+  T mysum = 0.0f;
+  for (int b=0; b<NB; b++) {
+    if (2*b*BS + tid < 2*numk)
+      rhok_s[tid] = myrhok[2*b*BS+tid];
+    if ((2*b+1)*BS + tid < 2*numk)
+      rhok_s[tid] = myrhok[(2*b+1)*BS+tid];
+    __syncthreads();
+
+    if (b*BS + tid < numk) 
+      mysum += vk[b*BS+tid] * (rhok_s[2*tid+0]*rhok_s[2*tid+0] +
+			       rhok_s[2*tid+1]*rhok_s[2*tid+1]);
+  }
+  
+  __shared__ T shared_sum[BS];
+  shared_sum[tid] = mysum;
+  for (int s=(BS>>1); s>0; s >>= 1) {
+    if (tid < s) 
+      shared_sum[tid] += shared_sum[tid+s];
+    __syncthreads();
+  }
+
+  // Not sure if this 0.25 factor is correct.
+  if (tid == 0)
+    sum[blockIdx.x] += 0.25*shared_sum[0];
+}
+
+
+template<typename T, int BS>
+__global__ void
+vk_sum_kernel2(T *rhok1[], T *rhok2[], T vk[], int numk,
+	      T sum[])
+{
+  int tid = threadIdx.x;
+  __shared__ float *myrhok1, *myrhok2;
+  if (tid == 0) {
+    myrhok1 = rhok1[blockIdx.x];
+    myrhok2 = rhok2[blockIdx.x];
+  }
+
+  __syncthreads();
+  
+  // Used to do coalesced global loads
+  __shared__ T rhok_s1[2*BS], rhok_s2[2*BS];
+
+  int NB = numk/BS + ((numk%BS) ? 1 : 0);
+  T mysum = 0.0f;
+  for (int b=0; b<NB; b++) {
+    if (2*b*BS + tid < 2*numk) {
+      rhok_s1[tid] = myrhok1[2*b*BS+tid];
+      rhok_s2[tid] = myrhok2[2*b*BS+tid];
+    }
+    if ((2*b+1)*BS + tid < 2*numk) {
+      rhok_s1[tid] = myrhok1[(2*b+1)*BS+tid]; 
+      rhok_s2[tid] = myrhok2[(2*b+1)*BS+tid]; 
+    }
+    __syncthreads();
+
+    if (b*BS + tid < numk) 
+      mysum += vk[b*BS+tid] * (rhok_s1[2*tid+0]*rhok_s2[2*tid+0] +
+			       rhok_s1[2*tid+1]*rhok_s2[2*tid+1]);
+  }
+  
+  __shared__ T shared_sum[BS];
+  shared_sum[tid] = mysum;
+  for (int s=(BS>>1); s>0; s >>= 1) {
+    if (tid < s) 
+      shared_sum[tid] += shared_sum[tid+s];
+    __syncthreads();
+  }
+
+  // Not sure if this 0.25 factor is correct.
+  if (tid == 0)
+    sum[blockIdx.x] += 0.25*shared_sum[0];
+}
+
+
+
+
+void
+eval_vk_sum_cuda (float *rhok[], float vk[], int numk, float sum[],
+		  int numWalkers)
+{
+  const int BS=32;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  vk_sum_kernel<float,BS><<<dimGrid,dimBlock>>>
+    (rhok, vk, numk, sum);
+}
+
+void
+eval_vk_sum_cuda (float *rhok1[], float *rhok2[], 
+		  float vk[], int numk, float sum[],
+		  int numWalkers)
+{
+  const int BS=32;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  vk_sum_kernel2<float,BS><<<dimGrid,dimBlock>>>
+    (rhok1, rhok2, vk, numk, sum);
+}
+
 
 
 #ifdef CUDA_COULOMB_TEST

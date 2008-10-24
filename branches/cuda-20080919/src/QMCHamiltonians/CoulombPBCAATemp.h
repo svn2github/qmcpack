@@ -35,6 +35,7 @@ namespace qmcplusplus {
     LRHandlerType* AA;
     GridType* myGrid;
     RadFunctorType* rVs;
+    ParticleSet& PtclRef;
 
     bool is_active;
     bool FirstTime;
@@ -94,12 +95,25 @@ namespace qmcplusplus {
     //////////////////////////////////
     // Vectorized evaluation on GPU //
     //////////////////////////////////
+    //// Short-range part
     TextureSpline SRSpline;
     cuda_vector<CUDA_PRECISION*> RlistGPU;
     cuda_vector<CUDA_PRECISION>  RGPU, SumGPU;
     cuda_vector<CUDA_PRECISION>  L, Linv;
-    host_vector<CUDA_PRECISION*> RlistHost;
     host_vector<CUDA_PRECISION>  RHost, SumHost;
+    host_vector<CUDA_PRECISION*> RlistHost;
+    //// Long-range part
+    int Numk;
+    cuda_vector<CUDA_PRECISION> kpointsGPU;
+    cuda_vector<int>            kshellGPU;
+    // This has the same lengths as KshellGPU
+    cuda_vector<CUDA_PRECISION> FkGPU;
+    // The first vector index is the species number
+    // Complex, stored as float2
+    cuda_vector<CUDA_PRECISION*> RhoklistGPU;
+    host_vector<CUDA_PRECISION*> RhoklistHost;
+    cuda_vector<CUDA_PRECISION> RhokGPU;
+    void setupLongRangeGPU(ParticleSet &P);
     void addEnergy(vector<Walker_t*> &walkers, 
 		   vector<RealType> &LocalEnergy);
   };
