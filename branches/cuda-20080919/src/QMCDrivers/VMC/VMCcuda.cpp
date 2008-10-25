@@ -65,6 +65,7 @@ namespace qmcplusplus {
       nAccept = nReject = 0;
       Esum = 0.0;
       clock_t block_start = clock();
+      Estimators->stopBlock(nSteps);
       do
       {
         ++step;++CurrentStep;

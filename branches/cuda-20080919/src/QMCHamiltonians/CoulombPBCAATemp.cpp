@@ -363,18 +363,6 @@ namespace qmcplusplus {
 	FkHost[ik] = AA->Fk[ik];
       FkGPU = FkHost;
       
-      // Setup kshells and Fk
-      // int numShells = SK.KLists.kshell.size()-1;
-      // kshellGPU.resize(numShells);
-      // FkGPU.resize(numShells);
-      // host_vector<int> kshellHost(numShells);
-      // host_vector<CUDA_PRECISION> FkHost(numShells);
-      // for (int i=0; i<numShells; i++) {
-      // 	kshellHost[i] = SK.KLists.kshell[i+1];
-      // 	FkHost[i]     = AA->Fk_symm[i];
-      // }
-      // kshellGPU = kshellHost;
-      // FkGPU     = FkHost;
     }
   }
 

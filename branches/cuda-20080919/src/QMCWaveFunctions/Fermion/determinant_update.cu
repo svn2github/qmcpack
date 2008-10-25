@@ -541,6 +541,93 @@ calc_all_ratios (float *Ainv_list[], float *new_mat_list[],
 }
 
 
+const int MAX_RATIO_ROWS = 20;
+
+template<typename T, int BS>
+__global__ void
+calc_many_ratios_kernel (T *Ainv_list[], T *new_row_list[],
+			 T* ratio_list[], int num_ratio_list[],
+			 int N, int row_stride, int elec_list[])
+{
+  int tid = threadIdx.x;
+
+  __shared__ T *Ainv, *new_rows, *ratios;
+  __shared__ int num_ratios, elec;
+  if (tid == 0) {
+    Ainv = Ainv_list[blockIdx.x];
+    new_rows = new_row_list[blockIdx.x];
+    num_ratios = num_ratio_list[blockIdx.x];
+    ratios   = ratio_list[blockIdx.x];
+    elec = elec_list[blockIdx.x];
+  }
+  __syncthreads();
+
+  int NB = N/BS + ((N*BS) ? 1 : 0);
+  __shared__ T Ainv_shared[BS], row[BS];
+  // We use BS+1 to avoid bank conflicts in the writing.
+  __shared__ T ratio_sum[MAX_RATIO_ROWS][BS+1];
+  for (int iratio=0; iratio<num_ratios; iratio++)
+    ratio_sum[iratio][BS] = 0.0f;
+
+  for (int block=0; block<NB; block++) {
+    int off = block*BS+tid;
+    bool mask = off < N;
+    if (mask)
+      Ainv_shared[tid] = Ainv[tid*row_stride+elec];
+    for (int iratio=0; iratio<num_ratios; iratio++) 
+      if (mask)
+	ratio_sum[iratio][tid] += Ainv_shared[tid] *
+	  new_rows[iratio*row_stride + off];
+
+  }
+  __syncthreads();
+  // now, sum up ratios
+  for (int iratio = 0; iratio<num_ratios; iratio++) {
+    for (int s=BS>>1; s>0; s>>=1) {
+      if (tid < s)
+	ratio_sum[iratio][tid] += ratio_sum[iratio][tid+s];
+      __syncthreads();
+    }
+  }
+  if (tid < num_ratios) 
+    ratios[tid] = ratio_sum[tid][0];
+}    
+  
+void
+calc_many_ratios (float *Ainv_list[], float *new_row_list[],
+		  float* ratio_list[], int num_ratio_list[],
+		  int N, int row_stride, int elec_list[],
+		  int numWalkers)
+{
+  const int BS=32;
+  
+  dim3 dimBlock(BS);
+  dim3 dimGrid (numWalkers);
+  
+  calc_many_ratios_kernel<float,BS><<<dimGrid,dimBlock>>>
+    (Ainv_list, new_row_list, ratio_list, num_ratio_list,
+     N, row_stride, elec_list);
+}
+
+void
+calc_many_ratios (double *Ainv_list[], double *new_row_list[],
+		  double* ratio_list[], int num_ratio_list[],
+		  int N, int row_stride, int elec_list[],
+		  int numWalkers)
+{
+  const int BS=32;
+  
+  dim3 dimBlock(BS);
+  dim3 dimGrid (numWalkers);
+  
+  calc_many_ratios_kernel<double,BS><<<dimGrid,dimBlock>>>
+    (Ainv_list, new_row_list, ratio_list, num_ratio_list,
+     N, row_stride, elec_list);
+}
+
+
+
+
 #define SCALE_BS 64
 
 __constant__ float GGt[3][3];

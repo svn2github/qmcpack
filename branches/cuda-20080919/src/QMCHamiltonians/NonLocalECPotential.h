@@ -61,6 +61,12 @@ namespace qmcplusplus {
     void add(int groupID, NonLocalECPComponent* pp);
 
     void setRandomGenerator(RandomGenerator_t* rng);
+
+    //////////////////////////////////
+    // Vectorized evaluation on GPU //
+    //////////////////////////////////
+    void addEnergy(vector<Walker_t*> &walkers, vector<RealType> &LocalEnergy);
+
   };
 }
 #endif

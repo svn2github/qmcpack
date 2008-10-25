@@ -120,6 +120,14 @@ namespace qmcplusplus {
     //  ++pit;
     //}
   }
+
+  void NonLocalECPotential::addEnergy(vector<Walker_t*> &walkers, 
+				      vector<RealType> &LocalEnergy)
+  {
+
+
+  }
+
 }
 /***************************************************************************
  * $RCSfile$   $Author$

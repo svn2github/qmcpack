@@ -12,8 +12,6 @@ TextureSpline::set(double data[], int numPoints,
 {
   rMin = rmin;
   rMax = rmax;
-  std::cerr << "numPoints = " << numPoints << endl;
-  std::cerr << "rMax = " << rMax << endl;
   NumPoints = numPoints;
   float data_Host[numPoints];
   for (int i=0; i<numPoints; i++)
