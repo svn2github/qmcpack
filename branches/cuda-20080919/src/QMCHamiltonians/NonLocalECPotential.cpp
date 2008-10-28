@@ -124,7 +124,8 @@ namespace qmcplusplus {
   void NonLocalECPotential::addEnergy(vector<Walker_t*> &walkers, 
 				      vector<RealType> &LocalEnergy)
   {
-
+    // First, we need to determine which ratios need to be updated
+    
 
   }
 
