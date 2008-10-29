@@ -32,6 +32,12 @@
  */
 namespace qmcplusplus {
 
+  struct NLjob {
+    int walker;
+    int elec;
+    int numQuadPoints;
+  };
+
   ///forward declaration of OrbitalBase
   class OrbitalBase;
   ///forward declaration of DiffOrbitalBase
@@ -361,6 +367,14 @@ namespace qmcplusplus {
     update (vector<Walker_t*> &walkers, int iat)
     {
       app_error() << "Need specialization of OrbitalBase::update.\n";
+      abort();
+    }
+
+    virtual void 
+    NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+	      vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
+    {
+      app_error() << "Need specialization of OrbitalBase::NLRatios.\n";
       abort();
     }
 

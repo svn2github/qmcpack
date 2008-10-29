@@ -155,8 +155,8 @@ namespace qmcplusplus {
 		vector<ValueType> &psi_ratios,
 		vector<GradType> &newG,
 		vector<ValueType> &newL);
-    void NLratios (vector<Walker_t*> &walkers);
-		   
+    void NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
 
     // Returns the WF ratio and gradient w.r.t. iat for each walker
     // in the respective vectors

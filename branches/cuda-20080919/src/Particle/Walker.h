@@ -146,6 +146,7 @@ namespace qmcplusplus {
       Drift = a.Drift;
       Properties.copy(a.Properties);
       DataSet=a.DataSet;
+      cuda_DataSet = a.cuda_DataSet;
     }
 
     //return the address of the values of Hamiltonian terms

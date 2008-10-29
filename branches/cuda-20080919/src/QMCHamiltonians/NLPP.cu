@@ -17,7 +17,6 @@ T min_dist (T x, T y, T z,
   z = L[2][0]*u0 + L[2][1]*u1 + L[2][2]*u2;
 
   __shared__ T dist2[27];
-  dist2[tid] = 1.0e8;
   if (tid < 27) {
     x += images[tid][0];
     y += images[tid][1];
@@ -26,8 +25,8 @@ T min_dist (T x, T y, T z,
   }
   __syncthreads();
   for (int s=BS>>1; s>0; s>>=1) {
-    if (tid < s)
-      dist2[tid] = (dist2[tid+s] < dist2[tid]) ? dist2[tid+s] : dist2[tid];
+    if (tid < s && (tid+s) < 27)
+      dist2[tid] = min(dist2[tid+s],dist2[tid]);// ? dist2[tid+s] : dist2[tid];
     __syncthreads();
   }
 
@@ -41,7 +40,7 @@ template<typename T, int BS>
 __global__ void
 find_core_electrons_kernel(T *R[], int numElec,
 			   T I[], int firstIon, int lastIon,
-			   T rcut, T L[3][3], T Linv[3][3],
+			   T rcut, T L_global[], T Linv_global[],
 			   int2 *pairs[], T *dist[], int numPairs[])
 {
   int tid = threadIdx.x;
@@ -53,6 +52,13 @@ find_core_electrons_kernel(T *R[], int numElec,
     mydist  =  dist[blockIdx.x];
     mypairs = pairs[blockIdx.x];
   }
+  __shared__ T L[3][3], Linv[3][3];
+  if (tid < 9) {
+    L[0][tid] = L_global[tid];
+    Linv[0][tid] = Linv_global[tid];
+  }
+
+  __syncthreads();
 
   int i0 = tid / 9;
   int i1 = (tid - 9*i0)/3;
@@ -97,8 +103,9 @@ find_core_electrons_kernel(T *R[], int numElec,
 		blockpairs[index].x = iBlock*BS+ion;
 		blockpairs[index].y = eBlock*BS+elec;
 		blockdist[index]    = dist;
-		index++;
+		//blockdist[index]    = L[0][1];
 	      }
+	      index++;
 	    }
 	    else {
 	      mypairs[blockNum*BS+tid] = blockpairs[tid];
@@ -126,7 +133,7 @@ find_core_electrons_kernel(T *R[], int numElec,
 void
 find_core_electrons (float *R[], int numElec, 
 		     float I[], int firstIon, int lastIon,
-		     float rcut, float L[3][3], float Linv[3][3], 
+		     float rcut, float L[], float Linv[], 
 		     int2 *pairs[], float *dist[], 
 		     int numPairs[], int numWalkers)
 {
@@ -139,25 +146,69 @@ find_core_electrons (float *R[], int numElec,
     (R, numElec, I, firstIon, lastIon, rcut, L, Linv, pairs, dist, numPairs);
 }
 
+void
+find_core_electrons (double *R[], int numElec, 
+		     double I[], int firstIon, int lastIon,
+		     double rcut, double L[], double Linv[], 
+		     int2 *pairs[], double *dist[], 
+		     int numPairs[], int numWalkers)
+{
+  const int BS = 32;
+  
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+  
+  find_core_electrons_kernel<double,BS><<<dimGrid,dimBlock>>> 
+    (R, numElec, I, firstIon, lastIon, rcut, L, Linv, pairs, dist, numPairs);
+}
+
 
 
 // Maximum quadrature points of 32;
 
+
+// This kernel assumes that the pair are sorted according to ion
+// number
 template<typename T, int BS>
 __global__ void
-make_work_list_kernel (int2 *pairs[], int numpairs,
-		       T I[], T quadpoints[], int numquadpoints,
+make_work_list_kernel (int2 *pairs[], T *dist[], int numPairs[],
+		       T I[], int numIons, T quadPoints[], int numQuadPoints,
 		       T *ratio_pos[])
 {
   __shared__ T qp[BS][3];
-  
+  __shared__ T *myPairs, *myDist, *myRatioPos;
+  __shared__ int np;
   int tid = threadIdx.x;
+  if (tid == 0) {
+    myPairs = pairs[blockIdx.x];
+    myDist =   dist[blockIdx.x];
+    myRatioPos = ratio_pos[blockIdx.x];
+    np = numPairs[blockIdx.x];
+  }
+
   for (int i=0; i<3; i++)
-    if (tid*i*BS < 3*BS)
-      qp[0][i*BS + tid] = quadpoints[i*BS + tid];
+    if (i*BS+tid < 3*numQuadPoints)
+      qp[0][i*BS + tid] = quadPoints[i*BS + tid];
   __syncthreads();
 
-  
+  __shared__ int2 sharedPairs[BS];
+  __shared__ T i[BS][3];
 
-
+  int iBlock = 0;
+  int numPairBlocks = np/BS + ((np % BS) ? 1 : 0);
+  for (int pairBlock=0; pairBlock<numPairBlocks; pairBlock++) {
+    if (pairBlock*BS + tid < np)
+      sharedPairs[tid] = myPairs[pairBlock*BS+tid];
+    int end = ((pairBlock+1)*BS < np) ? BS : (np - pairBlock*BS);
+    for (int ip=0; ip<end; ip++) {
+      if (iBlock*BS < sharedPairs[ip].x) {
+	while ((iBlock++*BS) < sharedPairs[ip].x);
+	for (int dim=0; dim<3; dim++) 
+	  if (dim*BS+tid < 3*numIons)
+	    i[0][dim*BS+tid] = I[3*BS*iBlock + dim*BS+tid];
+      }
+      
+      
+    }
+  }
 }

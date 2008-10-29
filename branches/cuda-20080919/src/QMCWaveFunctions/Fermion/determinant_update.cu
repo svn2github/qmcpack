@@ -589,6 +589,7 @@ calc_many_ratios_kernel (T *Ainv_list[], T *new_row_list[],
       __syncthreads();
     }
   }
+  // Store sums in parallel
   if (tid < num_ratios) 
     ratios[tid] = ratio_sum[tid][0];
 }    

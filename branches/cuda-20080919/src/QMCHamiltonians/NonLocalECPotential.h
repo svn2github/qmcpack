@@ -65,6 +65,21 @@ namespace qmcplusplus {
     //////////////////////////////////
     // Vectorized evaluation on GPU //
     //////////////////////////////////
+    int NumIonGroups;
+    vector<int> IonFirst, IonLast;
+    cuda_vector<CUDA_PRECISION> Ions_GPU, L, Linv;
+    host_vector<CUDA_PRECISION> R_host;
+    cuda_vector<CUDA_PRECISION> R_GPU;
+    host_vector<CUDA_PRECISION*> Rlist_host;
+    cuda_vector<CUDA_PRECISION*> Rlist_GPU;
+    cuda_vector<int2> Pairs_GPU;
+    cuda_vector<CUDA_PRECISION> Dist_GPU;
+    cuda_vector<int2*> Pairlist_GPU;
+    cuda_vector<CUDA_PRECISION*> Distlist_GPU;
+    cuda_vector<int> NumPairs_GPU;
+    int NumElecs;
+
+    void setupCuda(ParticleSet &elecs);
     void addEnergy(vector<Walker_t*> &walkers, vector<RealType> &LocalEnergy);
 
   };
