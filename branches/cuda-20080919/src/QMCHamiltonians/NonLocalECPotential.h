@@ -89,8 +89,10 @@ namespace qmcplusplus {
     // Quadrature points
     vector<cuda_vector<CUDA_PRECISION> > QuadPoints_GPU;
     vector<host_vector<CUDA_PRECISION> > QuadPoints_host;
+    int CurrentNumWalkers;
 
     void setupCuda(ParticleSet &elecs);
+    void resizeCuda(int nw);
     void addEnergy(vector<Walker_t*> &walkers, vector<RealType> &LocalEnergy);
 
   };

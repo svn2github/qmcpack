@@ -34,7 +34,9 @@ namespace qmcplusplus {
    *\param psi trial wavefunction
    */
   NonLocalECPotential::NonLocalECPotential(ParticleSet& ions, ParticleSet& els,
-      TrialWaveFunction& psi): IonConfig(ions), d_table(0), Psi(psi)
+					   TrialWaveFunction& psi) : 
+    IonConfig(ions), d_table(0), Psi(psi), CurrentNumWalkers(0)
+								    
   { 
     d_table = DistanceTable::add(ions,els);
     NumIons=ions.getTotalNum();
@@ -156,13 +158,57 @@ namespace qmcplusplus {
     }
     Ions_GPU = Ion_host;
 
+  }
+
+  void NonLocalECPotential::resizeCuda(int nw)
+  {
+    R_host.resize(OHMMS_DIM*NumElecs*nw);
+    R_GPU.resize(OHMMS_DIM*NumElecs*nw);
+    Rlist_host.resize(nw);
+    Rlist_GPU.resize(nw);
+    for (int iw=0; iw<nw; iw++)
+      Rlist_host[iw] = &(R_GPU[OHMMS_DIM*NumElecs*iw]);
+    Rlist_GPU = Rlist_host;
+    
+    // Note: this will not cover pathological systems in which all
+    // the cores overlap
+    Pairs_GPU.resize(MaxPairs*nw);
+    Dist_GPU.resize(MaxPairs*nw);
+    host_vector<int2*> Pairlist_host(nw);
+    host_vector<CUDA_PRECISION*> Distlist_host(nw);
+    Pairlist_GPU.resize(nw);
+    Distlist_GPU.resize(nw);
+    NumPairs_GPU.resize(nw);
+    for (int iw=0; iw<nw; iw++) {
+      Pairlist_host[iw] = &(Pairs_GPU[MaxPairs*iw]);
+      Distlist_host[iw] = &(Dist_GPU[MaxPairs*iw]);
+    }
+    Pairlist_GPU = Pairlist_host;
+    Distlist_GPU = Distlist_host;
+    
+    // Resize ratio positions vector
+
     // Compute maximum number of knots
     MaxKnots = 0;
     for (int i=0; i<PPset.size(); i++)
       if (PPset[i])
-	MaxKnots = PPset[i]->nknot;
-    MaxPairs = 2 * NumElecs;
+	MaxKnots = max(MaxKnots,PPset[i]->nknot);
 
+    int ratiosPerWalker = MaxPairs * MaxKnots;
+    RatioPos_GPU.resize(OHMMS_DIM * ratiosPerWalker * nw);
+    Ratios_GPU.resize(ratiosPerWalker * nw);
+    host_vector<CUDA_PRECISION*> RatioPoslist_host(nw);
+    host_vector<CUDA_PRECISION*> Ratiolist_host(nw);
+    for (int iw=0; iw<nw; iw++) {
+      RatioPoslist_host[iw] = 
+	&(RatioPos_GPU[OHMMS_DIM * ratiosPerWalker * iw]);
+      Ratiolist_host[iw]    = &(Ratios_GPU[ratiosPerWalker * iw]);
+    }
+    RatioPoslist_GPU = RatioPoslist_host;
+    Ratiolist_GPU    = Ratiolist_host;
+
+    MaxPairs = 2 * NumElecs;
+    
     QuadPoints_GPU.resize(NumIonGroups);
     QuadPoints_host.resize(NumIonGroups);
     for (int i=0; i<NumIonGroups; i++) 
@@ -170,53 +216,15 @@ namespace qmcplusplus {
 	QuadPoints_GPU[i].resize(OHMMS_DIM*PPset[i]->nknot);
 	QuadPoints_host[i].resize(OHMMS_DIM*PPset[i]->nknot);
       }
+    CurrentNumWalkers = nw;
   }
 
   void NonLocalECPotential::addEnergy(vector<Walker_t*> &walkers, 
 				      vector<RealType> &LocalEnergy)
   {
     int nw = walkers.size();
-
-    // Resize everything if necessary
-    if (R_host.size() < OHMMS_DIM*NumElecs*nw) {
-      R_host.resize(OHMMS_DIM*NumElecs*nw);
-      R_GPU.resize(OHMMS_DIM*NumElecs*nw);
-      Rlist_host.resize(nw);
-      Rlist_GPU.resize(nw);
-      for (int iw=0; iw<nw; iw++)
-	Rlist_host[iw] = &(R_GPU[OHMMS_DIM*NumElecs*iw]);
-      Rlist_GPU = Rlist_host;
-      
-      // Note: this will not cover pathological systems in which all
-      // the cores overlap
-      Pairs_GPU.resize(MaxPairs*nw);
-      Dist_GPU.resize(MaxPairs*nw);
-      host_vector<int2*> Pairlist_host(nw);
-      host_vector<CUDA_PRECISION*> Distlist_host(nw);
-      Pairlist_GPU.resize(nw);
-      Distlist_GPU.resize(nw);
-      NumPairs_GPU.resize(nw);
-      for (int iw=0; iw<nw; iw++) {
-	Pairlist_host[iw] = &(Pairs_GPU[MaxPairs*iw]);
-	Distlist_host[iw] = &(Dist_GPU[MaxPairs*iw]);
-      }
-      Pairlist_GPU = Pairlist_host;
-      Distlist_GPU = Distlist_host;
-
-      // Resize ratio positions vector
-      int ratiosPerWalker = MaxPairs * MaxKnots;
-      RatioPos_GPU.resize(OHMMS_DIM * ratiosPerWalker * nw);
-      Ratios_GPU.resize(ratiosPerWalker * nw);
-      host_vector<CUDA_PRECISION*> RatioPoslist_host(nw);
-      host_vector<CUDA_PRECISION*> Ratiolist_host(nw);
-      for (int iw=0; iw<nw; iw++) {
-	RatioPoslist_host[iw] = 
-	  &(RatioPos_GPU[OHMMS_DIM * ratiosPerWalker * iw]);
-	Ratiolist_host[iw]    = &(Ratios_GPU[ratiosPerWalker * iw]);
-      }
-      RatioPoslist_GPU = RatioPoslist_host;
-      Ratiolist_GPU    = Ratiolist_host;
-    }
+    if (CurrentNumWalkers < nw)
+      resizeCuda(nw);
 
     // Copy electron positions to GPU
     for (int iw=0; iw<nw; iw++) 
@@ -247,7 +255,17 @@ namespace qmcplusplus {
 	   Pairlist_GPU.data(), RatioPoslist_GPU.data(),
 	   NumPairs_GPU.data(), walkers.size());
 	
-	// host_vector<int> NumPairs_host;
+	host_vector<int> NumPairs_host;
+	host_vector<CUDA_PRECISION> RatioPos_host;
+	RatioPos_host = RatioPos_GPU;
+	NumPairs_host = NumPairs_GPU;
+	for (int i=0; i<NumPairs_host[0]*PPset[sp]->nknot; i++) {
+	  fprintf (stderr, "%d %12.6f %12.6f %12.6f\n", i,
+		   RatioPos_host[3*i+0],
+		   RatioPos_host[3*i+1],
+		   RatioPos_host[3*i+2]);
+	}
+
 	// host_vector<CUDA_PRECISION> Dist_host;
 	// NumPairs_host = NumPairs_GPU;
 	// Dist_host = Dist_GPU;

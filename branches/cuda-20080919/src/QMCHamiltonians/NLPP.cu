@@ -168,7 +168,7 @@ __global__ void
 find_core_electrons_kernel(T *R[], int numElec,
 			   T I[], int firstIon, int lastIon,
 			   T rcut, T L_global[], T Linv_global[],
-			   float quadPoints[], int numQuadPoints,
+			   T quadPoints[], int numQuadPoints,
 			   int2 *pairs[], T *ratioPos[], int numPairs[])
 {
   int tid = threadIdx.x;
@@ -202,7 +202,6 @@ find_core_electrons_kernel(T *R[], int numElec,
     images[tid][2] = (T)i0*L[0][2] + (T)i1*L[1][2] + (T)i2*L[2][2];
   }
   __syncthreads();
-
 
   int numIon = lastIon - firstIon + 1;
   int numElecBlocks = numElec/BS + ((numElec % BS) ? 1 : 0);
@@ -238,8 +237,8 @@ find_core_electrons_kernel(T *R[], int numElec,
 		blockPos[posIndex+tid][0] = i[ion][0] + dist*qp[tid][0];
 		blockPos[posIndex+tid][1] = i[ion][1] + dist*qp[tid][1];
 		blockPos[posIndex+tid][2] = i[ion][2] + dist*qp[tid][2];
-		posIndex += numQuadPoints;
 	      }
+	      posIndex += numQuadPoints;
 	    }
 	    else {
 	      // Write whatever will fit in the shared buffer
@@ -254,6 +253,7 @@ find_core_electrons_kernel(T *R[], int numElec,
 		myRatioPos[(posBlockNum*3+j)*BS+tid] = 
 		  blockPos[0][j*BS+tid];
 	      posBlockNum++;
+	      __syncthreads();
 	      // Write the remainder into shared memory
 	      if (tid < (numQuadPoints - numWrite)) {
 		blockPos[tid][0] = i[ion][0] + dist*qp[tid+numWrite][0];
@@ -316,6 +316,25 @@ find_core_electrons (float *R[], int numElec,
 }
 
 
+void
+find_core_electrons (double *R[], int numElec, 
+		     double I[], int firstIon, int lastIon,
+		     double rcut, double L[], double Linv[], 
+		     double quadPoints[], int numQuadPoints,
+		     int2 *pairs[], double *ratioPos[], 
+		     int numPairs[], int numWalkers)
+{
+ const int BS = 32;
+  
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+  
+  find_core_electrons_kernel<double,BS><<<dimGrid,dimBlock>>> 
+    (R, numElec, I, firstIon, lastIon, rcut, L, Linv, 
+     quadPoints, numQuadPoints, pairs, ratioPos, numPairs);
+
+
+}
 
 
 
