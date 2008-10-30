@@ -235,9 +235,9 @@ find_core_electrons_kernel(T *R[], int numElec,
 	    // First, write quadrature points
 	    if (numQuadPoints + posIndex < BS) {
 	      if (tid < numQuadPoints) {
-		blockPos[posIndex+tid][0] = i[ion][0] + qp[tid][0];
-		blockPos[posIndex+tid][1] = i[ion][1] + qp[tid][1];
-		blockPos[posIndex+tid][2] = i[ion][2] + qp[tid][2];
+		blockPos[posIndex+tid][0] = i[ion][0] + dist*qp[tid][0];
+		blockPos[posIndex+tid][1] = i[ion][1] + dist*qp[tid][1];
+		blockPos[posIndex+tid][2] = i[ion][2] + dist*qp[tid][2];
 		posIndex += numQuadPoints;
 	      }
 	    }
@@ -245,9 +245,9 @@ find_core_electrons_kernel(T *R[], int numElec,
 	      // Write whatever will fit in the shared buffer
 	      int numWrite = BS - posIndex;
 	      if (tid < numWrite) {
-		blockPos[posIndex+tid][0] = i[ion][0] + qp[tid][0];
-		blockPos[posIndex+tid][1] = i[ion][1] + qp[tid][1];
-		blockPos[posIndex+tid][2] = i[ion][2] + qp[tid][2];
+		blockPos[posIndex+tid][0] = i[ion][0] + dist*qp[tid][0];
+		blockPos[posIndex+tid][1] = i[ion][1] + dist*qp[tid][1];
+		blockPos[posIndex+tid][2] = i[ion][2] + dist*qp[tid][2];
 	      }
 	      // dump the full buffer to global memory
 	      for (int j=0; j<3; j++)
@@ -256,9 +256,9 @@ find_core_electrons_kernel(T *R[], int numElec,
 	      posBlockNum++;
 	      // Write the remainder into shared memory
 	      if (tid < (numQuadPoints - numWrite)) {
-		blockPos[tid][0] = i[ion][0] + qp[tid+numWrite][0];
-		blockPos[tid][1] = i[ion][1] + qp[tid+numWrite][1];
-		blockPos[tid][2] = i[ion][2] + qp[tid+numWrite][2];
+		blockPos[tid][0] = i[ion][0] + dist*qp[tid+numWrite][0];
+		blockPos[tid][1] = i[ion][1] + dist*qp[tid+numWrite][1];
+		blockPos[tid][2] = i[ion][2] + dist*qp[tid+numWrite][2];
 	      }
 	      posIndex = numQuadPoints - numWrite;
 	    }
