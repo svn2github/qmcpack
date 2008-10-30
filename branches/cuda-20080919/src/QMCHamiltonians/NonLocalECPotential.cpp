@@ -155,13 +155,29 @@ namespace qmcplusplus {
       IonLast.push_back(index-1);
     }
     Ions_GPU = Ion_host;
+
+    // Compute maximum number of knots
+    MaxKnots = 0;
+    for (int i=0; i<PPset.size(); i++)
+      if (PPset[i])
+	MaxKnots = PPset[i]->nknot;
+    MaxPairs = 2 * NumElecs;
+
+    QuadPoints_GPU.resize(NumIonGroups);
+    QuadPoints_host.resize(NumIonGroups);
+    for (int i=0; i<NumIonGroups; i++) 
+      if (PPset[i]) {
+	QuadPoints_GPU[i].resize(OHMMS_DIM*PPset[i]->nknot);
+	QuadPoints_host[i].resize(OHMMS_DIM*PPset[i]->nknot);
+      }
   }
 
   void NonLocalECPotential::addEnergy(vector<Walker_t*> &walkers, 
 				      vector<RealType> &LocalEnergy)
   {
     int nw = walkers.size();
-    // Copy electron positions to GPU memory
+
+    // Resize everything if necessary
     if (R_host.size() < OHMMS_DIM*NumElecs*nw) {
       R_host.resize(OHMMS_DIM*NumElecs*nw);
       R_GPU.resize(OHMMS_DIM*NumElecs*nw);
@@ -171,24 +187,38 @@ namespace qmcplusplus {
 	Rlist_host[iw] = &(R_GPU[OHMMS_DIM*NumElecs*iw]);
       Rlist_GPU = Rlist_host;
       
-      int maxPairs = 0;
-      for (int sp=0; sp<NumIonGroups; sp++)
-	maxPairs = max(maxPairs, IonLast[sp]-IonFirst[sp]+1);
-      maxPairs *= NumElecs;
-      Pairs_GPU.resize(maxPairs*nw);
-      Dist_GPU.resize(maxPairs*nw);
+      // Note: this will not cover pathological systems in which all
+      // the cores overlap
+      Pairs_GPU.resize(MaxPairs*nw);
+      Dist_GPU.resize(MaxPairs*nw);
       host_vector<int2*> Pairlist_host(nw);
       host_vector<CUDA_PRECISION*> Distlist_host(nw);
       Pairlist_GPU.resize(nw);
       Distlist_GPU.resize(nw);
       NumPairs_GPU.resize(nw);
       for (int iw=0; iw<nw; iw++) {
-	Pairlist_host[iw] = &(Pairs_GPU[maxPairs*iw]);
-	Distlist_host[iw] = &(Dist_GPU[maxPairs*iw]);
+	Pairlist_host[iw] = &(Pairs_GPU[MaxPairs*iw]);
+	Distlist_host[iw] = &(Dist_GPU[MaxPairs*iw]);
       }
       Pairlist_GPU = Pairlist_host;
       Distlist_GPU = Distlist_host;
+
+      // Resize ratio positions vector
+      int ratiosPerWalker = MaxPairs * MaxKnots;
+      RatioPos_GPU.resize(OHMMS_DIM * ratiosPerWalker * nw);
+      Ratios_GPU.resize(ratiosPerWalker * nw);
+      host_vector<CUDA_PRECISION*> RatioPoslist_host(nw);
+      host_vector<CUDA_PRECISION*> Ratiolist_host(nw);
+      for (int iw=0; iw<nw; iw++) {
+	RatioPoslist_host[iw] = 
+	  &(RatioPos_GPU[OHMMS_DIM * ratiosPerWalker * iw]);
+	Ratiolist_host[iw]    = &(Ratios_GPU[ratiosPerWalker * iw]);
+      }
+      RatioPoslist_GPU = RatioPoslist_host;
+      Ratiolist_GPU    = Ratiolist_host;
     }
+
+    // Copy electron positions to GPU
     for (int iw=0; iw<nw; iw++) 
       for (int e=0; e<NumElecs; e++)
 	for (int dim=0; dim<OHMMS_DIM; dim++)
@@ -199,29 +229,28 @@ namespace qmcplusplus {
     // Loop over the ionic species
     for (int sp=0; sp<NumIonGroups; sp++) 
       if (PPset[sp]) {
+	PPset[sp]->randomize_grid(QuadPoints_host[sp]);
+	QuadPoints_GPU[sp] = QuadPoints_host[sp];
+
 	// First, we need to determine which ratios need to be updated
-	app_log() << "Before find_core_electrons.\n";
-	cerr << "PPset.size() = " << PPset.size() << endl;
-	fprintf (stderr, "PPset[sp] = %p\n", PPset[sp]);
-	cerr << "IonFirst = " << IonFirst[sp] << endl;      
-	cerr << "IonLast  = " << IonLast[sp] << endl;
-	cerr << "Ions_GPU.size() = " << Ions_GPU.size() << endl;
-	cerr << "Rmax = " << PPset[sp]->Rmax << endl;
-	cerr << "PairList_GPU.size() = " <<Pairlist_GPU.size() << endl;
-	find_core_electrons (Rlist_GPU.data(), NumElecs,
-			     Ions_GPU.data(), IonFirst[sp], IonLast[sp],
-			     ( CUDA_PRECISION)PPset[sp]->Rmax, 
-			     L.data(), Linv.data(), 
-			     Pairlist_GPU.data(), Distlist_GPU.data(),
-			     NumPairs_GPU.data(), walkers.size());
-	app_log() << "After find_core_electrons.\n";
+	// find_core_electrons (Rlist_GPU.data(), NumElecs,
+	// 		     Ions_GPU.data(), IonFirst[sp], IonLast[sp],
+	// 		     ( CUDA_PRECISION)PPset[sp]->Rmax, 
+	// 		     L.data(), Linv.data(), 
+	// 		     Pairlist_GPU.data(), Distlist_GPU.data(),
+	// 		     NumPairs_GPU.data(), walkers.size());
+	find_core_electrons 
+	  (Rlist_GPU.data(), NumElecs, 
+	   Ions_GPU.data(), IonFirst[sp], IonLast[sp],
+	   (CUDA_PRECISION)PPset[sp]->Rmax, L.data(), Linv.data(), 
+	   QuadPoints_GPU[sp].data(), QuadPoints_GPU[sp].size(),
+	   Pairlist_GPU.data(), RatioPoslist_GPU.data(),
+	   NumPairs_GPU.data(), walkers.size());
 	
-	host_vector<int> NumPairs_host;
-	host_vector<CUDA_PRECISION> Dist_host;
-	NumPairs_host = NumPairs_GPU;
-	Dist_host = Dist_GPU;
-	app_log() << "Walker[0] has " << NumPairs_host[0] << " pairs\n";
-	app_log() << "Dist_GPU[0] is " << Dist_host[0] << " pairs\n";
+	// host_vector<int> NumPairs_host;
+	// host_vector<CUDA_PRECISION> Dist_host;
+	// NumPairs_host = NumPairs_GPU;
+	// Dist_host = Dist_GPU;
       }
   }
 

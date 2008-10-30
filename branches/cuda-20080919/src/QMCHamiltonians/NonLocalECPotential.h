@@ -78,6 +78,17 @@ namespace qmcplusplus {
     cuda_vector<CUDA_PRECISION*> Distlist_GPU;
     cuda_vector<int> NumPairs_GPU;
     int NumElecs;
+    // The maximum number of quadrature points over all the ions species
+    int MaxKnots, MaxPairs;
+    // These are the positions at which we have to evalate the WF ratios
+    // It has size OHMMS_DIM * MaxPairs * MaxKnots * NumWalkers
+    cuda_vector<CUDA_PRECISION> RatioPos_GPU;
+    cuda_vector<CUDA_PRECISION> Ratios_GPU;
+    cuda_vector<CUDA_PRECISION*> RatioPoslist_GPU, Ratiolist_GPU;
+
+    // Quadrature points
+    vector<cuda_vector<CUDA_PRECISION> > QuadPoints_GPU;
+    vector<host_vector<CUDA_PRECISION> > QuadPoints_host;
 
     void setupCuda(ParticleSet &elecs);
     void addEnergy(vector<Walker_t*> &walkers, vector<RealType> &LocalEnergy);
