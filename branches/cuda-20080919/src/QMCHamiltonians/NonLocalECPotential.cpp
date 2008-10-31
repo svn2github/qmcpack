@@ -251,6 +251,7 @@ namespace qmcplusplus {
 	   Eleclist_GPU.data(), RatioPoslist_GPU.data(),
 	   NumPairs_GPU.data(), walkers.size());
 
+#ifdef CUDA_DEBUG
 	host_vector<int> Elecs_host;
 	host_vector<int> NumPairs_host;
 	host_vector<CUDA_PRECISION> RatioPos_host;
@@ -258,7 +259,6 @@ namespace qmcplusplus {
 	NumPairs_host = NumPairs_GPU;
 	Elecs_host    = Elecs_GPU;
 
-#ifdef CUDA_DEBUG
 	DTD_BConds<double,3,SUPERCELL_BULK> bconds;
 	Walker_t &w = *walkers[0];
 	int index = 0;
@@ -273,27 +273,28 @@ namespace qmcplusplus {
 	    
 	    if (dist < PPset[sp]->Rmax) {
 	      numPairs++;
-	      fprintf (stderr, "i_CPU=%d  i_GPU=%d  elec_CPU=%d  elec_GPU=%d\n",
-		       i, Elecs_host[index],
-		       e, Elecs_host[index]);
+	      // fprintf (stderr, "i_CPU=%d  i_GPU=%d  elec_CPU=%d  elec_GPU=%d\n",
+	      // 	       i, Elecs_host[index],
+	      // 	       e, Elecs_host[index]);
 	      
-	      int nknot = PPset[sp]->nknot;
-	      for (int k=0; k<PPset[sp]->nknot; k++) {
-		PosType r = ion + dist * PPset[sp]->rrotsgrid_m[k];
-		fprintf (stderr, "CPU %d %12.6f %12.6f %12.6f\n",
-			 index, r[0], r[1], r[2]);
-		fprintf (stderr, "GPU %d %12.6f %12.6f %12.6f\n", index,
-			 RatioPos_host[3*index*nknot+3*k+0], 
-			 RatioPos_host[3*index*nknot+3*k+1],
-			 RatioPos_host[3*index*nknot+3*k+2]);
-	      }
-	      index ++;
+	      // int nknot = PPset[sp]->nknot;
+	      // for (int k=0; k<PPset[sp]->nknot; k++) {
+	      // 	PosType r = ion + dist * PPset[sp]->rrotsgrid_m[k];
+	      // 	fprintf (stderr, "CPU %d %12.6f %12.6f %12.6f\n",
+	      // 		 index, r[0], r[1], r[2]);
+	      // 	fprintf (stderr, "GPU %d %12.6f %12.6f %12.6f\n", index,
+	      // 		 RatioPos_host[3*index*nknot+3*k+0], 
+	      // 		 RatioPos_host[3*index*nknot+3*k+1],
+	      // 		 RatioPos_host[3*index*nknot+3*k+2]);
 	    }
+	    index ++;
 	  }
 	}
+      
 	cerr << "numPairs = " << numPairs << endl;
 	cerr << "NumPairs_host[0] =" << NumPairs_host[0] << endl;
 #endif
+      }
 // 	for (int i=0; i<NumPairs_host[0]*PPset[sp]->nknot; i++) {
 // 	  fprintf (stderr, "%d %12.6f %12.6f %12.6f\n", i,
 // 		   RatioPos_host[3*i+0],
@@ -304,7 +305,6 @@ namespace qmcplusplus {
 	// host_vector<CUDA_PRECISION> Dist_host;
 	// NumPairs_host = NumPairs_GPU;
 	// Dist_host = Dist_GPU;
-      }
   }
 
 }

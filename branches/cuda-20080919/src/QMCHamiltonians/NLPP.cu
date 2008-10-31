@@ -34,6 +34,25 @@ T min_dist (T x, T y, T z,
   return sqrtf(dist2[0]);
 }
 
+template<typename T>
+__device__
+T min_dist (T x, T y, T z, T L[3][3], T Linv[3][3])
+{
+  T u0 = Linv[0][0]*x + Linv[0][1]*y + Linv[0][2]*z;  
+  T u1 = Linv[1][0]*x + Linv[1][1]*y + Linv[1][2]*z;
+  T u2 = Linv[2][0]*x + Linv[2][1]*y + Linv[2][2]*z;
+
+  u0 -= rintf(u0);
+  u1 -= rintf(u1);
+  u2 -= rintf(u2);
+
+  x = L[0][0]*u0 + L[0][1]*u1 + L[0][2]*u2;
+  y = L[1][0]*u0 + L[1][1]*u1 + L[1][2]*u2;
+  z = L[2][0]*u0 + L[2][1]*u1 + L[2][2]*u2;
+
+  return sqrtf(x*x + y*y + z*z);
+}
+
 
 
 
@@ -78,6 +97,7 @@ find_core_electrons_kernel(T *R[], int numElec,
 
   __shared__ T r[BS][3];
   __shared__ T i[BS][3];
+  __shared__ T d[BS];
   __shared__ int2 blockpairs[BS];
   __shared__ T blockdist[BS];
   int npairs=0, index=0, blockNum=0;
@@ -94,11 +114,11 @@ find_core_electrons_kernel(T *R[], int numElec,
       for (int dim=0; dim<3; dim++) 
 	if (dim*BS+tid < 3*numElec)
 	  r[0][dim*BS+tid] = myR[3*BS*eBlock + dim*BS+tid];
-      for (int ion=0; ion<ionEnd; ion++)
+      for (int ion=0; ion<ionEnd; ion++) {
+	d[tid] = min_dist(r[tid][0]-i[ion][0], r[tid][1]-i[ion][1],
+			     r[tid][2]-i[ion][2], L, Linv);
 	for (int elec=0; elec<elecEnd; elec++) {
-	  T dist = min_dist<T,BS>(r[elec][0]-i[ion][0], r[elec][1]-i[ion][1],
-				  r[elec][2]-i[ion][2], L, Linv, images);
-	  if (dist < rcut) {
+	  if (d[elec] < rcut) {
 	    if (index == BS) {
 	      mypairs[blockNum*BS+tid] = blockpairs[tid];
 	      mydist[blockNum*BS+tid]  = blockdist[tid];
@@ -109,12 +129,13 @@ find_core_electrons_kernel(T *R[], int numElec,
 	    if (tid == 0) {
 	      blockpairs[index].x = iBlock*BS+ion;
 	      blockpairs[index].y = eBlock*BS+elec;
-	      blockdist[index]    = dist;
+	      blockdist[index]    = d[tid];
 	    }
 	    index++;
 	    npairs++;
 	  }
 	}
+      }
     }
     
   }
@@ -211,6 +232,7 @@ find_core_electrons_kernel(T *R[], int numElec,
   __shared__ T i[BS][3];
   __shared__ int blockElecs[BS];
   __shared__ T blockPos[BS][3];
+  __shared__ T dist[BS];
   int posIndex=0, posBlockNum = 0;
   int npairs=0, index=0, blockNum=0;
 
@@ -227,17 +249,17 @@ find_core_electrons_kernel(T *R[], int numElec,
 	if ((3*eBlock+dim)*BS+tid < 3*numElec)
 	  r[0][dim*BS+tid] = myR[3*BS*eBlock + dim*BS+tid];
       __syncthreads();
-      for (int ion=0; ion<ionEnd; ion++)
+      for (int ion=0; ion<ionEnd; ion++) {
+	dist[tid] =  min_dist<T>(r[tid][0]-i[ion][0], r[tid][1]-i[ion][1],
+				 r[tid][2]-i[ion][2], L, Linv);
 	for (int elec=0; elec<elecEnd; elec++) {
-	  T dist = min_dist<T,BS>(r[elec][0]-i[ion][0], r[elec][1]-i[ion][1],
-				  r[elec][2]-i[ion][2], L, Linv, images);
-	  if (dist < rcut) {
+	  if (dist[elec] < rcut) {
 	    // First, write quadrature points
 	    if (numQuadPoints + posIndex < BS) {
 	      if (tid < numQuadPoints) {
-	    	blockPos[posIndex+tid][0] = i[ion][0] + dist*qp[tid][0];
-	    	blockPos[posIndex+tid][1] = i[ion][1] + dist*qp[tid][1];
-	    	blockPos[posIndex+tid][2] = i[ion][2] + dist*qp[tid][2];
+	    	blockPos[posIndex+tid][0] = i[ion][0] + dist[elec]*qp[tid][0];
+	    	blockPos[posIndex+tid][1] = i[ion][1] + dist[elec]*qp[tid][1];
+	    	blockPos[posIndex+tid][2] = i[ion][2] + dist[elec]*qp[tid][2];
 	      }
 	      posIndex += numQuadPoints;
 	    }
@@ -245,9 +267,9 @@ find_core_electrons_kernel(T *R[], int numElec,
 	      // Write whatever will fit in the shared buffer
 	      int numWrite = BS - posIndex;
 	      if (tid < numWrite) {
-	    	blockPos[posIndex+tid][0] = i[ion][0] + dist*qp[tid][0];
-	    	blockPos[posIndex+tid][1] = i[ion][1] + dist*qp[tid][1];
-	    	blockPos[posIndex+tid][2] = i[ion][2] + dist*qp[tid][2];
+	    	blockPos[posIndex+tid][0] = i[ion][0] + dist[elec]*qp[tid][0];
+	    	blockPos[posIndex+tid][1] = i[ion][1] + dist[elec]*qp[tid][1];
+	    	blockPos[posIndex+tid][2] = i[ion][2] + dist[elec]*qp[tid][2];
 	      }
 	      // dump the full buffer to global memory
 	      for (int j=0; j<3; j++)
@@ -257,13 +279,14 @@ find_core_electrons_kernel(T *R[], int numElec,
 	      __syncthreads();
 	      // Write the remainder into shared memory
 	      if (tid < (numQuadPoints - numWrite)) {
-	    	blockPos[tid][0] = i[ion][0] + dist*qp[tid+numWrite][0];
-	    	blockPos[tid][1] = i[ion][1] + dist*qp[tid+numWrite][1];
-	    	blockPos[tid][2] = i[ion][2] + dist*qp[tid+numWrite][2];
+	    	blockPos[tid][0] = i[ion][0] + dist[elec]*qp[tid+numWrite][0];
+	    	blockPos[tid][1] = i[ion][1] + dist[elec]*qp[tid+numWrite][1];
+	    	blockPos[tid][2] = i[ion][2] + dist[elec]*qp[tid+numWrite][2];
 	      }
 	      posIndex = numQuadPoints - numWrite;
 	    }
-
+	    
+	    // Now, write electron IDs
 	    if (index == BS) {
 	      myElecs[blockNum*BS+tid] = blockElecs[tid];
 	      blockNum++;
@@ -278,6 +301,7 @@ find_core_electrons_kernel(T *R[], int numElec,
 	    __syncthreads();
 	  }
 	}
+      }
     }
     
   }
