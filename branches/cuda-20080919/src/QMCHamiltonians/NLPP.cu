@@ -169,20 +169,20 @@ find_core_electrons_kernel(T *R[], int numElec,
 			   T I[], int firstIon, int lastIon,
 			   T rcut, T L_global[], T Linv_global[],
 			   T quadPoints[], int numQuadPoints,
-			   int2 *pairs[], T *ratioPos[], int numPairs[])
+			   int *elecs[], T *ratioPos[], int numPairs[])
 {
   int tid = threadIdx.x;
   __shared__ T images[27][3];
   __shared__ T *myR, *myRatioPos;
-  __shared__ int2 *mypairs;
+  __shared__ int *myElecs;
   __shared__ T qp[BS][3];
 
   for (int i=0; i<3; i++)
     if (i*BS + tid < 3*numQuadPoints)
       qp[0][i*BS+tid] = quadPoints[i*BS+tid];
   if (tid == 0) {
-    myR     =     R[blockIdx.x];
-    mypairs = pairs[blockIdx.x];
+    myR        =        R[blockIdx.x];
+    myElecs    =    elecs[blockIdx.x];
     myRatioPos = ratioPos[blockIdx.x];
   }
   __shared__ T L[3][3], Linv[3][3];
@@ -209,7 +209,7 @@ find_core_electrons_kernel(T *R[], int numElec,
 
   __shared__ T r[BS][3];
   __shared__ T i[BS][3];
-  __shared__ int2 blockpairs[BS];
+  __shared__ int blockElecs[BS];
   __shared__ T blockPos[BS][3];
   int posIndex=0, posBlockNum = 0;
   int npairs=0, index=0, blockNum=0;
@@ -217,15 +217,16 @@ find_core_electrons_kernel(T *R[], int numElec,
 
   for (int iBlock=0; iBlock<numIonBlocks; iBlock++) {
     for (int dim=0; dim<3; dim++) 
-      if (dim*BS+tid < 3*numIon)
+      if ((3*iBlock+dim)*BS+tid < 3*numIon)
 	i[0][dim*BS+tid] = I[3*BS*iBlock + 3*firstIon + dim*BS+tid];
     int ionEnd = ((iBlock+1)*BS < numIon) ? BS : (numIon - iBlock*BS);
 
     for (int eBlock=0; eBlock<numElecBlocks; eBlock++) {
       int elecEnd = ((eBlock+1)*BS < numElec) ? BS : (numElec - eBlock*BS);
       for (int dim=0; dim<3; dim++) 
-	if (dim*BS+tid < 3*numElec)
+	if ((3*eBlock+dim)*BS+tid < 3*numElec)
 	  r[0][dim*BS+tid] = myR[3*BS*eBlock + dim*BS+tid];
+      __syncthreads();
       for (int ion=0; ion<ionEnd; ion++)
 	for (int elec=0; elec<elecEnd; elec++) {
 	  T dist = min_dist<T,BS>(r[elec][0]-i[ion][0], r[elec][1]-i[ion][1],
@@ -234,9 +235,9 @@ find_core_electrons_kernel(T *R[], int numElec,
 	    // First, write quadrature points
 	    if (numQuadPoints + posIndex < BS) {
 	      if (tid < numQuadPoints) {
-		blockPos[posIndex+tid][0] = i[ion][0] + dist*qp[tid][0];
-		blockPos[posIndex+tid][1] = i[ion][1] + dist*qp[tid][1];
-		blockPos[posIndex+tid][2] = i[ion][2] + dist*qp[tid][2];
+	    	blockPos[posIndex+tid][0] = i[ion][0] + dist*qp[tid][0];
+	    	blockPos[posIndex+tid][1] = i[ion][1] + dist*qp[tid][1];
+	    	blockPos[posIndex+tid][2] = i[ion][2] + dist*qp[tid][2];
 	      }
 	      posIndex += numQuadPoints;
 	    }
@@ -244,37 +245,37 @@ find_core_electrons_kernel(T *R[], int numElec,
 	      // Write whatever will fit in the shared buffer
 	      int numWrite = BS - posIndex;
 	      if (tid < numWrite) {
-		blockPos[posIndex+tid][0] = i[ion][0] + dist*qp[tid][0];
-		blockPos[posIndex+tid][1] = i[ion][1] + dist*qp[tid][1];
-		blockPos[posIndex+tid][2] = i[ion][2] + dist*qp[tid][2];
+	    	blockPos[posIndex+tid][0] = i[ion][0] + dist*qp[tid][0];
+	    	blockPos[posIndex+tid][1] = i[ion][1] + dist*qp[tid][1];
+	    	blockPos[posIndex+tid][2] = i[ion][2] + dist*qp[tid][2];
 	      }
 	      // dump the full buffer to global memory
 	      for (int j=0; j<3; j++)
-		myRatioPos[(posBlockNum*3+j)*BS+tid] = 
-		  blockPos[0][j*BS+tid];
+	    	myRatioPos[(posBlockNum*3+j)*BS+tid] = 
+	    	  blockPos[0][j*BS+tid];
 	      posBlockNum++;
 	      __syncthreads();
 	      // Write the remainder into shared memory
 	      if (tid < (numQuadPoints - numWrite)) {
-		blockPos[tid][0] = i[ion][0] + dist*qp[tid+numWrite][0];
-		blockPos[tid][1] = i[ion][1] + dist*qp[tid+numWrite][1];
-		blockPos[tid][2] = i[ion][2] + dist*qp[tid+numWrite][2];
+	    	blockPos[tid][0] = i[ion][0] + dist*qp[tid+numWrite][0];
+	    	blockPos[tid][1] = i[ion][1] + dist*qp[tid+numWrite][1];
+	    	blockPos[tid][2] = i[ion][2] + dist*qp[tid+numWrite][2];
 	      }
 	      posIndex = numQuadPoints - numWrite;
 	    }
 
 	    if (index == BS) {
-	      mypairs[blockNum*BS+tid] = blockpairs[tid];
+	      myElecs[blockNum*BS+tid] = blockElecs[tid];
 	      blockNum++;
 	      index = 0;
 	    }
 
-	    if (tid == 0) {
-	      blockpairs[index].x = iBlock*BS+ion;
-	      blockpairs[index].y = eBlock*BS+elec;
-	    }
+	    if (tid == 0) 
+ 	      blockElecs[index] = eBlock*BS+elec;
+
 	    index++;
 	    npairs++;
+	    __syncthreads();
 	  }
 	}
     }
@@ -286,9 +287,8 @@ find_core_electrons_kernel(T *R[], int numElec,
 	blockPos[0][j*BS+tid];
 
   // Write pairs and distances remaining the final block
-  if (tid < index) {
-    mypairs[blockNum*BS+tid] = blockpairs[tid];
-  }
+  if (tid < index) 
+    myElecs[blockNum*BS+tid] = blockElecs[tid];
   if (tid == 0)
     numPairs[blockIdx.x] = npairs;
 }
@@ -300,7 +300,7 @@ find_core_electrons (float *R[], int numElec,
 		     float I[], int firstIon, int lastIon,
 		     float rcut, float L[], float Linv[], 
 		     float quadPoints[], int numQuadPoints,
-		     int2 *pairs[], float *ratioPos[], 
+		     int *elecs[], float *ratioPos[], 
 		     int numPairs[], int numWalkers)
 {
  const int BS = 32;
@@ -310,7 +310,7 @@ find_core_electrons (float *R[], int numElec,
   
   find_core_electrons_kernel<float,BS><<<dimGrid,dimBlock>>> 
     (R, numElec, I, firstIon, lastIon, rcut, L, Linv, 
-     quadPoints, numQuadPoints, pairs, ratioPos, numPairs);
+     quadPoints, numQuadPoints, elecs, ratioPos, numPairs);
 
 
 }
@@ -321,7 +321,7 @@ find_core_electrons (double *R[], int numElec,
 		     double I[], int firstIon, int lastIon,
 		     double rcut, double L[], double Linv[], 
 		     double quadPoints[], int numQuadPoints,
-		     int2 *pairs[], double *ratioPos[], 
+		     int *elecs[], double *ratioPos[], 
 		     int numPairs[], int numWalkers)
 {
  const int BS = 32;
@@ -331,7 +331,7 @@ find_core_electrons (double *R[], int numElec,
   
   find_core_electrons_kernel<double,BS><<<dimGrid,dimBlock>>> 
     (R, numElec, I, firstIon, lastIon, rcut, L, Linv, 
-     quadPoints, numQuadPoints, pairs, ratioPos, numPairs);
+     quadPoints, numQuadPoints, elecs, ratioPos, numPairs);
 
 
 }
