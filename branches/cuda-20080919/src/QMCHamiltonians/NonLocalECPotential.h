@@ -72,9 +72,9 @@ namespace qmcplusplus {
     cuda_vector<CUDA_PRECISION> R_GPU;
     host_vector<CUDA_PRECISION*> Rlist_host;
     cuda_vector<CUDA_PRECISION*> Rlist_GPU;
-    cuda_vector<int2> Pairs_GPU;
+    cuda_vector<int> Elecs_GPU;
     cuda_vector<CUDA_PRECISION> Dist_GPU;
-    cuda_vector<int2*> Pairlist_GPU;
+    cuda_vector<int*> Eleclist_GPU;
     cuda_vector<CUDA_PRECISION*> Distlist_GPU;
     cuda_vector<int> NumPairs_GPU;
     int NumElecs;
@@ -90,6 +90,8 @@ namespace qmcplusplus {
     vector<cuda_vector<CUDA_PRECISION> > QuadPoints_GPU;
     vector<host_vector<CUDA_PRECISION> > QuadPoints_host;
     int CurrentNumWalkers;
+
+    vector<PosType> SortedIons;
 
     void setupCuda(ParticleSet &elecs);
     void resizeCuda(int nw);
