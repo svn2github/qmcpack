@@ -36,7 +36,28 @@ T min_dist (T x, T y, T z,
 
 template<typename T>
 __device__
-T min_dist (T x, T y, T z, T L[3][3], T Linv[3][3])
+T min_dist_only (T x, T y, T z, T L[3][3], T Linv[3][3])
+{
+  T u0 = Linv[0][0]*x + Linv[0][1]*y + Linv[0][2]*z;  
+  T u1 = Linv[1][0]*x + Linv[1][1]*y + Linv[1][2]*z;
+  T u2 = Linv[2][0]*x + Linv[2][1]*y + Linv[2][2]*z;
+
+  u0 -= rintf(u0);
+  u1 -= rintf(u1);
+  u2 -= rintf(u2);
+
+  x = L[0][0]*u0 + L[0][1]*u1 + L[0][2]*u2;
+  y = L[1][0]*u0 + L[1][1]*u1 + L[1][2]*u2;
+  z = L[2][0]*u0 + L[2][1]*u1 + L[2][2]*u2;
+
+  return sqrtf(x*x + y*y + z*z);
+}
+
+
+
+template<typename T>
+__device__
+T min_dist (T &x, T &y, T &z, T L[3][3], T Linv[3][3])
 {
   T u0 = Linv[0][0]*x + Linv[0][1]*y + Linv[0][2]*z;  
   T u1 = Linv[1][0]*x + Linv[1][1]*y + Linv[1][2]*z;
@@ -64,7 +85,6 @@ find_core_electrons_kernel(T *R[], int numElec,
 			   int2 *pairs[], T *dist[], int numPairs[])
 {
   int tid = threadIdx.x;
-  __shared__ T images[27][3];
   __shared__ T *myR, *mydist;
   __shared__ int2 *mypairs;
   if (tid == 0) {
@@ -83,11 +103,6 @@ find_core_electrons_kernel(T *R[], int numElec,
   int i0 = tid / 9;
   int i1 = (tid - 9*i0)/3;
   int i2 = (tid - 9*i0 - 3*i1);
-  if (tid < 27) {
-    images[tid][0] = (T)i0*L[0][0] + (T)i1*L[1][0] + (T)i2*L[2][0];
-    images[tid][1] = (T)i0*L[0][1] + (T)i1*L[1][1] + (T)i2*L[2][1];
-    images[tid][2] = (T)i0*L[0][2] + (T)i1*L[1][2] + (T)i2*L[2][2];
-  }
   __syncthreads();
 
 
@@ -115,8 +130,8 @@ find_core_electrons_kernel(T *R[], int numElec,
 	if (dim*BS+tid < 3*numElec)
 	  r[0][dim*BS+tid] = myR[3*BS*eBlock + dim*BS+tid];
       for (int ion=0; ion<ionEnd; ion++) {
-	d[tid] = min_dist(r[tid][0]-i[ion][0], r[tid][1]-i[ion][1],
-			     r[tid][2]-i[ion][2], L, Linv);
+	d[tid] = min_dist_only(r[tid][0]-i[ion][0], r[tid][1]-i[ion][1],
+			       r[tid][2]-i[ion][2], L, Linv);
 	for (int elec=0; elec<elecEnd; elec++) {
 	  if (d[elec] < rcut) {
 	    if (index == BS) {
@@ -190,11 +205,11 @@ find_core_electrons_kernel(T *R[], int numElec,
 			   T I[], int firstIon, int lastIon,
 			   T rcut, T L_global[], T Linv_global[],
 			   T quadPoints[], int numQuadPoints,
-			   int *elecs[], T *ratioPos[], int numPairs[])
+			   int *elecs[], T *ratioPos[], 
+			   T *dist_list[], T *cosTheta_list[], int numPairs[])
 {
   int tid = threadIdx.x;
-  __shared__ T images[27][3];
-  __shared__ T *myR, *myRatioPos;
+  __shared__ T *myR, *myRatioPos, *myDist, *myCosTheta;
   __shared__ int *myElecs;
   __shared__ T qp[BS][3];
 
@@ -205,6 +220,8 @@ find_core_electrons_kernel(T *R[], int numElec,
     myR        =        R[blockIdx.x];
     myElecs    =    elecs[blockIdx.x];
     myRatioPos = ratioPos[blockIdx.x];
+    myDist     = dist_list[blockIdx.x];
+    myCosTheta = cosTheta_list[blockIdx.x];
   }
   __shared__ T L[3][3], Linv[3][3];
   if (tid < 9) {
@@ -217,11 +234,6 @@ find_core_electrons_kernel(T *R[], int numElec,
   int i0 = tid / 9;
   int i1 = (tid - 9*i0)/3;
   int i2 = (tid - 9*i0 - 3*i1);
-  if (tid < 27) {
-    images[tid][0] = (T)i0*L[0][0] + (T)i1*L[1][0] + (T)i2*L[2][0];
-    images[tid][1] = (T)i0*L[0][1] + (T)i1*L[1][1] + (T)i2*L[2][1];
-    images[tid][2] = (T)i0*L[0][2] + (T)i1*L[1][2] + (T)i2*L[2][2];
-  }
   __syncthreads();
 
   int numIon = lastIon - firstIon + 1;
@@ -232,7 +244,8 @@ find_core_electrons_kernel(T *R[], int numElec,
   __shared__ T i[BS][3];
   __shared__ int blockElecs[BS];
   __shared__ T blockPos[BS][3];
-  __shared__ T dist[BS];
+  __shared__ T dist[BS], disp[BS][3];
+  __shared__ T blockDist[BS], blockCosTheta[BS];
   int posIndex=0, posBlockNum = 0;
   int npairs=0, index=0, blockNum=0;
 
@@ -250,8 +263,10 @@ find_core_electrons_kernel(T *R[], int numElec,
 	  r[0][dim*BS+tid] = myR[3*BS*eBlock + dim*BS+tid];
       __syncthreads();
       for (int ion=0; ion<ionEnd; ion++) {
-	dist[tid] =  min_dist<T>(r[tid][0]-i[ion][0], r[tid][1]-i[ion][1],
-				 r[tid][2]-i[ion][2], L, Linv);
+	disp[tid][0] = r[tid][0]-i[ion][0];
+	disp[tid][1] = r[tid][1]-i[ion][1];
+	disp[tid][2] = r[tid][2]-i[ion][2];
+	dist[tid] =  min_dist<T>(disp[tid][0], disp[tid][1], disp[tid][2], L, Linv);
 	for (int elec=0; elec<elecEnd; elec++) {
 	  if (dist[elec] < rcut) {
 	    // First, write quadrature points
@@ -260,6 +275,10 @@ find_core_electrons_kernel(T *R[], int numElec,
 	    	blockPos[posIndex+tid][0] = i[ion][0] + dist[elec]*qp[tid][0];
 	    	blockPos[posIndex+tid][1] = i[ion][1] + dist[elec]*qp[tid][1];
 	    	blockPos[posIndex+tid][2] = i[ion][2] + dist[elec]*qp[tid][2];
+		blockCosTheta[posIndex+tid] = 
+		  (disp[elec][0]*qp[tid][0] +
+		   disp[elec][1]*qp[tid][1] +
+		   disp[elec][2]*qp[tid][2]) / dist[elec];
 	      }
 	      posIndex += numQuadPoints;
 	    }
@@ -270,11 +289,16 @@ find_core_electrons_kernel(T *R[], int numElec,
 	    	blockPos[posIndex+tid][0] = i[ion][0] + dist[elec]*qp[tid][0];
 	    	blockPos[posIndex+tid][1] = i[ion][1] + dist[elec]*qp[tid][1];
 	    	blockPos[posIndex+tid][2] = i[ion][2] + dist[elec]*qp[tid][2];
+		blockCosTheta[posIndex+tid] = 
+		  (disp[elec][0]*qp[tid][0] +
+		   disp[elec][1]*qp[tid][1] +
+		   disp[elec][2]*qp[tid][2]) / dist[elec];
 	      }
 	      // dump the full buffer to global memory
 	      for (int j=0; j<3; j++)
 	    	myRatioPos[(posBlockNum*3+j)*BS+tid] = 
 	    	  blockPos[0][j*BS+tid];
+	      myCosTheta[posBlockNum*BS+tid] = blockCosTheta[tid];
 	      posBlockNum++;
 	      __syncthreads();
 	      // Write the remainder into shared memory
@@ -282,6 +306,10 @@ find_core_electrons_kernel(T *R[], int numElec,
 	    	blockPos[tid][0] = i[ion][0] + dist[elec]*qp[tid+numWrite][0];
 	    	blockPos[tid][1] = i[ion][1] + dist[elec]*qp[tid+numWrite][1];
 	    	blockPos[tid][2] = i[ion][2] + dist[elec]*qp[tid+numWrite][2];
+		blockCosTheta[posIndex+tid] = 
+		  (disp[elec][0]*qp[tid+numWrite][0] +
+		   disp[elec][1]*qp[tid+numWrite][1] +
+		   disp[elec][2]*qp[tid+numWrite][2]) / dist[elec];
 	      }
 	      posIndex = numQuadPoints - numWrite;
 	    }
@@ -289,12 +317,15 @@ find_core_electrons_kernel(T *R[], int numElec,
 	    // Now, write electron IDs
 	    if (index == BS) {
 	      myElecs[blockNum*BS+tid] = blockElecs[tid];
+	      myDist[blockNum*BS+tid]  = blockDist[tid];
 	      blockNum++;
 	      index = 0;
 	    }
 
-	    if (tid == 0) 
+	    if (tid == 0) {
  	      blockElecs[index] = eBlock*BS+elec;
+	      blockDist[index]  = dist[elec];
+	    }
 
 	    index++;
 	    npairs++;
@@ -309,10 +340,14 @@ find_core_electrons_kernel(T *R[], int numElec,
     if (j*BS + tid < 3*posIndex)
       myRatioPos[(posBlockNum*3+j)*BS + tid] =
 	blockPos[0][j*BS+tid];
+  if (tid < posIndex)
+    myCosTheta[posBlockNum*BS+tid] = blockCosTheta[tid];
 
   // Write pairs and distances remaining the final block
-  if (tid < index) 
+  if (tid < index) {
     myElecs[blockNum*BS+tid] = blockElecs[tid];
+    myDist[blockNum*BS+tid]  = blockDist[tid];
+  }
   if (tid == 0)
     numPairs[blockIdx.x] = npairs;
 }
@@ -325,6 +360,7 @@ find_core_electrons (float *R[], int numElec,
 		     float rcut, float L[], float Linv[], 
 		     float quadPoints[], int numQuadPoints,
 		     int *elecs[], float *ratioPos[], 
+		     float *dist[], float *cosTheta[],
 		     int numPairs[], int numWalkers)
 {
  const int BS = 32;
@@ -334,7 +370,7 @@ find_core_electrons (float *R[], int numElec,
   
   find_core_electrons_kernel<float,BS><<<dimGrid,dimBlock>>> 
     (R, numElec, I, firstIon, lastIon, rcut, L, Linv, 
-     quadPoints, numQuadPoints, elecs, ratioPos, numPairs);
+     quadPoints, numQuadPoints, elecs, ratioPos, dist, cosTheta, numPairs);
 
 
 }
@@ -346,6 +382,7 @@ find_core_electrons (double *R[], int numElec,
 		     double rcut, double L[], double Linv[], 
 		     double quadPoints[], int numQuadPoints,
 		     int *elecs[], double *ratioPos[], 
+		     double *dist[], double *cosTheta[],
 		     int numPairs[], int numWalkers)
 {
  const int BS = 32;
@@ -355,7 +392,7 @@ find_core_electrons (double *R[], int numElec,
   
   find_core_electrons_kernel<double,BS><<<dimGrid,dimBlock>>> 
     (R, numElec, I, firstIon, lastIon, rcut, L, Linv, 
-     quadPoints, numQuadPoints, elecs, ratioPos, numPairs);
+     quadPoints, numQuadPoints, elecs, ratioPos, dist, cosTheta, numPairs);
 
 
 }

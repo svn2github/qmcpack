@@ -73,23 +73,32 @@ namespace qmcplusplus {
     host_vector<CUDA_PRECISION*> Rlist_host;
     cuda_vector<CUDA_PRECISION*> Rlist_GPU;
     cuda_vector<int> Elecs_GPU;
+    host_vector<int> Elecs_host;
     cuda_vector<CUDA_PRECISION> Dist_GPU;
+    host_vector<CUDA_PRECISION> Dist_host;
     cuda_vector<int*> Eleclist_GPU;
     cuda_vector<CUDA_PRECISION*> Distlist_GPU;
     cuda_vector<int> NumPairs_GPU;
+    host_vector<int> NumPairs_host;
     int NumElecs;
     // The maximum number of quadrature points over all the ions species
-    int MaxKnots, MaxPairs;
+    int MaxKnots, MaxPairs, RatiosPerWalker;
     // These are the positions at which we have to evalate the WF ratios
     // It has size OHMMS_DIM * MaxPairs * MaxKnots * NumWalkers
-    cuda_vector<CUDA_PRECISION> RatioPos_GPU;
-    cuda_vector<CUDA_PRECISION> Ratios_GPU;
-    cuda_vector<CUDA_PRECISION*> RatioPoslist_GPU, Ratiolist_GPU;
+    cuda_vector<CUDA_PRECISION> RatioPos_GPU, CosTheta_GPU;
+    host_vector<CUDA_PRECISION> RatioPos_host, CosTheta_host;
+    cuda_vector<CUDA_PRECISION*> RatioPoslist_GPU, CosThetalist_GPU;
 
     // Quadrature points
     vector<cuda_vector<CUDA_PRECISION> > QuadPoints_GPU;
     vector<host_vector<CUDA_PRECISION> > QuadPoints_host;
     int CurrentNumWalkers;
+
+    // These are used in calling Psi->NLratios
+    vector<NLjob> JobList;
+    vector<PosType> QuadPosList;
+    vector<ValueType> RatioList;
+    
 
     vector<PosType> SortedIons;
 

@@ -198,18 +198,19 @@ namespace qmcplusplus {
       if (PPset[i])
 	MaxKnots = max(MaxKnots,PPset[i]->nknot);
 
-    int ratiosPerWalker = MaxPairs * MaxKnots;
-    RatioPos_GPU.resize(OHMMS_DIM * ratiosPerWalker * nw);
-    Ratios_GPU.resize(ratiosPerWalker * nw);
+    RatiosPerWalker = MaxPairs * MaxKnots;
+    RatioPos_GPU.resize(OHMMS_DIM * RatiosPerWalker * nw);
+    CosTheta_GPU.resize(RatiosPerWalker * nw);
     host_vector<CUDA_PRECISION*> RatioPoslist_host(nw);
     host_vector<CUDA_PRECISION*> Ratiolist_host(nw);
+    host_vector<CUDA_PRECISION*> CosThetalist_host(nw);
     for (int iw=0; iw<nw; iw++) {
       RatioPoslist_host[iw] = 
-	&(RatioPos_GPU[OHMMS_DIM * ratiosPerWalker * iw]);
-      Ratiolist_host[iw]    = &(Ratios_GPU[ratiosPerWalker * iw]);
+	&(RatioPos_GPU[OHMMS_DIM * RatiosPerWalker * iw]);
+      CosThetalist_host[iw] = &(CosTheta_GPU[RatiosPerWalker*iw]);
     }
     RatioPoslist_GPU = RatioPoslist_host;
-    Ratiolist_GPU    = Ratiolist_host;
+    CosThetalist_GPU = CosThetalist_host;
 
     QuadPoints_GPU.resize(NumIonGroups);
     QuadPoints_host.resize(NumIonGroups);
@@ -249,7 +250,48 @@ namespace qmcplusplus {
 	   (CUDA_PRECISION)PPset[sp]->Rmax, L.data(), Linv.data(), 
 	   QuadPoints_GPU[sp].data(), PPset[sp]->nknot,
 	   Eleclist_GPU.data(), RatioPoslist_GPU.data(),
+	   Distlist_GPU.data(), CosThetalist_GPU.data(),
 	   NumPairs_GPU.data(), walkers.size());
+
+	// Concatenate work into job list
+	RatioPos_host = RatioPos_GPU;
+	NumPairs_host = NumPairs_GPU;
+	Elecs_host    = Elecs_GPU;
+	CosTheta_host = CosTheta_GPU;
+	Dist_host      = Dist_GPU;
+	int numQuad = PPset[sp]->nknot;
+
+	JobList.clear();
+	QuadPosList.clear();
+	for (int iw=0; iw<nw; iw++) {
+	  CUDA_PRECISION *pos_host = &(RatioPos_host[OHMMS_DIM*RatiosPerWalker*iw]);
+	  int *elecs = &(Elecs_host[iw*MaxPairs]);
+	  for (int ie=0; ie<NumPairs_host[iw]; ie++) {
+	    JobList.push_back(NLjob(iw,*(elecs++),numQuad));
+	    for (int iq=0; iq<numQuad; iq++) {
+	      PosType r; 
+	      for (int dim=0; dim<OHMMS_DIM; dim++)
+		r[dim] = *(pos_host++);
+	      QuadPosList.push_back(r);
+	    }
+	  }
+	}
+	RatioList.resize(QuadPosList.size());
+
+	Psi.NLratios(walkers, JobList, QuadPosList, RatioList);
+	for (int iw=0; iw<nw; iw++) {
+	  CUDA_PRECISION *cos_ptr = &(CosTheta_host[RatiosPerWalker*iw]);
+	  CUDA_PRECISION *dist_ptr = &(Dist_host[MaxPairs*iw]);
+	  for (int ie=0; ie<NumPairs_host[iw]; ie++) {
+	    double dist = *(dist_ptr++);
+	    cerr << "   dist = " << dist << endl;
+	    for (int iq=0; iq<numQuad; iq++) {
+	      double costheta = *(cos_ptr++);
+	      cerr << "      costheta = " << costheta << endl;
+	    }
+	  }
+	}
+
 
 #ifdef CUDA_DEBUG
 	host_vector<int> Elecs_host;
