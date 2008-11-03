@@ -182,6 +182,28 @@ namespace qmcplusplus {
     host_vector<CudaRealType> ratio_host;
     cuda_vector<CudaRealType> gradLapl_d;
     host_vector<CudaRealType> gradLapl_host;
+    
+    // Data members for nonlocal psuedopotential ratio evaluation
+    static const int NLrowBufferRows = 48000;
+    cuda_vector<CudaRealType> NLrowBuffer_d;
+    host_vector<CudaRealType> NLrowBuffer_host;
+
+    cuda_vector<CudaRealType*> SplineRowList_d;
+    host_vector<CudaRealType*> SplineRowList_host;
+    cuda_vector<CudaRealType*> RatioRowList_d;
+    host_vector<CudaRealType*> RatioRowList_host;
+    cuda_vector<CudaRealType> NLposBuffer_d;
+    host_vector<CudaRealType> NLposBuffer_host;
+    cuda_vector<CudaRealType*> NLAinvList_d;
+    host_vector<CudaRealType*> NLAinvList_host;
+    cuda_vector<int> NLnumRatioList_d;
+    host_vector<int> NLnumRatioList_host;
+    cuda_vector<int> NLelecList_d;
+    host_vector<int> NLelecList_host;
+    cuda_vector<CudaRealType> NLratios_d;
+    host_vector<CudaRealType> NLratios_host;
+    cuda_vector<CudaRealType*> NLratioList_d;
+    host_vector<CudaRealType*> NLratioList_host;
 
     void resizeLists(int numWalkers)
     {
@@ -197,6 +219,18 @@ namespace qmcplusplus {
 
       gradLapl_d.resize   (numWalkers*NumPtcls*4);
       gradLapl_host.resize(numWalkers*NumPtcls*4);
+      NLrowBuffer_d.resize(NLrowBufferRows*NumPtcls);
+      NLrowBuffer_host.resize(NLrowBufferRows*NumPtcls);
+      SplineRowList_d.resize(NLrowBufferRows);
+      SplineRowList_host.resize(NLrowBufferRows);
+      for (int i=0; i<NLrowBufferRows; i++)
+	SplineRowList_host[i] = &(NLrowBuffer_d[i*NumPtcls]);
+      SplineRowList_d = SplineRowList_host;
+      NLposBuffer_d.resize   (OHMMS_DIM * NLrowBufferRows);
+      NLposBuffer_host.resize(OHMMS_DIM * NLrowBufferRows);
+      NLrowBuffer_d.resize   (NLrowBufferRows);
+      NLrowBuffer_host.resize(NLrowBufferRows);
+      NLratios_d.resize(NLrowBufferRows);
     }
 
     void update (vector<Walker_t*> &walkers, int iat);
@@ -231,8 +265,18 @@ namespace qmcplusplus {
     void ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
 		vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 		vector<ValueType> &lapl);
+
     void gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
 		   ValueMatrix_t &lapl);
+
+    void NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
+
+    void NLratios (vector<Walker_t*> &walkers,  cuda_vector<CUDA_PRECISION*> &Rlist,
+		   cuda_vector<int*> &ElecList, cuda_vector<int> &NumCoreElecs,
+		   cuda_vector<CUDA_PRECISION*> &QuadPosList,
+		   cuda_vector<CUDA_PRECISION*> &RatioList,
+		   int numQuadPoints);
 
     ///flag to turn on/off to skip some calculations
     bool UseRatioOnly;

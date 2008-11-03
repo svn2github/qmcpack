@@ -171,6 +171,28 @@ namespace qmcplusplus {
 	Dets[id]->gradLapl(walkers, grads, lapl);
     }
 
+    void 
+    NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+	      vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
+    {
+      for (int id=0; id<Dets.size(); id++)
+	Dets[id]->NLratios(walkers, jobList, quadPoints, psi_ratios);
+    }
+
+
+
+    void 
+    NLratios (vector<Walker_t*> &walkers,  cuda_vector<CUDA_PRECISION*> &Rlist,
+	      cuda_vector<int*> &ElecList, cuda_vector<int>             &NumCoreElecs,
+	      cuda_vector<CUDA_PRECISION*> &QuadPosList,
+	      cuda_vector<CUDA_PRECISION*> &RatioList,
+	      int numQuadPoints)
+    {
+      for (int id=0; id<Dets.size(); id++)
+	Dets[id]->NLratios(walkers, Rlist, ElecList, NumCoreElecs, QuadPosList,
+			   RatioList, numQuadPoints);
+    }
+
   private:
     vector<int> M;
     vector<int> DetID;

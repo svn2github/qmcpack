@@ -36,6 +36,9 @@ namespace qmcplusplus {
     int walker;
     int elec;
     int numQuadPoints;
+    NLjob(int w, int e, int n) :
+      walker(w), elec(e), numQuadPoints(n)
+    { }
   };
 
   ///forward declaration of OrbitalBase
@@ -378,6 +381,16 @@ namespace qmcplusplus {
       abort();
     }
 
+    virtual void 
+    NLratios (vector<Walker_t*> &walkers,  cuda_vector<CUDA_PRECISION*> &Rlist,
+	      cuda_vector<int*> &ElecList, cuda_vector<int>             &NumCoreElecs,
+	      cuda_vector<CUDA_PRECISION*> &QuadPosList,
+	      cuda_vector<CUDA_PRECISION*> &RatioList,
+	      int numQuadPoints)
+    {
+      app_error() << "Need specialization of OrbitalBase::NLRatios.\n";
+      abort();
+    }
   };
 }
 #endif

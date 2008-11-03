@@ -155,6 +155,13 @@ namespace qmcplusplus {
 		vector<ValueType> &psi_ratios,
 		vector<GradType> &newG,
 		vector<ValueType> &newL);
+    void NLratios (vector<Walker_t*> &walkers,
+		   cuda_vector<CUDA_PRECISION*> &Rlist,
+		   cuda_vector<int*>            &ElecList,
+		   cuda_vector<int>             &NumCoreElecs,
+		   cuda_vector<CUDA_PRECISION*> &QuadPosList,
+		   cuda_vector<CUDA_PRECISION*> &RatioList,
+		   int numQuadPoints);
     void NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
 		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
 

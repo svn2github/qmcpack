@@ -624,6 +624,14 @@ calc_many_ratios (double *Ainv_list[], double *new_row_list[],
   calc_many_ratios_kernel<double,BS><<<dimGrid,dimBlock>>>
     (Ainv_list, new_row_list, ratio_list, num_ratio_list,
      N, row_stride, elec_list);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in calc_many_ratios:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 

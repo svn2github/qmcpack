@@ -1036,7 +1036,7 @@ namespace qmcplusplus {
    cuda_vector<CudaRealType*> &phi)
   {
     // app_log() << "Start EinsplineSet CUDA evaluation\n";
-    int N = walkers.size();
+    int N = newpos.size();
     if (cudaPos.size() < N) {
       hostPos.resize(N);
       cudaPos.resize(N);
@@ -1153,6 +1153,60 @@ namespace qmcplusplus {
     }
     
     app_error() << "EinsplineSetExtended<complex<double> >::evaluate not yet implemented.\n";
+    abort();
+  }
+
+
+  template<> void 
+  EinsplineSetExtended<double>::evaluate 
+  (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
+  { 
+    int N = pos.size();
+    if (cudaPos.size() < N) {
+      hostPos.resize(N);
+      cudaPos.resize(N);
+    }
+    for (int iw=0; iw < N; iw++) {
+      PosType r = pos[iw];
+      PosType ru(PrimLattice.toUnit(r));
+      ru[0] -= std::floor (ru[0]);
+      ru[1] -= std::floor (ru[1]);
+      ru[2] -= std::floor (ru[2]);
+      hostPos[iw] = ru;
+    }
+
+    //cerr << "Evaluating " << N << " multisplines.\n";
+    cudaPos = hostPos;
+    eval_multi_multi_UBspline_3d_s_cuda 
+      (CudaMultiSpline, (float*)(cudaPos.data()), phi.data(), N);    
+  }
+
+  template<> void 
+  EinsplineSetExtended<double>::evaluate 
+  (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
+  { 
+    app_error() << "EinsplineSetExtended<complex<double> >::evaluate "
+		<< "not yet implemented.\n";
+    abort();
+  }
+
+
+
+  template<> void 
+  EinsplineSetExtended<complex<double> >::evaluate 
+  (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
+  { 
+    app_error() << "EinsplineSetExtended<complex<double> >::evaluate "
+		<< "not yet implemented.\n";
+    abort();
+  }
+
+  template<> void 
+  EinsplineSetExtended<complex<double> >::evaluate 
+  (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
+  { 
+    app_error() << "EinsplineSetExtended<complex<double> >::evaluate "
+		<< "not yet implemented.\n";
     abort();
   }
 

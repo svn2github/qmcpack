@@ -170,6 +170,23 @@ namespace qmcplusplus {
       abort();
     }
 
+    virtual void 
+    evaluate (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
+    { 
+      app_error() << "Need specialization of vectorized evaluate "
+		  << "in SPOSetBase.\n";
+      abort();
+    }
+
+    virtual void 
+    evaluate (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
+    { 
+      app_error() << "Need specialization of vectorized evaluate "
+		  << "in SPOSetBase.\n";
+      abort();
+    }
+
+
 
 protected:
     bool putOccupation(xmlNodePtr occ_ptr);

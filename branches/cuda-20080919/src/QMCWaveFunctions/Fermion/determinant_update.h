@@ -41,4 +41,18 @@ calc_grad_lapl (float *Ainv_list[], float *grad_lapl_list[],
 void
 multi_copy (float *dest[], float *src[], int len, int num);
 
+
+void
+calc_many_ratios (float *Ainv_list[], float *new_row_list[],
+		  float* ratio_list[], int num_ratio_list[],
+		  int N, int row_stride, int elec_list[],
+		  int numWalkers);
+
+void
+calc_many_ratios (double *Ainv_list[], double *new_row_list[],
+		  double* ratio_list[], int num_ratio_list[],
+		  int N, int row_stride, int elec_list[],
+		  int numWalkers);
+
+
 #endif

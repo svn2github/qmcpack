@@ -620,11 +620,26 @@ namespace qmcplusplus {
 			       vector<PosType> &quadPoints, 
 			       vector<ValueType> &psi_ratios)
   {
-    for (int i=0; i<psi_ratios.size(); i++)
-      psi_ratios[i] = 1.0;
+//     for (int i=0; i<psi_ratios.size(); i++)
+//       psi_ratios[i] = 1.0;
     for (int i=0; i<Z.size(); i++)
       Z[i]->NLratios(walkers, jobList, quadPoints, psi_ratios);
   }
+
+  void 
+  TrialWaveFunction::NLratios (vector<Walker_t*> &walkers,
+			       cuda_vector<CUDA_PRECISION*> &Rlist,
+			       cuda_vector<int*>            &ElecList,
+			       cuda_vector<int>             &NumCoreElecs,
+			       cuda_vector<CUDA_PRECISION*> &QuadPosList,
+			       cuda_vector<CUDA_PRECISION*> &RatioList,
+			       int numQuadPoints)
+  {
+    for (int i=0; i<Z.size(); i++)
+      Z[i]->NLratios(walkers, Rlist, ElecList, NumCoreElecs,
+		     QuadPosList, RatioList, numQuadPoints);
+  }
+
 
 }
 /***************************************************************************

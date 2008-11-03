@@ -296,6 +296,8 @@ namespace qmcplusplus {
 		   cuda_vector<CudaComplexType*> &phi,
 		   cuda_vector<CudaComplexType*> &grad_lapl,
 		   int row_stride);
+    void evaluate (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi);
+    void evaluate (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi);
     
     void resetParameters(const opt_variables_type& active);
     void resetTargetParticleSet(ParticleSet& e);

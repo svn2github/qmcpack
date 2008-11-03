@@ -508,12 +508,6 @@ namespace qmcplusplus {
   void 
   DiracDeterminantBase::update (vector<Walker_t*> &walkers, int iat)
   {
-    // cerr << "AOffset         = " << AOffset << endl;
-    // cerr << "AinvOffset      = " << AinvOffset << endl;
-    // cerr << "newRowOffset    = " << newRowOffset << endl;
-    // cerr << "AinvDeltaOffset = " << AinvDeltaOffset << endl;
-    // cerr << "AinvColkOffset  = " << AinvColkOffset << endl;
-
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
     int gradoff = 4*(iat-FirstIndex)*NumOrbitals;
@@ -651,8 +645,6 @@ namespace qmcplusplus {
   void 
   DiracDeterminantBase::addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi)
   {
-    // app_log() << "addLog called.  NumPtcls = " << NumPtcls 
-    // 	      << "   NumOrbitals = " << NumOrbitals << endl;
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
 
@@ -907,6 +899,164 @@ namespace qmcplusplus {
     }
 #endif
   }
+
+
+  void 
+  DiracDeterminantBase::NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+				  vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
+  {
+    int posIndex=0, numJobs=0;
+    vector<PosType> posBuffer;
+    int rowIndex = 0;
+    int outOffset = 0;
+    for (int ijob=0; ijob < jobList.size(); ijob++) {
+      NLjob &job = jobList[ijob];
+      int numQuad = jobList[ijob].numQuadPoints;
+      // Check to see if the buffer is full
+      if (posBuffer.size() + jobList[ijob].numQuadPoints > NLrowBufferRows) {
+	// Compute orbital rows
+	Phi->evaluate (posBuffer, SplineRowList_d);
+	// Compute ratios
+	NLAinvList_d     = NLAinvList_host;
+	NLnumRatioList_d = NLnumRatioList_host;
+	NLelecList_d     = NLelecList_host;
+	NLratioList_d    = NLratioList_host;
+	RatioRowList_d   = RatioRowList_host;  
+
+	calc_many_ratios (NLAinvList_d.data(), RatioRowList_d.data(),
+			  NLratioList_d.data(), NLnumRatioList_d.data(),
+			  NumOrbitals, NumOrbitals, NLelecList_d.data(),
+			  numJobs);
+	
+	// Write ratios out output vector
+	NLratios_host = NLratios_d;
+	for (int i=0; i<rowIndex; i++) 
+	  psi_ratios[i+outOffset] *= NLratios_host[i];
+
+	// Reset counters
+	posBuffer.clear();
+
+	NLAinvList_host.clear();    
+	NLnumRatioList_host.clear();
+	NLelecList_host.clear();    
+	NLratioList_host.clear();   
+	RatioRowList_host.clear();
+	outOffset += rowIndex;
+	rowIndex=0;
+	numJobs=0;
+      }
+      int iw = jobList[ijob].walker;
+      NLAinvList_host.push_back(&(walkers[iw]->cuda_DataSet[AinvOffset]));
+      NLnumRatioList_host.push_back(numQuad);
+      NLelecList_host.push_back(jobList[ijob].elec);
+      NLratioList_host.push_back(&(NLratios_d[rowIndex]));
+      RatioRowList_host.push_back(&(NLrowBuffer_d[rowIndex*NumOrbitals]));
+      numJobs++;
+      
+      for (int iq=0; iq < numQuad; iq++) 
+	posBuffer.push_back(quadPoints[posIndex++]);
+      rowIndex += numQuad;
+    }
+
+    // Compute whatever remains in the buffer
+    Phi->evaluate (posBuffer, SplineRowList_d);
+    // Compute ratios
+    NLAinvList_d     = NLAinvList_host;
+    NLnumRatioList_d = NLnumRatioList_host;
+    NLelecList_d     = NLelecList_host;
+    NLratioList_d    = NLratioList_host;
+    RatioRowList_d   = RatioRowList_host;  
+    
+    calc_many_ratios (NLAinvList_d.data(), RatioRowList_d.data(),
+		      NLratioList_d.data(), NLnumRatioList_d.data(),
+		      NumOrbitals, NumOrbitals, NLelecList_d.data(),
+		      numJobs);
+    
+    // Write ratios to output vector
+    NLratios_host = NLratios_d;
+    for (int i=0; i<rowIndex; i++) 
+      psi_ratios[i+outOffset] *= NLratios_host[i];
+  }
+
+  void 
+  DiracDeterminantBase::NLratios (vector<Walker_t*> &walkers,  cuda_vector<CUDA_PRECISION*> &Rlist,
+				  cuda_vector<int*> &ElecList, cuda_vector<int> &NumCoreElecs,
+				  cuda_vector<CUDA_PRECISION*> &QuadPosList,
+				  cuda_vector<CUDA_PRECISION*> &RatioList,
+				  int numQuadPoints)
+  {
+//     // Stream new positions from the lists into buffers.
+//     // When the buffer fills, evaluate orbitals and ratios, then copy
+//     // back to CPU memory
+//     int buffIndex;
+//     for (int iw=0; iw<NumCoreElecs.size(); iw++) {
+//       for (int elec=0; elec<NumCoreElecs[iw]; elec++) {
+// 	// Check to see if the buffer if full
+// 	if (buffIndex + numQuadPoints >= NLrowBufferRows) {
+// 	  // Evaluate the orbitals
+// 	  Phi.evaluate (NLposBuffer_d.data(), SplineRowList_d.data(), buffIndex);
+// 	  // Evaluate ratios
+
+// 	  // Copy ratios into output list
+
+// 	  // Reset buffer counter
+// 	  buffIndex = 0;
+// 	}
+
+
+
+//       }
+//     }
+
+//     // Evaluate the chuck of ratios that are left.
+    
+
+
+
+
+//     if (AList.size() < walkers.size())
+//       resizeLists(walkers.size());
+
+//     // First evaluate orbitals
+//     for (int iw=0; iw<walkers.size(); iw++) {
+//       Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+//       AinvList[iw]        =  &(data[AinvOffset]);
+//       newRowList[iw]      =  &(data[newRowOffset]);
+//     }
+//     newRowList_d = newRowList;
+//     newGradLaplList_d = newGradLaplList;
+//     Phi->evaluate (walkers, new_pos, newRowList_d, newGradLaplList_d, NumOrbitals);
+
+//     // Now evaluate ratios
+//     AinvList_d   = AinvList;    
+//     determinant_ratios_cuda 
+//       (&(AinvList_d[0]), &(newRowList_d[0]), &(ratio_d[0]), 
+// 	 NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
+    
+//     // Copy back to host
+//     ratio_host = ratio_d;
+
+// #ifdef CUDA_DEBUG
+//     // Now, check against CPU
+//     host_vector<CudaRealType> host_data;
+//     vector<CudaRealType> cpu_ratios(walkers.size(), 0.0f);
+//     for (int iw=0; iw<walkers.size(); iw++) {
+//       host_data = walkers[iw]->cuda_DataSet;
+//       for (int iorb=0; iorb<NumOrbitals; iorb++) {
+// 	cpu_ratios[iw] += host_data[AinvOffset+NumPtcls*iorb+iat-FirstIndex] *
+// 	  host_data[newRowOffset + iorb];
+//       }
+//       fprintf (stderr, "CPU ratio = %10.6e   GPU lapl = %10.6e\n", 
+// 	       cpu_ratios[iw], ratio_host[iw]);
+//     }
+    
+// #endif 
+//     for (int iw=0; iw<psi_ratios.size(); iw++)
+//       psi_ratios[iw] *= ratio_host[iw];
+
+  }
+
+
 }
 
 /***************************************************************************
