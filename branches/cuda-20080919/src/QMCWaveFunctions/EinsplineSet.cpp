@@ -1175,7 +1175,6 @@ namespace qmcplusplus {
       hostPos[iw] = ru;
     }
 
-    //cerr << "Evaluating " << N << " multisplines.\n";
     cudaPos = hostPos;
     eval_multi_multi_UBspline_3d_s_cuda 
       (CudaMultiSpline, (float*)(cudaPos.data()), phi.data(), N);    

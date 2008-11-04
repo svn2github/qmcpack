@@ -576,8 +576,8 @@ calc_many_ratios_kernel (T *Ainv_list[], T *new_row_list[],
     if (mask)
       Ainv_shared[tid] = Ainv[off*row_stride+elec];
     __syncthreads();
-    if (mask)
-      for (int iratio=0; iratio<num_ratios; iratio++) 
+    for (int iratio=0; iratio<num_ratios; iratio++) 
+      if (mask)
 	ratio_sum[iratio][tid] += Ainv_shared[tid] *
 	  new_rows[iratio*row_stride + off];
 

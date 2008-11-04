@@ -295,6 +295,7 @@ find_core_electrons_kernel(T *R[], int numElec,
 		   disp[elec][1]*qp[tid][1] +
 		   disp[elec][2]*qp[tid][2]) / dist[elec];
 	      }
+	      __syncthreads();
 	      // dump the full buffer to global memory
 	      for (int j=0; j<3; j++)
 	    	myRatioPos[(posBlockNum*3+j)*BS+tid] = 

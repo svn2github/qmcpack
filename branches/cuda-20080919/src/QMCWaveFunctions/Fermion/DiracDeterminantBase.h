@@ -217,20 +217,19 @@ namespace qmcplusplus {
       newGradLaplList.resize(numWalkers);  newGradLaplList_d.resize(numWalkers);
       workList.resize(numWalkers);         workList_d.resize(numWalkers);
 
-      gradLapl_d.resize   (numWalkers*NumPtcls*4);
-      gradLapl_host.resize(numWalkers*NumPtcls*4);
-      NLrowBuffer_d.resize(NLrowBufferRows*NumPtcls);
-      NLrowBuffer_host.resize(NLrowBufferRows*NumPtcls);
+      gradLapl_d.resize   (numWalkers*NumOrbitals*4);
+      gradLapl_host.resize(numWalkers*NumOrbitals*4);
+      NLrowBuffer_d.resize(NLrowBufferRows*NumOrbitals);
+      NLrowBuffer_host.resize(NLrowBufferRows*NumOrbitals);
       SplineRowList_d.resize(NLrowBufferRows);
       SplineRowList_host.resize(NLrowBufferRows);
       for (int i=0; i<NLrowBufferRows; i++)
-	SplineRowList_host[i] = &(NLrowBuffer_d[i*NumPtcls]);
+	SplineRowList_host[i] = &(NLrowBuffer_d[i*NumOrbitals]);
       SplineRowList_d = SplineRowList_host;
       NLposBuffer_d.resize   (OHMMS_DIM * NLrowBufferRows);
       NLposBuffer_host.resize(OHMMS_DIM * NLrowBufferRows);
-      NLrowBuffer_d.resize   (NLrowBufferRows);
-      NLrowBuffer_host.resize(NLrowBufferRows);
       NLratios_d.resize(NLrowBufferRows);
+      NLratios_host.resize(NLrowBufferRows);
     }
 
     void update (vector<Walker_t*> &walkers, int iat);

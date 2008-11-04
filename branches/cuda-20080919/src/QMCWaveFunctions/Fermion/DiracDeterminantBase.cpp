@@ -911,10 +911,19 @@ namespace qmcplusplus {
     vector<PosType> posBuffer;
     int rowIndex = 0;
     vector<ValueType*> ratio_pointers;
+
+    posBuffer.clear();
+    ratio_pointers.clear();
+    NLAinvList_host.clear();    
+    NLnumRatioList_host.clear();
+    NLelecList_host.clear();    
+    NLratioList_host.clear();   
+    RatioRowList_host.clear();
+
     for (int ijob=0; ijob < jobList.size(); ijob++) {
       NLjob &job = jobList[ijob];
       int numQuad = job.numQuadPoints;
-      int elec = job.elec;
+      int elec    = job.elec;
       // Check if this electron belongs to this determinant
       if (elec < FirstIndex || elec >= LastIndex) {
 	posIndex += numQuad;
@@ -943,13 +952,12 @@ namespace qmcplusplus {
 
 	// Reset counters
 	posBuffer.clear();
-
+	ratio_pointers.clear();
 	NLAinvList_host.clear();    
 	NLnumRatioList_host.clear();
 	NLelecList_host.clear();    
 	NLratioList_host.clear();   
 	RatioRowList_host.clear();
-	ratio_pointers.clear();
 	rowIndex=0;
 	numJobs=0;
       }
@@ -967,8 +975,8 @@ namespace qmcplusplus {
       rowIndex += numQuad;
       numJobs++;
     }
-
     // Compute whatever remains in the buffer
+    // Compute orbital rows
     Phi->evaluate (posBuffer, SplineRowList_d);
     // Compute ratios
     NLAinvList_d     = NLAinvList_host;
@@ -982,7 +990,7 @@ namespace qmcplusplus {
 		      NumOrbitals, NumOrbitals, NLelecList_d.data(),
 		      numJobs);
     
-    // Write ratios to output vector
+    // Write ratios out output vector
     NLratios_host = NLratios_d;
     for (int i=0; i<ratio_pointers.size(); i++) 
       *(ratio_pointers[i]) *= NLratios_host[i];

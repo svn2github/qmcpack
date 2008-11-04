@@ -296,26 +296,32 @@ namespace qmcplusplus {
 	      
 	    for (int iq=0; iq<numQuad; iq++) {
 	      RealType costheta = *(cos_ptr++);
-	      RealType ratio    = RatioList[ratioIndex++] * pp.sgridweight_m[iq];
+	      RealType ratio  = RatioList[ratioIndex++] * pp.sgridweight_m[iq];
+	      // if (std::isnan(ratio)) {
+	      // 	cerr << "NAN from ratio number " << ratioIndex-1 << "\n";
+	      // 	cerr << "RatioList.size() = " << RatioList.size() << endl;
+	      // }
+		  
 	      RealType lpolprev=0.0;
 	      lpol[0] = 1.0;
 
 	      for (int l=0 ; l< pp.lmax ; l++){
 		//Not a big difference
-		// lpol[l+1]=(2*l+1)*costheta*lpol[l]-l*lpolprev;
-		// lpol[l+1]/=(RealType)(l+1);
 		lpol[l+1]  = pp.Lfactor1[l]*costheta*lpol[l]-l*lpolprev; 
 		lpol[l+1] *= pp.Lfactor2[l]; 
 		lpolprev=lpol[l];
 	      }
 
 	      for (int ip=0 ; ip<pp.nchannel ; ip++) 
-		esum[iw] +=  vrad[ip] * lpol[pp.angpp_m[ip]] * ratio;
+		esum[iw] += vrad[ip] * lpol[pp.angpp_m[ip]] * ratio;
 	    }
 	  }
 	}
       }
     for (int iw=0; iw<walkers.size(); iw++){
+      // if (std::isnan(esum[iw]))
+      // 	app_log() << "NAN in esum.\n";
+
       walkers[iw]->getPropertyBase()[NUMPROPERTIES+myIndex] = esum[iw];
       LocalEnergy[iw] += esum[iw];
     }
