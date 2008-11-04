@@ -562,18 +562,20 @@ calc_many_ratios_kernel (T *Ainv_list[], T *new_row_list[],
   }
   __syncthreads();
 
-  int NB = N/BS + ((N*BS) ? 1 : 0);
+  int NB = N/BS + ((N%BS) ? 1 : 0);
   __shared__ T Ainv_shared[BS], row[BS];
   // We use BS+1 to avoid bank conflicts in the writing.
   __shared__ T ratio_sum[MAX_RATIO_ROWS][BS+1];
   for (int iratio=0; iratio<num_ratios; iratio++)
     ratio_sum[iratio][tid] = 0.0f;
+  __syncthreads();
 
   for (int block=0; block<NB; block++) {
     int off = block*BS+tid;
     bool mask = off < N;
     if (mask)
-      Ainv_shared[tid] = Ainv[tid*row_stride+elec];
+      Ainv_shared[tid] = Ainv[off*row_stride+elec];
+    __syncthreads();
     for (int iratio=0; iratio<num_ratios; iratio++) 
       if (mask)
 	ratio_sum[iratio][tid] += Ainv_shared[tid] *

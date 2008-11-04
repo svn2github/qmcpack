@@ -310,7 +310,7 @@ namespace qmcplusplus {
 	      }
 
 	      for (int ip=0 ; ip<pp.nchannel ; ip++) 
-		esum[iw] +=  vrad[ip]  *    lpol[pp.angpp_m[ip]] ;//* ratio;
+		esum[iw] +=  vrad[ip] * lpol[pp.angpp_m[ip]] * ratio;
 	    }
 	  }
 	}
