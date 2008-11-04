@@ -238,8 +238,10 @@ namespace qmcplusplus {
     R_GPU = R_host;
 
     // Loop over the ionic species
+    vector<RealType> esum(walkers.size(), 0.0);
     for (int sp=0; sp<NumIonGroups; sp++) 
       if (PPset[sp]) {
+	NonLocalECPComponent &pp = *PPset[sp];
 	PPset[sp]->randomize_grid(QuadPoints_host[sp]);
 	QuadPoints_GPU[sp] = QuadPoints_host[sp];
 
@@ -278,19 +280,46 @@ namespace qmcplusplus {
 	}
 	RatioList.resize(QuadPosList.size());
 
+	RealType vrad[pp.nchannel];
+	RealType lpol[pp.lmax+1];
+
 	Psi.NLratios(walkers, JobList, QuadPosList, RatioList);
+	int ratioIndex=0;
 	for (int iw=0; iw<nw; iw++) {
 	  CUDA_PRECISION *cos_ptr = &(CosTheta_host[RatiosPerWalker*iw]);
 	  CUDA_PRECISION *dist_ptr = &(Dist_host[MaxPairs*iw]);
 	  for (int ie=0; ie<NumPairs_host[iw]; ie++) {
-	    double dist = *(dist_ptr++);
-	    cerr << "   dist = " << dist << endl;
+	    RealType dist = *(dist_ptr++);
+
+	    for (int ip=0; ip<pp.nchannel; ip++) 
+	      vrad[ip] = pp.nlpp_m[ip]->splint(dist) * pp.wgt_angpp_m[ip];
+	      
 	    for (int iq=0; iq<numQuad; iq++) {
-	      double costheta = *(cos_ptr++);
-	      cerr << "      costheta = " << costheta << endl;
+	      RealType costheta = *(cos_ptr++);
+	      RealType ratio    = RatioList[ratioIndex++] * pp.sgridweight_m[iq];
+	      RealType lpolprev=0.0;
+	      lpol[0] = 1.0;
+
+	      for (int l=0 ; l< pp.lmax ; l++){
+		//Not a big difference
+		// lpol[l+1]=(2*l+1)*costheta*lpol[l]-l*lpolprev;
+		// lpol[l+1]/=(RealType)(l+1);
+		lpol[l+1]  = pp.Lfactor1[l]*costheta*lpol[l]-l*lpolprev; 
+		lpol[l+1] *= pp.Lfactor2[l]; 
+		lpolprev=lpol[l];
+	      }
+
+	      for (int ip=0 ; ip<pp.nchannel ; ip++) 
+		esum[iw] +=  vrad[ip]  *    lpol[pp.angpp_m[ip]] ;//* ratio;
 	    }
 	  }
 	}
+      }
+    for (int iw=0; iw<walkers.size(); iw++){
+      walkers[iw]->getPropertyBase()[NUMPROPERTIES+myIndex] = esum[iw];
+      LocalEnergy[iw] += esum[iw];
+    }
+  
 
 
 #ifdef CUDA_DEBUG
@@ -336,7 +365,7 @@ namespace qmcplusplus {
 	cerr << "numPairs = " << numPairs << endl;
 	cerr << "NumPairs_host[0] =" << NumPairs_host[0] << endl;
 #endif
-      }
+  }
 // 	for (int i=0; i<NumPairs_host[0]*PPset[sp]->nknot; i++) {
 // 	  fprintf (stderr, "%d %12.6f %12.6f %12.6f\n", i,
 // 		   RatioPos_host[3*i+0],
@@ -347,7 +376,6 @@ namespace qmcplusplus {
 	// host_vector<CUDA_PRECISION> Dist_host;
 	// NumPairs_host = NumPairs_GPU;
 	// Dist_host = Dist_GPU;
-  }
 
 }
 /***************************************************************************

@@ -268,6 +268,7 @@ find_core_electrons_kernel(T *R[], int numElec,
 	disp[tid][2] = r[tid][2]-i[ion][2];
 	dist[tid] =  min_dist<T>(disp[tid][0], disp[tid][1], disp[tid][2], L, Linv);
 	for (int elec=0; elec<elecEnd; elec++) {
+	  __syncthreads();
 	  if (dist[elec] < rcut) {
 	    // First, write quadrature points
 	    if (numQuadPoints + posIndex < BS) {
@@ -306,7 +307,7 @@ find_core_electrons_kernel(T *R[], int numElec,
 	    	blockPos[tid][0] = i[ion][0] + dist[elec]*qp[tid+numWrite][0];
 	    	blockPos[tid][1] = i[ion][1] + dist[elec]*qp[tid+numWrite][1];
 	    	blockPos[tid][2] = i[ion][2] + dist[elec]*qp[tid+numWrite][2];
-		blockCosTheta[posIndex+tid] = 
+		blockCosTheta[tid] = 
 		  (disp[elec][0]*qp[tid+numWrite][0] +
 		   disp[elec][1]*qp[tid+numWrite][1] +
 		   disp[elec][2]*qp[tid+numWrite][2]) / dist[elec];

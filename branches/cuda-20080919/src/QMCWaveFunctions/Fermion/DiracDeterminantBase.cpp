@@ -913,7 +913,7 @@ namespace qmcplusplus {
       NLjob &job = jobList[ijob];
       int numQuad = jobList[ijob].numQuadPoints;
       // Check to see if the buffer is full
-      if (posBuffer.size() + jobList[ijob].numQuadPoints > NLrowBufferRows) {
+      if (rowIndex + jobList[ijob].numQuadPoints > NLrowBufferRows) {
 	// Compute orbital rows
 	Phi->evaluate (posBuffer, SplineRowList_d);
 	// Compute ratios

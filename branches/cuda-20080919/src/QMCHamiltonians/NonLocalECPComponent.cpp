@@ -98,7 +98,7 @@ namespace qmcplusplus {
       for (int j=0; j < nknot ; j++){ 
         PosType deltar(r*rrotsgrid_m[j]-dr);
         W.makeMove(iel,deltar); 
-        psiratio[j]=psi.ratio(W,iel)*sgridweight_m[j];
+	psiratio[j]=psi.ratio(W,iel)*sgridweight_m[j];
         W.rejectMove(iel);
         //psi.rejectMove(iel);
       }
@@ -134,7 +134,7 @@ namespace qmcplusplus {
         esum += vrad[0]*BLAS::dot(nknot, &Amat[0],&psiratio[0]);
       } else {
         BLAS::gemv(nknot, nchannel, &Amat[0], &psiratio[0], &wvec[0]);
-        esum += BLAS::dot(nchannel, &vrad[0], &wvec[0]);
+	esum += BLAS::dot(nchannel, &vrad[0], &wvec[0]);
       }
       ////////////////////////////////////
       //Original implmentation by S. C.

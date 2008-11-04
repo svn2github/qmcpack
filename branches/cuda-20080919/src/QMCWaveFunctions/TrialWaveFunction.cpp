@@ -620,8 +620,8 @@ namespace qmcplusplus {
 			       vector<PosType> &quadPoints, 
 			       vector<ValueType> &psi_ratios)
   {
-//     for (int i=0; i<psi_ratios.size(); i++)
-//       psi_ratios[i] = 1.0;
+    for (int i=0; i<psi_ratios.size(); i++)
+      psi_ratios[i] = 1.0;
     for (int i=0; i<Z.size(); i++)
       Z[i]->NLratios(walkers, jobList, quadPoints, psi_ratios);
   }

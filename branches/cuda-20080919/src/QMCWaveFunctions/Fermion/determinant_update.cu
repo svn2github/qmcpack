@@ -567,7 +567,7 @@ calc_many_ratios_kernel (T *Ainv_list[], T *new_row_list[],
   // We use BS+1 to avoid bank conflicts in the writing.
   __shared__ T ratio_sum[MAX_RATIO_ROWS][BS+1];
   for (int iratio=0; iratio<num_ratios; iratio++)
-    ratio_sum[iratio][BS] = 0.0f;
+    ratio_sum[iratio][tid] = 0.0f;
 
   for (int block=0; block<NB; block++) {
     int off = block*BS+tid;
