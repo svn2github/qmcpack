@@ -902,18 +902,26 @@ namespace qmcplusplus {
 
 
   void 
-  DiracDeterminantBase::NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
-				  vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
+  DiracDeterminantBase::NLratios (vector<Walker_t*> &walkers,  
+				  vector<NLjob> &jobList,
+				  vector<PosType> &quadPoints, 
+				  vector<ValueType> &psi_ratios)
   {
     int posIndex=0, numJobs=0;
     vector<PosType> posBuffer;
     int rowIndex = 0;
-    int outOffset = 0;
+    vector<ValueType*> ratio_pointers;
     for (int ijob=0; ijob < jobList.size(); ijob++) {
       NLjob &job = jobList[ijob];
-      int numQuad = jobList[ijob].numQuadPoints;
+      int numQuad = job.numQuadPoints;
+      int elec = job.elec;
+      // Check if this electron belongs to this determinant
+      if (elec < FirstIndex || elec >= LastIndex) {
+	posIndex += numQuad;
+	continue;
+      }
       // Check to see if the buffer is full
-      if (rowIndex + jobList[ijob].numQuadPoints > NLrowBufferRows) {
+      if (rowIndex + numQuad > NLrowBufferRows) {
 	// Compute orbital rows
 	Phi->evaluate (posBuffer, SplineRowList_d);
 	// Compute ratios
@@ -930,8 +938,8 @@ namespace qmcplusplus {
 	
 	// Write ratios out output vector
 	NLratios_host = NLratios_d;
-	for (int i=0; i<rowIndex; i++) 
-	  psi_ratios[i+outOffset] *= NLratios_host[i];
+	for (int i=0; i<ratio_pointers.size(); i++) 
+	  *(ratio_pointers[i]) *= NLratios_host[i];
 
 	// Reset counters
 	posBuffer.clear();
@@ -941,21 +949,23 @@ namespace qmcplusplus {
 	NLelecList_host.clear();    
 	NLratioList_host.clear();   
 	RatioRowList_host.clear();
-	outOffset += rowIndex;
+	ratio_pointers.clear();
 	rowIndex=0;
 	numJobs=0;
       }
-      int iw = jobList[ijob].walker;
+      int iw = job.walker;
       NLAinvList_host.push_back(&(walkers[iw]->cuda_DataSet[AinvOffset]));
       NLnumRatioList_host.push_back(numQuad);
-      NLelecList_host.push_back(jobList[ijob].elec);
+      NLelecList_host.push_back(job.elec-FirstIndex);
       NLratioList_host.push_back(&(NLratios_d[rowIndex]));
       RatioRowList_host.push_back(&(NLrowBuffer_d[rowIndex*NumOrbitals]));
-      numJobs++;
       
-      for (int iq=0; iq < numQuad; iq++) 
-	posBuffer.push_back(quadPoints[posIndex++]);
+      for (int iq=0; iq < numQuad; iq++) {
+	posBuffer.push_back(quadPoints[posIndex]);
+	ratio_pointers.push_back(&(psi_ratios[posIndex++]));
+      }
       rowIndex += numQuad;
+      numJobs++;
     }
 
     // Compute whatever remains in the buffer
@@ -974,8 +984,8 @@ namespace qmcplusplus {
     
     // Write ratios to output vector
     NLratios_host = NLratios_d;
-    for (int i=0; i<rowIndex; i++) 
-      psi_ratios[i+outOffset] *= NLratios_host[i];
+    for (int i=0; i<ratio_pointers.size(); i++) 
+      *(ratio_pointers[i]) *= NLratios_host[i];
   }
 
   void 

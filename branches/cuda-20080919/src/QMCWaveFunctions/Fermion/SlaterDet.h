@@ -175,7 +175,7 @@ namespace qmcplusplus {
     NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
 	      vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
     {
-      for (int id=0; id<Dets.size(); id++)
+      for (int id=0; id<Dets.size(); id++) 
 	Dets[id]->NLratios(walkers, jobList, quadPoints, psi_ratios);
     }
 
