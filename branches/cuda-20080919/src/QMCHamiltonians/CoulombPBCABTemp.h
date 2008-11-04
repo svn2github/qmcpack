@@ -17,6 +17,7 @@
 #ifndef QMCPLUSPLUS_COULOMBPBCAB_TEMP_H
 #define QMCPLUSPLUS_COULOMBPBCAB_TEMP_H
 #include "QMCHamiltonians/QMCHamiltonianBase.h"
+#include "QMCHamiltonians/CudaCoulomb.h"
 #include "LongRange/LRCoulombSingleton.h"
 #include "Numerics/OneDimGridBase.h"
 #include "Numerics/OneDimGridFunctor.h"
@@ -133,6 +134,34 @@ namespace qmcplusplus {
     Return_t evalConsts();
     Return_t evaluateForPyP(ParticleSet& P);
     void add(int groupID, RadFunctorType* ppot);
+
+    //////////////////////////////////
+    // Vectorized evaluation on GPU //
+    //////////////////////////////////
+    //// Short-range part
+    int NumCenters, NumSpecies;
+    ParticleSet &ElecRef, &IonRef;
+    TextureSpline SRSpline;
+    cuda_vector<CUDA_PRECISION*> RlistGPU;
+    cuda_vector<CUDA_PRECISION>  RGPU, SumGPU;
+    cuda_vector<CUDA_PRECISION>  IGPU;
+    cuda_vector<CUDA_PRECISION>  L, Linv;
+    host_vector<CUDA_PRECISION>  RHost, SumHost;
+    host_vector<CUDA_PRECISION*> RlistHost;
+    //// Long-range part
+    int Numk;
+    cuda_vector<CUDA_PRECISION> kpointsGPU;
+    cuda_vector<int>            kshellGPU;
+    // This has the same lengths as KshellGPU
+    cuda_vector<CUDA_PRECISION> FkGPU;
+    // The first vector index is the species number
+    // Complex, stored as float2
+    vector<cuda_vector<CUDA_PRECISION*> > RhoklistsGPU;
+    vector<host_vector<CUDA_PRECISION*> > RhoklistsHost;
+    cuda_vector<CUDA_PRECISION> RhokGPU;
+    void setupLongRangeGPU(ParticleSet &P);
+    void addEnergy(vector<Walker_t*> &walkers, 
+		   vector<RealType> &LocalEnergy);
   };
 
 }

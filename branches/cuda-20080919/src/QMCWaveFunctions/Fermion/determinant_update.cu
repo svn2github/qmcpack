@@ -602,7 +602,7 @@ calc_many_ratios (float *Ainv_list[], float *new_row_list[],
 		  int N, int row_stride, int elec_list[],
 		  int numWalkers)
 {
-  const int BS=32;
+  const int BS=64;
   
   dim3 dimBlock(BS);
   dim3 dimGrid (numWalkers);
@@ -618,7 +618,7 @@ calc_many_ratios (double *Ainv_list[], double *new_row_list[],
 		  int N, int row_stride, int elec_list[],
 		  int numWalkers)
 {
-  const int BS=32;
+  const int BS=64;
   
   dim3 dimBlock(BS);
   dim3 dimGrid (numWalkers);

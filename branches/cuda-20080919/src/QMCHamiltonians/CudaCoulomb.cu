@@ -1,10 +1,69 @@
 #include "CudaCoulomb.h"
 
-texture<float,1,cudaReadModeElementType> myTex;
+const int MAX_TEXTURES = 10;
 
-texture<float,1,cudaReadModeElementType> shortTex;
+texture<float,1,cudaReadModeElementType> myTex;
+texture<float,1,cudaReadModeElementType> tex00, tex01, tex02, tex03, tex04, tex05, tex06, tex07, tex08, tex09;
+bool textureInUse[MAX_TEXTURES] =  { false, false, false, false, false, 
+				     false, false, false, false, false };
+
+
+#define arraytexFetch(_u, _texnum, _return)\
+switch(_texnum)\
+{\
+case 0:\
+ _return = tex1D(tex00, (_u)); \
+ break;\
+case 1:\
+ _return = tex1D(tex01, (_u)); \
+ break;			       \
+case 2:\
+ _return = tex1D(tex02, (_u)); \
+ break;			       \
+case 3:\
+ _return = tex1D(tex03, (_u)); \
+ break;			       \
+case 4:\
+ _return = tex1D(tex04, (_u)); \
+ break;			       \
+case 5:\
+ _return = tex1D(tex05, (_u)); \
+ break;			       \
+case 6:\
+ _return = tex1D(tex06, (_u)); \
+ break;			       \
+case 7:\
+ _return = tex1D(tex07, (_u)); \
+ break;			       \
+case 8:\
+ _return = tex1D(tex08, (_u)); \
+ break;			       \
+case 9:\
+ _return = tex1D(tex09, (_u)); \
+ break;			       \
+ }
+
 
 #include <iostream>
+
+TextureSpline::TextureSpline()
+{
+  int iTex = 0;
+  while ( iTex < MAX_TEXTURES && textureInUse[iTex]) iTex++;
+  if (iTex == MAX_TEXTURES) {
+    cerr << "Unable to allocated a texture.  Increase MAX_TEXTURES "
+	 << "in CudaCoulomb.cu.\n";
+    abort();
+  }
+  MyTexture = iTex;
+  textureInUse[iTex] = true;
+}
+
+TextureSpline::~TextureSpline()
+{
+  textureInUse[MyTexture] = false;
+}
+
 
 void
 TextureSpline::set(double data[], int numPoints, 
@@ -16,18 +75,75 @@ TextureSpline::set(double data[], int numPoints,
   float data_Host[numPoints];
   for (int i=0; i<numPoints; i++)
     data_Host[i] = data[i];
-  myArray;
+
   cudaChannelFormatDesc channelDesc = 
     cudaCreateChannelDesc(32,0,0,0,cudaChannelFormatKindFloat);
   cudaMallocArray(&myArray, &channelDesc, numPoints);
 
   cudaMemcpyToArray(myArray, 0, 0, data_Host, numPoints*sizeof(float), 
 		    cudaMemcpyHostToDevice);
-  myTex.addressMode[0] = cudaAddressModeClamp;
-  myTex.filterMode = cudaFilterModeLinear;
-  myTex.normalized = false;
-
-  cudaBindTextureToArray(shortTex, myArray, channelDesc);
+  switch (MyTexture) {
+  case 0:
+    tex00.addressMode[0] = cudaAddressModeClamp;
+    tex00.filterMode = cudaFilterModeLinear;
+    tex00.normalized = false;
+    cudaBindTextureToArray(tex00, myArray, channelDesc);
+    break;
+  case 1:
+    tex01.addressMode[0] = cudaAddressModeClamp;
+    tex01.filterMode = cudaFilterModeLinear;
+    tex01.normalized = false;
+    cudaBindTextureToArray(tex01, myArray, channelDesc);
+    break;
+  case 2:
+    tex02.addressMode[0] = cudaAddressModeClamp;
+    tex02.filterMode = cudaFilterModeLinear;
+    tex02.normalized = false;
+    cudaBindTextureToArray(tex02, myArray, channelDesc);
+    break;
+  case 3:
+    tex03.addressMode[0] = cudaAddressModeClamp;
+    tex03.filterMode = cudaFilterModeLinear;
+    tex03.normalized = false;
+    cudaBindTextureToArray(tex03, myArray, channelDesc);
+    break;
+  case 4:
+    tex04.addressMode[0] = cudaAddressModeClamp;
+    tex04.filterMode = cudaFilterModeLinear;
+    tex04.normalized = false;
+    cudaBindTextureToArray(tex04, myArray, channelDesc);
+    break;
+  case 5:
+    tex05.addressMode[0] = cudaAddressModeClamp;
+    tex05.filterMode = cudaFilterModeLinear;
+    tex05.normalized = false;
+    cudaBindTextureToArray(tex05, myArray, channelDesc);
+    break;
+  case 6:
+    tex06.addressMode[0] = cudaAddressModeClamp;
+    tex06.filterMode = cudaFilterModeLinear;
+    tex06.normalized = false;
+    cudaBindTextureToArray(tex06, myArray, channelDesc);
+    break;
+  case 7:
+    tex07.addressMode[0] = cudaAddressModeClamp;
+    tex07.filterMode = cudaFilterModeLinear;
+    tex07.normalized = false;
+    cudaBindTextureToArray(tex07, myArray, channelDesc);
+    break;
+  case 8:
+    tex08.addressMode[0] = cudaAddressModeClamp;
+    tex08.filterMode = cudaFilterModeLinear;
+    tex08.normalized = false;
+    cudaBindTextureToArray(tex08, myArray, channelDesc);
+    break;
+  case 9:
+    tex09.addressMode[0] = cudaAddressModeClamp;
+    tex09.filterMode = cudaFilterModeLinear;
+    tex09.normalized = false;
+    cudaBindTextureToArray(tex09, myArray, channelDesc);
+    break;
+  }
 
 }
 
@@ -78,7 +194,7 @@ T min_dist (T& x, T& y, T& z,
 template<typename T, int BS>
 __global__ void
 coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
-		  T lattice[], T latticeInv[], T sum[])
+		  int textureNum, T lattice[], T latticeInv[], T sum[])
 {
   int tid = threadIdx.x;
   __shared__ T *myR;
@@ -117,8 +233,11 @@ coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
 	dy = r1[p2][1] - r1[tid][1];
 	dz = r1[p2][2] - r1[tid][2];
 	T dist = min_dist(dx, dy, dz, L, Linv);
-	if (ptcl1 != ptcl2)
-	  mysum += tex1D(shortTex, nrm*dist+0.5)/dist;
+	if (ptcl1 != ptcl2) {
+	  float tval;
+	  arraytexFetch(nrm*dist+0.5, textureNum, tval);
+	  mysum += tval/dist;
+	}
 	//	  mysum += dist;
       }
     }
@@ -144,7 +263,10 @@ coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
 	  dy = r2[j][1] - r1[tid][1];
 	  dz = r2[j][2] - r1[tid][2];
 	  T dist = min_dist(dx, dy, dz, L, Linv);
-	  mysum += tex1D(shortTex, nrm*dist+0.5)/dist;
+	  float tval;
+	  arraytexFetch(nrm*dist+0.5, textureNum, tval);
+	  mysum += tval/dist;
+	  //	  mysum += tex1D(shortTex[textureNum], nrm*dist+0.5)/dist;
 	}
       }
     }
@@ -164,15 +286,15 @@ coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
 
 void
 CoulombAA_SR_Sum(float *R[], int N, float rMax, int Ntex,
-		 float lattice[], float latticeInv[], float sum[],
-		 int numWalkers)
+		 int textureNum, float lattice[], float latticeInv[], 
+		 float sum[], int numWalkers)
 {
   const int BS=32;
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
 
   coulomb_AA_kernel<float,BS><<<dimGrid,dimBlock>>>
-    (R, N, rMax, Ntex, lattice, latticeInv, sum);
+    (R, N, rMax, Ntex, textureNum, lattice, latticeInv, sum);
 }
 
 

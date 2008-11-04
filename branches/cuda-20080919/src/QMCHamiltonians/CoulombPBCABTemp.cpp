@@ -22,7 +22,7 @@
 namespace qmcplusplus {
 
   CoulombPBCABTemp::CoulombPBCABTemp(ParticleSet& ions, ParticleSet& elns): 
-    PtclA(ions), myConst(0.0), myGrid(0),V0(0)
+    PtclA(ions), myConst(0.0), myGrid(0),V0(0), ElecRef(elns), IonRef(ions)
     {
       ReportEngine PRE("CoulombPBCABTemp","CoulombPBCABTemp");
       //Use singleton pattern 
@@ -237,6 +237,11 @@ namespace qmcplusplus {
       Vat.resize(NptclA,V0);
       Vspec.resize(NumSpeciesA,0);
     }
+#ifdef QMC_CUDA
+    // SRSpline.set(V0->data(), V0->size(), V0->grid().rmin(), 
+    // 		 V0->grid().rmax());
+    // setupLongRangeGPU(P);
+#endif
   }
 
   void CoulombPBCABTemp::add(int groupID, RadFunctorType* ppot) {
@@ -331,6 +336,117 @@ namespace qmcplusplus {
       app_log() << "   Constant of PBCAB " << Consts << endl;
       return Consts;
     }
+
+
+  void
+  CoulombPBCABTemp::setupLongRangeGPU(ParticleSet &P)
+  {
+    StructFact &SK = *(P.SK);
+    Numk = SK.KLists.numk;
+    host_vector<CUDA_PRECISION> kpointsHost(OHMMS_DIM*Numk);
+    for (int ik=0; ik<Numk; ik++)
+      for (int dim=0; dim<OHMMS_DIM; dim++)
+	kpointsHost[ik*OHMMS_DIM+dim] = SK.KLists.kpts_cart[ik][dim];
+    kpointsGPU = kpointsHost;
+    
+    host_vector<CUDA_PRECISION> FkHost(Numk);
+    for (int ik=0; ik<Numk; ik++)
+      FkHost[ik] = AB->Fk[ik];
+    FkGPU = FkHost;
+  }
+
+  void 
+  CoulombPBCABTemp::addEnergy(vector<Walker_t*> &walkers, 
+			      vector<RealType> &LocalEnergy)
+  {
+    return;
+    // Short-circuit for constant contribution (e.g. fixed ions)
+    // if (!is_active) {
+    //   for (int iw=0; iw<walkers.size(); iw++) {
+    // 	walkers[iw]->getPropertyBase()[NUMPROPERTIES+myIndex] = Value;
+    // 	LocalEnergy[iw] += Value;
+    //   }
+    //   return;
+    // }
+
+    int nw = walkers.size();
+    int N = NumCenters;
+    if (RGPU.size() < OHMMS_DIM*nw*N) {
+      RGPU.resize(OHMMS_DIM*nw*N);   
+      SumGPU.resize(nw);
+      RhokGPU.resize(2*nw*Numk*NumSpecies);
+      RHost.resize(OHMMS_DIM*nw*N);  SumHost.resize(nw);
+      RlistGPU.resize(nw);           RlistHost.resize(nw);
+      RhoklistsGPU.resize(NumSpecies);
+      RhoklistsHost.resize(NumSpecies);
+      for (int sp=0; sp<NumSpecies; sp++) {
+	RhoklistsGPU[sp].resize(nw);
+	RhoklistsHost[sp].resize(nw);
+      }
+    }
+    for (int iw=0; iw<nw; iw++) {
+      for (int sp=0; sp<NumSpecies; sp++) 
+	RhoklistsHost[sp][iw] = &(RhokGPU[2*nw*Numk*sp + 2*Numk*iw]);
+      RlistHost[iw] = &(RGPU[OHMMS_DIM*N*iw]);
+      for (int iat=0; iat<N; iat++)
+	for (int dim=0; dim<OHMMS_DIM; dim++)
+	  RHost[(iw*N+iat)*OHMMS_DIM + dim] = walkers[iw]->R[iat][dim];
+    }
+    for (int sp=0; sp<NumSpecies; sp++)
+      RhoklistsGPU[sp] = RhoklistsHost[sp];
+    RlistGPU = RlistHost;
+    RGPU = RHost;  
+
+    // First, do short-range part
+    CoulombAA_SR_Sum(RlistGPU.data(), N, SRSpline.rMax, SRSpline.NumPoints, 
+		     SRSpline.MyTexture, L.data(), Linv.data(), SumGPU.data(), 
+		     nw);
+    
+    // Now, do long-range part:
+    for (int sp=0; sp<NumSpecies; sp++) {
+      int first = ElecRef.first(sp);
+      int last  = ElecRef.last(sp)-1;
+      eval_rhok_cuda(RlistGPU.data(), first, last, 
+    		     kpointsGPU.data(), Numk, 
+    		     RhoklistsGPU[sp].data(), walkers.size());
+    }
+
+#ifdef DEBUG_CUDA_RHOK
+    host_vector<CUDA_PRECISION> RhokHost;
+    RhokHost = RhokGPU;
+    for (int ik=0; ik<Numk; ik++) {
+      complex<double> rhok(0.0, 0.0);
+      PosType k = PtclRef.SK->KLists.kpts_cart[ik];
+      for (int ir=0; ir<N; ir++) {
+    	PosType r = walkers[0]->R[ir];
+    	double s, c;
+    	double phase = dot(k,r);
+    	sincos(phase, &s, &c);
+    	rhok += complex<double>(c,s);
+      }
+
+      
+      fprintf (stderr, "GPU:   %d   %14.6f  %14.6f\n", 
+    	       ik, RhokHost[2*ik+0], RhokHost[2*ik+1]);
+      fprintf (stderr, "CPU:   %d   %14.6f  %14.6f\n", 
+    	       ik, rhok.real(), rhok.imag());
+    }
+#endif
+    
+    for (int sp1=0; sp1<NumSpecies; sp1++)
+      for (int sp2=sp1; sp2<NumSpecies; sp2++) 
+    	eval_vk_sum_cuda(RhoklistsGPU[sp1].data(), RhoklistsGPU[sp2].data(),
+    			 FkGPU.data(), Numk, SumGPU.data(), nw);
+
+    SumHost = SumGPU;
+    for (int iw=0; iw<walkers.size(); iw++) {
+      // fprintf (stderr, "Energy = %18.6f\n", SumHost[iw]);
+      walkers[iw]->getPropertyBase()[NUMPROPERTIES+myIndex] = 
+	SumHost[iw] + myConst;
+      LocalEnergy[iw] += SumHost[iw] + myConst;
+    }
+  }
+
 }
 
 /***************************************************************************

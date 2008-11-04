@@ -409,7 +409,8 @@ namespace qmcplusplus {
 
     // First, do short-range part
     CoulombAA_SR_Sum(RlistGPU.data(), N, SRSpline.rMax, SRSpline.NumPoints, 
-     		     L.data(), Linv.data(), SumGPU.data(), nw);
+		     SRSpline.MyTexture, L.data(), Linv.data(), 
+		     SumGPU.data(), nw);
     
     // Now, do long-range part:
     for (int sp=0; sp<NumSpecies; sp++) {

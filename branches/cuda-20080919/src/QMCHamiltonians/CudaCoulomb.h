@@ -6,13 +6,17 @@ class TextureSpline
 public:
   float rMin, rMax;
   int NumPoints;
+  int MyTexture;
   cudaArray *myArray;
   void set (float data[], int numPoints, float rmin, float rmax);
   void set (double data[], int numPoints, double rmin, double rmax);
+
+  TextureSpline();
+  ~TextureSpline();
 };
 
 void
-CoulombAA_SR_Sum(float *R[], int N, float rMax, int Ntex,
+CoulombAA_SR_Sum(float *R[], int N, float rMax, int Ntex, int texNum,
 		 float lattice[], float latticeInv[], float sum[],
 		 int numWalkers);
 
