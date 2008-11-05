@@ -107,7 +107,7 @@ namespace qmcplusplus {
       // HACK HACK HACK
       //return Value = evalLR(P)+evalSR(P)+myConst;
 
-      return Value = evalSR(P);
+      return Value = evalSR(P) + myConst;
     }
 
   CoulombPBCABTemp::Return_t 
@@ -351,10 +351,7 @@ namespace qmcplusplus {
         for(int nn=d_ab.M[iat], jat=0; nn<d_ab.M[iat+1]; ++nn,++jat) 
         {
           //if(d_ab->r(nn)>=myRcut) continue;
-	  // HACK HACK HACK
           esum += Qat[jat]*d_ab.rinv(nn)*rVs->splint(d_ab.r(nn));
-	  // if(d_ab.r(nn) < myRcut)
-	  //   esum += Qat[jat];//*std::sqrt(d_ab.r(nn));
         }
         //Accumulate pair sums...species charge for atom i.
 	res += Zat[iat]*esum;
@@ -498,8 +495,8 @@ namespace qmcplusplus {
     for (int iw=0; iw<walkers.size(); iw++) {
       // fprintf (stderr, "Energy = %18.6f\n", SumHost[iw]);
       walkers[iw]->getPropertyBase()[NUMPROPERTIES+myIndex] = 
-	esum[iw];
-      LocalEnergy[iw] += esum[iw];
+	esum[iw] + myConst;
+      LocalEnergy[iw] += esum[iw] + myConst;
     }
   }
 

@@ -342,8 +342,8 @@ coulomb_AB_kernel(T *R[], int Nelec, T I[], int Ifirst, int Ilast,
 	if ((3*eBlock+j)*BS + tid < 3*Nelec)
 	  r[0][j*BS+tid] = myR[(3*eBlock+j)*BS + tid];
       __syncthreads();
+      int end = ((eBlock+1)*BS < Nelec) ? BS : (Nelec-eBlock*BS);
       if (ion < Nion) {
-	int end = ((eBlock+1)*BS < Nelec) ? BS : (Nelec-eBlock*BS);
 	for (int j=0; j<end; j++) {
 	  T dx, dy, dz;
 	  dx = r[j][0] - i[tid][0];
@@ -355,6 +355,7 @@ coulomb_AB_kernel(T *R[], int Nelec, T I[], int Ifirst, int Ilast,
 	  mysum += tval / dist;
 	}
       }
+      __syncthreads();
     }
   }
   __shared__ T shared_sum[BS];
