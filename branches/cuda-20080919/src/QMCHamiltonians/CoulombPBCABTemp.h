@@ -139,9 +139,12 @@ namespace qmcplusplus {
     // Vectorized evaluation on GPU //
     //////////////////////////////////
     //// Short-range part
-    int NumCenters, NumSpecies;
+    int NumIons, NumElecs, NumElecGroups, NumIonSpecies;
     ParticleSet &ElecRef, &IonRef;
-    TextureSpline SRSpline;
+    vector<int> IonFirst, IonLast;
+    // This is indexed by the ion species
+    vector<TextureSpline*> SRSplines;
+    TextureSpline V0Spline;
     cuda_vector<CUDA_PRECISION*> RlistGPU;
     cuda_vector<CUDA_PRECISION>  RGPU, SumGPU;
     cuda_vector<CUDA_PRECISION>  IGPU;
@@ -156,9 +159,13 @@ namespace qmcplusplus {
     cuda_vector<CUDA_PRECISION> FkGPU;
     // The first vector index is the species number
     // Complex, stored as float2
-    vector<cuda_vector<CUDA_PRECISION*> > RhoklistsGPU;
-    vector<host_vector<CUDA_PRECISION*> > RhoklistsHost;
-    cuda_vector<CUDA_PRECISION> RhokGPU;
+    // This is for the electrons -- one per walker
+    cuda_vector<CUDA_PRECISION*>  RhoklistGPU;
+    host_vector<CUDA_PRECISION*>  RhoklistHost;
+    // This stores rho_k for the electrons in one big array
+    cuda_vector<CUDA_PRECISION> RhokElecGPU;
+    // This stores rho_k for the ions.  Index is species number
+    vector<cuda_vector<CUDA_PRECISION> > RhokIonsGPU;
     void setupLongRangeGPU(ParticleSet &P);
     void addEnergy(vector<Walker_t*> &walkers, 
 		   vector<RealType> &LocalEnergy);

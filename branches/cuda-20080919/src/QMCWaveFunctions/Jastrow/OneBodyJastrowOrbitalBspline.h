@@ -79,7 +79,7 @@ namespace qmcplusplus {
 	for (int i=0; i<centers.getTotalNum(); i++) {
 	  if (centers.GroupID[i] == cgroup) {
 	    for (int dim=0; dim<OHMMS_DIM; dim++) 
-	      C_host[OHMMS_DIM*i+dim] = centers.R[i][dim];
+	      C_host[OHMMS_DIM*index+dim] = centers.R[i][dim];
 	    index++;
 	  }
 	}

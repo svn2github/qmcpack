@@ -75,8 +75,6 @@ namespace qmcplusplus {
     CoulombPBCAATemp::evaluate(ParticleSet& P) 
     {
       if(is_active) Value =  evalLR(P)+ evalSR(P) + myConst;
-      // HACK HACK HACK
-      // if(is_active) Value = evalLR(P);
       return Value;
     }
 

@@ -298,6 +298,94 @@ CoulombAA_SR_Sum(float *R[], int N, float rMax, int Ntex,
 }
 
 
+
+template<typename T, int BS>
+__global__ void
+coulomb_AB_kernel(T *R[], int Nelec, T I[], int Ifirst, int Ilast, 
+		  T rMax, int Ntex, int textureNum, 
+		  T lattice[], T latticeInv[], T sum[])
+{
+  int tid = threadIdx.x;
+  __shared__ T *myR;
+
+  int Nion = Ilast - Ifirst + 1;
+
+ __shared__ float lastsum;
+  if (tid == 0) {
+    myR = R[blockIdx.x];
+    lastsum = sum[blockIdx.x];
+  }
+  __shared__ T L[3][3], Linv[3][3];
+  if (tid < 9) {
+    L[0][tid] = lattice[tid];
+    Linv[0][tid] = latticeInv[tid];
+  }
+
+  __syncthreads();
+
+  T nrm = (T)(Ntex-1)/rMax;
+  __shared__ float r[BS][3], i[BS][3];
+  int NeBlocks = Nelec/BS + ((Nelec%BS) ? 1 : 0);
+  int NiBlocks = Nion/BS +  ((Nion %BS) ? 1 : 0);
+
+  T mysum = (T)0.0; 
+
+  // Now do off-diagonal blocks
+  for (int iBlock=0; iBlock<NiBlocks; iBlock++) {
+    for (int j=0; j<3; j++)
+      if ((3*iBlock+j)*BS + tid < 3*Nion)
+	i[0][j*BS+tid] = I[3*Ifirst+(3*iBlock+j)*BS + tid];
+    __syncthreads();
+    int ion = iBlock*BS + tid;
+    for (int eBlock=0; eBlock<NeBlocks; eBlock++) {
+      for (int j=0; j<3; j++)
+	if ((3*eBlock+j)*BS + tid < 3*Nelec)
+	  r[0][j*BS+tid] = myR[(3*eBlock+j)*BS + tid];
+      __syncthreads();
+      if (ion < Nion) {
+	int end = ((eBlock+1)*BS < Nelec) ? BS : (Nelec-eBlock*BS);
+	for (int j=0; j<end; j++) {
+	  T dx, dy, dz;
+	  dx = r[j][0] - i[tid][0];
+	  dy = r[j][1] - i[tid][1];
+	  dz = r[j][2] - i[tid][2];
+	  T dist = min_dist(dx, dy, dz, L, Linv);
+	  float tval;
+	  arraytexFetch(nrm*dist+0.5, textureNum, tval);
+	  mysum += tval / dist;
+	}
+      }
+    }
+  }
+  __shared__ T shared_sum[BS];
+  shared_sum[tid] = mysum;
+  __syncthreads();
+  for (int s=BS>>1; s>0; s >>=1) {
+    if (tid < s)
+      shared_sum[tid] += shared_sum[tid+s];
+    __syncthreads();
+  }
+  if (tid==0)
+    sum[blockIdx.x] = shared_sum[0];
+}
+
+
+void
+CoulombAB_SR_Sum(float *R[], int Nelec, float I[],  int Ifirst, int Ilast,
+		 float rMax, int Ntex, int textureNum, 
+		 float lattice[], float latticeInv[], 
+		 float sum[], int numWalkers)
+{
+  const int BS=64;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  coulomb_AB_kernel<float,BS><<<dimGrid,dimBlock>>>
+    (R, Nelec, I, Ifirst, Ilast, rMax, Ntex, textureNum, 
+     lattice, latticeInv, sum);
+}
+
+
 template<typename T, int BS>
 __global__ void
 eval_rhok_kernel (T *R[], int numr,

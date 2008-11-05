@@ -19,6 +19,11 @@ void
 CoulombAA_SR_Sum(float *R[], int N, float rMax, int Ntex, int texNum,
 		 float lattice[], float latticeInv[], float sum[],
 		 int numWalkers);
+void
+CoulombAB_SR_Sum(float *R[], int Nelec, float I[], int Ifirst, int Ilast,
+		 float rMax, int Ntex, int textureNum, 
+		 float lattice[], float latticeInv[], 
+		 float sum[], int numWalkers);
 
 void
 eval_rhok_cuda(float *R[], int numr, float kpoints[], 
