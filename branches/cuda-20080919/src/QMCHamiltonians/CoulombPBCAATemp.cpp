@@ -21,7 +21,8 @@
 
 namespace qmcplusplus {
 
-  CoulombPBCAATemp::CoulombPBCAATemp(ParticleSet& ref, bool active): 
+  CoulombPBCAATemp::CoulombPBCAATemp(ParticleSet& ref, bool active,
+				     bool cloning): 
     AA(0), myGrid(0), rVs(0), 
     is_active(active), FirstTime(true), myConst(0.0),
     PtclRef(ref)
@@ -31,7 +32,7 @@ namespace qmcplusplus {
     //create a distance table: just to get the table name
     DistanceTableData *d_aa = DistanceTable::add(ref);
     PtclRefName=d_aa->Name;
-    initBreakup(ref);
+    initBreakup(ref, cloning);
     app_log() << "  Maximum K shell " << AA->MaxKshell << endl;
     app_log() << "  Number of k vectors " << AA->Fk.size() << endl;
 
@@ -211,7 +212,7 @@ namespace qmcplusplus {
     }
   }
 
-  void CoulombPBCAATemp::initBreakup(ParticleSet& P) 
+  void CoulombPBCAATemp::initBreakup(ParticleSet& P, bool cloning) 
   {
     //SpeciesSet& tspecies(PtclRef->getSpeciesSet());
     SpeciesSet& tspecies(P.getSpeciesSet());
@@ -245,8 +246,11 @@ namespace qmcplusplus {
     }
 
 #ifdef QMC_CUDA
-    SRSpline.set(rVs->data(), rVs->size(), rVs->grid().rmin(), 
-		 rVs->grid().rmax());
+    if (!cloning) {
+      SRSpline = new TextureSpline;
+      SRSpline->set(rVs->data(), rVs->size(), rVs->grid().rmin(), 
+		   rVs->grid().rmax());
+    }
     setupLongRangeGPU(P);
 #endif
 
@@ -337,10 +341,13 @@ namespace qmcplusplus {
 
     QMCHamiltonianBase* CoulombPBCAATemp::makeClone(ParticleSet& qp, TrialWaveFunction& psi) 
     {
+      CoulombPBCAATemp *myclone;
       if(is_active)
-        return new CoulombPBCAATemp(qp,is_active);
+        myclone =  new CoulombPBCAATemp(qp,is_active, true);
       else
-        return new CoulombPBCAATemp(*this);//nothing needs to be re-evaluated
+        myclone = new CoulombPBCAATemp(*this);//nothing needs to be re-evaluated
+      myclone->SRSpline = SRSpline;
+      return myclone;
     }
 
 
@@ -406,8 +413,8 @@ namespace qmcplusplus {
     RGPU = RHost;  
 
     // First, do short-range part
-    CoulombAA_SR_Sum(RlistGPU.data(), N, SRSpline.rMax, SRSpline.NumPoints, 
-		     SRSpline.MyTexture, L.data(), Linv.data(), 
+    CoulombAA_SR_Sum(RlistGPU.data(), N, SRSpline->rMax, SRSpline->NumPoints, 
+		     SRSpline->MyTexture, L.data(), Linv.data(), 
 		     SumGPU.data(), nw);
     
     // Now, do long-range part:

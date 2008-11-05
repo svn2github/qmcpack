@@ -21,7 +21,8 @@
 
 namespace qmcplusplus {
 
-  CoulombPBCABTemp::CoulombPBCABTemp(ParticleSet& ions, ParticleSet& elns): 
+  CoulombPBCABTemp::CoulombPBCABTemp(ParticleSet& ions, ParticleSet& elns,
+				     bool cloning): 
     PtclA(ions), myConst(0.0), myGrid(0),V0(0), ElecRef(elns), IonRef(ions)
     {
       ReportEngine PRE("CoulombPBCABTemp","CoulombPBCABTemp");
@@ -31,7 +32,7 @@ namespace qmcplusplus {
 
       SpeciesSet &sSet = ions.getSpeciesSet();
       NumIonSpecies = sSet.getTotalNum();
-      initBreakup(elns);
+      initBreakup(elns, cloning);
       app_log() << "  Maximum K shell " << AB->MaxKshell << endl;
       app_log() << "  Number of k vectors " << AB->Fk.size() << endl;
       NumIons  = ions.getTotalNum();
@@ -58,6 +59,7 @@ namespace qmcplusplus {
 	  if (ions.GroupID[i] == cgroup) {
 	    for (int dim=0; dim<OHMMS_DIM; dim++) 
 	      I_host[OHMMS_DIM*index+dim] = ions.R[i][dim];
+	    SortedIons.push_back(ions.R[i]);
 	    index++;
 	  }
 	}
@@ -65,12 +67,13 @@ namespace qmcplusplus {
       }
       IGPU = I_host;
       SRSplines.resize(NumIonSpecies,0);
+      setupLongRangeGPU();
 #endif
     }
 
   QMCHamiltonianBase* CoulombPBCABTemp::makeClone(ParticleSet& qp, TrialWaveFunction& psi)
   {
-    CoulombPBCABTemp* myclone=new CoulombPBCABTemp(PtclA,qp);
+    CoulombPBCABTemp* myclone=new CoulombPBCABTemp(PtclA, qp, true);
     if(myGrid) myclone->myGrid=new GridType(*myGrid);
     for(int ig=0; ig<Vspec.size(); ++ig)
     {
@@ -83,6 +86,9 @@ namespace qmcplusplus {
           if(PtclA.GroupID[iat]==ig) myclone->Vat[iat]=apot;
         }
       }
+      myclone->V0Spline = V0Spline;
+      myclone->SRSplines[ig] = SRSplines[ig];
+
     }
     return myclone;
   }
@@ -105,9 +111,8 @@ namespace qmcplusplus {
     CoulombPBCABTemp::evaluate(ParticleSet& P) 
     {
       // HACK HACK HACK
-      //return Value = evalLR(P)+evalSR(P)+myConst;
-
-      return Value = evalSR(P) + myConst;
+      return Value = evalLR(P)+evalSR(P)+myConst;
+      // return Value = evalSR(P) + myConst;
     }
 
   CoulombPBCABTemp::Return_t 
@@ -213,7 +218,8 @@ namespace qmcplusplus {
     Value=NewValue;
   }
 
-  void CoulombPBCABTemp::initBreakup(ParticleSet& P) {
+  void CoulombPBCABTemp::initBreakup(ParticleSet& P, bool cloning) 
+  {
     SpeciesSet& tspeciesA(PtclA.getSpeciesSet());
     SpeciesSet& tspeciesB(P.getSpeciesSet());
 
@@ -274,19 +280,19 @@ namespace qmcplusplus {
       }
       Vat.resize(NptclA,V0);
       Vspec.resize(NumSpeciesA,0);
-      cerr << "NumIonSpecies in initBreakup = " << NumIonSpecies 
-	   << endl;
-      SRSplines.resize(NumIonSpecies, &V0Spline);
-    }
+
 #ifdef QMC_CUDA
-    V0Spline.set(V0->data(), V0->size(), V0->grid().rmin(), 
-     		 V0->grid().rmax());
-     setupLongRangeGPU(P);
+      if (!cloning) {
+	V0Spline = new TextureSpline;
+	V0Spline->set(V0->data(), V0->size(), V0->grid().rmin(), 
+		      V0->grid().rmax());
+      }
+      SRSplines.resize(NumIonSpecies, V0Spline);
 #endif
+    }
   }
 
   void CoulombPBCABTemp::add(int groupID, RadFunctorType* ppot) {
-
     if(myGrid ==0)
     {
       myGrid = new LinearGrid<RealType>;
@@ -384,9 +390,9 @@ namespace qmcplusplus {
 
 
   void
-  CoulombPBCABTemp::setupLongRangeGPU(ParticleSet &P)
+  CoulombPBCABTemp::setupLongRangeGPU()
   {
-    StructFact &SK = *(P.SK);
+    StructFact &SK = *(ElecRef.SK);
     Numk = SK.KLists.numk;
     host_vector<CUDA_PRECISION> kpointsHost(OHMMS_DIM*Numk);
     for (int ik=0; ik<Numk; ik++)
@@ -398,6 +404,26 @@ namespace qmcplusplus {
     for (int ik=0; ik<Numk; ik++)
       FkHost[ik] = AB->Fk[ik];
     FkGPU = FkHost;
+
+    // Now compute Rhok for the ions
+    RhokIonsGPU.resize(NumIonSpecies);
+    host_vector<CUDA_PRECISION> RhokIons_host(2*Numk);
+    for (int sp=0; sp<NumIonSpecies; sp++) {
+      for (int ik=0; ik < Numk; ik++) {
+	PosType k = SK.KLists.kpts_cart[ik];
+	RhokIons_host[2*ik+0] = 0.0;
+	RhokIons_host[2*ik+1] = 0.0;
+	for (int ion=IonFirst[sp]; ion<=IonLast[sp]; ion++) {
+	  PosType ipos = SortedIons[ion];
+	  RealType phase = dot(k,ipos);
+	  double s,c;
+	  sincos(phase, &s, &c);
+	  RhokIons_host[2*ik+0] += c;
+	  RhokIons_host[2*ik+1] += s;
+	}
+      }
+      RhokIonsGPU[sp] = RhokIons_host;
+    }
   }
 
   void 
@@ -429,7 +455,7 @@ namespace qmcplusplus {
       RhoklistHost.resize(nw);
     }
     for (int iw=0; iw<nw; iw++) {
-      RhoklistHost[iw] = &(RhokElecGPU[2*nw*Numk + 2*Numk*iw]);
+      RhoklistHost[iw] = &(RhokElecGPU[2*Numk*iw]);
       RlistHost[iw] = &(RGPU[OHMMS_DIM*N*iw]);
       for (int iat=0; iat<N; iat++)
 	for (int dim=0; dim<OHMMS_DIM; dim++)
@@ -455,14 +481,22 @@ namespace qmcplusplus {
       }
     }
     
-//     // Now, do long-range part:
-//     for (int sp=0; sp<NumSpecies; sp++) {
-//       int first = ElecRef.first(sp);
-//       int last  = ElecRef.last(sp)-1;
-//       eval_rhok_cuda(RlistGPU.data(), first, last, 
-//     		     kpointsGPU.data(), Numk, 
-//     		     RhoklistsGPU[sp].data(), walkers.size());
-//     }
+    // Now, do long-range part:
+    int first = 0;
+    int last  = N-1;
+    eval_rhok_cuda(RlistGPU.data(), first, last, kpointsGPU.data(), Numk, 
+    		   RhoklistGPU.data(), nw);
+    
+    for (int sp=0; sp<NumIonSpecies; sp++) {
+      for (int iw=0; iw<nw; iw++)
+	SumHost[iw] = 0.0;
+      SumGPU = SumHost;
+      eval_vk_sum_cuda(RhoklistGPU.data(), RhokIonsGPU[sp].data(),
+		       FkGPU.data(), Numk, SumGPU.data(), nw);
+      SumHost = SumGPU;
+      for (int iw=0; iw<nw; iw++)
+	esum[iw] += Zspec[sp]*Qspec[0]* SumHost[iw];
+    }
 
 // #ifdef DEBUG_CUDA_RHOK
 //     host_vector<CUDA_PRECISION> RhokHost;

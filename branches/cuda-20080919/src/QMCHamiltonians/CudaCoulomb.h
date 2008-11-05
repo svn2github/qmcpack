@@ -42,4 +42,10 @@ eval_vk_sum_cuda (float *rhok1[], float *rhok2[],
 		  float vk[], int numk, float sum[],
 		  int numWalkers);
 
+// In this case, the rhok2 is the same for all walkers
+void
+eval_vk_sum_cuda (float *rhok1[], float rhok2[], 
+		  float vk[], int numk, float sum[],
+		  int numWalkers);
+
 #endif

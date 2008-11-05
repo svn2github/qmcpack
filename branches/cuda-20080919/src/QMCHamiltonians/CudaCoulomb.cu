@@ -48,6 +48,7 @@ case 9:\
 
 TextureSpline::TextureSpline()
 {
+  cerr << "TextureSpline constructor.\n";
   int iTex = 0;
   while ( iTex < MAX_TEXTURES && textureInUse[iTex]) iTex++;
   if (iTex == MAX_TEXTURES) {
@@ -626,6 +627,66 @@ eval_vk_sum_cuda (float *rhok[], float vk[], int numk, float sum[],
 
 void
 eval_vk_sum_cuda (float *rhok1[], float *rhok2[], 
+		  float vk[], int numk, float sum[],
+		  int numWalkers)
+{
+  const int BS=64;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  vk_sum_kernel2<float,BS><<<dimGrid,dimBlock>>>
+    (rhok1, rhok2, vk, numk, sum);
+}
+
+
+template<typename T, int BS>
+__global__ void
+vk_sum_kernel2(T *rhok1[], T rhok2[], T vk[], int numk,
+	       T sum[])
+{
+  int tid = threadIdx.x;
+  __shared__ float *myrhok1;
+  if (tid == 0) 
+    myrhok1 = rhok1[blockIdx.x];
+  __syncthreads();
+  
+  // Used to do coalesced global loads
+  __shared__ T rhok_s1[2*BS], rhok_s2[2*BS];
+
+  int NB = numk/BS + ((numk%BS) ? 1 : 0);
+  T mysum = 0.0f;
+  for (int b=0; b<NB; b++) {
+    if (2*b*BS + tid < 2*numk) {
+      rhok_s1[tid] = myrhok1[2*b*BS+tid];
+      rhok_s2[tid] =   rhok2[2*b*BS+tid];
+    }
+    if ((2*b+1)*BS + tid < 2*numk) {
+      rhok_s1[BS+tid] = myrhok1[(2*b+1)*BS+tid]; 
+      rhok_s2[BS+tid] =   rhok2[(2*b+1)*BS+tid]; 
+    }
+    __syncthreads();
+
+    if (b*BS + tid < numk) 
+      mysum += vk[b*BS+tid] * (rhok_s1[2*tid+0]*rhok_s2[2*tid+0] +
+			       rhok_s1[2*tid+1]*rhok_s2[2*tid+1]);
+  }
+  
+  __shared__ T shared_sum[BS];
+  shared_sum[tid] = mysum;
+  __syncthreads();
+  for (int s=(BS>>1); s>0; s >>= 1) {
+    if (tid < s) 
+      shared_sum[tid] += shared_sum[tid+s];
+    __syncthreads();
+  }
+
+  if (tid == 0)
+    sum[blockIdx.x] += shared_sum[0];
+}
+
+void
+eval_vk_sum_cuda (float *rhok1[], float rhok2[], 
 		  float vk[], int numk, float sum[],
 		  int numWalkers)
 {

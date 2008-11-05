@@ -93,7 +93,7 @@ namespace qmcplusplus {
     bool kcdifferent; 
     RealType minkc;
 
-    CoulombPBCABTemp(ParticleSet& ions, ParticleSet& elns);
+    CoulombPBCABTemp(ParticleSet& ions, ParticleSet& elns, bool cloning=false);
 
     ///// copy constructor
     //CoulombPBCABTemp(const CoulombPBCABTemp& c);
@@ -127,7 +127,7 @@ namespace qmcplusplus {
 
     QMCHamiltonianBase* makeClone(ParticleSet& qp, TrialWaveFunction& psi);
 
-    void initBreakup(ParticleSet& P);
+    void initBreakup(ParticleSet& P, bool cloning);
 
     Return_t evalSR(ParticleSet& P);
     Return_t evalLR(ParticleSet& P);
@@ -144,7 +144,7 @@ namespace qmcplusplus {
     vector<int> IonFirst, IonLast;
     // This is indexed by the ion species
     vector<TextureSpline*> SRSplines;
-    TextureSpline V0Spline;
+    TextureSpline *V0Spline;
     cuda_vector<CUDA_PRECISION*> RlistGPU;
     cuda_vector<CUDA_PRECISION>  RGPU, SumGPU;
     cuda_vector<CUDA_PRECISION>  IGPU;
@@ -164,9 +164,11 @@ namespace qmcplusplus {
     host_vector<CUDA_PRECISION*>  RhoklistHost;
     // This stores rho_k for the electrons in one big array
     cuda_vector<CUDA_PRECISION> RhokElecGPU;
+
+    vector<PosType> SortedIons;
     // This stores rho_k for the ions.  Index is species number
     vector<cuda_vector<CUDA_PRECISION> > RhokIonsGPU;
-    void setupLongRangeGPU(ParticleSet &P);
+    void setupLongRangeGPU();
     void addEnergy(vector<Walker_t*> &walkers, 
 		   vector<RealType> &LocalEnergy);
   };

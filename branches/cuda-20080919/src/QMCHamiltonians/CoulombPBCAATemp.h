@@ -55,7 +55,7 @@ namespace qmcplusplus {
     Vector<ComplexType> del_eikr;
 
     /** constructor */
-    CoulombPBCAATemp(ParticleSet& ref, bool active);
+    CoulombPBCAATemp(ParticleSet& ref, bool active, bool cloning=false);
 
     ~CoulombPBCAATemp();
 
@@ -85,7 +85,7 @@ namespace qmcplusplus {
 
     QMCHamiltonianBase* makeClone(ParticleSet& qp, TrialWaveFunction& psi);
 
-    void initBreakup(ParticleSet& P);
+    void initBreakup(ParticleSet& P, bool cloning);
 
     Return_t evalSR(ParticleSet& P);
     Return_t evalLR(ParticleSet& P);
@@ -96,7 +96,7 @@ namespace qmcplusplus {
     // Vectorized evaluation on GPU //
     //////////////////////////////////
     //// Short-range part
-    TextureSpline SRSpline;
+    TextureSpline *SRSpline;
     cuda_vector<CUDA_PRECISION*> RlistGPU;
     cuda_vector<CUDA_PRECISION>  RGPU, SumGPU;
     cuda_vector<CUDA_PRECISION>  L, Linv;
