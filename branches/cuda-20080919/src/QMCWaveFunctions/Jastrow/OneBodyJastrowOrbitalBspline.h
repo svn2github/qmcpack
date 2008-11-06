@@ -33,6 +33,16 @@ namespace qmcplusplus {
     host_vector<CudaReal> SumHost, RnewHost, GradLaplHost;
     int NumCenterGroups, NumElecGroups;
     vector<int> CenterFirst, CenterLast;
+
+    host_vector<CudaReal*> NL_SplineCoefsListHost;
+    cuda_vector<CudaReal*> NL_SplineCoefsListGPU;
+    host_vector<NLjobGPU<CudaReal> > NL_JobListHost;
+    cuda_vector<NLjobGPU<CudaReal> > NL_JobListGPU;
+    host_vector<int> NL_NumCoefsHost, NL_NumQuadPointsHost;
+    cuda_vector<int> NL_NumCoefsGPU,  NL_NumQuadPointsGPU;
+    host_vector<CudaReal> NL_rMaxHost, NL_QuadPointsHost, NL_RatiosHost;
+    cuda_vector<CudaReal> NL_rMaxGPU,  NL_QuadPointsGPU,  NL_RatiosGPU;
+
     int N;
   public:
     typedef BsplineFunctor<OrbitalBase::RealType> FT;
@@ -50,6 +60,8 @@ namespace qmcplusplus {
 		vector<ValueType> &lapl);
     void gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
 		   ValueMatrix_t &lapl);
+    void NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
 
     OneBodyJastrowOrbitalBspline(ParticleSet &centers, ParticleSet& elecs) :
       OneBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> > (centers,elecs),

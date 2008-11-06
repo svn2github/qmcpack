@@ -33,16 +33,10 @@ namespace qmcplusplus {
     cuda_vector<CudaReal*> NL_SplineCoefsListGPU;
     host_vector<NLjobGPU<CudaReal> > NL_JobListHost;
     cuda_vector<NLjobGPU<CudaReal> > NL_JobListGPU;
-    host_vector<int> NL_NumCoefsHost;
-    cuda_vector<int> NL_NumCoefsGPU;
-    host_vector<CudaReal> NL_rMaxHost;
-    cuda_vector<CudaReal> NL_rMaxGPU;
-
-    host_vector<int> NL_NumQuadPointsHost;
-    cuda_vector<int> NL_NumQuadPointsGPU;
-    host_vector<CudaReal> NL_QuadPointsHost, NL_RatiosHost;
-    cuda_vector<CudaReal> NL_QuadPointsGPU,  NL_RatiosGPU;
-
+    host_vector<int> NL_NumCoefsHost, NL_NumQuadPointsHost;
+    cuda_vector<int> NL_NumCoefsGPU,  NL_NumQuadPointsGPU;
+    host_vector<CudaReal> NL_rMaxHost, NL_QuadPointsHost, NL_RatiosHost;
+    cuda_vector<CudaReal> NL_rMaxGPU,  NL_QuadPointsGPU,  NL_RatiosGPU;
   public:
     typedef BsplineFunctor<OrbitalBase::RealType> FT;
     typedef ParticleSet::Walker_t     Walker_t;

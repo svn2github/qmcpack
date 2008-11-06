@@ -256,34 +256,6 @@ namespace qmcplusplus {
     NL_RatiosHost = NL_RatiosGPU;
     for (int i=0; i < psi_ratios.size(); i++)
       psi_ratios[i] = NL_RatiosHost[i];
-  
-//     for (int iw=0; iw<walkers.size(); iw++) {
-//       Walker_t &walker = *(walkers[iw]);
-//       SumHost[iw] = 0.0;
-//       for (int dim=0; dim<OHMMS_DIM; dim++)
-// 	RnewHost[OHMMS_DIM*iw+dim] = new_pos[iw][dim];
-//     }
-//     SumGPU = SumHost;
-//     RnewGPU = RnewHost;
-
-//     int newGroup = PtclRef.GroupID[iat];
-
-//     for (int group=0; group<PtclRef.groups(); group++) {
-//       int first = PtclRef.first(group);
-//       int last  = PtclRef.last(group) -1;
-	
-//       CudaSpline<CudaReal> &spline = *(GPUSplines[group*NumGroups+newGroup]);
-//       two_body_ratio (RlistGPU.data(), first, last, N, 
-//       		      RnewGPU.data(), iat, 
-//       		      spline.coefs.data(), spline.coefs.size(),
-//       		      spline.rMax, L.data(), Linv.data(),
-//       		      SumGPU.data(), walkers.size());
-//     }
-//     // Copy data back to CPU memory
-    
-//     SumHost = SumGPU;
-//     for (int iw=0; iw<walkers.size(); iw++) 
-//       psi_ratios[iw] *= std::exp(-SumHost[iw]);
   }
 
 

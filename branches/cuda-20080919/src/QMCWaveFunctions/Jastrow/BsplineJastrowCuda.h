@@ -85,6 +85,11 @@ one_body_ratio (double C[], double *R[], int first, int last, int N,
 		double lattice[], double latticeInv[], double sum[], int numWalkers);
 
 void
+one_body_NLratios(NLjobGPU<float> jobs[], float C[], int first, int last,
+		  float spline_coefs[], int numCoefs, float rMax, 
+		  float lattice[], float latticeInv[], int numjobs);
+
+void
 one_body_update(float *R[], int N, int iat, int numWalkers);
 
 void
