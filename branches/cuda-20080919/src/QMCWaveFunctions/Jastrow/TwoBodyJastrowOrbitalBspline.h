@@ -7,6 +7,7 @@
 #include "QMCWaveFunctions/Jastrow/BsplineFunctor.h"
 #include "Configuration.h"
 #include "QMCWaveFunctions/Jastrow/CudaSpline.h"
+#include "QMCWaveFunctions/Jastrow/BsplineJastrowCuda.h"
 
 namespace qmcplusplus {
 
@@ -27,6 +28,21 @@ namespace qmcplusplus {
 
     host_vector<CudaReal*> RlistHost, UpdateListHost;
     host_vector<CudaReal> SumHost, RnewHost, GradLaplHost;
+
+    host_vector<CudaReal*> NL_SplineCoefsListHost;
+    cuda_vector<CudaReal*> NL_SplineCoefsListGPU;
+    host_vector<NLjobGPU<CudaReal> > NL_JobListHost;
+    cuda_vector<NLjobGPU<CudaReal> > NL_JobListGPU;
+    host_vector<int> NL_NumCoefsHost;
+    cuda_vector<int> NL_NumCoefsGPU;
+    host_vector<CudaReal> NL_rMaxHost;
+    cuda_vector<CudaReal> NL_rMaxGPU;
+
+    host_vector<int> NL_NumQuadPointsHost;
+    cuda_vector<int> NL_NumQuadPointsGPU;
+    host_vector<CudaReal> NL_QuadPointsHost, NL_RatiosHost;
+    cuda_vector<CudaReal> NL_QuadPointsGPU,  NL_RatiosGPU;
+
   public:
     typedef BsplineFunctor<OrbitalBase::RealType> FT;
     typedef ParticleSet::Walker_t     Walker_t;
@@ -43,6 +59,9 @@ namespace qmcplusplus {
 		vector<ValueType> &lapl);
     void gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
 		   ValueMatrix_t &lapl);
+    void NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
+
 
     TwoBodyJastrowOrbitalBspline(ParticleSet& pset) :
       TwoBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> > (pset),

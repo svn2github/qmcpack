@@ -1,5 +1,6 @@
 #define MAX_SPLINES 100
 #include <stdio.h>
+#include "BsplineJastrowCuda.h"
 
 bool AisInitialized = false;
 
@@ -429,6 +430,117 @@ two_body_ratio (double *R[], int first, int last, int N,
 }
 
 
+template<typename T, int BS>
+__global__ void
+two_body_NLratio_kernel(NLjobGPU<float> jobs[], int first, int last,
+			T* spline_coefs[], int numCoefs[], T rMaxList[], 
+			T lattice[], T latticeInv[])
+{
+  const int MAX_RATIOS = 18;
+  int tid = threadIdx.x;
+  __shared__ NLjobGPU<T> myJob;
+  __shared__ T myRnew[MAX_RATIOS][3], myRold[3];
+  __shared__ T* myCoefs;
+  __shared__ int myNumCoefs;
+  __shared__ T rMax;
+  if (tid == 0) {
+    myJob = jobs[blockIdx.x];
+    myCoefs = spline_coefs[blockIdx.x];
+    myNumCoefs = numCoefs[blockIdx.x];
+    rMax = rMaxList[blockIdx.x];
+  }
+  __syncthreads();
+
+  if (tid < 3 ) 
+    myRold[tid] = myJob.R[3*myJob.Elec+tid];
+  for (int i=0; i<3; i++) 
+    if (i*BS + tid < 3*myJob.NumQuadPoints)
+      myRnew[0][i*BS+tid] = myJob.QuadPoints[i*BS+tid];
+  __syncthreads();
+
+  T dr = rMax/(T)(myNumCoefs-3);
+  T drInv = 1.0/dr;
+  
+
+  __shared__ T coefs[MAX_COEFS];
+  __shared__ T r1[BS][3];
+  __shared__ T L[3][3], Linv[3][3];
+  
+  if (tid < myNumCoefs)
+    coefs[tid] = myCoefs[tid];
+  if (tid < 9) {
+    L[0][tid] = lattice[tid];
+    Linv[0][tid] = latticeInv[tid];
+  }
+  
+  __shared__ T A[4][4];
+  if (tid < 16) 
+    A[(tid>>2)][tid&3] = AcudaSpline[tid];
+  __syncthreads();
+  
+  int N = last - first + 1;
+  int NB = N/BS + ((N % BS) ? 1 : 0);
+  
+  __shared__ T shared_sum[MAX_RATIOS][BS+1];
+  for (int iq=0; iq<myJob.NumQuadPoints; iq++)
+    shared_sum[iq][tid] = (T)0.0;
+
+  for (int b=0; b < NB; b++) {
+    // Load block of positions from global memory
+    for (int i=0; i<3; i++) {
+      int n = i*BS + tid;
+      if ((3*b+i)*BS + tid < 3*N) 
+  	r1[0][n] = myJob.R[3*first + (3*b+i)*BS + tid];
+    }
+    __syncthreads();
+    int ptcl1 = first+b*BS + tid;
+
+    T dx, dy, dz;
+    dx = myRold[0] - r1[tid][0];
+    dy = myRold[1] - r1[tid][1];
+    dz = myRold[2] - r1[tid][2];
+    T dist = min_dist(dx, dy, dz, L, Linv);
+    T uOld = eval_1d_spline (dist, rMax, drInv, A, coefs);
+
+    for (int iq=0; iq<myJob.NumQuadPoints; iq++) {
+      dx = myRnew[iq][0] - r1[tid][0];
+      dy = myRnew[iq][1] - r1[tid][1];
+      dz = myRnew[iq][2] - r1[tid][2];
+      dist = min_dist(dx, dy, dz, L, Linv);
+      if (ptcl1 != myJob.Elec && (ptcl1 < (N+first)))
+	shared_sum[iq][tid] += eval_1d_spline (dist, rMax, drInv, A, coefs) - uOld;
+    }
+    __syncthreads();
+  }
+  
+  for (int s=(BS>>1); s>0; s>>=1) {
+    if (tid < s) 
+      for (int iq=0; iq < myJob.NumQuadPoints; iq++)
+	shared_sum[iq][tid] += shared_sum[iq][tid+s];
+    __syncthreads();
+  }
+  if (tid < myJob.NumQuadPoints)
+    myJob.Ratios[tid] *= exp(-shared_sum[tid][0]);
+}
+
+
+void
+two_body_NLratios(NLjobGPU<float> jobs[], int first, int last,
+		 float* spline_coefs[], int numCoefs[], float rMax[], 
+		 float lattice[], float latticeInv[], int numjobs)
+{
+  const int BS=32;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numjobs);
+
+  two_body_NLratio_kernel<float,BS><<<dimGrid,dimBlock>>>
+    (jobs, first, last, spline_coefs, numCoefs, rMax,
+     lattice, latticeInv);
+}
+
+
+
 template<typename T>
 __global__ void
 two_body_update_kernel (T *R[], int N, int iat)
@@ -440,9 +552,8 @@ two_body_update_kernel (T *R[], int N, int iat)
   
   if (threadIdx.x < 3)
     myR[3*iat + threadIdx.x] = myR[3*N + threadIdx.x];
-
-
 }
+
 
 void
 two_body_update(float *R[], int N, int iat, int numWalkers)

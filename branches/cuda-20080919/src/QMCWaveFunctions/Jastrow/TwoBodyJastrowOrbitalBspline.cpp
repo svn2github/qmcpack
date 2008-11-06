@@ -194,6 +194,99 @@ namespace qmcplusplus {
 #endif
   }
 
+  
+  void
+  TwoBodyJastrowOrbitalBspline::NLratios 
+  (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
+  {
+    int njobs = jobList.size();
+    if (NL_JobListHost.size() < njobs) {
+      NL_JobListHost.resize(njobs);      
+      NL_SplineCoefsListHost.resize(njobs);
+      NL_NumCoefsHost.resize(njobs);
+      NL_rMaxHost.resize(njobs);
+    }
+    if (NL_RatiosHost.size() < quadPoints.size()) {
+      NL_QuadPointsHost.resize(OHMMS_DIM*quadPoints.size());
+      NL_QuadPointsGPU.resize(OHMMS_DIM*quadPoints.size());
+      NL_RatiosHost.resize(quadPoints.size());
+      NL_RatiosGPU.resize(quadPoints.size());
+    }
+    int iratio = 0;
+    for (int ijob=0; ijob < njobs; ijob++) {
+      NLjob &job = jobList[ijob];
+      NLjobGPU<CudaReal> &jobGPU = NL_JobListHost[ijob];
+      jobGPU.R             = &(walkers[job.walker]->cuda_DataSet[ROffset]);
+      jobGPU.Elec          = job.elec;
+      jobGPU.QuadPoints    = &(NL_QuadPointsGPU[OHMMS_DIM*iratio]);
+      jobGPU.NumQuadPoints = job.numQuadPoints;
+      jobGPU.Ratios        = &(NL_RatiosGPU[iratio]);
+      iratio += job.numQuadPoints;
+    }
+    NL_JobListGPU         = NL_JobListHost;
+    
+    // Copy quad points to GPU
+    for (int iq=0; iq<quadPoints.size(); iq++) {
+      NL_RatiosHost[iq] = psi_ratios[iq];
+      for (int dim=0; dim<OHMMS_DIM; dim++)
+	NL_QuadPointsHost[OHMMS_DIM*iq + dim] = quadPoints[iq][dim];
+    }
+    NL_RatiosGPU = NL_RatiosHost;
+    NL_QuadPointsGPU = NL_QuadPointsHost;
+    
+    // Now, loop over electron groups
+    for (int group=0; group<PtclRef.groups(); group++) {
+      int first = PtclRef.first(group);
+      int last  = PtclRef.last(group) -1;
+      for (int ijob=0; ijob<jobList.size(); ijob++) {
+	int newGroup = PtclRef.GroupID[jobList[ijob].elec];
+	CudaSpline<CudaReal> &spline = *(GPUSplines[group*NumGroups+newGroup]);
+	NL_SplineCoefsListHost[ijob] = spline.coefs.data();
+	NL_NumCoefsHost[ijob] = spline.coefs.size();
+	NL_rMaxHost[ijob]     = spline.rMax;
+      }
+      NL_SplineCoefsListGPU = NL_SplineCoefsListHost;
+      NL_NumCoefsGPU        = NL_NumCoefsHost;
+      NL_rMaxGPU            = NL_rMaxHost;
+      two_body_NLratios(NL_JobListGPU.data(), first, last,
+			NL_SplineCoefsListGPU.data(), NL_NumCoefsGPU.data(),
+			NL_rMaxGPU.data(), L.data(), Linv.data(), njobs);
+    }
+    NL_RatiosHost = NL_RatiosGPU;
+    for (int i=0; i < psi_ratios.size(); i++)
+      psi_ratios[i] = NL_RatiosHost[i];
+  
+//     for (int iw=0; iw<walkers.size(); iw++) {
+//       Walker_t &walker = *(walkers[iw]);
+//       SumHost[iw] = 0.0;
+//       for (int dim=0; dim<OHMMS_DIM; dim++)
+// 	RnewHost[OHMMS_DIM*iw+dim] = new_pos[iw][dim];
+//     }
+//     SumGPU = SumHost;
+//     RnewGPU = RnewHost;
+
+//     int newGroup = PtclRef.GroupID[iat];
+
+//     for (int group=0; group<PtclRef.groups(); group++) {
+//       int first = PtclRef.first(group);
+//       int last  = PtclRef.last(group) -1;
+	
+//       CudaSpline<CudaReal> &spline = *(GPUSplines[group*NumGroups+newGroup]);
+//       two_body_ratio (RlistGPU.data(), first, last, N, 
+//       		      RnewGPU.data(), iat, 
+//       		      spline.coefs.data(), spline.coefs.size(),
+//       		      spline.rMax, L.data(), Linv.data(),
+//       		      SumGPU.data(), walkers.size());
+//     }
+//     // Copy data back to CPU memory
+    
+//     SumHost = SumGPU;
+//     for (int iw=0; iw<walkers.size(); iw++) 
+//       psi_ratios[iw] *= std::exp(-SumHost[iw]);
+  }
+
+
   void
   TwoBodyJastrowOrbitalBspline::gradLapl (vector<Walker_t*> &walkers, 
 					  GradMatrix_t &grad,
