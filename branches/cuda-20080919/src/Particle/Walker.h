@@ -60,7 +60,6 @@ namespace qmcplusplus {
     ///typedef for the property container, fixed size
     typedef Matrix<T>      PropertyContainer_t;
     typedef PooledData<T>  Buffer_t;
-    typedef cuda_vector<CUDA_PRECISION> cuda_Buffer_t;
 
     ///id reserved for forward walking
     long ID;
@@ -95,7 +94,17 @@ namespace qmcplusplus {
 
     ///buffer for the data for particle-by-particle update
     Buffer_t DataSet;
+
+    /// Data for GPU-vectorized versions
+#ifdef QMC_CUDA
+    typedef cuda_vector<CUDA_PRECISION> cuda_Buffer_t;
     cuda_Buffer_t cuda_DataSet;
+    // Note that R_GPU has size N+1.  The last element contains the
+    // proposed position for single-particle moves.
+    cuda_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_GPU, Grad_GPU;
+    cuda_vector<CUDA_PRECISION> Lap_GPU;
+#endif
+
 
     ///default constructor
     inline Walker() : ID(0),ParentID(0), Generation(0),Age(0),
@@ -129,6 +138,11 @@ namespace qmcplusplus {
     inline void resize(int nptcl) 
     {
       R.resize(nptcl); Grad.resize(nptcl),Lap.resize(nptcl),Drift.resize(nptcl); 
+#ifdef QMC_CUDA
+      R_GPU.resize(nptcl+1);
+      Grad_GPU.resize(nptcl+1);
+      Lap_GPU.resize(nptcl+1);
+#endif
       // R.resize(nptcl); Drift.resize(nptcl); 
     }
 

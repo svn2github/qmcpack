@@ -306,6 +306,27 @@ void MCWalkerConfiguration::loadEnsemble(MCWalkerConfiguration& other)
   SampleStack.clear();
 }
 
+#ifdef QMC_CUDA
+void MCWalkerConfiguration::updateGPULists()
+{
+  int nw = WalkerList.size();
+  host_vector<CUDA_PRECISION*> hostlist(nw);
+  for (int iw=0; iw<nw; iw++)
+    hostlist[iw] = (CUDA_PRECISION*)WalkerList[iw]->R_GPU.data();
+  RList_GPU = hostlist;
+
+  for (int iw=0; iw<nw; iw++)
+    hostlist[iw] = (CUDA_PRECISION*)WalkerList[iw]->Grad_GPU.data();
+  GradList_GPU = hostlist;
+
+  for (int iw=0; iw<nw; iw++)
+    hostlist[iw] = (CUDA_PRECISION*)WalkerList[iw]->Lap_GPU.data();
+  LapList_GPU = hostlist;
+
+}
+#endif
+
+
 void MCWalkerConfiguration::clearEnsemble()
 {
   delete_iter(SampleStack.begin(),SampleStack.end());

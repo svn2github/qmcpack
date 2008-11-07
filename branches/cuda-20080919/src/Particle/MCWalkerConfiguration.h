@@ -71,6 +71,15 @@ namespace qmcplusplus {
      */
     vector<int> WalkerOffsets;
 
+    // Data for GPU-acceleration via CUDA
+    // These hold a list of pointers to the positions, gradients, and
+    // laplacians for each walker.  These vectors .data() is often
+    // passed to GPU kernels.
+#ifdef QMC_CUDA
+    cuda_vector<CUDA_PRECISION*> RList_GPU, GradList_GPU, LapList_GPU;
+    void updateGPULists();
+#endif
+
     ///default constructor
     MCWalkerConfiguration();
 
