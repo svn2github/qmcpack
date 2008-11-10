@@ -21,6 +21,11 @@
 #include "Message/Communicate.h"
 #include "Message/CommOperators.h"
 #include <map>
+
+#ifdef QMC_CUDA
+  #include "Particle/accept_kernel.h"
+#endif
+
 namespace qmcplusplus {
 
 MCWalkerConfiguration::MCWalkerConfiguration(): 
@@ -307,9 +312,17 @@ void MCWalkerConfiguration::loadEnsemble(MCWalkerConfiguration& other)
 }
 
 #ifdef QMC_CUDA
-void MCWalkerConfiguration::updateGPULists()
+void MCWalkerConfiguration::updateLists_GPU()
 {
   int nw = WalkerList.size();
+
+  if (Rnew_GPU.size() != nw) {
+    Rnew_GPU.resize(nw);
+    Rnew_host.resize(nw);
+    AcceptList_GPU.resize(nw);
+    AcceptList_host.resize(nw);
+  }
+
   host_vector<CUDA_PRECISION*> hostlist(nw);
   for (int iw=0; iw<nw; iw++)
     hostlist[iw] = (CUDA_PRECISION*)WalkerList[iw]->R_GPU.data();
@@ -322,8 +335,49 @@ void MCWalkerConfiguration::updateGPULists()
   for (int iw=0; iw<nw; iw++)
     hostlist[iw] = (CUDA_PRECISION*)WalkerList[iw]->Lap_GPU.data();
   LapList_GPU = hostlist;
-
+  
 }
+
+void MCWalkerConfiguration::copyWalkersToGPU()
+{
+  host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > 
+    R_host(WalkerList[0]->R.size());
+
+  for (int iw=0; iw<WalkerList.size(); iw++) {
+    for (int i=0; i<WalkerList[iw]->size(); i++)
+      for (int dim=0; dim<OHMMS_DIM; dim++) 
+	R_host[i][dim] = WalkerList[iw]->R[i][dim];
+    WalkerList[iw]->R_GPU = R_host;
+  }
+}
+
+
+void MCWalkerConfiguration::proposeMove_GPU
+(vector<PosType> &newPos, int iat)
+{
+  for (int i=0; i<newPos.size(); i++)
+    for (int dim=0; dim<OHMMS_DIM; dim++)
+      Rnew_host[i][dim] = newPos[i][dim];
+  Rnew_GPU = Rnew_host;
+  
+  CurrentParticle = iat;
+}
+
+
+void MCWalkerConfiguration::acceptMove_GPU(vector<bool> &toAccept)
+{
+  for (int i=0; i<toAccept.size(); i++)
+    AcceptList_host[i] = (int)toAccept[i];
+  AcceptList_GPU = AcceptList_host;
+  accept_move_GPU_cuda 
+    (RList_GPU.data(), (float*)Rnew_GPU.data(), 
+     AcceptList_GPU.data(), CurrentParticle, WalkerList.size());
+}
+
+
+
+
+
 #endif
 
 

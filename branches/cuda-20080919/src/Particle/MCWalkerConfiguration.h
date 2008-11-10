@@ -77,7 +77,16 @@ namespace qmcplusplus {
     // passed to GPU kernels.
 #ifdef QMC_CUDA
     cuda_vector<CUDA_PRECISION*> RList_GPU, GradList_GPU, LapList_GPU;
-    void updateGPULists();
+    cuda_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > Rnew_GPU;
+    host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > Rnew_host;
+    cuda_vector<int> AcceptList_GPU;
+    host_vector<int> AcceptList_host;
+    void copyWalkersToGPU();
+    void updateLists_GPU();
+    int CurrentParticle;
+    void proposeMove_GPU 
+    (vector<PosType> &newPos, int iat);
+    void acceptMove_GPU(vector<bool> &toAccept);
 #endif
 
     ///default constructor

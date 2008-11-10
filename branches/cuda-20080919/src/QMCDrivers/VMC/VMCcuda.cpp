@@ -80,6 +80,7 @@ namespace qmcplusplus {
             newpos[iw]=W[iw]->R[iat] + m_sqrttau*delpos[iw];
 	    ratios[iw] = 1.0;
 	  }
+	  W.proposeMove_GPU(newpos, iat);
 
 #ifdef CUDA_DEBUG
 	  vector<RealType> logPsi1(W.WalkerList.size(), 0.0);
@@ -99,9 +100,11 @@ namespace qmcplusplus {
 	    else 
 	      nReject++;
 	  }
+	  W.acceptMove_GPU(acc);
 	  if (accepted.size())
 	    Psi.update(accepted,iat);
 
+	 
 #ifdef CUDA_DEBUG
 	  vector<RealType> logPsi2(W.WalkerList.size(), 0.0);
 	  Psi.evaluateLog(W.WalkerList, logPsi2);
@@ -113,6 +116,16 @@ namespace qmcplusplus {
 #endif
 	  
 	}
+
+	// host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > Rcheck;
+	// Rcheck = W[3]->R_GPU;
+	// int ir = 253;
+	// fprintf (stderr, "Cuda:  %16.8f %16.8f %16.8f\n",
+	// 	 Rcheck[ir][0], Rcheck[ir][1], Rcheck[ir][2]);
+	
+	// fprintf (stderr, "Host:  %16.8f %16.8f %16.8f\n",
+	// 	 W[3]->R[ir][0], W[3]->R[ir][1], W[3]->R[ir][2]);
+
 	double Energy = 0.0;
 	//H.saveProperty (W.WalkerList);
 	Psi.gradLapl(W.WalkerList, grad, lapl);
@@ -177,6 +190,8 @@ namespace qmcplusplus {
       Walker_t &walker = *(W.WalkerList[iw]);
       pool.allocate(walker.cuda_DataSet);
     }
+    W.copyWalkersToGPU();
+    W.updateLists_GPU();
     vector<RealType> logPsi(W.WalkerList.size(), 0.0);
     Psi.evaluateLog(W.WalkerList, logPsi);
     Estimators->start(nBlocks, true);
