@@ -145,12 +145,10 @@ namespace qmcplusplus {
     // This is indexed by the ion species
     vector<TextureSpline*> SRSplines;
     TextureSpline *V0Spline;
-    cuda_vector<CUDA_PRECISION*> RlistGPU;
-    cuda_vector<CUDA_PRECISION>  RGPU, SumGPU;
+    cuda_vector<CUDA_PRECISION>  SumGPU;
+    host_vector<CUDA_PRECISION>  SumHost;
     cuda_vector<CUDA_PRECISION>  IGPU;
     cuda_vector<CUDA_PRECISION>  L, Linv;
-    host_vector<CUDA_PRECISION>  RHost, SumHost;
-    host_vector<CUDA_PRECISION*> RlistHost;
     //// Long-range part
     int Numk;
     cuda_vector<CUDA_PRECISION> kpointsGPU;

@@ -13,9 +13,6 @@ namespace qmcplusplus {
   TwoBodyJastrowOrbitalBspline::reserve 
   (PointerPool<cuda_vector<CudaRealType> > &pool)
   {
-    int elemSize = 
-      std::max((unsigned long)1,sizeof(CudaReal)/sizeof(CUDA_PRECISION));
-    ROffset = pool.reserve(3*(N+1) * elemSize);
   }
 
   void 
@@ -57,10 +54,6 @@ namespace qmcplusplus {
     if (SumGPU.size() < walkers.size()) {
       SumGPU.resize(walkers.size());
       SumHost.resize(walkers.size());
-      RlistGPU.resize(walkers.size());
-      RlistHost.resize(walkers.size());
-      RnewHost.resize (OHMMS_DIM*walkers.size());
-      RnewGPU.resize  (OHMMS_DIM*walkers.size());
       UpdateListHost.resize(walkers.size());
       UpdateListGPU.resize(walkers.size());
     }
@@ -74,17 +67,9 @@ namespace qmcplusplus {
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;
-      CudaReal *dest = (CudaReal*)&(walker.cuda_DataSet[ROffset]);
-      for (int ptcl=0; ptcl<N; ptcl++)
-      	for (int dim=0; dim<OHMMS_DIM; dim++)
-      	  RHost[OHMMS_DIM*(iw*N+ptcl)+dim] = walker.R[ptcl][dim];
-      cudaMemcpy(dest, &(RHost[OHMMS_DIM*iw*N]), 
-		 OHMMS_DIM*N*sizeof(CudaReal), cudaMemcpyHostToDevice);
-      RlistHost[iw] = dest;
+      CudaReal *dest = (CudaReal*)walker.R_GPU.data();
     }
-    
     SumGPU = SumHost;
-    RlistGPU = RlistHost;
 
 //     DTD_BConds<double,3,SUPERCELL_BULK> bconds;
 //     double host_sum = 0.0;
@@ -106,7 +91,7 @@ namespace qmcplusplus {
 // 	  }
 	
 	  CudaSpline<CudaReal> &spline = *(GPUSplines[group1*NumGroups+group2]);
-	  two_body_sum (RlistGPU.data(), first1, last1, first2, last2, 
+	  two_body_sum (W.RList_GPU.data(), first1, last1, first2, last2, 
 			spline.coefs.data(), spline.coefs.size(),
 			spline.rMax, L.data(), Linv.data(),
 			SumGPU.data(), walkers.size());
@@ -125,7 +110,7 @@ namespace qmcplusplus {
   TwoBodyJastrowOrbitalBspline::update (vector<Walker_t*> &walkers, int iat)
   {
     for (int iw=0; iw<walkers.size(); iw++) 
-      UpdateListHost[iw] = (CudaReal*)&(walkers[iw]->cuda_DataSet[ROffset]);
+      UpdateListHost[iw] = (CudaReal*)walkers[iw]->R_GPU.data();
     UpdateListGPU = UpdateListHost;
     
     two_body_update(UpdateListGPU.data(), N, iat, walkers.size());
@@ -169,11 +154,8 @@ namespace qmcplusplus {
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;
-      for (int dim=0; dim<OHMMS_DIM; dim++)
-	RnewHost[OHMMS_DIM*iw+dim] = new_pos[iw][dim];
     }
     SumGPU = SumHost;
-    RnewGPU = RnewHost;
 
     int newGroup = PtclRef.GroupID[iat];
 
@@ -182,8 +164,8 @@ namespace qmcplusplus {
       int last  = PtclRef.last(group) -1;
 	
       CudaSpline<CudaReal> &spline = *(GPUSplines[group*NumGroups+newGroup]);
-      two_body_ratio (RlistGPU.data(), first, last, N, 
-      		      RnewGPU.data(), iat, 
+      two_body_ratio (W.RList_GPU.data(), first, last, N, 
+      		      (CudaReal*)W.Rnew_GPU.data(), iat, 
       		      spline.coefs.data(), spline.coefs.size(),
       		      spline.rMax, L.data(), Linv.data(),
       		      SumGPU.data(), walkers.size());
@@ -220,7 +202,7 @@ namespace qmcplusplus {
     for (int ijob=0; ijob < njobs; ijob++) {
       NLjob &job = jobList[ijob];
       NLjobGPU<CudaReal> &jobGPU = NL_JobListHost[ijob];
-      jobGPU.R             = &(walkers[job.walker]->cuda_DataSet[ROffset]);
+      jobGPU.R             = (CudaReal*)walkers[job.walker]->R_GPU.data();
       jobGPU.Elec          = job.elec;
       jobGPU.QuadPoints    = &(NL_QuadPointsGPU[OHMMS_DIM*iratio]);
       jobGPU.NumQuadPoints = job.numQuadPoints;
@@ -323,7 +305,7 @@ namespace qmcplusplus {
 	int last2  = PtclRef.last(group2) -1;
 
 	CudaSpline<CudaReal> &spline = *(GPUSplines[group1*NumGroups+group2]);
-	two_body_grad_lapl (RlistGPU.data(), first1, last1, first2, last2, 
+	two_body_grad_lapl (W.RList_GPU.data(), first1, last1, first2, last2, 
 			    spline.coefs.data(), spline.coefs.size(),
 			    spline.rMax, L.data(), Linv.data(),
 			    GradLaplGPU.data(), 4*N, walkers.size());

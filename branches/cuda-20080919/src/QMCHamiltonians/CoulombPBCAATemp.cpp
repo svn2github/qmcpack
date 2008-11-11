@@ -387,12 +387,9 @@ namespace qmcplusplus {
 
     int nw = walkers.size();
     int N = NumCenters;
-    if (RGPU.size() < OHMMS_DIM*nw*N) {
-      RGPU.resize(OHMMS_DIM*nw*N);   
+    if (SumGPU.size() < nw) {
       SumGPU.resize(nw);
       RhokGPU.resize(2*nw*Numk*NumSpecies);
-      RHost.resize(OHMMS_DIM*nw*N);  SumHost.resize(nw);
-      RlistGPU.resize(nw);           RlistHost.resize(nw);
       RhoklistsGPU.resize(NumSpecies);
       RhoklistsHost.resize(NumSpecies);
       for (int sp=0; sp<NumSpecies; sp++) {
@@ -403,18 +400,12 @@ namespace qmcplusplus {
     for (int iw=0; iw<nw; iw++) {
       for (int sp=0; sp<NumSpecies; sp++) 
 	RhoklistsHost[sp][iw] = &(RhokGPU[2*nw*Numk*sp + 2*Numk*iw]);
-      RlistHost[iw] = &(RGPU[OHMMS_DIM*N*iw]);
-      for (int iat=0; iat<N; iat++)
-	for (int dim=0; dim<OHMMS_DIM; dim++)
-	  RHost[(iw*N+iat)*OHMMS_DIM + dim] = walkers[iw]->R[iat][dim];
     }
     for (int sp=0; sp<NumSpecies; sp++)
       RhoklistsGPU[sp] = RhoklistsHost[sp];
-    RlistGPU = RlistHost;
-    RGPU = RHost;  
 
     // First, do short-range part
-    CoulombAA_SR_Sum(RlistGPU.data(), N, SRSpline->rMax, SRSpline->NumPoints, 
+    CoulombAA_SR_Sum(W.RList_GPU.data(), N, SRSpline->rMax, SRSpline->NumPoints, 
 		     SRSpline->MyTexture, L.data(), Linv.data(), 
 		     SumGPU.data(), nw);
     
@@ -422,7 +413,7 @@ namespace qmcplusplus {
     for (int sp=0; sp<NumSpecies; sp++) {
       int first = PtclRef.first(sp);
       int last  = PtclRef.last(sp)-1;
-      eval_rhok_cuda(RlistGPU.data(), first, last, 
+      eval_rhok_cuda(W.RList_GPU.data(), first, last, 
     		     kpointsGPU.data(), Numk, 
     		     RhoklistsGPU[sp].data(), walkers.size());
     }

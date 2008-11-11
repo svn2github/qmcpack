@@ -443,30 +443,22 @@ namespace qmcplusplus {
 
     int nw = walkers.size();
     int N = NumElecs;
-    if (RGPU.size() < OHMMS_DIM*nw*N) {
-      RGPU.resize(OHMMS_DIM*nw*N);   
+    if (SumGPU.size() < nw) {
       SumGPU.resize(nw);
       SumHost.resize(nw);
       RhokElecGPU.resize(2*nw*Numk);
       RhokIonsGPU.resize(NumIonSpecies);
       for (int sp=0; sp<NumIonSpecies; sp++)
 	RhokIonsGPU.resize(2*Numk);
-      RHost.resize(OHMMS_DIM*nw*N);  SumHost.resize(nw);
-      RlistGPU.resize(nw);           RlistHost.resize(nw);
+      SumHost.resize(nw);
       RhoklistGPU.resize(nw);
       RhoklistHost.resize(nw);
     }
     for (int iw=0; iw<nw; iw++) {
       RhoklistHost[iw] = &(RhokElecGPU[2*Numk*iw]);
-      RlistHost[iw] = &(RGPU[OHMMS_DIM*N*iw]);
-      for (int iat=0; iat<N; iat++)
-	for (int dim=0; dim<OHMMS_DIM; dim++)
-	  RHost[(iw*N+iat)*OHMMS_DIM + dim] = walkers[iw]->R[iat][dim];
       SumHost[iw] = 0.0;
     }
     RhoklistGPU = RhoklistHost;
-    RlistGPU = RlistHost;
-    RGPU = RHost;  
     SumGPU = SumHost;
 
     // First, do short-range part
@@ -474,7 +466,7 @@ namespace qmcplusplus {
     for (int sp=0; sp<NumIonSpecies; sp++) {
       if (SRSplines[sp]) {
 	CoulombAB_SR_Sum
-	  (RlistGPU.data(), N, IGPU.data(), IonFirst[sp], IonLast[sp],
+	  (W.RList_GPU.data(), N, IGPU.data(), IonFirst[sp], IonLast[sp],
 	   SRSplines[sp]->rMax, SRSplines[sp]->NumPoints, 
 	   SRSplines[sp]->MyTexture, L.data(), Linv.data(), SumGPU.data(), nw);
 	SumHost = SumGPU;
@@ -486,7 +478,7 @@ namespace qmcplusplus {
     // Now, do long-range part:
     int first = 0;
     int last  = N-1;
-    eval_rhok_cuda(RlistGPU.data(), first, last, kpointsGPU.data(), Numk, 
+    eval_rhok_cuda(W.RList_GPU.data(), first, last, kpointsGPU.data(), Numk, 
     		   RhoklistGPU.data(), nw);
     
     for (int sp=0; sp<NumIonSpecies; sp++) {
