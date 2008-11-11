@@ -501,11 +501,11 @@ calc_ratio_grad_lapl (T *Ainv_list[], T *new_row_list[], T *grad_lapl_list[],
   // Now, we have to sum
   for (unsigned int s=BS/2; s>0; s>>=1) {
     if (tid < s) {
-      ratio_prod[0][tid] += ratio_prod[0][tid + s];
-      ratio_prod[1][tid] += ratio_prod[1][tid + s];
-      ratio_prod[2][tid] += ratio_prod[2][tid + s];
-      ratio_prod[3][tid] += ratio_prod[3][tid + s];
-      ratio_prod[4][tid] += ratio_prod[4][tid + s];
+      ratio_prod[0][tid] += ratio_prod[0][tid + s]; // Value
+      ratio_prod[1][tid] += ratio_prod[1][tid + s]; // grad_x
+      ratio_prod[2][tid] += ratio_prod[2][tid + s]; // grad_y
+      ratio_prod[3][tid] += ratio_prod[3][tid + s]; // grad_z
+      ratio_prod[4][tid] += ratio_prod[4][tid + s]; // lapl
     }
     __syncthreads();
   }

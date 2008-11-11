@@ -818,14 +818,11 @@ namespace qmcplusplus {
     // 	 NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
 
     determinant_ratios_grad_lapl_cuda 
-      (AinvList_d.data(), newRowList_d.data(), gradLaplList_d.data(),
+      (AinvList_d.data(), newRowList_d.data(), newGradLaplList_d.data(),
        ratio_d.data(), NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
 
     // Copy back to host
     ratio_host = ratio_d;
-
-
-
 
 #ifdef CUDA_DEBUG
     // Now, check against CPU
@@ -849,7 +846,7 @@ namespace qmcplusplus {
 		 ratio_host[5*iw+2],
 		 ratio_host[5*iw+3]);
       grad[iw] += g;
-      lapl[iw] += gradLapl_host[5*iw+4] - dot(g,g);
+      lapl[iw] += ratio_host[5*iw+4] - dot(g,g);
     }
 
     

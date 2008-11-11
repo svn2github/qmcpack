@@ -18,6 +18,7 @@
 #include "OhmmsApp/RandomNumberControl.h"
 #include "Utilities/RandomGenerator.h"
 #include "ParticleBase/RandomSeqGenerator.h"
+#include "QMCDrivers/DriftOperators.h"
 
 namespace qmcplusplus { 
 
@@ -36,6 +37,8 @@ namespace qmcplusplus {
   }
   
   bool VMCcuda::run() { 
+    if (UseDrift == "yes")
+      return runWithDrift();
 
     resetRun();
     
@@ -77,6 +80,7 @@ namespace qmcplusplus {
           //create a 3N-Dimensional Gaussian with variance=1
           makeGaussRandomWithEngine(delpos,Random);
           for(int iw=0; iw<nw; ++iw) {
+	    PosType G = W[iw]->Grad[iat];
             newpos[iw]=W[iw]->R[iat] + m_sqrttau*delpos[iw];
 	    ratios[iw] = 1.0;
 	  }
@@ -169,6 +173,125 @@ namespace qmcplusplus {
     return finalize(block);
   }
 
+
+
+  bool VMCcuda::runWithDrift() 
+  { 
+    resetRun();
+    IndexType block = 0;
+    IndexType nAcceptTot = 0;
+    IndexType nRejectTot = 0;
+    int nat = W.getTotalNum();
+    int nw  = W.getActiveWalkers();
+    
+    vector<RealType>  LocalEnergy(nw);
+    vector<PosType>   delpos(nw);
+    vector<PosType>   dr(nw);
+    vector<PosType>   newpos(nw);
+    vector<ValueType> ratios(nw);
+    vector<GradType>  oldG(nw), newG(nw);
+    vector<ValueType> oldL(nw), newL(nw);
+    vector<Walker_t*> accepted(nw);
+    Matrix<ValueType> lapl(nw, nat);
+    Matrix<GradType>  grad(nw, nat);
+    double Esum;
+
+    do {
+      IndexType step = 0;
+      nAccept = nReject = 0;
+      Esum = 0.0;
+      clock_t block_start = clock();
+      Estimators->startBlock(nSteps);
+      do {
+        step++;
+	CurrentStep++;
+        for(int iat=0; iat<nat; ++iat) {
+	  for (int iw=0; iw<nw; iw++) 
+	    newpos[iw] = W[iw]->R[iat];
+	  W.proposeMove_GPU(newpos, iat);
+	  Psi.ratio(W,iat,ratios,oldG, oldL);
+
+          //create a 3N-Dimensional Gaussian with variance=1
+          makeGaussRandomWithEngine(delpos,Random);
+          for(int iw=0; iw<nw; ++iw) {
+	    // fprintf (stderr, "oldG[iw][0] = %16.8f %16.8f %16.8f\n",
+	    // 	     oldG[iw][0], oldG[iw][1], oldG[iw][2]);
+	    RealType sc=  getDriftScale(m_tauovermass,oldG[iw]);
+	    // fprintf (stderr, "sc = %1.8e\n", sc);
+	    dr[iw] = m_sqrttau*delpos[iw] + sc*real(oldG[iw]);
+            newpos[iw]=W[iw]->R[iat] + dr[iw];
+	    ratios[iw] = 1.0;
+	  }
+	  W.proposeMove_GPU(newpos, iat);
+	  
+          Psi.ratio(W,iat,ratios,newG, newL);
+	  
+	  // if (iat == 0) {
+	  //   fprintf (stderr, "oldG[0] = %16.8f %16.8f %16.8f\n",
+	  // 	     oldG[0][0], oldG[0][1], oldG[0][2]);
+	  //   fprintf (stderr, "newG[0] = %16.8f %16.8f %16.8f\n",
+	  // 	     newG[0][0], newG[0][1], newG[0][2]);
+	  // }
+
+          accepted.clear();
+	  vector<bool> acc(nw, false);
+          for(int iw=0; iw<nw; ++iw) {
+	    RealType logGf = -0.5*dot(delpos[iw],delpos[iw]);
+	    RealType scale = getDriftScale(m_tauovermass,newG[iw]);
+	    dr[iw] = W[iw]->R[iat]-newpos[iw]-scale*real(newG[iw]);
+	    RealType logGb = -m_oneover2tau*dot(dr[iw],dr[iw]);
+	    RealType prob = ratios[iw]*ratios[iw];
+            if(Random() < prob*std::exp(logGb-logGf)) {
+              accepted.push_back(W[iw]);
+	      nAccept++;
+	      W[iw]->R[iat] = newpos[iw];
+	      acc[iw] = true;
+	    }
+	    else 
+	      nReject++;
+	  }
+	  W.acceptMove_GPU(acc);
+	  if (accepted.size())
+	    Psi.update(accepted,iat);
+	}
+	
+	double Energy = 0.0;
+	Psi.gradLapl(W, grad, lapl);
+	H.evaluate (W, LocalEnergy);
+	Estimators->accumulate(W);
+
+	for (int iw=0; iw<nw; iw++)
+	  for (int iat=0; iat<nat; iat++)
+	    Energy -= 0.5*(dot (grad(iw,iat),grad(iw,iat))  + lapl(iw,iat));
+	Energy /= (double)nw;
+	vector<RealType> logPsi(W.WalkerList.size(), 0.0);
+
+	Esum += Energy;
+
+      } while(step<nSteps);
+      Psi.recompute(W);
+      
+      double accept_ratio = (double)nAccept/(double)(nAccept+nReject);
+      Estimators->stopBlock(accept_ratio);
+
+      nAcceptTot += nAccept;
+      nRejectTot += nReject;
+      ++block;
+      
+      recordBlock(block);
+
+      clock_t block_end = clock();
+      double block_time = (double)(block_end-block_start)/CLOCKS_PER_SEC;
+      
+    } while(block<nBlocks);
+    //finalize a qmc section
+    return finalize(block);
+  }
+
+
+
+
+
   void VMCcuda::resetRun()
   {
     SpeciesSet tspecies(W.getSpeciesSet());
@@ -178,6 +301,7 @@ namespace qmcplusplus {
     RealType oneoversqrtmass = std::sqrt(oneovermass);
     m_oneover2tau = 0.5/Tau;
     m_sqrttau = std::sqrt(Tau/mass);
+    m_tauovermass = Tau/mass;
 
     // Compute the size of data needed for each walker on the GPU card
     PointerPool<Walker_t::cuda_Buffer_t > pool;

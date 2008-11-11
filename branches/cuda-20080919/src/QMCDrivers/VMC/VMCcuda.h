@@ -29,9 +29,13 @@ namespace qmcplusplus {
     /// Constructor.
     VMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h);
     bool run();
+    bool runWithDrift();
     bool put(xmlNodePtr cur);
  
   private:
+    /// tau/mass
+    RealType m_tauovermass;
+
     /// Whether to use drift or not
     string UseDrift;
     ///number of warmup steps

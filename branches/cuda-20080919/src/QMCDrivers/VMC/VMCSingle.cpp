@@ -28,7 +28,8 @@ namespace qmcplusplus {
     QMCType ="VMPSingle";
     QMCDriverMode.set(QMC_UPDATE_MODE,1);
     QMCDriverMode.set(QMC_WARMUP,0);
-    m_param.add(UseDrift,"useDrift","string"); m_param.add(UseDrift,"usedrift","string");
+    m_param.add(UseDrift,"useDrift","string"); 
+    m_param.add(UseDrift,"usedrift","string");
     m_param.add(myWarmupSteps,"warmupSteps","int");
     m_param.add(nTargetSamples,"targetWalkers","int");
   }
