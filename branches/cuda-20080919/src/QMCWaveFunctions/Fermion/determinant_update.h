@@ -54,5 +54,15 @@ calc_many_ratios (double *Ainv_list[], double *new_row_list[],
 		  int N, int row_stride, int elec_list[],
 		  int numWalkers);
 
+void
+determinant_ratios_grad_lapl_cuda (float *Ainv_list[], float *new_row_list[],
+				   float *grad_lapl_list[], float ratios_grad_lapl[], 
+				   int N, int row_stride, int iat, int numWalkers);
+
+void
+determinant_ratios_grad_lapl_cuda (double *Ainv_list[], double *new_row_list[],
+				   double *grad_lapl_list[], double ratios_grad_lapl[], 
+				   int N, int row_stride, int iat, int numWalkers);
+
 
 #endif

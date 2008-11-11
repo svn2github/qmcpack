@@ -456,6 +456,97 @@ determinant_ratios_cuda (double *Ainv_list[], double *new_row_list[],
   }
 }
 
+
+template<typename T, int BS>
+__global__ void
+calc_ratio_grad_lapl (T *Ainv_list[], T *new_row_list[], T *grad_lapl_list[],
+		      T ratio_grad_lapl[], int N, int row_stride, int elec)
+{
+  int tid = threadIdx.x;
+  int NB = N/BS + ((N % BS) ? 1 : 0);
+
+  __shared__ T *Ainv, *new_row, *grad_lapl;
+
+  if (tid == 0) {
+    Ainv = Ainv_list[blockIdx.x];
+    new_row = new_row_list[blockIdx.x];
+    grad_lapl = grad_lapl_list[blockIdx.x];
+  }
+  __syncthreads();
+    
+  __shared__ T Ainv_colk_shared[BS];
+  __shared__ T ratio_prod[5][BS+1];
+  ratio_prod[0][tid] = 0.0f;
+  ratio_prod[1][tid] = 0.0f;
+  ratio_prod[2][tid] = 0.0f;
+  ratio_prod[3][tid] = 0.0f;
+  ratio_prod[5][tid] = 0.0f;
+  // This is *highly* uncoallesced, but we just have to eat it to allow
+  // other kernels to operate quickly.
+  __syncthreads();
+  for (int block=0; block<NB; block++) {
+    int col = block*BS + tid;
+    if (col < N)
+      Ainv_colk_shared[tid] = Ainv[col*row_stride + elec];
+    __syncthreads();
+    if (col < N) {
+      ratio_prod[0][tid] += Ainv_colk_shared[tid] * new_row[tid];
+      ratio_prod[1][tid] += Ainv_colk_shared[tid] * grad_lapl[0*row_stride+tid];
+      ratio_prod[2][tid] += Ainv_colk_shared[tid] * grad_lapl[1*row_stride+tid];
+      ratio_prod[3][tid] += Ainv_colk_shared[tid] * grad_lapl[2*row_stride+tid];
+      ratio_prod[4][tid] += Ainv_colk_shared[tid] * grad_lapl[3*row_stride+tid];
+    }
+    __syncthreads();
+    // Now, we have to sum
+    for (unsigned int s=BS/2; s>0; s>>=1) {
+      if (tid < s && (tid+s) < N) {
+      ratio_prod[0][tid] += ratio_prod[0][tid + s];
+      ratio_prod[1][tid] += ratio_prod[1][tid + s];
+      ratio_prod[2][tid] += ratio_prod[2][tid + s];
+      ratio_prod[3][tid] += ratio_prod[3][tid + s];
+      ratio_prod[4][tid] += ratio_prod[4][tid + s];
+      }
+      __syncthreads();
+    }
+  }
+  if (tid < 5) 
+    ratio_grad_lapl[5*blockIdx.x+tid] = ratio_prod[tid][0];
+
+}
+
+
+
+void
+determinant_ratios_grad_lapl_cuda (float *Ainv_list[], float *new_row_list[],
+				   float *grad_lapl_list[], float ratios_grad_lapl[], 
+				   int N, int row_stride, int iat, int numWalkers)
+{
+  const int BS = 64;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+  
+  calc_ratio_grad_lapl<float,BS><<<dimGrid,dimBlock>>>
+    (Ainv_list, new_row_list, grad_lapl_list, ratios_grad_lapl, N, row_stride, iat);
+}
+
+
+
+void
+determinant_ratios_grad_lapl_cuda (double *Ainv_list[], double *new_row_list[],
+				   double *grad_lapl_list[], double ratios_grad_lapl[], 
+				   int N, int row_stride, int iat, int numWalkers)
+{
+  const int BS = 64;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+  
+  calc_ratio_grad_lapl<double,BS><<<dimGrid,dimBlock>>>
+    (Ainv_list, new_row_list, grad_lapl_list, ratios_grad_lapl, N, row_stride, iat);
+}
+
+
+
+
 #define RATIO_BS 16
 
 template<typename T>
