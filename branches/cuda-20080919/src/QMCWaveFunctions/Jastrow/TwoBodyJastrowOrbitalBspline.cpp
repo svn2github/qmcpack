@@ -118,7 +118,7 @@ namespace qmcplusplus {
   
   void
   TwoBodyJastrowOrbitalBspline::ratio
-  (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
+  (MCWalkerConfiguration &W, int iat,
    vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
    vector<ValueType> &lapl)
   {

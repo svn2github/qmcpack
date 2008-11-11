@@ -254,14 +254,14 @@ namespace qmcplusplus {
     void addGradient(MCWalkerConfiguration &W, int iat,
 		     vector<GradType> &grad);
 
-    void ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
+    void ratio (MCWalkerConfiguration &W, int iat,
 		vector<ValueType> &psi_ratios);
 
 
-    void ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
+    void ratio (MCWalkerConfiguration &W, int iat,
 		vector<ValueType> &psi_ratios,	vector<GradType>  &grad);
 
-    void ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
+    void ratio (MCWalkerConfiguration &W, int iat,
 		vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 		vector<ValueType> &lapl);
 
@@ -270,12 +270,6 @@ namespace qmcplusplus {
 
     void NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
 		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
-
-    void NLratios (MCWalkerConfiguration &W,  cuda_vector<CUDA_PRECISION*> &Rlist,
-		   cuda_vector<int*> &ElecList, cuda_vector<int> &NumCoreElecs,
-		   cuda_vector<CUDA_PRECISION*> &QuadPosList,
-		   cuda_vector<CUDA_PRECISION*> &RatioList,
-		   int numQuadPoints);
 
     ///flag to turn on/off to skip some calculations
     bool UseRatioOnly;

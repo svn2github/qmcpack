@@ -54,7 +54,7 @@ namespace qmcplusplus {
     void reserve (PointerPool<cuda_vector<CudaRealType> > &pool);
     void addLog (MCWalkerConfiguration &W, vector<RealType> &logPsi);
     void update (vector<Walker_t*> &walkers, int iat);
-    void ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
+    void ratio (MCWalkerConfiguration &W, int iat,
 		vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 		vector<ValueType> &lapl);
     void gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,

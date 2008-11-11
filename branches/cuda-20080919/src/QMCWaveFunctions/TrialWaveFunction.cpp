@@ -549,7 +549,6 @@ namespace qmcplusplus {
 
   void
   TrialWaveFunction::ratio (MCWalkerConfiguration &W, int iat,
-			    vector<PosType> &newpos, 
 			    vector<ValueType> &psi_ratios,
 			    vector<GradType> &newG)
   {
@@ -558,13 +557,12 @@ namespace qmcplusplus {
       newG[wi] = GradType();
     }
     for (int i=0; i<Z.size(); i++)
-      Z[i]->ratio (W, iat, newpos, psi_ratios, newG);
+      Z[i]->ratio (W, iat, psi_ratios, newG);
   }
 
 
   void
   TrialWaveFunction::ratio (MCWalkerConfiguration &W, int iat,
-			    vector<PosType> &newpos, 
 			    vector<ValueType> &psi_ratios,
 			    vector<GradType> &newG, vector<ValueType> &newL)
   {
@@ -574,19 +572,18 @@ namespace qmcplusplus {
       newL[wi] = ValueType();
     }
     for (int i=0; i<Z.size(); i++)
-      Z[i]->ratio (W, iat, newpos, psi_ratios, newG, newL);
+      Z[i]->ratio (W, iat, psi_ratios, newG, newL);
   }
 
 
   void 
   TrialWaveFunction::ratio (MCWalkerConfiguration &W, int iat,
-			    vector<PosType> &newpos, 
 			    vector<ValueType> &psi_ratios)
   {
     for (int wi=0; wi<W.WalkerList.size(); wi++) 
       psi_ratios[wi] = 1.0;
     for (int i=0; i<Z.size(); i++)
-      Z[i]->ratio (W, iat, newpos, psi_ratios);
+      Z[i]->ratio (W, iat, psi_ratios);
   }
 
   void

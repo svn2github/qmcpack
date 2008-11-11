@@ -144,14 +144,11 @@ namespace qmcplusplus {
     void evaluateLog (MCWalkerConfiguration &W,
 		      vector<RealType> &logPsi);
     void ratio (MCWalkerConfiguration &W, int iat,
-		vector<PosType> &newpos, 
 		vector<ValueType> &psi_ratios);
     void ratio (MCWalkerConfiguration &W, int iat,
-		vector<PosType> &newpos, 
 		vector<ValueType> &psi_ratios,
 		vector<GradType> &newG);
     void ratio (MCWalkerConfiguration &W, int iat,
-		vector<PosType> &newpos, 
 		vector<ValueType> &psi_ratios,
 		vector<GradType> &newG,
 		vector<ValueType> &newL);
@@ -165,11 +162,6 @@ namespace qmcplusplus {
     void NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
 		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
 
-    // Returns the WF ratio and gradient w.r.t. iat for each walker
-    // in the respective vectors
-    void ratio (MCWalkerConfiguration &W, int iat,
-		vector<ValueType> &psi_ratios,
-		vector<GradType>   &grad);
     void update (vector<Walker_t*> &walkers, int iat);
 
     void gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,

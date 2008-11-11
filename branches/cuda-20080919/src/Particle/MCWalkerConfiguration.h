@@ -78,7 +78,8 @@ namespace qmcplusplus {
 #ifdef QMC_CUDA
     cuda_vector<CUDA_PRECISION*> RList_GPU, GradList_GPU, LapList_GPU;
     cuda_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > Rnew_GPU;
-    host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > Rnew_host;
+    host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > Rnew_host;    
+    vector<PosType>                                    Rnew;
     cuda_vector<int> AcceptList_GPU;
     host_vector<int> AcceptList_host;
     void copyWalkersToGPU();

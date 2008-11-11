@@ -319,6 +319,7 @@ void MCWalkerConfiguration::updateLists_GPU()
   if (Rnew_GPU.size() != nw) {
     Rnew_GPU.resize(nw);
     Rnew_host.resize(nw);
+    Rnew.resize(nw);
     AcceptList_GPU.resize(nw);
     AcceptList_host.resize(nw);
   }
@@ -359,6 +360,7 @@ void MCWalkerConfiguration::proposeMove_GPU
     for (int dim=0; dim<OHMMS_DIM; dim++)
       Rnew_host[i][dim] = newPos[i][dim];
   Rnew_GPU = Rnew_host;
+  Rnew = newPos;
   
   CurrentParticle = iat;
 }

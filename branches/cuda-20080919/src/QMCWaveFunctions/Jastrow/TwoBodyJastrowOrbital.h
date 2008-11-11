@@ -518,7 +518,7 @@ namespace qmcplusplus {
       app_error() << "TwoBodyJastrowOrbital only works with Bsplines on the GPU.\n";
     }
 
-    void ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
+    void ratio (MCWalkerConfiguration &W, int iat,
 		vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 		vector<ValueType> &lapl)
     {

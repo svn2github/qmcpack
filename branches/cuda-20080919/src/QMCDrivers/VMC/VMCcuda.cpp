@@ -86,7 +86,7 @@ namespace qmcplusplus {
 	  vector<RealType> logPsi1(W.size(), 0.0);
 	  Psi.evaluateLog(W, logPsi1);
 #endif
-          Psi.ratio(W,iat,newpos,ratios,newG, newL);
+          Psi.ratio(W,iat,ratios,newG, newL);
 	  
           accepted.clear();
 	  vector<bool> acc(nw, false);

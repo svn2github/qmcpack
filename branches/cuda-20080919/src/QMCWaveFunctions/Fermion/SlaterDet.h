@@ -142,11 +142,11 @@ namespace qmcplusplus {
     // }
 
     void 
-    ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
+    ratio (MCWalkerConfiguration &W, int iat,
 	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 	   vector<ValueType> &lapl)
     {
-      Dets[DetID[iat]]->ratio(W, iat, new_pos, psi_ratios, grad, lapl);
+      Dets[DetID[iat]]->ratio(W, iat, psi_ratios, grad, lapl);
     }
 
 
@@ -177,20 +177,6 @@ namespace qmcplusplus {
     {
       for (int id=0; id<Dets.size(); id++) 
 	Dets[id]->NLratios(W, jobList, quadPoints, psi_ratios);
-    }
-
-
-
-    void 
-    NLratios (MCWalkerConfiguration &W,  cuda_vector<CUDA_PRECISION*> &Rlist,
-	      cuda_vector<int*> &ElecList, cuda_vector<int>             &NumCoreElecs,
-	      cuda_vector<CUDA_PRECISION*> &QuadPosList,
-	      cuda_vector<CUDA_PRECISION*> &RatioList,
-	      int numQuadPoints)
-    {
-      for (int id=0; id<Dets.size(); id++)
-	Dets[id]->NLratios(W, Rlist, ElecList, NumCoreElecs, QuadPosList,
-			   RatioList, numQuadPoints);
     }
 
   private:

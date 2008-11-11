@@ -322,7 +322,7 @@ namespace qmcplusplus {
      *  @param psi_ratios  output vector with psi_new/psi_old
      */
     virtual void 
-    ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
+    ratio (MCWalkerConfiguration &W, int iat,
 	   vector<ValueType> &psi_ratios)
     {
       app_error() << "Need specialization of OrbitalBase::ratio.\n";
@@ -332,7 +332,7 @@ namespace qmcplusplus {
     // Returns the WF ratio and gradient w.r.t. iat for each walker
     // in the respective vectors
     virtual void 
-    ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
+    ratio (MCWalkerConfiguration &W, int iat,
 	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad)
     {
       app_error() << "Need specialization of OrbitalBase::ratio.\n";
@@ -340,7 +340,7 @@ namespace qmcplusplus {
     }
 
     virtual void 
-    ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
+    ratio (MCWalkerConfiguration &W, int iat,
 	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 	   vector<ValueType> &lapl)
     {
