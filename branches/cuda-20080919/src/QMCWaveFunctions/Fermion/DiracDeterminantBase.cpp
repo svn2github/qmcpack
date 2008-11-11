@@ -597,8 +597,10 @@ namespace qmcplusplus {
   }
   
   void
-  DiracDeterminantBase::recompute(vector<Walker_t*> &walkers)
+  DiracDeterminantBase::recompute(MCWalkerConfiguration &W)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
+
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
 
@@ -643,8 +645,10 @@ namespace qmcplusplus {
   }
 
   void 
-  DiracDeterminantBase::addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi)
+  DiracDeterminantBase::addLog (MCWalkerConfiguration &W, vector<RealType> &logPsi)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
+
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
 
@@ -710,16 +714,18 @@ namespace qmcplusplus {
   }
 
   void 
-  DiracDeterminantBase::addGradient(vector<Walker_t*> &walkers, int iat,
+  DiracDeterminantBase::addGradient(MCWalkerConfiguration &W, int iat,
 				    vector<GradType> &grad)
   {
     cerr << "DiracDeterminantBase::addGradient.\n";
   }
 
-  void DiracDeterminantBase::ratio (vector<Walker_t*> &walkers, 
+  void DiracDeterminantBase::ratio (MCWalkerConfiguration &W, 
 				    int iat, vector<PosType> &new_pos,
 				    vector<ValueType> &psi_ratios)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
+
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
 
@@ -746,7 +752,7 @@ namespace qmcplusplus {
   }
 
 
-  void DiracDeterminantBase::ratio (vector<Walker_t*> &walkers, int iat, 
+  void DiracDeterminantBase::ratio (MCWalkerConfiguration &W, int iat, 
 				    vector<PosType> &new_pos, 
 				    vector<ValueType> &psi_ratios, 
 				    vector<GradType>  &grad)
@@ -755,12 +761,14 @@ namespace qmcplusplus {
 
   }
 
-  void DiracDeterminantBase::ratio (vector<Walker_t*> &walkers, int iat, 
+  void DiracDeterminantBase::ratio (MCWalkerConfiguration &W, int iat, 
 				    vector<PosType> &new_pos, 
 				    vector<ValueType> &psi_ratios, 
 				    vector<GradType>  &grad,
 				    vector<ValueType> &lapl)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
+
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
 
@@ -844,9 +852,11 @@ namespace qmcplusplus {
   }
 
   void 
-  DiracDeterminantBase::gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
+  DiracDeterminantBase::gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,
 				  ValueMatrix_t &lapl)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
+
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
 
@@ -902,11 +912,12 @@ namespace qmcplusplus {
 
 
   void 
-  DiracDeterminantBase::NLratios (vector<Walker_t*> &walkers,  
+  DiracDeterminantBase::NLratios (MCWalkerConfiguration &W,  
 				  vector<NLjob> &jobList,
 				  vector<PosType> &quadPoints, 
 				  vector<ValueType> &psi_ratios)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
     int posIndex=0, numJobs=0;
     vector<PosType> posBuffer;
     int rowIndex = 0;
@@ -997,7 +1008,7 @@ namespace qmcplusplus {
   }
 
   void 
-  DiracDeterminantBase::NLratios (vector<Walker_t*> &walkers,  cuda_vector<CUDA_PRECISION*> &Rlist,
+  DiracDeterminantBase::NLratios (MCWalkerConfiguration &W,  cuda_vector<CUDA_PRECISION*> &Rlist,
 				  cuda_vector<int*> &ElecList, cuda_vector<int> &NumCoreElecs,
 				  cuda_vector<CUDA_PRECISION*> &QuadPosList,
 				  cuda_vector<CUDA_PRECISION*> &RatioList,

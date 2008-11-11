@@ -114,7 +114,7 @@ namespace qmcplusplus {
     vector<host_vector<CUDA_PRECISION*> > RhoklistsHost;
     cuda_vector<CUDA_PRECISION> RhokGPU;
     void setupLongRangeGPU(ParticleSet &P);
-    void addEnergy(vector<Walker_t*> &walkers, 
+    void addEnergy(MCWalkerConfiguration &W, 
 		   vector<RealType> &LocalEnergy);
   };
 

@@ -222,9 +222,10 @@ namespace qmcplusplus {
     CurrentNumWalkers = nw;
   }
 
-  void NonLocalECPotential::addEnergy(vector<Walker_t*> &walkers, 
+  void NonLocalECPotential::addEnergy(MCWalkerConfiguration &W, 
 				      vector<RealType> &LocalEnergy)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
     int nw = walkers.size();
     if (CurrentNumWalkers < nw)
       resizeCuda(nw);
@@ -283,7 +284,7 @@ namespace qmcplusplus {
 	RealType vrad[pp.nchannel];
 	RealType lpol[pp.lmax+1];
 
-	Psi.NLratios(walkers, JobList, QuadPosList, RatioList);
+	Psi.NLratios(W, JobList, QuadPosList, RatioList);
 	int ratioIndex=0;
 	for (int iw=0; iw<nw; iw++) {
 	  CUDA_PRECISION *cos_ptr = &(CosTheta_host[RatiosPerWalker*iw]);

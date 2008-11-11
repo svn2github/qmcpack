@@ -24,6 +24,7 @@
 //#include "Utilities/PooledData.h"
 #include "OhmmsData/RecordProperty.h"
 #include "Utilities/RandomGenerator.h"
+#include "Particle/MCWalkerConfiguration.h"
 #include <bitset>
 
 namespace qmcplusplus {
@@ -100,17 +101,17 @@ namespace qmcplusplus {
 
     virtual Return_t evaluate(ParticleSet& P, vector<NonLocalData>& Txy) = 0; 
 
-    virtual void evaluate(vector<Walker_t*> &walkers)
+    virtual void evaluate(MCWalkerConfiguration &W)
     { 
       app_error() << "Need specialization for " << myName 
-		  << "::evaluate(vector<Walker_t*> &walkers).\n";
+		  << "::evaluate(MCWalkerConfiguration &W).\n";
     }
 
-    virtual void addEnergy(vector<Walker_t*> &walkers, 
+    virtual void addEnergy(MCWalkerConfiguration &W, 
 			   vector<RealType> &LocalEnergy)
     { 
       app_error() << "Need specialization for " << myName 
-		  << "::addEnergy(vector<Walker_t*> &walkers).\n";
+		  << "::addEnergy(MCWalkerConfiguration &W).\n";
     }
 
 

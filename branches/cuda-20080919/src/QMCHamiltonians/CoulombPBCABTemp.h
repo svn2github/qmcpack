@@ -169,7 +169,7 @@ namespace qmcplusplus {
     // This stores rho_k for the ions.  Index is species number
     vector<cuda_vector<CUDA_PRECISION> > RhokIonsGPU;
     void setupLongRangeGPU();
-    void addEnergy(vector<Walker_t*> &walkers, 
+    void addEnergy(MCWalkerConfiguration &W, 
 		   vector<RealType> &LocalEnergy);
   };
 

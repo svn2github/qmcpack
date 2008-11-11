@@ -107,10 +107,10 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
-    void recompute(vector<Walker_t*> &walkers)
+    void recompute(MCWalkerConfiguration &W)
     {
       for (int id=0; id<Dets.size(); id++)
-	Dets[id]->recompute(walkers);
+	Dets[id]->recompute(W);
     }
 
     void 
@@ -121,41 +121,41 @@ namespace qmcplusplus {
     }
 
     void 
-    addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi)
+    addLog (MCWalkerConfiguration &W, vector<RealType> &logPsi)
     {
       for (int id=0; id<Dets.size(); id++)
-    	Dets[id]->addLog(walkers, logPsi);
+    	Dets[id]->addLog(W, logPsi);
     }
 
     // void 
-    // ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    // ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
     // 	   vector<ValueType> &psi_ratios)
     // {
-    //   Dets[DetID[iat]]->ratio(walkers, iat, new_pos, psi_ratios);
+    //   Dets[DetID[iat]]->ratio(W, iat, new_pos, psi_ratios);
     // }
 
     // void 
-    // ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    // ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
     // 	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad)
     // {
-    //   Dets[DetID[iat]]->ratio(walkers, iat, new_pos, psi_ratios, grad);
+    //   Dets[DetID[iat]]->ratio(W, iat, new_pos, psi_ratios, grad);
     // }
 
     void 
-    ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
 	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 	   vector<ValueType> &lapl)
     {
-      Dets[DetID[iat]]->ratio(walkers, iat, new_pos, psi_ratios, grad, lapl);
+      Dets[DetID[iat]]->ratio(W, iat, new_pos, psi_ratios, grad, lapl);
     }
 
 
 
     // void 
-    // addGradient(vector<Walker_t*> &walkers, int iat,
+    // addGradient(MCWalkerConfiguration &W, int iat,
     // 		vector<GradType> &grad)
     // {
-    //   Dets[DetID[iat]]->addGradient(walkers, iat, grad);
+    //   Dets[DetID[iat]]->addGradient(W, iat, grad);
     // }
 
     void update (vector<Walker_t*> &walkers, int iat)
@@ -165,31 +165,31 @@ namespace qmcplusplus {
 
     
     void 
-    gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
+    gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,
 	      ValueMatrix_t &lapl) {
       for (int id=0; id<Dets.size(); id++)
-	Dets[id]->gradLapl(walkers, grads, lapl);
+	Dets[id]->gradLapl(W, grads, lapl);
     }
 
     void 
-    NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+    NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
 	      vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
     {
       for (int id=0; id<Dets.size(); id++) 
-	Dets[id]->NLratios(walkers, jobList, quadPoints, psi_ratios);
+	Dets[id]->NLratios(W, jobList, quadPoints, psi_ratios);
     }
 
 
 
     void 
-    NLratios (vector<Walker_t*> &walkers,  cuda_vector<CUDA_PRECISION*> &Rlist,
+    NLratios (MCWalkerConfiguration &W,  cuda_vector<CUDA_PRECISION*> &Rlist,
 	      cuda_vector<int*> &ElecList, cuda_vector<int>             &NumCoreElecs,
 	      cuda_vector<CUDA_PRECISION*> &QuadPosList,
 	      cuda_vector<CUDA_PRECISION*> &RatioList,
 	      int numQuadPoints)
     {
       for (int id=0; id<Dets.size(); id++)
-	Dets[id]->NLratios(walkers, Rlist, ElecList, NumCoreElecs, QuadPosList,
+	Dets[id]->NLratios(W, Rlist, ElecList, NumCoreElecs, QuadPosList,
 			   RatioList, numQuadPoints);
     }
 

@@ -5,7 +5,7 @@
 namespace qmcplusplus {
 
   void
-  OneBodyJastrowOrbitalBspline::recompute(vector<Walker_t*> &walkers)
+  OneBodyJastrowOrbitalBspline::recompute(MCWalkerConfiguration &W)
   {
   }
   
@@ -43,10 +43,11 @@ namespace qmcplusplus {
   
 
   void
-  OneBodyJastrowOrbitalBspline::addLog (vector<Walker_t*> &walkers, 
+  OneBodyJastrowOrbitalBspline::addLog (MCWalkerConfiguration &W, 
 					vector<RealType> &logPsi)
   {
     app_log() << "OneBodyJastrowOrbitalBspline::addLog.\n";
+    vector<Walker_t*> &walkers = W.WalkerList;
     if (SumGPU.size() < walkers.size()) {
       SumGPU.resize(walkers.size());
       SumHost.resize(walkers.size());
@@ -129,10 +130,11 @@ namespace qmcplusplus {
   
   void
   OneBodyJastrowOrbitalBspline::ratio
-  (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+  (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
    vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
    vector<ValueType> &lapl)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
     // Copy new particle positions to GPU
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
@@ -188,9 +190,10 @@ namespace qmcplusplus {
 
   void
   OneBodyJastrowOrbitalBspline::NLratios 
-  (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+  (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
    vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
     int njobs = jobList.size();
     if (NL_JobListHost.size() < njobs) {
       NL_JobListHost.resize(njobs);      
@@ -244,10 +247,11 @@ namespace qmcplusplus {
 
 
   void
-  OneBodyJastrowOrbitalBspline::gradLapl (vector<Walker_t*> &walkers, 
+  OneBodyJastrowOrbitalBspline::gradLapl (MCWalkerConfiguration &W, 
 					  GradMatrix_t &grad,
 					  ValueMatrix_t &lapl)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;

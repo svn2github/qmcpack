@@ -5,7 +5,7 @@
 namespace qmcplusplus {
 
   void
-  TwoBodyJastrowOrbitalBspline::recompute(vector<Walker_t*> &walkers)
+  TwoBodyJastrowOrbitalBspline::recompute(MCWalkerConfiguration &W)
   {
   }
   
@@ -49,9 +49,10 @@ namespace qmcplusplus {
   
 
   void
-  TwoBodyJastrowOrbitalBspline::addLog (vector<Walker_t*> &walkers, 
+  TwoBodyJastrowOrbitalBspline::addLog (MCWalkerConfiguration &W, 
 					vector<RealType> &logPsi)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
     app_log() << "TwoBodyJastrowOrbitalBspline::addLog.\n";
     if (SumGPU.size() < walkers.size()) {
       SumGPU.resize(walkers.size());
@@ -132,10 +133,11 @@ namespace qmcplusplus {
   
   void
   TwoBodyJastrowOrbitalBspline::ratio
-  (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+  (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
    vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
    vector<ValueType> &lapl)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
 #ifdef CPU_RATIO
     DTD_BConds<double,3,SUPERCELL_BULK> bconds;
 
@@ -197,9 +199,10 @@ namespace qmcplusplus {
   
   void
   TwoBodyJastrowOrbitalBspline::NLratios 
-  (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+  (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
    vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
     int njobs = jobList.size();
     if (NL_JobListHost.size() < njobs) {
       NL_JobListHost.resize(njobs);      
@@ -260,10 +263,11 @@ namespace qmcplusplus {
 
 
   void
-  TwoBodyJastrowOrbitalBspline::gradLapl (vector<Walker_t*> &walkers, 
+  TwoBodyJastrowOrbitalBspline::gradLapl (MCWalkerConfiguration &W, 
 					  GradMatrix_t &grad,
 					  ValueMatrix_t &lapl)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;

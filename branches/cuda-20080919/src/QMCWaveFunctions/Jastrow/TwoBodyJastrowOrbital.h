@@ -498,7 +498,7 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
-    void recompute(vector<Walker_t*> &walkers)
+    void recompute(MCWalkerConfiguration &W)
     {
       app_error() << "TwoBodyJastrowOrbital only works with Bsplines on the GPU.\n";
     }
@@ -508,17 +508,17 @@ namespace qmcplusplus {
       app_error() << "TwoBodyJastrowOrbital only works with Bsplines on the GPU.\n";
     }
 
-    void addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi)
+    void addLog (MCWalkerConfiguration &W, vector<RealType> &logPsi)
     {
       app_error() << "TwoBodyJastrowOrbital only works with Bsplines on the GPU.\n";
     }
 
-    void update (vector<Walker_t*> &walkers, int iat) 
+    void update (MCWalkerConfiguration &W, int iat) 
     {
       app_error() << "TwoBodyJastrowOrbital only works with Bsplines on the GPU.\n";
     }
 
-    void ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    void ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
 		vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 		vector<ValueType> &lapl)
     {

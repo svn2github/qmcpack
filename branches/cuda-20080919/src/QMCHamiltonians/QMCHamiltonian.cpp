@@ -150,9 +150,10 @@ QMCHamiltonian::evaluate(ParticleSet& P)
 }
 
 void
-QMCHamiltonian::evaluate(vector<Walker_t*> &walkers,
+QMCHamiltonian::evaluate(MCWalkerConfiguration &W,
 			 vector<RealType> &energyVector)
 {
+  vector<Walker_t*> &walkers = W.WalkerList;
   int nw = walkers.size();
   if (LocalEnergyVector.size() != nw) {
     LocalEnergyVector.resize(nw);
@@ -169,7 +170,7 @@ QMCHamiltonian::evaluate(vector<Walker_t*> &walkers,
   for(int i=0; i<H.size(); ++i)
   {
     myTimers[i]->start();
-    H[i]->addEnergy(walkers, LocalEnergyVector);
+    H[i]->addEnergy(W, LocalEnergyVector);
     //H[i]->setObservables(Observables);
     myTimers[i]->stop();
   }
@@ -186,7 +187,7 @@ QMCHamiltonian::evaluate(vector<Walker_t*> &walkers,
   // P.PropertyList[LOCALPOTENTIAL]=LocalEnergy-KineticEnergy;
   for(int i=0; i<auxH.size(); ++i)
   {
-    auxH[i]->evaluate(walkers);
+    auxH[i]->evaluate(W);
     //auxH[i]->setObservables(Observables);
   }
 }

@@ -135,44 +135,44 @@ namespace qmcplusplus {
     /////////////////////////
     // Vectorized versions //
     /////////////////////////
-    void recompute (vector<Walker_t*> &walkers);
+    void recompute (MCWalkerConfiguration &W);
 
     void reserve (PointerPool<cuda_vector<CudaRealType> > &pool);
 
-    void getGradient (vector<Walker_t*> &walkers, int iat,
+    void getGradient (MCWalkerConfiguration &W, int iat,
 		      vector<GradType> &grad);
-    void evaluateLog (vector<Walker_t*> &walkers,
+    void evaluateLog (MCWalkerConfiguration &W,
 		      vector<RealType> &logPsi);
-    void ratio (vector<Walker_t*> &walkers, int iat,
+    void ratio (MCWalkerConfiguration &W, int iat,
 		vector<PosType> &newpos, 
 		vector<ValueType> &psi_ratios);
-    void ratio (vector<Walker_t*> &walkers, int iat,
+    void ratio (MCWalkerConfiguration &W, int iat,
 		vector<PosType> &newpos, 
 		vector<ValueType> &psi_ratios,
 		vector<GradType> &newG);
-    void ratio (vector<Walker_t*> &walkers, int iat,
+    void ratio (MCWalkerConfiguration &W, int iat,
 		vector<PosType> &newpos, 
 		vector<ValueType> &psi_ratios,
 		vector<GradType> &newG,
 		vector<ValueType> &newL);
-    void NLratios (vector<Walker_t*> &walkers,
+    void NLratios (MCWalkerConfiguration &W,
 		   cuda_vector<CUDA_PRECISION*> &Rlist,
 		   cuda_vector<int*>            &ElecList,
 		   cuda_vector<int>             &NumCoreElecs,
 		   cuda_vector<CUDA_PRECISION*> &QuadPosList,
 		   cuda_vector<CUDA_PRECISION*> &RatioList,
 		   int numQuadPoints);
-    void NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+    void NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
 		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
 
     // Returns the WF ratio and gradient w.r.t. iat for each walker
     // in the respective vectors
-    void ratio (vector<Walker_t*>  &walkers, int iat,
+    void ratio (MCWalkerConfiguration &W, int iat,
 		vector<ValueType> &psi_ratios,
 		vector<GradType>   &grad);
     void update (vector<Walker_t*> &walkers, int iat);
 
-    void gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
+    void gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,
 	           ValueMatrix_t &lapl);
 
 //    RealType logRatio(ParticleSet& P, int iat, 

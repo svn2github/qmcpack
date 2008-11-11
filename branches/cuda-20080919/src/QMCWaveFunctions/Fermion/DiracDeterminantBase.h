@@ -247,31 +247,31 @@ namespace qmcplusplus {
       Phi->reserve(pool);
     }
     
-    void recompute (vector<Walker_t*> &walkers);
+    void recompute (MCWalkerConfiguration &W);
     
-    void addLog (vector<Walker_t*> &walkers, vector<RealType> &logPsi);
+    void addLog (MCWalkerConfiguration &W, vector<RealType> &logPsi);
 
-    void addGradient(vector<Walker_t*> &walkers, int iat,
+    void addGradient(MCWalkerConfiguration &W, int iat,
 		     vector<GradType> &grad);
 
-    void ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    void ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
 		vector<ValueType> &psi_ratios);
 
 
-    void ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    void ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
 		vector<ValueType> &psi_ratios,	vector<GradType>  &grad);
 
-    void ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    void ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
 		vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 		vector<ValueType> &lapl);
 
-    void gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
+    void gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,
 		   ValueMatrix_t &lapl);
 
-    void NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+    void NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
 		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
 
-    void NLratios (vector<Walker_t*> &walkers,  cuda_vector<CUDA_PRECISION*> &Rlist,
+    void NLratios (MCWalkerConfiguration &W,  cuda_vector<CUDA_PRECISION*> &Rlist,
 		   cuda_vector<int*> &ElecList, cuda_vector<int> &NumCoreElecs,
 		   cuda_vector<CUDA_PRECISION*> &QuadPosList,
 		   cuda_vector<CUDA_PRECISION*> &RatioList,

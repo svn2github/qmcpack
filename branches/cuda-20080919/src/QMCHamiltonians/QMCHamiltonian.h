@@ -184,17 +184,17 @@ namespace qmcplusplus {
     ////////////////////////////////////////////
     // Vectorized evaluation routines for GPU //
     ////////////////////////////////////////////
-    void evaluate (vector<Walker_t*> &walkers,
+    void evaluate (MCWalkerConfiguration &W,
 		   vector<RealType> &LocalEnergy);
 
-    void saveProperty (vector<Walker_t*> &walkers)
-    {
-      for (int iw=0; iw<walkers.size(); iw++) {
-	RealType *first = walkers[iw]->getPropertyBase();
-	first[LOCALPOTENTIAL]= LocalEnergy-KineticEnergy;
-	std::copy(Observables.begin(),Observables.end(),first+myIndex);
-      }
-    }
+    // void saveProperty (MCWalkerConfiguration &W)
+    // {
+    //   for (int iw=0; iw<walkers.size(); iw++) {
+    // 	RealType *first = walkers[iw]->getPropertyBase();
+    // 	first[LOCALPOTENTIAL]= LocalEnergy-KineticEnergy;
+    // 	std::copy(Observables.begin(),Observables.end(),first+myIndex);
+    //   }
+    // }
 
 
   private:

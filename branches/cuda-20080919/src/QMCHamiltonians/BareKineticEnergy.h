@@ -114,9 +114,11 @@ namespace qmcplusplus {
       return NewValue*=-OneOver2M;
     }
 
-    void addEnergy(vector<Walker_t*> &walkers, 
+    void addEnergy(MCWalkerConfiguration &W, 
 		   vector<RealType> &LocalEnergy)
     {
+      vector<Walker_t*> &walkers = W.WalkerList;
+
       for (int iw=0; iw<walkers.size(); iw++) {
 	Walker_t &w = *(walkers[iw]);
 	double KE = 0.0;

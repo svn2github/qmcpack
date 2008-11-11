@@ -23,6 +23,7 @@
 #include "QMCWaveFunctions/OrbitalTraits.h"
 #include "Optimize/VarList.h"
 #include "QMCWaveFunctions/OrbitalSetTraits.h"
+#include "Particle/MCWalkerConfiguration.h"
 #if defined(ENABLE_SMARTPOINTER)
 #include <boost/shared_ptr.hpp>
 #endif
@@ -295,7 +296,7 @@ namespace qmcplusplus {
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
 
-    virtual void recompute(vector<Walker_t*> &walkers)
+    virtual void recompute(MCWalkerConfiguration &W)
     { }
 
     virtual void reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
@@ -306,7 +307,7 @@ namespace qmcplusplus {
      *  @param logPsi    output vector of log(psi)
      */
     virtual void 
-    addLog (vector<Walker_t*> &walkers,
+    addLog (MCWalkerConfiguration &W,
 	    vector<RealType> &logPsi)
     {
       app_error() << "Need specialization of OrbitalBase::addLog for "
@@ -321,7 +322,7 @@ namespace qmcplusplus {
      *  @param psi_ratios  output vector with psi_new/psi_old
      */
     virtual void 
-    ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
 	   vector<ValueType> &psi_ratios)
     {
       app_error() << "Need specialization of OrbitalBase::ratio.\n";
@@ -331,7 +332,7 @@ namespace qmcplusplus {
     // Returns the WF ratio and gradient w.r.t. iat for each walker
     // in the respective vectors
     virtual void 
-    ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
 	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad)
     {
       app_error() << "Need specialization of OrbitalBase::ratio.\n";
@@ -339,7 +340,7 @@ namespace qmcplusplus {
     }
 
     virtual void 
-    ratio (vector<Walker_t*> &walkers, int iat, vector<PosType> &new_pos,
+    ratio (MCWalkerConfiguration &W, int iat, vector<PosType> &new_pos,
 	   vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 	   vector<ValueType> &lapl)
     {
@@ -348,7 +349,7 @@ namespace qmcplusplus {
     }
 
     virtual void 
-    addGradient(vector<Walker_t*> &walkers, int iat,
+    addGradient(MCWalkerConfiguration &W, int iat,
 		vector<GradType> &grad) 
     {
       app_error() << "Need specialization of OrbitalBase::addGradient for "
@@ -357,7 +358,7 @@ namespace qmcplusplus {
     }
 
     virtual void 
-    gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
+    gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,
 	      ValueMatrix_t &lapl)
     {
       app_error() << "Need specialization of OrbitalBase::gradLapl for "
@@ -374,7 +375,7 @@ namespace qmcplusplus {
     }
 
     virtual void 
-    NLratios (vector<Walker_t*> &walkers,  vector<NLjob> &jobList,
+    NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
 	      vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
     {
       app_error() << "Need specialization of OrbitalBase::NLRatios.\n";
@@ -382,7 +383,7 @@ namespace qmcplusplus {
     }
 
     virtual void 
-    NLratios (vector<Walker_t*> &walkers,  cuda_vector<CUDA_PRECISION*> &Rlist,
+    NLratios (MCWalkerConfiguration &W,  cuda_vector<CUDA_PRECISION*> &Rlist,
 	      cuda_vector<int*> &ElecList, cuda_vector<int>             &NumCoreElecs,
 	      cuda_vector<CUDA_PRECISION*> &QuadPosList,
 	      cuda_vector<CUDA_PRECISION*> &RatioList,

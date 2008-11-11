@@ -510,10 +510,10 @@ namespace qmcplusplus {
   ///////////////////////////////
   void
   TrialWaveFunction::recompute
-  (vector<Walker_t*> &walkers)
+  (MCWalkerConfiguration &W)
   {
     for(int i=0; i<Z.size(); i++) 
-      Z[i]->recompute(walkers);
+      Z[i]->recompute(W);
   }
 
 
@@ -526,67 +526,67 @@ namespace qmcplusplus {
   }
 
   void 
-  TrialWaveFunction::evaluateLog (vector<Walker_t*> &walkers,
+  TrialWaveFunction::evaluateLog (MCWalkerConfiguration &W,
 				  vector<RealType> &logPsi)
   {
     for (int wi=0; wi<logPsi.size(); wi++)
       logPsi[wi] = RealType();
     for (int i=0; i<Z.size(); i++) 
-      Z[i]->addLog (walkers, logPsi);
+      Z[i]->addLog (W, logPsi);
   }
 
 
   void
-  TrialWaveFunction::getGradient (vector<Walker_t*> &walkers, int iat,
+  TrialWaveFunction::getGradient (MCWalkerConfiguration &W, int iat,
 				  vector<GradType> &grad)
   {
     for (int wi=0; wi<grad.size(); wi++)
       grad[wi] = GradType();
 
     for(int i=0; i<Z.size(); i++) 
-      Z[i]->addGradient(walkers, iat, grad);
+      Z[i]->addGradient(W, iat, grad);
   }
 
   void
-  TrialWaveFunction::ratio (vector<Walker_t*> &walkers, int iat,
+  TrialWaveFunction::ratio (MCWalkerConfiguration &W, int iat,
 			    vector<PosType> &newpos, 
 			    vector<ValueType> &psi_ratios,
 			    vector<GradType> &newG)
   {
-    for (int wi=0; wi<walkers.size(); wi++) {
+    for (int wi=0; wi<W.WalkerList.size(); wi++) {
       psi_ratios[wi] = 1.0;
       newG[wi] = GradType();
     }
     for (int i=0; i<Z.size(); i++)
-      Z[i]->ratio (walkers, iat, newpos, psi_ratios, newG);
+      Z[i]->ratio (W, iat, newpos, psi_ratios, newG);
   }
 
 
   void
-  TrialWaveFunction::ratio (vector<Walker_t*> &walkers, int iat,
+  TrialWaveFunction::ratio (MCWalkerConfiguration &W, int iat,
 			    vector<PosType> &newpos, 
 			    vector<ValueType> &psi_ratios,
 			    vector<GradType> &newG, vector<ValueType> &newL)
   {
-    for (int wi=0; wi<walkers.size(); wi++) {
+    for (int wi=0; wi<W.WalkerList.size(); wi++) {
       psi_ratios[wi] = 1.0;
       newG[wi] = GradType();
       newL[wi] = ValueType();
     }
     for (int i=0; i<Z.size(); i++)
-      Z[i]->ratio (walkers, iat, newpos, psi_ratios, newG, newL);
+      Z[i]->ratio (W, iat, newpos, psi_ratios, newG, newL);
   }
 
 
   void 
-  TrialWaveFunction::ratio (vector<Walker_t*> &walkers, int iat,
+  TrialWaveFunction::ratio (MCWalkerConfiguration &W, int iat,
 			    vector<PosType> &newpos, 
 			    vector<ValueType> &psi_ratios)
   {
-    for (int wi=0; wi<walkers.size(); wi++) 
+    for (int wi=0; wi<W.WalkerList.size(); wi++) 
       psi_ratios[wi] = 1.0;
     for (int i=0; i<Z.size(); i++)
-      Z[i]->ratio (walkers, iat, newpos, psi_ratios);
+      Z[i]->ratio (W, iat, newpos, psi_ratios);
   }
 
   void
@@ -597,7 +597,7 @@ namespace qmcplusplus {
   }
 
   void   
-  TrialWaveFunction::gradLapl (vector<Walker_t*> &walkers, GradMatrix_t &grads,
+  TrialWaveFunction::gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,
 			       ValueMatrix_t &lapl)
   {
     for (int i=0; i<grads.rows(); i++)
@@ -606,16 +606,16 @@ namespace qmcplusplus {
 	lapl(i,j)  = ValueType();
       }
     for (int i=0; i<Z.size(); i++)
-      Z[i]->gradLapl (walkers, grads, lapl);
-    for (int iw=0; iw<walkers.size(); iw++) 
+      Z[i]->gradLapl (W, grads, lapl);
+    for (int iw=0; iw<W.WalkerList.size(); iw++) 
       for (int ptcl=0; ptcl<grads.cols(); ptcl++) {
-	walkers[iw]->Grad[ptcl] = grads(iw, ptcl);
-	walkers[iw]->Lap[ptcl]  = lapl(iw, ptcl);
+	W[iw]->Grad[ptcl] = grads(iw, ptcl);
+	W[iw]->Lap[ptcl]  = lapl(iw, ptcl);
       }
   }
 
   void 
-  TrialWaveFunction::NLratios (vector<Walker_t*> &walkers,  
+  TrialWaveFunction::NLratios (MCWalkerConfiguration &W,  
 			       vector<NLjob> &jobList,
 			       vector<PosType> &quadPoints, 
 			       vector<ValueType> &psi_ratios)
@@ -623,11 +623,11 @@ namespace qmcplusplus {
     for (int i=0; i<psi_ratios.size(); i++)
       psi_ratios[i] = 1.0;
     for (int i=0; i<Z.size(); i++)
-      Z[i]->NLratios(walkers, jobList, quadPoints, psi_ratios);
+      Z[i]->NLratios(W, jobList, quadPoints, psi_ratios);
   }
 
   void 
-  TrialWaveFunction::NLratios (vector<Walker_t*> &walkers,
+  TrialWaveFunction::NLratios (MCWalkerConfiguration &W,
 			       cuda_vector<CUDA_PRECISION*> &Rlist,
 			       cuda_vector<int*>            &ElecList,
 			       cuda_vector<int>             &NumCoreElecs,
@@ -636,7 +636,7 @@ namespace qmcplusplus {
 			       int numQuadPoints)
   {
     for (int i=0; i<Z.size(); i++)
-      Z[i]->NLratios(walkers, Rlist, ElecList, NumCoreElecs,
+      Z[i]->NLratios(W, Rlist, ElecList, NumCoreElecs,
 		     QuadPosList, RatioList, numQuadPoints);
   }
 

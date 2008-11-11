@@ -427,9 +427,11 @@ namespace qmcplusplus {
   }
 
   void 
-  CoulombPBCABTemp::addEnergy(vector<Walker_t*> &walkers, 
+  CoulombPBCABTemp::addEnergy(MCWalkerConfiguration &W, 
 			      vector<RealType> &LocalEnergy)
   {
+    vector<Walker_t*> &walkers = W.WalkerList;
+
     // Short-circuit for constant contribution (e.g. fixed ions)
     // if (!is_active) {
     //   for (int iw=0; iw<walkers.size(); iw++) {

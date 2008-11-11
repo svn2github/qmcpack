@@ -72,7 +72,7 @@ namespace qmcplusplus {
         for(int iat=0; iat<nat; ++iat)
         {
           //calculate drift
-          //Psi.getGradient(W.WalkerList,iat,oldG);
+          //Psi.getGradient(W,iat,oldG);
 
           //create a 3N-Dimensional Gaussian with variance=1
           makeGaussRandomWithEngine(delpos,Random);
@@ -83,10 +83,10 @@ namespace qmcplusplus {
 	  W.proposeMove_GPU(newpos, iat);
 
 #ifdef CUDA_DEBUG
-	  vector<RealType> logPsi1(W.WalkerList.size(), 0.0);
-	  Psi.evaluateLog(W.WalkerList, logPsi1);
+	  vector<RealType> logPsi1(W.size(), 0.0);
+	  Psi.evaluateLog(W, logPsi1);
 #endif
-          Psi.ratio(W.WalkerList,iat,newpos,ratios,newG, newL);
+          Psi.ratio(W,iat,newpos,ratios,newG, newL);
 	  
           accepted.clear();
 	  vector<bool> acc(nw, false);
@@ -107,7 +107,7 @@ namespace qmcplusplus {
 	 
 #ifdef CUDA_DEBUG
 	  vector<RealType> logPsi2(W.WalkerList.size(), 0.0);
-	  Psi.evaluateLog(W.WalkerList, logPsi2);
+	  Psi.evaluateLog(W, logPsi2);
 	  for (int iw=0; iw<nw; iw++) {
 	    if (acc[iw])
 	      cerr << "ratio[" << iw << "] = " << ratios[iw]
@@ -127,9 +127,9 @@ namespace qmcplusplus {
 	// 	 W[3]->R[ir][0], W[3]->R[ir][1], W[3]->R[ir][2]);
 
 	double Energy = 0.0;
-	//H.saveProperty (W.WalkerList);
-	Psi.gradLapl(W.WalkerList, grad, lapl);
-	H.evaluate (W.WalkerList, LocalEnergy);
+	//H.saveProperty (W);
+	Psi.gradLapl(W, grad, lapl);
+	H.evaluate (W, LocalEnergy);
 	Estimators->accumulate(W);
 
 	for (int iw=0; iw<nw; iw++)
@@ -141,10 +141,10 @@ namespace qmcplusplus {
 	Esum += Energy;
 
       } while(step<nSteps);
-      Psi.recompute(W.WalkerList);
+      Psi.recompute(W);
 
       // vector<RealType> logPsi(W.WalkerList.size(), 0.0);
-      // Psi.evaluateLog(W.WalkerList, logPsi);
+      // Psi.evaluateLog(W, logPsi);
       
       double accept_ratio = (double)nAccept/(double)(nAccept+nReject);
       Estimators->stopBlock(accept_ratio);
@@ -193,7 +193,7 @@ namespace qmcplusplus {
     W.copyWalkersToGPU();
     W.updateLists_GPU();
     vector<RealType> logPsi(W.WalkerList.size(), 0.0);
-    Psi.evaluateLog(W.WalkerList, logPsi);
+    Psi.evaluateLog(W, logPsi);
     Estimators->start(nBlocks, true);
   }
 
