@@ -813,12 +813,19 @@ namespace qmcplusplus {
     AinvList_d   = AinvList;
     
     // Now evaluate ratios
-    determinant_ratios_cuda 
-      (&(AinvList_d[0]), &(newRowList_d[0]), &(ratio_d[0]), 
-	 NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
-    
+    // determinant_ratios_cuda 
+    //   (&(AinvList_d[0]), &(newRowList_d[0]), &(ratio_d[0]), 
+    // 	 NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
+
+    determinant_ratios_grad_lapl_cuda 
+      (AinvList_d.data(), newRowList_d.data(), gradLaplList_d.data(),
+       ratio_d.data(), NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
+
     // Copy back to host
     ratio_host = ratio_d;
+
+
+
 
 #ifdef CUDA_DEBUG
     // Now, check against CPU
@@ -835,10 +842,16 @@ namespace qmcplusplus {
     }
     
 #endif 
-    for (int iw=0; iw<psi_ratios.size(); iw++)
-      psi_ratios[iw] *= ratio_host[iw];
+    // Calculate ratio, gradient and laplacian
+    for (int iw=0; iw<walkers.size(); iw++) {
+      psi_ratios[iw] *= ratio_host[5*iw+0];
+      GradType g(ratio_host[5*iw+1],
+		 ratio_host[5*iw+2],
+		 ratio_host[5*iw+3]);
+      grad[iw] += g;
+      lapl[iw] += gradLapl_host[5*iw+4] - dot(g,g);
+    }
 
-    // Calculate gradient and laplacian
     
 
   }

@@ -212,7 +212,7 @@ namespace qmcplusplus {
       newRowList.resize(numWalkers);       newRowList_d.resize(numWalkers);
       AinvDeltaList.resize(numWalkers);    AinvDeltaList_d.resize(numWalkers);
       AinvColkList.resize(numWalkers);     AinvColkList_d.resize(numWalkers);
-      ratio_d.resize(numWalkers);          ratio_host.resize(numWalkers);
+      ratio_d.resize(5*numWalkers);        ratio_host.resize(5*numWalkers);
       gradLaplList.resize(numWalkers);     gradLaplList_d.resize(numWalkers);
       newGradLaplList.resize(numWalkers);  newGradLaplList_d.resize(numWalkers);
       workList.resize(numWalkers);         workList_d.resize(numWalkers);

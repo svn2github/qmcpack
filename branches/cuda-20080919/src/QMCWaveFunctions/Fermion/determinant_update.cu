@@ -490,24 +490,24 @@ calc_ratio_grad_lapl (T *Ainv_list[], T *new_row_list[], T *grad_lapl_list[],
       Ainv_colk_shared[tid] = Ainv[col*row_stride + elec];
     __syncthreads();
     if (col < N) {
-      ratio_prod[0][tid] += Ainv_colk_shared[tid] * new_row[tid];
-      ratio_prod[1][tid] += Ainv_colk_shared[tid] * grad_lapl[0*row_stride+tid];
-      ratio_prod[2][tid] += Ainv_colk_shared[tid] * grad_lapl[1*row_stride+tid];
-      ratio_prod[3][tid] += Ainv_colk_shared[tid] * grad_lapl[2*row_stride+tid];
-      ratio_prod[4][tid] += Ainv_colk_shared[tid] * grad_lapl[3*row_stride+tid];
+      ratio_prod[0][tid] += Ainv_colk_shared[tid] * new_row[col];
+      ratio_prod[1][tid] += Ainv_colk_shared[tid] * grad_lapl[0*row_stride+col];
+      ratio_prod[2][tid] += Ainv_colk_shared[tid] * grad_lapl[1*row_stride+col];
+      ratio_prod[3][tid] += Ainv_colk_shared[tid] * grad_lapl[2*row_stride+col];
+      ratio_prod[4][tid] += Ainv_colk_shared[tid] * grad_lapl[3*row_stride+col];
     }
     __syncthreads();
-    // Now, we have to sum
-    for (unsigned int s=BS/2; s>0; s>>=1) {
-      if (tid < s && (tid+s) < N) {
+  }
+  // Now, we have to sum
+  for (unsigned int s=BS/2; s>0; s>>=1) {
+    if (tid < s) {
       ratio_prod[0][tid] += ratio_prod[0][tid + s];
       ratio_prod[1][tid] += ratio_prod[1][tid + s];
       ratio_prod[2][tid] += ratio_prod[2][tid + s];
       ratio_prod[3][tid] += ratio_prod[3][tid + s];
       ratio_prod[4][tid] += ratio_prod[4][tid + s];
-      }
-      __syncthreads();
     }
+    __syncthreads();
   }
   if (tid < 5) 
     ratio_grad_lapl[5*blockIdx.x+tid] = ratio_prod[tid][0];
