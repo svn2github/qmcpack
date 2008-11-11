@@ -18,7 +18,6 @@ namespace qmcplusplus {
     typedef float CudaReal;
     //typedef double CudaReal;
 
-    int ROffset;
     vector<CudaSpline<CudaReal>*> GPUSplines, UniqueSplines;
     ParticleSet &ElecRef;
     cuda_vector<CudaReal> L, Linv;
@@ -26,11 +25,11 @@ namespace qmcplusplus {
     // Holds center positions
     cuda_vector<CudaReal> C;
 
-    cuda_vector<CudaReal*> RlistGPU, UpdateListGPU;
-    cuda_vector<CudaReal> SumGPU, RnewGPU, GradLaplGPU;
+    cuda_vector<CudaReal*> UpdateListGPU;
+    cuda_vector<CudaReal> SumGPU, GradLaplGPU;
 
-    host_vector<CudaReal*> RlistHost, UpdateListHost;
-    host_vector<CudaReal> SumHost, RnewHost, GradLaplHost;
+    host_vector<CudaReal*> UpdateListHost;
+    host_vector<CudaReal> SumHost, GradLaplHost;
     int NumCenterGroups, NumElecGroups;
     vector<int> CenterFirst, CenterLast;
 

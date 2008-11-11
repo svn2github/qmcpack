@@ -13,9 +13,6 @@ namespace qmcplusplus {
   OneBodyJastrowOrbitalBspline::reserve 
   (PointerPool<cuda_vector<CudaRealType> > &pool)
   {
-    int elemSize = 
-      std::max((unsigned long)1,sizeof(CudaReal)/sizeof(CUDA_PRECISION));
-    ROffset = pool.reserve(3*(N+1) * elemSize);
   }
 
   void 
@@ -51,10 +48,6 @@ namespace qmcplusplus {
     if (SumGPU.size() < walkers.size()) {
       SumGPU.resize(walkers.size());
       SumHost.resize(walkers.size());
-      RlistGPU.resize(walkers.size());
-      RlistHost.resize(walkers.size());
-      RnewHost.resize (OHMMS_DIM*walkers.size());
-      RnewGPU.resize  (OHMMS_DIM*walkers.size());
       UpdateListHost.resize(walkers.size());
       UpdateListGPU.resize(walkers.size());
     }
@@ -68,17 +61,9 @@ namespace qmcplusplus {
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;
-      CudaReal *dest = (CudaReal*)&(walker.cuda_DataSet[ROffset]);
-      for (int ptcl=0; ptcl<N; ptcl++)
-      	for (int dim=0; dim<OHMMS_DIM; dim++)
-      	  RHost[OHMMS_DIM*(iw*N+ptcl)+dim] = walker.R[ptcl][dim];
-      cudaMemcpy(dest, &(RHost[OHMMS_DIM*iw*N]), 
-		 OHMMS_DIM*N*sizeof(CudaReal), cudaMemcpyHostToDevice);
-      RlistHost[iw] = dest;
     }
     
     SumGPU = SumHost;
-    RlistGPU = RlistHost;
     int efirst = 0;
     int elast = N-1;
 
@@ -88,7 +73,7 @@ namespace qmcplusplus {
       
       CudaSpline<CudaReal> &spline = *(GPUSplines[cgroup]);
       if (GPUSplines[cgroup]) {
-	one_body_sum (C.data(), RlistGPU.data(), cfirst, clast, efirst, elast, 
+	one_body_sum (C.data(), W.RList_GPU.data(), cfirst, clast, efirst, elast, 
 		      spline.coefs.data(), spline.coefs.size(),
 		      spline.rMax, L.data(), Linv.data(),
 		      SumGPU.data(), walkers.size());
@@ -122,7 +107,7 @@ namespace qmcplusplus {
   OneBodyJastrowOrbitalBspline::update (vector<Walker_t*> &walkers, int iat)
   {
     for (int iw=0; iw<walkers.size(); iw++) 
-      UpdateListHost[iw] = (CudaReal*)&(walkers[iw]->cuda_DataSet[ROffset]);
+      UpdateListHost[iw] = (CudaReal*)walkers[iw]->R_GPU.data();
     UpdateListGPU = UpdateListHost;
     
     one_body_update(UpdateListGPU.data(), N, iat, walkers.size());
@@ -139,11 +124,8 @@ namespace qmcplusplus {
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;
-      for (int dim=0; dim<OHMMS_DIM; dim++)
-	RnewHost[OHMMS_DIM*iw+dim] = new_pos[iw][dim];
     }
     SumGPU = SumHost;
-    RnewGPU = RnewHost;
     
     for (int group=0; group<NumCenterGroups; group++) {
       int first = CenterFirst[group];
@@ -151,8 +133,8 @@ namespace qmcplusplus {
       
       if (GPUSplines[group]) {
 	CudaSpline<CudaReal> &spline = *(GPUSplines[group]);
-	one_body_ratio (C.data(), RlistGPU.data(), first, last, N, 
-			RnewGPU.data(), iat, 
+	one_body_ratio (C.data(), W.RList_GPU.data(), first, last, N, 
+			(CudaReal*)W.Rnew_GPU.data(), iat, 
 			spline.coefs.data(), spline.coefs.size(),
 			spline.rMax, L.data(), Linv.data(),
 			SumGPU.data(), walkers.size());
@@ -211,7 +193,7 @@ namespace qmcplusplus {
     for (int ijob=0; ijob < njobs; ijob++) {
       NLjob &job = jobList[ijob];
       NLjobGPU<CudaReal> &jobGPU = NL_JobListHost[ijob];
-      jobGPU.R             = &(walkers[job.walker]->cuda_DataSet[ROffset]);
+      jobGPU.R             = (CudaReal*)walkers[job.walker]->R_GPU.data();
       jobGPU.Elec          = job.elec;
       jobGPU.QuadPoints    = &(NL_QuadPointsGPU[OHMMS_DIM*iratio]);
       jobGPU.NumQuadPoints = job.numQuadPoints;
@@ -296,7 +278,7 @@ namespace qmcplusplus {
       int elast  = N-1;
       if (GPUSplines[cgroup]) {
 	CudaSpline<CudaReal> &spline = *(GPUSplines[cgroup]);
-	one_body_grad_lapl (C.data(), RlistGPU.data(), 
+	one_body_grad_lapl (C.data(), W.RList_GPU.data(), 
 			    cfirst, clast, efirst, elast, 
 			    spline.coefs.data(), spline.coefs.size(),
 			    spline.rMax, L.data(), Linv.data(),
