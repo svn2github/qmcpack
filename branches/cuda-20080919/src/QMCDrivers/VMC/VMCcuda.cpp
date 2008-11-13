@@ -208,6 +208,8 @@ namespace qmcplusplus {
         for(int iat=0; iat<nat; ++iat) {
 	  for (int iw=0; iw<nw; iw++) 
 	    newpos[iw] = W[iw]->R[iat];
+	  // This is a really bad way to do this:  it causes the splines to
+	  // be reevaluated.
 	  W.proposeMove_GPU(newpos, iat);
 	  Psi.ratio(W,iat,ratios,oldG, oldL);
 

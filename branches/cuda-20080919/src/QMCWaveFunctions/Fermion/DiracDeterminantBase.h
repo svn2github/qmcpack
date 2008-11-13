@@ -174,10 +174,11 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     size_t AOffset, AinvOffset, newRowOffset, AinvDeltaOffset, 
       AinvColkOffset, gradLaplOffset, newGradLaplOffset, workOffset;
-
-    vector<CudaRealType*> AList, AinvList, newRowList, AinvDeltaList, 
+    host_vector<updateJob> UpdateJobList;
+    cuda_vector<updateJob> UpdateJobList_d;
+    vector<CudaRealType*> srcList, destList, AList, AinvList, newRowList, AinvDeltaList, 
       AinvColkList, gradLaplList, newGradLaplList, workList;
-    cuda_vector<CudaRealType*> AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d, gradLaplList_d, newGradLaplList_d, workList_d;
+    cuda_vector<CudaRealType*> srcList_d, destList_d, AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d, gradLaplList_d, newGradLaplList_d, workList_d;
     cuda_vector<CudaRealType> ratio_d;
     host_vector<CudaRealType> ratio_host;
     cuda_vector<CudaRealType> gradLapl_d;

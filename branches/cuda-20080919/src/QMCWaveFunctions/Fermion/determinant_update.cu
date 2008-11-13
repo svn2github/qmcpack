@@ -1,14 +1,141 @@
-#define DET_BLOCK_SIZE 64
+#define DET_BLOCK_SIZE 8
 
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include "determinant_update.h"
+
+template<typename T, int BS>
+__global__ void
+update_inverse_cuda1 (updateJob updateList[],
+		      int N, int rowstride, int k)
+{
+  __shared__ T *A, *Ainv, *u, *Ainv_delta, *Ainv_colk;
+  if (threadIdx.x==0) {
+    updateJob job = updateList[blockIdx.y];
+    A           = (T*)job.A;
+    Ainv        = (T*)job.Ainv;
+    u           = (T*)job.newRow;
+    Ainv_delta  = (T*)job.AinvDelta;
+    Ainv_colk   = (T*)job.AinvColk;
+  }
+  __syncthreads();
+
+  // Store the product Ainv * u in shared memory
+  __shared__ T Ainv_delta_shared[BS], 
+    Ainv_colk_shared[BS], delta[BS];
+  Ainv_delta_shared[threadIdx.x] = 0.0f;
+ __syncthreads();
+  int col = blockIdx.x*BS + threadIdx.x;
+  int numblocks = N / BS + ((N%BS) ? 1 : 0);
+  int kBlock = k/BS;
+
+  // If the column I need to pull from Ainv is in this thread block
+  // domain, do the following
+  __syncthreads();
+  for (int block=0; block<numblocks; block++) {
+    delta[threadIdx.x] = u[block*BS+threadIdx.x] - 
+      A[k*rowstride + block*BS + threadIdx.x];
+    __syncthreads();
+    
+    for (int i=0; i<BS; i++) {
+      int row = block*BS + i;
+      T a = Ainv[row*rowstride+col];
+      if (col == k)
+	Ainv_colk_shared[i] = a;
+      Ainv_delta_shared[threadIdx.x] += a*delta[i];
+      __syncthreads();
+    }
+    if (blockIdx.x == kBlock) 
+      Ainv_colk[block*BS+threadIdx.x] = Ainv_colk_shared[threadIdx.x];
+    __syncthreads();
+  }
+
+  __syncthreads();
+  
+  // Write the data back to global memory
+  Ainv_delta[col]    = Ainv_delta_shared[threadIdx.x];
+ __syncthreads();
+}
+
+
+template<typename T, int BS>
+__global__ void
+update_inverse_cuda2 (updateJob updateList[],
+		      int N, int rowstride, int k)
+{
+  __shared__ T *A, *u, *Ainv, *Ainv_delta, *Ainv_colk;
+  int tid = threadIdx.x;
+  if (threadIdx.x==0) {
+    updateJob job = updateList[blockIdx.y];
+    A          = (T*)job.A;
+    u          = (T*)job.newRow;
+    Ainv       = (T*)job.Ainv;
+    Ainv_delta = (T*)job.AinvDelta;
+    Ainv_colk  = (T*)job.AinvColk;
+  }
+  __syncthreads();
+  
+  __shared__ T Ainv_delta_shared[BS];
+  __shared__ T  Ainv_colk_shared[BS];
+  int col = blockIdx.x*BS + threadIdx.x;
+  // Read the data back from global memory
+  Ainv_delta_shared[threadIdx.x] = Ainv_delta[col];
+  Ainv_colk_shared[threadIdx.x] = Ainv_colk[col];
+  A[k*rowstride + col] = u[col];
+  __syncthreads();
+  
+  __shared__ T prefact;
+  if (threadIdx.x == 0)
+    prefact = -1.0f/(1.0f+Ainv_delta[k]);
+		   
+  int numblocks = N / BS + ((N % BS) ? 1 : 0);
+  __syncthreads();
+  for (int block=0; block<numblocks; block++) {
+    Ainv_colk_shared[tid] = 
+      prefact*Ainv_colk[block*BS+threadIdx.x];
+    __syncthreads();
+    T *Ainv_row = Ainv+block*BS*rowstride + col;
+    for (int i=0; i<BS; i++, Ainv_row+=rowstride) 
+      *Ainv_row += Ainv_delta_shared[tid]*Ainv_colk_shared[i];
+    __syncthreads();
+  }
+}
+
+
+void
+update_inverse_cuda(updateJob updateList[],
+		    int N, int rowstride, int iat, int numWalkers)
+{
+  const int BS1 = 64;
+  const int BS2 = 32;
+
+  dim3 dimBlock1(BS1);
+  dim3 dimGrid1(N/BS1, numWalkers);
+  dim3 dimBlock2(BS2);
+  dim3 dimGrid2(N/BS2, numWalkers);
+
+  update_inverse_cuda1<float,BS1><<<dimGrid1,dimBlock1>>>
+    (updateList, N, rowstride, iat);
+  update_inverse_cuda2<float,BS2><<<dimGrid2,dimBlock2>>>
+    (updateList, N, rowstride, iat);
+
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in update_inverse_cuda:\n  %s\n",
+  	     cudaGetErrorString(err));
+    abort();
+  }
+}
+
+
+
 
 // The first kernel just computes AinvT * u and also stores the kth
 // col of Ainv in global memory
-template<typename T>
+template<typename T, int BS>
 __global__ void
 update_inverse_cuda1 (T *A_g[], T *Ainv_g[], T *u_g[], 
 		      T *Ainv_delta_g[], T *Ainv_colk_g[], 
@@ -25,24 +152,24 @@ update_inverse_cuda1 (T *A_g[], T *Ainv_g[], T *u_g[],
   __syncthreads();
 
   // Store the product Ainv * u in shared memory
-  __shared__ T Ainv_delta_shared[DET_BLOCK_SIZE], 
-    Ainv_colk_shared[DET_BLOCK_SIZE], delta[DET_BLOCK_SIZE];
+  __shared__ T Ainv_delta_shared[BS], 
+    Ainv_colk_shared[BS], delta[BS];
   Ainv_delta_shared[threadIdx.x] = 0.0f;
  __syncthreads();
-  int col = blockIdx.x*DET_BLOCK_SIZE + threadIdx.x;
-  int numblocks = N / DET_BLOCK_SIZE;
-  int kBlock = k/DET_BLOCK_SIZE;
+  int col = blockIdx.x*BS + threadIdx.x;
+  int numblocks = N / BS + ((N%BS) ? 1 : 0);
+  int kBlock = k/BS;
 
   // If the column I need to pull from Ainv is in this thread block
   // domain, do the following
   __syncthreads();
   for (int block=0; block<numblocks; block++) {
-    delta[threadIdx.x] = u[block*DET_BLOCK_SIZE+threadIdx.x] - 
-      A[k*rowstride + block*DET_BLOCK_SIZE + threadIdx.x];
+    delta[threadIdx.x] = u[block*BS+threadIdx.x] - 
+      A[k*rowstride + block*BS + threadIdx.x];
     __syncthreads();
     
-    for (int i=0; i<DET_BLOCK_SIZE; i++) {
-      int row = block*DET_BLOCK_SIZE + i;
+    for (int i=0; i<BS; i++) {
+      int row = block*BS + i;
       T a = Ainv[row*rowstride+col];
       if (col == k)
 	Ainv_colk_shared[i] = a;
@@ -50,7 +177,7 @@ update_inverse_cuda1 (T *A_g[], T *Ainv_g[], T *u_g[],
       __syncthreads();
     }
     if (blockIdx.x == kBlock) 
-      Ainv_colk[block*DET_BLOCK_SIZE+threadIdx.x] = Ainv_colk_shared[threadIdx.x];
+      Ainv_colk[block*BS+threadIdx.x] = Ainv_colk_shared[threadIdx.x];
     __syncthreads();
   }
 
@@ -62,13 +189,14 @@ update_inverse_cuda1 (T *A_g[], T *Ainv_g[], T *u_g[],
 }
 
 
-template<typename T>
+template<typename T, int BS>
 __global__ void
 update_inverse_cuda2 (T *A_g[], T *Ainv_g[], T *u_g[],
 		      T *Ainv_delta_g[], T *Ainv_colk_g[], 
 		      int N, int rowstride, int k)
 {
   __shared__ T *A, *u, *Ainv, *Ainv_delta, *Ainv_colk;
+  int tid = threadIdx.x;
   if (threadIdx.x==0) {
     A          = A_g[blockIdx.y];
     u          = u_g[blockIdx.y];
@@ -78,36 +206,29 @@ update_inverse_cuda2 (T *A_g[], T *Ainv_g[], T *u_g[],
   }
   __syncthreads();
   
-  __shared__ T Ainv_delta_shared[DET_BLOCK_SIZE];
-  __shared__ T  Ainv_colk_shared[DET_BLOCK_SIZE];
-  int col = blockIdx.x*DET_BLOCK_SIZE + threadIdx.x;
+  __shared__ T Ainv_delta_shared[BS];
+  __shared__ T  Ainv_colk_shared[BS];
+  int col = blockIdx.x*BS + threadIdx.x;
   // Read the data back from global memory
   Ainv_delta_shared[threadIdx.x] = Ainv_delta[col];
-  __syncthreads();
   Ainv_colk_shared[threadIdx.x] = Ainv_colk[col];
-  __syncthreads();
   A[k*rowstride + col] = u[col];
   __syncthreads();
   
   __shared__ T prefact;
   if (threadIdx.x == 0)
     prefact = -1.0f/(1.0f+Ainv_delta[k]);
-  __syncthreads();
 		   
-  int numblocks = N / DET_BLOCK_SIZE;
+  int numblocks = N / BS + ((N % BS) ? 1 : 0);
   __syncthreads();
   for (int block=0; block<numblocks; block++) {
+    Ainv_colk_shared[tid] = 
+      prefact*Ainv_colk[block*BS+threadIdx.x];
     __syncthreads();
-    Ainv_colk_shared[threadIdx.x] = 
-      prefact*Ainv_colk[block*DET_BLOCK_SIZE+threadIdx.x];
+    T *Ainv_row = Ainv+block*BS*rowstride + col;
+    for (int i=0; i<BS; i++, Ainv_row+=rowstride) 
+      *Ainv_row += Ainv_delta_shared[tid]*Ainv_colk_shared[i];
     __syncthreads();
-    for (int i=0; i<DET_BLOCK_SIZE; i++) {
-      int row = block*DET_BLOCK_SIZE + i;
-      __syncthreads();
-      Ainv[row*rowstride+col] += 
-	Ainv_delta_shared[threadIdx.x]*Ainv_colk_shared[i];
-      __syncthreads();
-    }
   }
 }
 
@@ -117,12 +238,17 @@ update_inverse_cuda(float *A_g[], float *Ainv_g[], float *u_g[],
 		    float *Ainv_delta_g[], float *Ainv_colk_g[], 
 		    int N, int rowstride, int iat, int numWalkers)
 {
-  dim3 dimBlock(DET_BLOCK_SIZE);
-  dim3 dimGrid(N/DET_BLOCK_SIZE, numWalkers);
+  const int BS1 = 64;
+  const int BS2 = 32;
 
-  update_inverse_cuda1<float><<<dimGrid,dimBlock>>>
+  dim3 dimBlock1(BS1);
+  dim3 dimGrid1(N/BS1, numWalkers);
+  dim3 dimBlock2(BS2);
+  dim3 dimGrid2(N/BS2, numWalkers);
+
+  update_inverse_cuda1<float,BS1><<<dimGrid1,dimBlock1>>>
     (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
-  update_inverse_cuda2<float><<<dimGrid,dimBlock>>>
+  update_inverse_cuda2<float,BS2><<<dimGrid2,dimBlock2>>>
     (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
 
   cudaError_t err = cudaGetLastError();
@@ -138,15 +264,17 @@ update_inverse_cuda(double *A_g[], double *Ainv_g[], double *u_g[],
 		    double *Ainv_delta_g[], double *Ainv_colk_g[], 
 		    int N, int rowstride, int iat, int numWalkers)
 {
-  dim3 dimBlock(DET_BLOCK_SIZE);
-  dim3 dimGrid(N/DET_BLOCK_SIZE, numWalkers);
+  const int BS1 = 64;
+  const int BS2 = 32;
 
-  fprintf (stderr, "dimBlock = %d\n", dimBlock.x);
-  fprintf (stderr, "dimGrid  = (%d, %d)\n", dimGrid.x, dimGrid.y);
+  dim3 dimBlock1(BS1);
+  dim3 dimGrid1(N/BS1, numWalkers);
+  dim3 dimBlock2(BS2);
+  dim3 dimGrid2(N/BS2, numWalkers);
 
-  update_inverse_cuda1<double><<<dimGrid,dimBlock>>>
+  update_inverse_cuda1<double,BS1><<<dimGrid1,dimBlock1>>>
     (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
-  update_inverse_cuda2<double><<<dimGrid,dimBlock>>>
+  update_inverse_cuda2<double,BS2><<<dimGrid2,dimBlock2>>>
     (A_g, Ainv_g, u_g, Ainv_delta_g, Ainv_colk_g, N, rowstride, iat);
 
   cudaThreadSynchronize();

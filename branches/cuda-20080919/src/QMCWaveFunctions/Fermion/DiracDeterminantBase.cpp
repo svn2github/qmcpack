@@ -511,42 +511,36 @@ namespace qmcplusplus {
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
     int gradoff = 4*(iat-FirstIndex)*NumOrbitals;
+    if (UpdateJobList.size() < walkers.size()) {
+      UpdateJobList.resize(walkers.size());
+      srcList.resize(walkers.size());
+      destList.resize(walkers.size());
+    }
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t::cuda_Buffer_t &data = walkers[iw]->cuda_DataSet;
-      AList[iw]         =  &(data[AOffset]);
-      AinvList[iw]      =  &(data[AinvOffset]);
-      newRowList[iw]    =  &(data[newRowOffset]);
-      AinvDeltaList[iw] =  &(data[AinvDeltaOffset]);
-      AinvColkList[iw]  =  &(data[AinvColkOffset]);
-      gradLaplList[iw]  =  &(data[gradLaplOffset+gradoff]);
-      newGradLaplList[iw] = &(data[newGradLaplOffset]);
+      updateJob &job = UpdateJobList[iw];
+      job.A            = &(data[AOffset]);		      
+      job.Ainv         = &(data[AinvOffset]);	    
+      job.newRow       = &(data[newRowOffset]);	    
+      job.AinvDelta    = &(data[AinvDeltaOffset]);	    
+      job.AinvColk     = &(data[AinvColkOffset]);	    
+      job.gradLapl     = &(data[gradLaplOffset+gradoff]);
+      job.newGradLapl  = &(data[newGradLaplOffset]);     
+      
+      destList[iw]    = &(data[gradLaplOffset+gradoff]);
+      srcList[iw]     = &(data[newGradLaplOffset]);     
     }
     // Copy pointers to the GPU
-    AList_d         = AList;
-    AinvList_d      = AinvList;
-    newRowList_d    = newRowList;
-    AinvDeltaList_d = AinvDeltaList;
-    AinvColkList_d  = AinvColkList;
-    gradLaplList_d  = gradLaplList;
-    newGradLaplList_d = newGradLaplList;
+    UpdateJobList_d = UpdateJobList;
+    srcList_d  = srcList;
+    destList_d = destList;
     // Call kernel wrapper function
-    update_inverse_cuda(&(AList_d[0]),&(AinvList_d[0]), &(newRowList_d[0]),
-    			&(AinvDeltaList_d[0]), &(AinvColkList_d[0]),
-    			NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
+    update_inverse_cuda(UpdateJobList_d.data(), 
+			NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
     // Copy temporary gradients and laplacians into matrix
-    multi_copy (gradLaplList_d.data(), newGradLaplList_d.data(),
+    multi_copy (destList_d.data(), srcList_d.data(),
 		4*NumOrbitals, walkers.size());
     
-
-    // // Copy gradLapl into matrices
-    // for (int iw=0; iw<walkers.size(); iw++) {
-    //   Walker_t::cuda_Buffer_t &data = walkers[iw]->cuda_DataSet;
-    //   int off = 4*(iat-FirstIndex)*NumOrbitals;
-    //   cudaMemcpy (&(data[gradLaplOffset+off]), &(data[newGradLaplOffset]),
-    // 		  4*NumOrbitals*sizeof(CudaValueType), cudaMemcpyDeviceToDevice);
-    // }
-
-
 #ifdef DEBUG_CUDA
     
     float Ainv[NumPtcls][NumPtcls], A[NumPtcls][NumPtcls];
@@ -722,7 +716,7 @@ namespace qmcplusplus {
 
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
-
+    
     // First evaluate orbitals
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
@@ -730,8 +724,8 @@ namespace qmcplusplus {
       newRowList[iw]    =  &(data[newRowOffset]);
     }
     newRowList_d = newRowList;
-    Phi->evaluate (walkers, W.Rnew, newRowList_d);
     AinvList_d   = AinvList;
+      Phi->evaluate (walkers, W.Rnew, newRowList_d);
 
     // Now evaluate ratios
     determinant_ratios_cuda 
@@ -772,7 +766,8 @@ namespace qmcplusplus {
       newGradLaplList[iw] =  &(data[newGradLaplOffset]);
     }
     newRowList_d = newRowList;
-    newGradLaplList_d = newGradLaplList;
+    newGradLaplList_d = newGradLaplList; 
+    
     Phi->evaluate (walkers, W.Rnew, newRowList_d, newGradLaplList_d, NumOrbitals);
 
 #ifdef CUDA_DEBUG2
@@ -848,9 +843,6 @@ namespace qmcplusplus {
       grad[iw] += g;
       lapl[iw] += ratio_host[5*iw+4] - dot(g,g);
     }
-
-    
-
   }
 
   void 
