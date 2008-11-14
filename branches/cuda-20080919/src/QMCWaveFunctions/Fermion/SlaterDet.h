@@ -149,14 +149,12 @@ namespace qmcplusplus {
       Dets[DetID[iat]]->ratio(W, iat, psi_ratios, grad, lapl);
     }
 
-
-
-    // void 
-    // addGradient(MCWalkerConfiguration &W, int iat,
-    // 		vector<GradType> &grad)
-    // {
-    //   Dets[DetID[iat]]->addGradient(W, iat, grad);
-    // }
+    void 
+    addGradient(MCWalkerConfiguration &W, int iat,
+    		vector<GradType> &grad)
+    {
+      Dets[DetID[iat]]->addGradient(W, iat, grad);
+    }
 
     void update (vector<Walker_t*> &walkers, int iat)
     {

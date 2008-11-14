@@ -705,7 +705,30 @@ namespace qmcplusplus {
   DiracDeterminantBase::addGradient(MCWalkerConfiguration &W, int iat,
 				    vector<GradType> &grad)
   {
-    cerr << "DiracDeterminantBase::addGradient.\n";
+    vector<Walker_t*> &walkers = W.WalkerList;
+    if (iat - FirstIndex == 0) {
+      if (AList.size() < walkers.size())
+	resizeLists(walkers.size());
+      
+      // First evaluate orbitals
+      for (int iw=0; iw<walkers.size(); iw++) {
+	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+	AinvList[iw]        =  &(data[AinvOffset]);
+	gradLaplList[iw]    =  &(data[gradLaplOffset]);
+      }
+      AinvList_d      = AinvList;
+      gradLaplList_d = gradLaplList;
+      newGradLaplList_d = newGradLaplList;
+    }
+    calc_gradient (AinvList_d.data(), gradLaplList_d.data(), 
+		   ratio_d.data(), NumOrbitals, NumOrbitals, 
+		   iat-FirstIndex, walkers.size());
+    ratio_host = ratio_d;
+
+    for (int iw=0; iw<walkers.size(); iw++) 
+      for (int dim=0; dim<OHMMS_DIM; dim++)
+	grad[iw][dim] += ratio_host[4*iw+dim];
+
   }
 
   void DiracDeterminantBase::ratio (MCWalkerConfiguration &W, 

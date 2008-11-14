@@ -76,4 +76,15 @@ determinant_ratios_grad_lapl_cuda (double *Ainv_list[], double *new_row_list[],
 				   int N, int row_stride, int iat, int numWalkers);
 
 
+void
+calc_gradient (float *Ainv_list[], float *grad_lapl_list[],
+	       float grad[], int N, int row_stride, int elec,
+	       int numWalkers);
+
+void
+calc_gradient (double *Ainv_list[], double *grad_lapl_list[],
+	       double grad[], int N, int row_stride, int elec,
+	       int numWalkers);
+
+
 #endif
