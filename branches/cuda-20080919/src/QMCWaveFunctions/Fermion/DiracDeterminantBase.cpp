@@ -758,16 +758,18 @@ namespace qmcplusplus {
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
 
-    // First evaluate orbitals
-    for (int iw=0; iw<walkers.size(); iw++) {
-      Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
-      AinvList[iw]        =  &(data[AinvOffset]);
-      newRowList[iw]      =  &(data[newRowOffset]);
-      newGradLaplList[iw] =  &(data[newGradLaplOffset]);
+    if (iat-FirstIndex == 0) {
+      // First evaluate orbitals
+      for (int iw=0; iw<walkers.size(); iw++) {
+	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+	AinvList[iw]        =  &(data[AinvOffset]);
+	newRowList[iw]      =  &(data[newRowOffset]);
+	newGradLaplList[iw] =  &(data[newGradLaplOffset]);
+      }
+      newRowList_d = newRowList;
+      newGradLaplList_d = newGradLaplList; 
+      AinvList_d   = AinvList;
     }
-    newRowList_d = newRowList;
-    newGradLaplList_d = newGradLaplList; 
-    
     Phi->evaluate (walkers, W.Rnew, newRowList_d, newGradLaplList_d, NumOrbitals);
 
 #ifdef CUDA_DEBUG2
@@ -790,28 +792,7 @@ namespace qmcplusplus {
       }
     }
 #endif 
-
-    // host_vector<CudaValueType> host_vec;
-    // for (int iw=0; iw<walkers.size(); iw++) {
-    //   host_vec = walkers[iw]->cuda_DataSet;
-    //   ValueType ratio = 0.0;
-    //   for (int i=0; i<NumOrbitals; i++) {
-    // 	ratio += host_vec[AinvOffset+(iat-FirstIndex)+i*NumOrbitals]*
-    // 	  host_vec[newRowOffset+i];
-    //   }
-    //   psi_ratios[iw] *= ratio;
-    // }
-      
-
-    //Phi->evaluate (walkers, new_pos, newRowList_d);
-
-    AinvList_d   = AinvList;
     
-    // Now evaluate ratios
-    // determinant_ratios_cuda 
-    //   (&(AinvList_d[0]), &(newRowList_d[0]), &(ratio_d[0]), 
-    // 	 NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
-
     determinant_ratios_grad_lapl_cuda 
       (AinvList_d.data(), newRowList_d.data(), newGradLaplList_d.data(),
        ratio_d.data(), NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
