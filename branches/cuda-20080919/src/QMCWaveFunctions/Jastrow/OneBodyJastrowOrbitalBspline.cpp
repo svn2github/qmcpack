@@ -106,11 +106,11 @@ namespace qmcplusplus {
   void
   OneBodyJastrowOrbitalBspline::update (vector<Walker_t*> &walkers, int iat)
   {
-    for (int iw=0; iw<walkers.size(); iw++) 
-      UpdateListHost[iw] = (CudaReal*)walkers[iw]->R_GPU.data();
-    UpdateListGPU = UpdateListHost;
+    // for (int iw=0; iw<walkers.size(); iw++) 
+    //   UpdateListHost[iw] = (CudaReal*)walkers[iw]->R_GPU.data();
+    // UpdateListGPU = UpdateListHost;
     
-    one_body_update(UpdateListGPU.data(), N, iat, walkers.size());
+    // one_body_update(UpdateListGPU.data(), N, iat, walkers.size());
   }
   
   void
