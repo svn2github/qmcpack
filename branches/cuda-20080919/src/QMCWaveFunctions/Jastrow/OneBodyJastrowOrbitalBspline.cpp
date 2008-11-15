@@ -45,9 +45,9 @@ namespace qmcplusplus {
   {
     app_log() << "OneBodyJastrowOrbitalBspline::addLog.\n";
     vector<Walker_t*> &walkers = W.WalkerList;
-    if (SumGPU.size() < walkers.size()) {
-      SumGPU.resize(walkers.size());
-      SumHost.resize(walkers.size());
+    if (SumGPU.size() < 4*walkers.size()) {
+      SumGPU.resize(4*walkers.size());
+      SumHost.resize(4*walkers.size());
       UpdateListHost.resize(walkers.size());
       UpdateListGPU.resize(walkers.size());
     }
@@ -116,12 +116,12 @@ namespace qmcplusplus {
   void
   OneBodyJastrowOrbitalBspline::ratio
   (MCWalkerConfiguration &W, int iat,
-   vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
+   vector<ValueType> &psi_ratios, vector<GradType>  &grad,
    vector<ValueType> &lapl)
   {
     vector<Walker_t*> &walkers = W.WalkerList;
     // Copy new particle positions to GPU
-    for (int iw=0; iw<walkers.size(); iw++) {
+    for (int iw=0; iw<4*walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;
     }
@@ -133,18 +133,27 @@ namespace qmcplusplus {
       
       if (GPUSplines[group]) {
 	CudaSpline<CudaReal> &spline = *(GPUSplines[group]);
-	one_body_ratio (C.data(), W.RList_GPU.data(), first, last, 
-			(CudaReal*)W.Rnew_GPU.data(), iat, 
-			spline.coefs.data(), spline.coefs.size(),
-			spline.rMax, L.data(), Linv.data(),
-			SumGPU.data(), walkers.size());
+// 	one_body_ratio (C.data(), W.RList_GPU.data(), first, last, 
+// 			(CudaReal*)W.Rnew_GPU.data(), iat, 
+// 			spline.coefs.data(), spline.coefs.size(),
+// 			spline.rMax, L.data(), Linv.data(),
+// 			SumGPU.data(), walkers.size());
+	one_body_ratio_grad (C.data(), W.RList_GPU.data(), first, last, 
+			     (CudaReal*)W.Rnew_GPU.data(), iat, 
+			     spline.coefs.data(), spline.coefs.size(),
+			     spline.rMax, L.data(), Linv.data(),
+			     SumGPU.data(), walkers.size());
       }
     }
     // Copy data back to CPU memory
     SumHost = SumGPU;
 
-    for (int iw=0; iw<walkers.size(); iw++) 
-      psi_ratios[iw] *= std::exp(-SumHost[iw]);
+    for (int iw=0; iw<walkers.size(); iw++) {
+      psi_ratios[iw] *= std::exp(-SumHost[4*iw+0]);
+      grad[iw][0] -= SumHost[4*iw+1];
+      grad[iw][1] -= SumHost[4*iw+2];
+      grad[iw][2] -= SumHost[4*iw+3];
+    }
 
 #ifdef CUDA_DEBUG
     DTD_BConds<double,3,SUPERCELL_BULK> bconds;
@@ -228,18 +237,44 @@ namespace qmcplusplus {
   }
 
 
+  void OneBodyJastrowOrbitalBspline::addGradient
+  (MCWalkerConfiguration &W, int iat, vector<GradType> &grad)
+  {
+    vector<Walker_t*> &walkers = W.WalkerList;
+
+    if (OneGradHost.size() < OHMMS_DIM*walkers.size()) {
+      OneGradHost.resize (walkers.size()*OHMMS_DIM);
+      OneGradGPU.resize (walkers.size()*OHMMS_DIM);
+    }
+
+    bool zero = true;
+    for (int group=0; group<NumCenterGroups; group++) {
+      int first = CenterFirst[group];
+      int last  = CenterLast[group];
+      if (GPUSplines[group]) {
+	CudaSpline<CudaReal> &spline = *(GPUSplines[group]);
+	one_body_gradient (W.RList_GPU.data(), iat, C.data(), first, last, 
+			   spline.coefs.data(), spline.coefs.size(),
+			   spline.rMax, L.data(), Linv.data(), zero,
+			   OneGradGPU.data(), walkers.size());
+	zero = false;
+      }
+    }
+    // Copy data back to CPU memory
+    
+    OneGradHost = OneGradGPU;
+    for (int iw=0; iw<walkers.size(); iw++) 
+      for (int dim=0; dim<OHMMS_DIM; dim++)
+	grad[iw][dim] -= OneGradHost[OHMMS_DIM*iw+dim];
+  }
+
+
   void
   OneBodyJastrowOrbitalBspline::gradLapl (MCWalkerConfiguration &W, 
 					  GradMatrix_t &grad,
 					  ValueMatrix_t &lapl)
   {
     vector<Walker_t*> &walkers = W.WalkerList;
-    for (int iw=0; iw<walkers.size(); iw++) {
-      Walker_t &walker = *(walkers[iw]);
-      SumHost[iw] = 0.0;
-    }
-    SumGPU = SumHost;
-
     for (int i=0; i<walkers.size()*4*N; i++)
       GradLaplHost[i] = 0.0;
     GradLaplGPU = GradLaplHost;

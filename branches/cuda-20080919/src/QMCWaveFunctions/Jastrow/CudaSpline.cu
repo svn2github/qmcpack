@@ -1229,6 +1229,162 @@ one_body_ratio (double C[], double *R[], int first, int last,
 }
 
 
+template<typename T, int BS>
+__global__ void
+one_body_ratio_grad_kernel(T C[], T *R[], int cfirst, int clast,
+			   T  Rnew[], int inew,
+			   T spline_coefs[], int numCoefs, T rMax,  
+			   T lattice[], T latticeInv[], T ratio_grad[])
+{
+  T dr = rMax/(T)(numCoefs-3);
+  T drInv = 1.0/dr;
+
+  int tid = threadIdx.x;
+  __shared__ T *myR;
+  __shared__ T myRnew[3], myRold[3];
+  if (tid == 0) 
+    myR = R[blockIdx.x];
+  __syncthreads();
+  if (tid < 3 ) {
+    myRnew[tid] = Rnew[3*blockIdx.x+tid];
+    myRold[tid] = myR[3*inew+tid];
+  }
+  __syncthreads();
+
+  __shared__ T coefs[MAX_COEFS];
+  __shared__ T c[BS][3];
+  __shared__ T L[3][3], Linv[3][3];
+
+  if (tid < numCoefs)
+    coefs[tid] = spline_coefs[tid];
+  if (tid < 9) {
+    L[0][tid] = lattice[tid];
+    Linv[0][tid] = latticeInv[tid];
+  }
+  
+  __shared__ T A[12][4];
+  if (tid < 16) {
+    A[0+(tid>>2)][tid&3] = AcudaSpline[tid+0];
+    A[4+(tid>>2)][tid&3] = AcudaSpline[tid+16];
+    A[8+(tid>>2)][tid&3] = AcudaSpline[tid+32];
+  }
+  __syncthreads();
+
+  int Nc = clast - cfirst + 1;
+  int NB = Nc/BS + ((Nc % BS) ? 1 : 0);
+
+  __shared__ T shared_sum[BS];
+  __shared__ T shared_grad[BS][3];
+  shared_sum[tid] = (T)0.0;
+  shared_grad[tid][0] = shared_grad[tid][1] = shared_grad[tid][2] = 0.0f;
+  for (int b=0; b < NB; b++) {
+    // Load block of positions from global memory
+    for (int i=0; i<3; i++) {
+      int n = i*BS + tid;
+      if ((3*b+i)*BS + tid < 3*Nc) 
+  	c[0][n] = C[3*cfirst + (3*b+i)*BS + tid];
+    }
+    __syncthreads();
+    int ptcl1 = cfirst+b*BS + tid;
+
+    T dx, dy, dz, dist, delta, u, du, d2u;
+    dx = myRold[0] - c[tid][0];
+    dy = myRold[1] - c[tid][1];
+    dz = myRold[2] - c[tid][2];
+    dist = min_dist(dx, dy, dz, L, Linv);
+    delta =- eval_1d_spline (dist, rMax, drInv, A, coefs);
+
+    dx = myRnew[0] - c[tid][0];
+    dy = myRnew[1] - c[tid][1];
+    dz = myRnew[2] - c[tid][2];
+    dist = min_dist(dx, dy, dz, L, Linv);
+    eval_1d_spline_vgl (dist, rMax, drInv, A, coefs, u, du, d2u);
+    delta += u;
+
+    if (ptcl1 < (Nc+cfirst) ) {
+      du /= dist;
+      shared_sum[tid] += delta;
+      shared_grad[tid][0] += du * dx;
+      shared_grad[tid][1] += du * dy;
+      shared_grad[tid][2] += du * dz;
+    }
+  }
+  __syncthreads();
+  for (int s=(BS>>1); s>0; s>>=1) {
+    if (tid < s) {
+      shared_sum[tid] += shared_sum[tid+s];
+      shared_grad[tid][0] += shared_grad[tid+s][0];
+      shared_grad[tid][1] += shared_grad[tid+s][1];
+      shared_grad[tid][2] += shared_grad[tid+s][2];
+    }
+    __syncthreads();
+  }
+
+  if (tid==0) {
+    ratio_grad[4*blockIdx.x+0] += shared_sum[0];
+    ratio_grad[4*blockIdx.x+1] += shared_grad[0][0];
+    ratio_grad[4*blockIdx.x+2] += shared_grad[0][1];
+    ratio_grad[4*blockIdx.x+3] += shared_grad[0][2];
+  }
+}
+
+
+void
+one_body_ratio_grad (float C[], float *R[], int first, int last,
+		     float Rnew[], int inew,
+		     float spline_coefs[], int numCoefs, float rMax,  
+		     float lattice[], float latticeInv[], float ratio_grad[], 
+		     int numWalkers)
+{
+  if (!AisInitialized)
+    cuda_spline_init();
+
+  const int BS = 32;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  one_body_ratio_grad_kernel<float,BS><<<dimGrid,dimBlock>>>
+    (C, R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax, 
+     lattice, latticeInv, ratio_grad);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in one_body_ratio_grad:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+}
+
+
+void
+one_body_ratio_grad (double C[], double *R[], int first, int last,
+		     double Rnew[], int inew,
+		     double spline_coefs[], int numCoefs, double rMax,  
+		     double lattice[], double latticeInv[], 
+		     double ratio_grad[], int numWalkers)
+{
+  if (!AisInitialized)
+    cuda_spline_init();
+
+  const int BS = 32;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  one_body_ratio_grad_kernel<double,BS><<<dimGrid,dimBlock>>>
+    (C, R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax, 
+     lattice, latticeInv, ratio_grad);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in one_body_ratio_grad:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+}
+
+
 
 
 template<typename T>
@@ -1521,6 +1677,117 @@ one_body_NLratios(NLjobGPU<float> jobs[], float C[], int first, int last,
      lattice, latticeInv);
 }
 
+
+
+template<typename T, int BS>
+__global__ void
+one_body_grad_kernel(T *R[], int iat, T C[], int first, int last,
+		     T spline_coefs[], int numCoefs, T rMax,  
+		     T lattice[], T latticeInv[], bool zeroOut, T grad[])
+{
+  T dr = rMax/(T)(numCoefs-3);
+  T drInv = 1.0/dr;
+  
+  int tid = threadIdx.x;
+  __shared__ T *myR, r[3];
+  if (tid == 0) 
+    myR = R[blockIdx.x];
+  __syncthreads();
+  if (tid < 3)
+    r[tid] = myR[3*iat+tid];
+
+  __shared__ T coefs[MAX_COEFS];
+  if (tid < numCoefs)
+    coefs[tid] = spline_coefs[tid];
+  __shared__ T c[BS][3];
+  __shared__ T L[3][3], Linv[3][3];
+  if (tid < 9) {
+    L[0][tid] = lattice[tid];
+    Linv[0][tid] = latticeInv[tid];
+  }
+  
+  __shared__ T A[12][4];
+  if (tid < 16) {
+    A[0+(tid>>2)][tid&3] = AcudaSpline[tid+0];
+    A[4+(tid>>2)][tid&3] = AcudaSpline[tid+16];
+    A[8+(tid>>2)][tid&3] = AcudaSpline[tid+32];
+  }
+  __syncthreads();
+
+
+  int N = last - first + 1;
+  int NB = N/BS + ((N % BS) ? 1 : 0);
+  __shared__ T sGrad[BS][3];
+  sGrad[tid][0]   = sGrad[tid][1] = sGrad[tid][2] = (T)0.0;
+  for (int b=0; b < NB; b++) {
+    // Load block of positions from global memory
+    for (int i=0; i<3; i++)
+      if ((3*b+i)*BS + tid < 3*N) 
+  	c[0][i*BS + tid] = C[3*first + (3*b+i)*BS + tid];
+    __syncthreads();
+    int ptcl1 = first+b*BS + tid;
+    T dx, dy, dz, u, du, d2u;
+    dx = r[0] - c[tid][0];
+    dy = r[1] - c[tid][1];
+    dz = r[2] - c[tid][2];
+    T dist = min_dist(dx, dy, dz, L, Linv);
+    eval_1d_spline_vgl (dist, rMax, drInv, A, coefs, u, du, d2u);
+    if (ptcl1 < (N+first)) {
+      du /= dist;
+      sGrad[tid][0] += du * dx;
+      sGrad[tid][1] += du * dy;
+      sGrad[tid][2] += du * dz;
+    }
+    __syncthreads();
+  }
+  // Do reduction across threads in block
+  for (int s=BS>>1; s>0; s>>=1) {
+    if (tid < s) {
+      sGrad[tid][0] += sGrad[tid+s][0];
+      sGrad[tid][1] += sGrad[tid+s][1];
+      sGrad[tid][2] += sGrad[tid+s][2];
+    }
+    __syncthreads();
+  }
+  if (tid < 3) {
+    if (zeroOut) 
+      grad[3*blockIdx.x + tid] = sGrad[0][tid];
+    else
+      grad[3*blockIdx.x + tid] += sGrad[0][tid];
+  }
+}
+
+
+void
+one_body_gradient (float *Rlist[], int iat, float C[], int first, int last,
+		   float spline_coefs[], int num_coefs, float rMax,
+		   float L[], float Linv[], bool zeroSum,
+		   float grad[], int numWalkers)
+{
+  const int BS=32;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  one_body_grad_kernel<float,BS><<<dimGrid,dimBlock>>>
+    (Rlist, iat, C, first, last, spline_coefs, num_coefs, rMax,
+     L, Linv, zeroSum, grad);
+}
+		   
+
+void
+one_body_gradient (double *Rlist[], int iat, double C[], int first, int last,
+		   double spline_coefs[], int num_coefs, double rMax,
+		   double L[], double Linv[], bool zeroSum,
+		   double grad[], int numWalkers)
+{
+  const int BS=32;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  one_body_grad_kernel<double,BS><<<dimGrid,dimBlock>>>
+    (Rlist, iat, C, first, last, spline_coefs, num_coefs, rMax,
+     L, Linv, zeroSum, grad);
+}
 
 
 
