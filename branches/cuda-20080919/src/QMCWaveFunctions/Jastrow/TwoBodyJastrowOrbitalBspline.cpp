@@ -50,7 +50,6 @@ namespace qmcplusplus {
 					vector<RealType> &logPsi)
   {
     vector<Walker_t*> &walkers = W.WalkerList;
-    app_log() << "TwoBodyJastrowOrbitalBspline::addLog.\n";
     if (SumGPU.size() < 4*walkers.size()) {
       SumGPU.resize(4*walkers.size());
       SumHost.resize(4*walkers.size());
@@ -156,14 +155,9 @@ namespace qmcplusplus {
     }
 #else
 
-    for (int iw=0; iw<4*walkers.size(); iw++) {
-      Walker_t &walker = *(walkers[iw]);
-      SumHost[iw] = 0.0;
-    }
-    SumGPU = SumHost;
-
     int newGroup = PtclRef.GroupID[iat];
 
+    bool zero = true;
     for (int group=0; group<PtclRef.groups(); group++) {
       int first = PtclRef.first(group);
       int last  = PtclRef.last(group) -1;
@@ -178,8 +172,9 @@ namespace qmcplusplus {
       two_body_ratio_grad (W.RList_GPU.data(), first, last, 
 			   (CudaReal*)W.Rnew_GPU.data(), iat, 
 			   spline.coefs.data(), spline.coefs.size(),
-			   spline.rMax, L.data(), Linv.data(),
+			   spline.rMax, L.data(), Linv.data(), zero,
 			   SumGPU.data(), walkers.size());
+      zero = false;
     }
     // Copy data back to CPU memory
     

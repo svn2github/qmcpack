@@ -435,7 +435,7 @@ two_body_ratio_grad_kernel(T *R[], int first, int last,
 			   T  Rnew[], int inew,
 			   T spline_coefs[], int numCoefs, T rMax,  
 			   T lattice[], T latticeInv[], 
-			   T ratio_grad[])
+			   bool zero, T ratio_grad[])
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -522,10 +522,18 @@ two_body_ratio_grad_kernel(T *R[], int first, int last,
   }
 
   if (tid==0) {
-    ratio_grad[4*blockIdx.x+0] += shared_sum[0];
-    ratio_grad[4*blockIdx.x+1] += shared_grad[0][0];
-    ratio_grad[4*blockIdx.x+2] += shared_grad[0][1];
-    ratio_grad[4*blockIdx.x+3] += shared_grad[0][2];
+    if (zero) {
+      ratio_grad[4*blockIdx.x+0] = shared_sum[0];
+      ratio_grad[4*blockIdx.x+1] = shared_grad[0][0];
+      ratio_grad[4*blockIdx.x+2] = shared_grad[0][1];
+      ratio_grad[4*blockIdx.x+3] = shared_grad[0][2];
+    }
+    else {
+      ratio_grad[4*blockIdx.x+0] += shared_sum[0];
+      ratio_grad[4*blockIdx.x+1] += shared_grad[0][0];
+      ratio_grad[4*blockIdx.x+2] += shared_grad[0][1];
+      ratio_grad[4*blockIdx.x+3] += shared_grad[0][2];
+    }
   }
 }
 
@@ -534,7 +542,7 @@ void
 two_body_ratio_grad(float *R[], int first, int last,
 		    float  Rnew[], int inew,
 		    float spline_coefs[], int numCoefs, float rMax,  
-		    float lattice[], float latticeInv[], 
+		    float lattice[], float latticeInv[], bool zero,
 		    float ratio_grad[], int numWalkers)
 {
   const int BS=32;
@@ -543,7 +551,7 @@ two_body_ratio_grad(float *R[], int first, int last,
   
   two_body_ratio_grad_kernel<float,BS><<<dimGrid,dimBlock>>>
     (R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax,
-     lattice, latticeInv, ratio_grad);
+     lattice, latticeInv, zero, ratio_grad);
 }
 
 
@@ -551,7 +559,7 @@ void
 two_body_ratio_grad(double *R[], int first, int last,
 		    double  Rnew[], int inew,
 		    double spline_coefs[], int numCoefs, double rMax,  
-		    double lattice[], double latticeInv[], 
+		    double lattice[], double latticeInv[], bool zero,
 		    double ratio_grad[], int numWalkers)
 {
   const int BS=32;
@@ -560,7 +568,7 @@ two_body_ratio_grad(double *R[], int first, int last,
   
   two_body_ratio_grad_kernel<double,BS><<<dimGrid,dimBlock>>>
     (R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax,
-     lattice, latticeInv, ratio_grad);
+     lattice, latticeInv, zero, ratio_grad);
 }
 
   
@@ -1234,7 +1242,8 @@ __global__ void
 one_body_ratio_grad_kernel(T C[], T *R[], int cfirst, int clast,
 			   T  Rnew[], int inew,
 			   T spline_coefs[], int numCoefs, T rMax,  
-			   T lattice[], T latticeInv[], T ratio_grad[])
+			   T lattice[], T latticeInv[], bool zero,
+			   T ratio_grad[])
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -1321,10 +1330,18 @@ one_body_ratio_grad_kernel(T C[], T *R[], int cfirst, int clast,
   }
 
   if (tid==0) {
-    ratio_grad[4*blockIdx.x+0] += shared_sum[0];
-    ratio_grad[4*blockIdx.x+1] += shared_grad[0][0];
-    ratio_grad[4*blockIdx.x+2] += shared_grad[0][1];
-    ratio_grad[4*blockIdx.x+3] += shared_grad[0][2];
+    if (zero) {
+      ratio_grad[4*blockIdx.x+0] = shared_sum[0];
+      ratio_grad[4*blockIdx.x+1] = shared_grad[0][0];
+      ratio_grad[4*blockIdx.x+2] = shared_grad[0][1];
+      ratio_grad[4*blockIdx.x+3] = shared_grad[0][2];
+    }
+    else {
+      ratio_grad[4*blockIdx.x+0] += shared_sum[0];
+      ratio_grad[4*blockIdx.x+1] += shared_grad[0][0];
+      ratio_grad[4*blockIdx.x+2] += shared_grad[0][1];
+      ratio_grad[4*blockIdx.x+3] += shared_grad[0][2];
+    }
   }
 }
 
@@ -1333,8 +1350,8 @@ void
 one_body_ratio_grad (float C[], float *R[], int first, int last,
 		     float Rnew[], int inew,
 		     float spline_coefs[], int numCoefs, float rMax,  
-		     float lattice[], float latticeInv[], float ratio_grad[], 
-		     int numWalkers)
+		     float lattice[], float latticeInv[], bool zero,
+		     float ratio_grad[], int numWalkers)
 {
   if (!AisInitialized)
     cuda_spline_init();
@@ -1346,7 +1363,7 @@ one_body_ratio_grad (float C[], float *R[], int first, int last,
 
   one_body_ratio_grad_kernel<float,BS><<<dimGrid,dimBlock>>>
     (C, R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax, 
-     lattice, latticeInv, ratio_grad);
+     lattice, latticeInv, zero, ratio_grad);
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
@@ -1361,7 +1378,7 @@ void
 one_body_ratio_grad (double C[], double *R[], int first, int last,
 		     double Rnew[], int inew,
 		     double spline_coefs[], int numCoefs, double rMax,  
-		     double lattice[], double latticeInv[], 
+		     double lattice[], double latticeInv[], bool zero,
 		     double ratio_grad[], int numWalkers)
 {
   if (!AisInitialized)
@@ -1374,7 +1391,7 @@ one_body_ratio_grad (double C[], double *R[], int first, int last,
 
   one_body_ratio_grad_kernel<double,BS><<<dimGrid,dimBlock>>>
     (C, R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax, 
-     lattice, latticeInv, ratio_grad);
+     lattice, latticeInv, zero, ratio_grad);
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {

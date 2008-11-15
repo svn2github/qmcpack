@@ -38,14 +38,14 @@ void
 two_body_ratio_grad(float *R[], int first, int last,
 		    float  Rnew[], int inew,
 		    float spline_coefs[], int numCoefs, float rMax,  
-		    float lattice[], float latticeInv[], 
+		    float lattice[], float latticeInv[], bool zero,
 		    float ratio_grad[], int numWalkers);
 
 void
 two_body_ratio_grad(double *R[], int first, int last,
 		    double  Rnew[], int inew,
 		    double spline_coefs[], int numCoefs, double rMax,  
-		    double lattice[], double latticeInv[], 
+		    double lattice[], double latticeInv[], bool zero,
 		    double ratio_grad[], int numWalkers);
 
 void
@@ -109,13 +109,13 @@ void
 one_body_ratio_grad (float C[], float *R[], int first, int last,
 		     float Rnew[], int inew,
 		     float spline_coefs[], int numCoefs, float rMax,  
-		     float lattice[], float latticeInv[], float ratio_grad[], 
-		     int numWalkers);
+		     float lattice[], float latticeInv[], bool zero,
+		     float ratio_grad[], int numWalkers);
 void
 one_body_ratio_grad (double C[], double *R[], int first, int last,
 		     double Rnew[], int inew,
 		     double spline_coefs[], int numCoefs, double rMax,  
-		     double lattice[], double latticeInv[], 
+		     double lattice[], double latticeInv[], bool zero,
 		     double ratio_grad[], int numWalkers);
 
 void

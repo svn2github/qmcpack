@@ -43,7 +43,6 @@ namespace qmcplusplus {
   OneBodyJastrowOrbitalBspline::addLog (MCWalkerConfiguration &W, 
 					vector<RealType> &logPsi)
   {
-    app_log() << "OneBodyJastrowOrbitalBspline::addLog.\n";
     vector<Walker_t*> &walkers = W.WalkerList;
     if (SumGPU.size() < 4*walkers.size()) {
       SumGPU.resize(4*walkers.size());
@@ -120,13 +119,7 @@ namespace qmcplusplus {
    vector<ValueType> &lapl)
   {
     vector<Walker_t*> &walkers = W.WalkerList;
-    // Copy new particle positions to GPU
-    for (int iw=0; iw<4*walkers.size(); iw++) {
-      Walker_t &walker = *(walkers[iw]);
-      SumHost[iw] = 0.0;
-    }
-    SumGPU = SumHost;
-    
+    bool zero = true;
     for (int group=0; group<NumCenterGroups; group++) {
       int first = CenterFirst[group];
       int last  = CenterLast[group];
@@ -141,8 +134,9 @@ namespace qmcplusplus {
 	one_body_ratio_grad (C.data(), W.RList_GPU.data(), first, last, 
 			     (CudaReal*)W.Rnew_GPU.data(), iat, 
 			     spline.coefs.data(), spline.coefs.size(),
-			     spline.rMax, L.data(), Linv.data(),
+			     spline.rMax, L.data(), Linv.data(), zero,
 			     SumGPU.data(), walkers.size());
+	zero = false;
       }
     }
     // Copy data back to CPU memory

@@ -40,6 +40,11 @@ public:
   // in the buffer
   size_t reserve (size_t size)
   {
+    if (size % 64) {
+      cerr << "Unaligned reservation in PointerPool.  size = "
+	   << size << endl;
+      size += 64 - (size %64);
+    }
     size_t off = totalSize;
     offsets.push_back(off);
     totalSize += size;
