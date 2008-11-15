@@ -23,10 +23,10 @@ namespace qmcplusplus {
     cuda_vector<CudaReal> L, Linv;
 
     cuda_vector<CudaReal*> UpdateListGPU;
-    cuda_vector<CudaReal> SumGPU, GradLaplGPU;
+    cuda_vector<CudaReal> SumGPU, GradLaplGPU, OneGradGPU;
 
     host_vector<CudaReal*> UpdateListHost;
-    host_vector<CudaReal> SumHost, GradLaplHost;
+    host_vector<CudaReal> SumHost, GradLaplHost, OneGradHost;
 
     host_vector<CudaReal*> NL_SplineCoefsListHost;
     cuda_vector<CudaReal*> NL_SplineCoefsListGPU;
@@ -50,6 +50,8 @@ namespace qmcplusplus {
     void ratio (MCWalkerConfiguration &W, int iat,
 		vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 		vector<ValueType> &lapl);
+    void addGradient(MCWalkerConfiguration &W, int iat, 
+		     vector<GradType> &grad);
     void gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,
 		   ValueMatrix_t &lapl);
     void NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,

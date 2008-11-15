@@ -133,7 +133,7 @@ namespace qmcplusplus {
       
       if (GPUSplines[group]) {
 	CudaSpline<CudaReal> &spline = *(GPUSplines[group]);
-	one_body_ratio (C.data(), W.RList_GPU.data(), first, last, N, 
+	one_body_ratio (C.data(), W.RList_GPU.data(), first, last, 
 			(CudaReal*)W.Rnew_GPU.data(), iat, 
 			spline.coefs.data(), spline.coefs.size(),
 			spline.rMax, L.data(), Linv.data(),

@@ -23,16 +23,30 @@ two_body_sum (double *R[], int e1_first, int e1_last, int e2_first, int e2_last,
 	      double lattice[], double latticeInv[], double sum[], int numWalkers);
 
 void
-two_body_ratio (float *R[], int first, int last, int N,
+two_body_ratio (float *R[], int first, int last,
 		float Rnew[], int inew,
 		float spline_coefs[], int numCoefs, float rMax,  
 		float lattice[], float latticeInv[], float sum[], int numWalkers);
 
 void
-two_body_ratio (double *R[], int first, int last, int N,
+two_body_ratio (double *R[], int first, int last,
 		double Rnew[], int inew,
 		double spline_coefs[], int numCoefs, double rMax,  
 		double lattice[], double latticeInv[], double sum[], int numWalkers);
+
+void
+two_body_ratio_grad(float *R[], int first, int last,
+		    float  Rnew[], int inew,
+		    float spline_coefs[], int numCoefs, float rMax,  
+		    float lattice[], float latticeInv[], 
+		    float ratio_grad[], int numWalkers);
+
+void
+two_body_ratio_grad(double *R[], int first, int last,
+		    double  Rnew[], int inew,
+		    double spline_coefs[], int numCoefs, double rMax,  
+		    double lattice[], double latticeInv[], 
+		    double ratio_grad[], int numWalkers);
 
 void
 two_body_NLratios(NLjobGPU<float> jobs[], int first, int last,
@@ -58,6 +72,13 @@ two_body_grad_lapl(double *R[], int e1_first, int e1_last, int e2_first, int e2_
 		   double lattice[], double latticeInv[], 
 		   double gradLapl[], int row_stride, int numWalkers);
 
+
+void
+two_body_gradient (float *R[], int first, int last, int iat, 
+		   float spline_coefs[], int numCoefs, float rMax,
+		   float lattice[], float latticeInv[], bool zeroOut,
+		   float grad[], int numWalkers);
+
 ///////////////////////
 // One-Body routines //
 ///////////////////////
@@ -73,13 +94,13 @@ one_body_sum (double C[], double *R[], int e1_first, int e1_last, int e2_first, 
 	      double lattice[], double latticeInv[], double sum[], int numWalkers);
 
 void
-one_body_ratio (float C[], float *R[], int first, int last, int N,
+one_body_ratio (float C[], float *R[], int first, int last,
 		float Rnew[], int inew,
 		float spline_coefs[], int numCoefs, float rMax,  
 		float lattice[], float latticeInv[], float sum[], int numWalkers);
 
 void
-one_body_ratio (double C[], double *R[], int first, int last, int N,
+one_body_ratio (double C[], double *R[], int first, int last,
 		double Rnew[], int inew,
 		double spline_coefs[], int numCoefs, double rMax,  
 		double lattice[], double latticeInv[], double sum[], int numWalkers);
