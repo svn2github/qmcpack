@@ -19,6 +19,7 @@ void
 CoulombAA_SR_Sum(float *R[], int N, float rMax, int Ntex, int texNum,
 		 float lattice[], float latticeInv[], float sum[],
 		 int numWalkers);
+
 void
 CoulombAB_SR_Sum(float *R[], int Nelec, float I[], int Ifirst, int Ilast,
 		 float rMax, int Ntex, int textureNum, 
@@ -47,5 +48,44 @@ void
 eval_vk_sum_cuda (float *rhok1[], float rhok2[], 
 		  float vk[], int numk, float sum[],
 		  int numWalkers);
+
+
+
+// Double-precision
+void
+CoulombAA_SR_Sum(double *R[], int N, double rMax, int Ntex, int texNum,
+		 double lattice[], double latticeInv[], double sum[],
+		 int numWalkers);
+
+void
+CoulombAB_SR_Sum(double *R[], int Nelec, double I[], int Ifirst, int Ilast,
+		 double rMax, int Ntex, int textureNum, 
+		 double lattice[], double latticeInv[], 
+		 double sum[], int numWalkers);
+
+void
+eval_rhok_cuda(double *R[], int numr, double kpoints[], 
+	       int numk, double* rhok[], int numWalkers);
+
+void
+eval_vk_sum_cuda (double *rhok[], double vk[], int numk, double sum[],
+		  int numWalkers);
+
+void
+eval_rhok_cuda(double *R[], int first, int last, double kpoints[], 
+	       int numk, double* rhok[], int numWalkers);
+
+void
+eval_vk_sum_cuda (double *rhok1[], double *rhok2[], 
+		  double vk[], int numk, double sum[],
+		  int numWalkers);
+
+// In this case, the rhok2 is the same for all walkers
+void
+eval_vk_sum_cuda (double *rhok1[], double rhok2[], 
+		  double vk[], int numk, double sum[],
+		  int numWalkers);
+
+
 
 #endif

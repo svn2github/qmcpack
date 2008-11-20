@@ -14,7 +14,10 @@ update_inverse_cuda(float *A_g[], float *Ainv_g[], float *u_g[],
 		    int N, int rowstride, int iat, int numWalkers);
 
 void
-update_inverse_cuda(updateJob jobList[],
+update_inverse_cuda(updateJob jobList[], double dummy,
+		    int N, int rowstride, int iat, int numWalkers);
+void
+update_inverse_cuda(updateJob jobList[], float dummy,
 		    int N, int rowstride, int iat, int numWalkers);
 
 void
@@ -27,6 +30,12 @@ void
 determinant_ratios_cuda (float *Ainv_list[], float *new_row_list[],
 			 float *ratios, int N, int row_stride, int iat,
 			 int numWalkers);
+
+void
+determinant_ratios_cuda (double *Ainv_list[], double *new_row_list[],
+			 double *ratios, int N, int row_stride, int iat,
+			 int numWalkers);
+
 
 void
 calc_many_ratios (float *Ainv_list[], float *new_row_list[],
@@ -50,7 +59,15 @@ calc_grad_lapl (float *Ainv_list[], float *grad_lapl_list[],
 		float *out_list[], int N, int row_stride, int num_mats);
 
 void
+calc_grad_lapl (double *Ainv_list[], double *grad_lapl_list[],
+		double *out_list[], int N, int row_stride, int num_mats);
+
+
+void
 multi_copy (float *dest[], float *src[], int len, int num);
+
+void
+multi_copy (double *dest[], double *src[], int len, int num);
 
 
 void

@@ -106,7 +106,7 @@ update_inverse_cuda2 (updateJob updateList[],
 
 
 void
-update_inverse_cuda(updateJob updateList[],
+update_inverse_cuda(updateJob updateList[], float dummy,
 		    int N, int rowstride, int iat, int numWalkers)
 {
   const int BS1 = 64;
@@ -120,6 +120,32 @@ update_inverse_cuda(updateJob updateList[],
   update_inverse_cuda1<float,BS1><<<dimGrid1,dimBlock1>>>
     (updateList, N, rowstride, iat);
   update_inverse_cuda2<float,BS2><<<dimGrid2,dimBlock2>>>
+    (updateList, N, rowstride, iat);
+
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in update_inverse_cuda:\n  %s\n",
+  	     cudaGetErrorString(err));
+    abort();
+  }
+}
+
+
+void
+update_inverse_cuda(updateJob updateList[], double dummy,
+		    int N, int rowstride, int iat, int numWalkers)
+{
+  const int BS1 = 64;
+  const int BS2 = 32;
+
+  dim3 dimBlock1(BS1);
+  dim3 dimGrid1(N/BS1, numWalkers);
+  dim3 dimBlock2(BS2);
+  dim3 dimGrid2(N/BS2, numWalkers);
+
+  update_inverse_cuda1<double,BS1><<<dimGrid1,dimBlock1>>>
+    (updateList, N, rowstride, iat);
+  update_inverse_cuda2<double,BS2><<<dimGrid2,dimBlock2>>>
     (updateList, N, rowstride, iat);
 
   cudaError_t err = cudaGetLastError();
@@ -1187,6 +1213,26 @@ calc_grad_lapl (float *Ainv_list[], float *grad_lapl_list[],
   }
 }
 
+
+void
+calc_grad_lapl (double *Ainv_list[], double *grad_lapl_list[],
+		double *out_list[], int N, int row_stride, int num_mats)
+{
+  dim3 dimBlock(RATIO_BS, RATIO_BS);
+  dim3 dimGrid (num_mats);
+
+  all_ratios_grad_lapl_kernel<double><<<dimGrid,dimBlock>>>
+    (Ainv_list, grad_lapl_list, out_list, N, row_stride);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in cal_grad_lapl:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+}
+
 #define COPY_BS 256
 
 template<typename T>
@@ -1213,6 +1259,17 @@ multi_copy (float *dest[], float *src[], int len, int num)
     dimGrid.x++;
   
   multi_copy<float><<<dimGrid,dimBlock>>>(dest, src, len);
+}
+
+void
+multi_copy (double *dest[], double *src[], int len, int num)
+{
+  dim3 dimBlock(COPY_BS);
+  dim3 dimGrid (len/COPY_BS, num);
+  if (len % COPY_BS)
+    dimGrid.x++;
+  
+  multi_copy<double><<<dimGrid,dimBlock>>>(dest, src, len);
 }
 
 

@@ -4,5 +4,8 @@
 void
 accept_move_GPU_cuda (float* Rlist[], float new_pos[], 
 		      int toAccept[], int iat, int N);
+void
+accept_move_GPU_cuda (double* Rlist[], double new_pos[], 
+		      int toAccept[], int iat, int N);
 
 #endif

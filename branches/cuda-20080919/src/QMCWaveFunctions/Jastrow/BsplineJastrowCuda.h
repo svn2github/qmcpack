@@ -54,6 +54,12 @@ two_body_NLratios(NLjobGPU<float> jobs[], int first, int last,
 		  float lattice[], float latticeInv[], int numjobs);
 
 void
+two_body_NLratios(NLjobGPU<double> jobs[], int first, int last,
+		  double* spline_coefs[], int numCoefs[], double rMax[], 
+		  double lattice[], double latticeInv[], int numjobs);
+
+
+void
 two_body_update(float *R[], int N, int iat, int numWalkers);
 
 void
@@ -78,6 +84,12 @@ two_body_gradient (float *R[], int first, int last, int iat,
 		   float spline_coefs[], int numCoefs, float rMax,
 		   float lattice[], float latticeInv[], bool zeroOut,
 		   float grad[], int numWalkers);
+
+void
+two_body_gradient (double *R[], int first, int last, int iat, 
+		   double spline_coefs[], int numCoefs, double rMax,
+		   double lattice[], double latticeInv[], bool zeroOut,
+		   double grad[], int numWalkers);
 
 ///////////////////////
 // One-Body routines //
@@ -122,6 +134,11 @@ void
 one_body_NLratios(NLjobGPU<float> jobs[], float C[], int first, int last,
 		  float spline_coefs[], int numCoefs, float rMax, 
 		  float lattice[], float latticeInv[], int numjobs);
+
+void
+one_body_NLratios(NLjobGPU<double> jobs[], double C[], int first, int last,
+		  double spline_coefs[], int numCoefs, double rMax, 
+		  double lattice[], double latticeInv[], int numjobs);
 
 void
 one_body_update(float *R[], int N, int iat, int numWalkers);

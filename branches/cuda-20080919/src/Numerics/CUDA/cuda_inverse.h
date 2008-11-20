@@ -22,6 +22,9 @@ cuda_inverse_many_double_worksize(int N);
 void
 cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
 			  int N, int num_mats);
+void
+cuda_inverse_many_double (double *Alist_d[], double *worklist_d[],
+			  int N, int num_mats);
 
 
 

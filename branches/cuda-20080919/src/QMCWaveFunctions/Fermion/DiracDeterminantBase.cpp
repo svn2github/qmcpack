@@ -549,7 +549,8 @@ namespace qmcplusplus {
     srcList_d  = srcList;
     destList_d = destList;
     // Call kernel wrapper function
-    update_inverse_cuda(UpdateJobList_d.data(), 
+    CudaRealType dummy;
+    update_inverse_cuda(UpdateJobList_d.data(), dummy,
 			NumPtcls, NumPtcls, iat-FirstIndex, walkers.size());
     // Copy temporary gradients and laplacians into matrix
     multi_copy (destList_d.data(), srcList_d.data(),

@@ -15,7 +15,7 @@ namespace qmcplusplus {
     public TwoBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> > 
   {
   private:
-    typedef float CudaReal;
+    typedef CUDA_PRECISION CudaReal;
     //typedef double CudaReal;
 
     vector<CudaSpline<CudaReal>*> GPUSplines, UniqueSplines;

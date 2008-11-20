@@ -674,6 +674,19 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
 
 
 
+void
+cuda_inverse_many_double (double *Alist_d[], double *worklist_d[],
+			  int N, int num_mats)
+{
+  dim3 dimBlock(INVERSE_BS,2);
+  dim3 dimGrid(num_mats);
+  
+  inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+    (Alist_d, worklist_d, N, N);
+}
+
+
+
 
 void
 cuda_inverse_many (double *Alist_d[], double *worklist_d[],

@@ -53,4 +53,20 @@ accept_move_GPU_cuda (float* Rlist[], float new_pos[],
 }
 
 
+void
+accept_move_GPU_cuda (double* Rlist[], double new_pos[], 
+		      int toAccept[], int iat, int N)
+{
+  const int BS=32;
+  
+  int NB = N / BS + ((N % BS) ? 1 : 0);
+  
+  dim3 dimBlock(BS);
+  dim3 dimGrid(NB);
+  
+  accept_kernel<double,BS><<<dimGrid,dimBlock>>>
+    (Rlist, new_pos, toAccept, iat, N);
+}
+
+
 

@@ -372,7 +372,7 @@ void MCWalkerConfiguration::acceptMove_GPU(vector<bool> &toAccept)
     AcceptList_host[i] = (int)toAccept[i];
   AcceptList_GPU = AcceptList_host;
   accept_move_GPU_cuda 
-    (RList_GPU.data(), (float*)Rnew_GPU.data(), 
+    (RList_GPU.data(), (CUDA_PRECISION*)Rnew_GPU.data(), 
      AcceptList_GPU.data(), CurrentParticle, WalkerList.size());
 }
 

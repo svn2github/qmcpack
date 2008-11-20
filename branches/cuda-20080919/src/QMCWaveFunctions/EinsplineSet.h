@@ -136,25 +136,25 @@ namespace qmcplusplus {
   template<> struct MultiOrbitalTraits<double,2>
   {  
     typedef multi_UBspline_2d_d SplineType;  
-    typedef multi_UBspline_2d_s_cuda CudaSplineType;  
+    typedef multi_UBspline_2d_d_cuda CudaSplineType;  
   };
 
   template<> struct MultiOrbitalTraits<double,3>
   {  
     typedef multi_UBspline_3d_d SplineType;  
-    typedef multi_UBspline_3d_s_cuda CudaSplineType; 
+    typedef multi_UBspline_3d_d_cuda CudaSplineType; 
   };
 
   template<> struct MultiOrbitalTraits<complex<double>,2>
   {  
     typedef multi_UBspline_2d_z SplineType;  
-    typedef multi_UBspline_2d_c_cuda CudaSplineType;  
+    typedef multi_UBspline_2d_z_cuda CudaSplineType;  
   };
 
   template<> struct MultiOrbitalTraits<complex<double>,3>
   {  
     typedef multi_UBspline_3d_z SplineType;  
-    typedef multi_UBspline_3d_c_cuda CudaSplineType;  
+    typedef multi_UBspline_3d_z_cuda CudaSplineType;  
   };
 
 
@@ -201,7 +201,7 @@ namespace qmcplusplus {
     //////////////////////
     //typedef CrystalLattice<RealType,OHMMS_DIM> UnitCellType;
     typedef typename MultiOrbitalTraits<StorageType,OHMMS_DIM>::SplineType SplineType; 
-    typedef typename MultiOrbitalTraits<StorageType,OHMMS_DIM>::CudaSplineType CudaSplineType; 
+    typedef typename MultiOrbitalTraits<CUDA_PRECISION,OHMMS_DIM>::CudaSplineType CudaSplineType; 
     typedef typename OrbitalSetTraits<StorageType>::ValueVector_t StorageValueVector_t;
     typedef typename OrbitalSetTraits<StorageType>::GradVector_t  StorageGradVector_t;
     typedef typename OrbitalSetTraits<StorageType>::HessVector_t  StorageHessVector_t;

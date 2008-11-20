@@ -200,7 +200,7 @@ coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
   int tid = threadIdx.x;
   __shared__ T *myR;
 
-  __shared__ float lastsum;
+  __shared__ T lastsum;
   if (tid == 0) {
     myR = R[blockIdx.x];
     lastsum = sum[blockIdx.x];
@@ -214,7 +214,7 @@ coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
   __syncthreads();
 
   T nrm = (T)(Ntex-1)/rMax;
-  __shared__ float r1[BS][3], r2[BS][3];
+  __shared__ T r1[BS][3], r2[BS][3];
   int NB = N/BS + ((N%BS) ? 1 : 0);
 
   T mysum = (T)0.0; 
@@ -299,6 +299,21 @@ CoulombAA_SR_Sum(float *R[], int N, float rMax, int Ntex,
 }
 
 
+void
+CoulombAA_SR_Sum(double *R[], int N, double rMax, int Ntex,
+		 int textureNum, double lattice[], double latticeInv[], 
+		 double sum[], int numWalkers)
+{
+  const int BS=32;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  coulomb_AA_kernel<double,BS><<<dimGrid,dimBlock>>>
+    (R, N, rMax, Ntex, textureNum, lattice, latticeInv, sum);
+}
+
+
+
 
 template<typename T, int BS>
 __global__ void
@@ -311,7 +326,7 @@ coulomb_AB_kernel(T *R[], int Nelec, T I[], int Ifirst, int Ilast,
 
   int Nion = Ilast - Ifirst + 1;
 
- __shared__ float lastsum;
+ __shared__ T lastsum;
   if (tid == 0) {
     myR = R[blockIdx.x];
     lastsum = sum[blockIdx.x];
@@ -325,7 +340,7 @@ coulomb_AB_kernel(T *R[], int Nelec, T I[], int Ifirst, int Ilast,
   __syncthreads();
 
   T nrm = (T)(Ntex-1)/rMax;
-  __shared__ float r[BS][3], i[BS][3];
+  __shared__ T r[BS][3], i[BS][3];
   int NeBlocks = Nelec/BS + ((Nelec%BS) ? 1 : 0);
   int NiBlocks = Nion/BS +  ((Nion %BS) ? 1 : 0);
 
@@ -388,13 +403,30 @@ CoulombAB_SR_Sum(float *R[], int Nelec, float I[],  int Ifirst, int Ilast,
 }
 
 
+void
+CoulombAB_SR_Sum(double *R[], int Nelec, double I[],  int Ifirst, int Ilast,
+		 double rMax, int Ntex, int textureNum, 
+		 double lattice[], double latticeInv[], 
+		 double sum[], int numWalkers)
+{
+  const int BS=64;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  coulomb_AB_kernel<double,BS><<<dimGrid,dimBlock>>>
+    (R, Nelec, I, Ifirst, Ilast, rMax, Ntex, textureNum, 
+     lattice, latticeInv, sum);
+}
+
+
+
 template<typename T, int BS>
 __global__ void
 eval_rhok_kernel (T *R[], int numr,
 		  T kpoints[], int numk, T* rhok[])
 {
   int tid = threadIdx.x;
-  __shared__ float r[BS][3], k[BS][3], *myR, *myrhok;
+  __shared__ T r[BS][3], k[BS][3], *myR, *myrhok;
   if (tid == 0) {
     myR    =    R[blockIdx.x];
     myrhok = rhok[blockIdx.x];
@@ -403,7 +435,7 @@ eval_rhok_kernel (T *R[], int numr,
   
   int NrBlock = numr/BS + ((numr%BS) ? 1 : 0);
   int NkBlock = numk/BS + ((numk%BS) ? 1 : 0);
-  __shared__ float rhok_re[BS], rhok_im[BS], rhok_s[2*BS];
+  __shared__ T rhok_re[BS], rhok_im[BS], rhok_s[2*BS];
   
   for (int kBlock=0; kBlock<NkBlock; kBlock++) {
     for (int i=0; i<3; i++)
@@ -419,8 +451,8 @@ eval_rhok_kernel (T *R[], int numr,
 	T phase = (k[tid][0] * r[j][0] +
 		   k[tid][1] * r[j][1] + 
 		   k[tid][2] * r[j][2]);
-	float s,c;
-	__sincosf (phase, &s, &c);
+	T s,c;
+	sincos (phase, &s, &c);
 	rhok_im[tid] += s;
 	rhok_re[tid] += c;
       }
@@ -444,7 +476,7 @@ eval_rhok_kernel (T *R[], int first, int last,
 {
   int tid = threadIdx.x;
   int numr = last-first+1;
-  __shared__ float r[BS][3], k[BS][3], *myR, *myrhok;
+  __shared__ T r[BS][3], k[BS][3], *myR, *myrhok;
   if (tid == 0) {
     myR    =    R[blockIdx.x];
     myrhok = rhok[blockIdx.x];
@@ -453,7 +485,7 @@ eval_rhok_kernel (T *R[], int first, int last,
   
   int NrBlock = numr/BS + ((numr%BS) ? 1 : 0);
   int NkBlock = numk/BS + ((numk%BS) ? 1 : 0);
-  __shared__ float rhok_re[BS], rhok_im[BS], rhok_s[2*BS];
+  __shared__ T rhok_re[BS], rhok_im[BS], rhok_s[2*BS];
   
   for (int kBlock=0; kBlock<NkBlock; kBlock++) {
     for (int i=0; i<3; i++)
@@ -469,8 +501,8 @@ eval_rhok_kernel (T *R[], int first, int last,
 	T phase = (k[tid][0] * r[j][0] +
 		   k[tid][1] * r[j][1] + 
 		   k[tid][2] * r[j][2]);
-	float s,c;
-	__sincosf (phase, &s, &c);
+	T s,c;
+	sincos (phase, &s, &c);
 	rhok_im[tid] += s;
 	rhok_re[tid] += c;
       }
@@ -501,6 +533,19 @@ eval_rhok_cuda(float *R[], int numr, float kpoints[],
     (R, numr, kpoints, numk, rhok);
 }
 
+void
+eval_rhok_cuda(double *R[], int numr, double kpoints[], 
+	       int numk, double* rhok[], int numWalkers)
+{
+  const int BS=32;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  eval_rhok_kernel<double,BS><<<dimGrid,dimBlock>>>
+    (R, numr, kpoints, numk, rhok);
+}
+
 
 void
 eval_rhok_cuda(float *R[], int first, int last, float kpoints[], 
@@ -515,6 +560,20 @@ eval_rhok_cuda(float *R[], int first, int last, float kpoints[],
     (R, first, last, kpoints, numk, rhok);
 }
 
+void
+eval_rhok_cuda(double *R[], int first, int last, double kpoints[], 
+	       int numk, double* rhok[], int numWalkers)
+{
+  const int BS=32;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  eval_rhok_kernel<double,BS><<<dimGrid,dimBlock>>>
+    (R, first, last, kpoints, numk, rhok);
+}
+
+
 
 template<typename T, int BS>
 __global__ void
@@ -522,7 +581,7 @@ vk_sum_kernel(T *rhok[], T vk[], int numk,
 	      T sum[])
 {
   int tid = threadIdx.x;
-  __shared__ float *myrhok;
+  __shared__ T *myrhok;
   if (tid == 0) 
     myrhok = rhok[blockIdx.x];
 
@@ -566,7 +625,7 @@ vk_sum_kernel2(T *rhok1[], T *rhok2[], T vk[], int numk,
 	      T sum[])
 {
   int tid = threadIdx.x;
-  __shared__ float *myrhok1, *myrhok2;
+  __shared__ T *myrhok1, *myrhok2;
   if (tid == 0) {
     myrhok1 = rhok1[blockIdx.x];
     myrhok2 = rhok2[blockIdx.x];
@@ -626,6 +685,21 @@ eval_vk_sum_cuda (float *rhok[], float vk[], int numk, float sum[],
 }
 
 void
+eval_vk_sum_cuda (double *rhok[], double vk[], int numk, double sum[],
+		  int numWalkers)
+{
+  const int BS=64;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  vk_sum_kernel<double,BS><<<dimGrid,dimBlock>>>
+    (rhok, vk, numk, sum);
+}
+
+
+
+void
 eval_vk_sum_cuda (float *rhok1[], float *rhok2[], 
 		  float vk[], int numk, float sum[],
 		  int numWalkers)
@@ -640,13 +714,28 @@ eval_vk_sum_cuda (float *rhok1[], float *rhok2[],
 }
 
 
+void
+eval_vk_sum_cuda (double *rhok1[], double *rhok2[], 
+		  double vk[], int numk, double sum[],
+		  int numWalkers)
+{
+  const int BS=64;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  vk_sum_kernel2<double,BS><<<dimGrid,dimBlock>>>
+    (rhok1, rhok2, vk, numk, sum);
+}
+
+
 template<typename T, int BS>
 __global__ void
 vk_sum_kernel2(T *rhok1[], T rhok2[], T vk[], int numk,
 	       T sum[])
 {
   int tid = threadIdx.x;
-  __shared__ float *myrhok1;
+  __shared__ T *myrhok1;
   if (tid == 0) 
     myrhok1 = rhok1[blockIdx.x];
   __syncthreads();
@@ -699,6 +788,19 @@ eval_vk_sum_cuda (float *rhok1[], float rhok2[],
     (rhok1, rhok2, vk, numk, sum);
 }
 
+void
+eval_vk_sum_cuda (double *rhok1[], double rhok2[], 
+		  double vk[], int numk, double sum[],
+		  int numWalkers)
+{
+  const int BS=64;
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  vk_sum_kernel2<double,BS><<<dimGrid,dimBlock>>>
+    (rhok1, rhok2, vk, numk, sum);
+}
 
 
 #ifdef CUDA_COULOMB_TEST

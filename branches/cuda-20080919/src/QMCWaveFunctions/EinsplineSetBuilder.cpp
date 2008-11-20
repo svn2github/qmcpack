@@ -24,6 +24,33 @@
 #include "Numerics/HDFSTLAttrib.h"
 
 namespace qmcplusplus {
+  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_d *in, 
+					     multi_UBspline_3d_s_cuda* &out)
+  { out = create_multi_UBspline_3d_s_cuda_conv (in); }
+
+  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_d *in, 
+					     multi_UBspline_3d_d_cuda * &out)
+  { out = create_multi_UBspline_3d_d_cuda(in); }
+
+  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_z *in, 
+					     multi_UBspline_3d_c_cuda* &out)
+  { out = create_multi_UBspline_3d_c_cuda_conv (in); }
+
+  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_z *in, 
+					     multi_UBspline_3d_z_cuda * &out)
+  { out = create_multi_UBspline_3d_z_cuda(in); }
+
+  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_z *in, 
+					     multi_UBspline_3d_d_cuda * &out)
+  { 
+    app_error() << "Attempted to convert complex CPU spline into a real "
+		<< " GPU spline.\n";
+    abort();
+  }
+
+
+
+
   std::map<TinyVector<int,4>,EinsplineSetBuilder::OrbType*,Int4less> 
   EinsplineSetBuilder::OrbitalMap;
   std::map<H5OrbSet,multi_UBspline_3d_z*,H5OrbSet>
@@ -522,8 +549,8 @@ namespace qmcplusplus {
 	  ReadBands(spinSet, orbitalSet);
 	  if (useGPU) {
 	    app_log() << "Copying einspline orbitals to GPU.\n";
-	    orbitalSet->CudaMultiSpline = 
-	      create_multi_UBspline_3d_s_cuda_conv (orbitalSet->MultiSpline);
+	    create_multi_UBspline_3d_cuda 
+	      (orbitalSet->MultiSpline, orbitalSet->CudaMultiSpline);
 	    host_vector<CudaRealType> Linv_host;
 	    Linv_host.resize(9);
 	    for (int i=0; i<3; i++)
@@ -542,8 +569,8 @@ namespace qmcplusplus {
 	  ReadBands(spinSet, orbitalSet);
 	  if (useGPU) {
 	    app_log() << "Copying einspline orbitals to GPU.\n";
-	    orbitalSet->CudaMultiSpline = 
-	      create_multi_UBspline_3d_c_cuda_conv (orbitalSet->MultiSpline);
+	    create_multi_UBspline_3d_cuda (orbitalSet->MultiSpline,
+					   orbitalSet->CudaMultiSpline);
 
 	    host_vector<CudaRealType> Linv_host;
 	    Linv_host.resize(9);

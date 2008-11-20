@@ -22,6 +22,34 @@
 #endif
 
 namespace qmcplusplus {
+  
+  inline void
+  eval_multi_multi_UBspline_3d_cuda (multi_UBspline_3d_s_cuda *spline, 
+				     float *pos, float *phi[], int N)
+  { eval_multi_multi_UBspline_3d_s_cuda  (spline, pos, phi, N); }
+
+  inline void
+  eval_multi_multi_UBspline_3d_cuda (multi_UBspline_3d_d_cuda *spline, 
+				     double *pos, double *phi[], int N)
+  { eval_multi_multi_UBspline_3d_d_cuda  (spline, pos, phi, N); }
+
+
+  inline void eval_multi_multi_UBspline_3d_vgl_cuda 
+  (multi_UBspline_3d_s_cuda *spline, float *pos, float Linv[],
+   float *phi[], float *grad_lapl[], int N, int row_stride)
+  {
+    eval_multi_multi_UBspline_3d_s_vgl_cuda
+      (spline, pos, Linv, phi, grad_lapl, N, row_stride);
+  }
+
+  inline void eval_multi_multi_UBspline_3d_vgl_cuda 
+  (multi_UBspline_3d_d_cuda *spline, double *pos, double Linv[],
+   double *phi[], double *grad_lapl[], int N, int row_stride)
+  {
+    eval_multi_multi_UBspline_3d_d_vgl_cuda
+      (spline, pos, Linv, phi, grad_lapl, N, row_stride);
+  }
+
 
   EinsplineSet::UnitCellType
   EinsplineSet::GetLattice()
@@ -998,9 +1026,8 @@ namespace qmcplusplus {
     }
 
     cudaPos = hostPos;
-    eval_multi_multi_UBspline_3d_s_cuda 
-      (CudaMultiSpline, (float*)(cudaPos.data()), phi.data(), N);
-    //app_log() << "End EinsplineSet CUDA evaluation\n";
+    eval_multi_multi_UBspline_3d_cuda 
+      (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), phi.data(), N);
   }
 
   template<> void 
@@ -1053,8 +1080,8 @@ namespace qmcplusplus {
     }
 
     cudaPos = hostPos;
-    eval_multi_multi_UBspline_3d_s_cuda 
-      (CudaMultiSpline, (float*)(cudaPos.data()), phi.data(), N);
+    eval_multi_multi_UBspline_3d_cuda 
+      (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), phi.data(), N);
     //app_log() << "End EinsplineSet CUDA evaluation\n";
   }
 
@@ -1107,27 +1134,16 @@ namespace qmcplusplus {
     
     cudaPos = hostPos;
 
-    eval_multi_multi_UBspline_3d_s_vgl_cuda
-      (CudaMultiSpline, (float*)cudaPos.data(), Linv_cuda.data(), 
+    eval_multi_multi_UBspline_3d_vgl_cuda
+      (CudaMultiSpline, (CudaRealType*)cudaPos.data(), Linv_cuda.data(), 
        phi.data(), grad_lapl.data(), N, row_stride);
-    
-    // float Linv[9];
-    // cudaMemcpy (Linv, Linv_cuda.data(), 9*sizeof(float), cudaMemcpyDeviceToHost);
-    // for (int i=0; i<3; i++)
-    //   fprintf (stderr, "[%8.4f %8.4f %8.4f]\n", Linv[3*i+0], Linv[3*i+1], Linv[3*i+2]);
 
-
-    // float grad_lapl_h[4*N];
-    // float *gl_d;
-
-    // cudaMemcpy (&(gl_d), grad_lapl.data(), sizeof(float*), cudaMemcpyDeviceToHost);
-    // cudaMemcpy (grad_lapl_h, gl_d, 4*N*sizeof(float),	   cudaMemcpyDeviceToHost);
+    // host_vector<CudaRealType*> pointers;
+    // pointers = phi;
+    // CudaRealType data[N];
+    // cudaMemcpy (data, pointers[0], N*sizeof(CudaRealType), cudaMemcpyDeviceToHost);
     // for (int i=0; i<N; i++)
-    //   fprintf (stderr, "%10.6e %10.6e %10.6e    %10.6e\n",
-    // 	       grad_lapl_h[4*i], grad_lapl_h[4*i+1], grad_lapl_h[4*i+2],
-    // 	       grad_lapl_h[4*i+3]);
-
-
+    //   fprintf (stderr, "%1.12e\n", data[i]);
   }
 
 
@@ -1176,8 +1192,8 @@ namespace qmcplusplus {
     }
 
     cudaPos = hostPos;
-    eval_multi_multi_UBspline_3d_s_cuda 
-      (CudaMultiSpline, (float*)(cudaPos.data()), phi.data(), N);    
+    eval_multi_multi_UBspline_3d_cuda 
+      (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), phi.data(), N);    
   }
 
   template<> void 
