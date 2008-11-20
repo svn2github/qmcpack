@@ -139,9 +139,9 @@ namespace qmcplusplus {
     {
       R.resize(nptcl); Grad.resize(nptcl),Lap.resize(nptcl),Drift.resize(nptcl); 
 #ifdef QMC_CUDA
-      R_GPU.resize(nptcl+1);
-      Grad_GPU.resize(nptcl+1);
-      Lap_GPU.resize(nptcl+1);
+      R_GPU.resize(nptcl);
+      Grad_GPU.resize(nptcl);
+      Lap_GPU.resize(nptcl);
 #endif
       // R.resize(nptcl); Drift.resize(nptcl); 
     }
