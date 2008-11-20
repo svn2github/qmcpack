@@ -505,6 +505,13 @@ namespace qmcplusplus {
   /////////////////////////////////////
   // Vectorized evaluation functions //
   /////////////////////////////////////
+
+  void CheckAlign (void *p)
+  {
+    if ((unsigned long)p & 63)
+      app_error() << "CUDA alignment error!!!!!!!!!!!!!!\n";
+  }
+
   void 
   DiracDeterminantBase::update (vector<Walker_t*> &walkers, int iat)
   {
@@ -525,7 +532,14 @@ namespace qmcplusplus {
       job.AinvDelta    = &(data[AinvDeltaOffset]);	    
       job.AinvColk     = &(data[AinvColkOffset]);	    
       job.gradLapl     = &(data[gradLaplOffset+gradoff]);
-      job.newGradLapl  = &(data[newGradLaplOffset]);     
+      job.newGradLapl  = &(data[newGradLaplOffset]); 
+      CheckAlign (job.A); 
+      CheckAlign (job.Ainv); 
+      CheckAlign (job.newRow); 
+      CheckAlign (job.AinvDelta); 
+      CheckAlign (job.AinvColk); 
+      CheckAlign (job.gradLapl); 
+      CheckAlign (job.newGradLapl); 
       
       destList[iw]    = &(data[gradLaplOffset+gradoff]);
       srcList[iw]     = &(data[newGradLaplOffset]);     
@@ -706,10 +720,9 @@ namespace qmcplusplus {
 				    vector<GradType> &grad)
   {
     vector<Walker_t*> &walkers = W.WalkerList;
-    if (iat - FirstIndex == 0) {
-      if (AList.size() < walkers.size())
-	resizeLists(walkers.size());
-      
+    if (AList.size() < walkers.size())
+      resizeLists(walkers.size());
+    if (iat - FirstIndex == 0) {      
       // First evaluate orbitals
       for (int iw=0; iw<walkers.size(); iw++) {
 	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
@@ -718,7 +731,6 @@ namespace qmcplusplus {
       }
       AinvList_d      = AinvList;
       gradLaplList_d = gradLaplList;
-      newGradLaplList_d = newGradLaplList;
     }
     calc_gradient (AinvList_d.data(), gradLaplList_d.data(), 
 		   ratio_d.data(), NumOrbitals, NumOrbitals, 
@@ -727,8 +739,7 @@ namespace qmcplusplus {
 
     for (int iw=0; iw<walkers.size(); iw++) 
       for (int dim=0; dim<OHMMS_DIM; dim++)
-	grad[iw][dim] += ratio_host[4*iw+dim];
-
+    	grad[iw][dim] += ratio_host[3*iw+dim];
   }
 
   void DiracDeterminantBase::ratio (MCWalkerConfiguration &W, 
@@ -781,18 +792,22 @@ namespace qmcplusplus {
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
 
-    if (iat-FirstIndex == 0) {
+    //    if (iat-FirstIndex == 0) {
       // First evaluate orbitals
       for (int iw=0; iw<walkers.size(); iw++) {
 	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
 	AinvList[iw]        =  &(data[AinvOffset]);
 	newRowList[iw]      =  &(data[newRowOffset]);
 	newGradLaplList[iw] =  &(data[newGradLaplOffset]);
+	if (((unsigned long)AinvList[iw] %64) || 
+	    ((unsigned long)newRowList[iw] % 64) ||
+	    ((unsigned long)newGradLaplList[iw] %64))
+	  app_log() << "**** CUDA misalignment!!!! ***\n";
       }
       newRowList_d = newRowList;
       newGradLaplList_d = newGradLaplList; 
       AinvList_d   = AinvList;
-    }
+      //    }
     Phi->evaluate (walkers, W.Rnew, newRowList_d, newGradLaplList_d, NumOrbitals);
 
 #ifdef CUDA_DEBUG2
@@ -803,15 +818,15 @@ namespace qmcplusplus {
     host_vector<CudaValueType> host_vec;
     for (int iw=0; iw<walkers.size(); iw++) {
       host_vec = walkers[iw]->cuda_DataSet;
-      P.R[iat-FirstIndex] = new_pos[iw];
+      P.R[iat-FirstIndex] = W.Rnew[iw];
       //      Phi->evaluate(P, iat-FirstIndex, testPhi);
       Phi->evaluate(P, iat-FirstIndex, testPhi, testGrad, testLapl);
       for (int iorb=0; iorb<NumOrbitals; iorb++) {
-	if (std::fabs(host_vec[newRowOffset+iorb]-testPhi[iorb]) > 1.0e-6)
-	  fprintf (stderr, "CUDA = %1.8e    CPU = %1.8e\n", 
-		   host_vec[newRowOffset+iorb], testPhi[iorb]);
+	//if (std::fabs(host_vec[newRowOffset+iorb]-testPhi[iorb]) > 1.0e-6)
+	//   fprintf (stderr, "CUDA = %1.8e    CPU = %1.8e\n", 
+	// 	   host_vec[newRowOffset+iorb], testPhi[iorb]);
 	fprintf (stderr, "CUDA = %1.8e    CPU = %1.8e\n", 
-		 host_vec[newGradLaplOffset+2*NumOrbitals+iorb], testGrad[iorb][2]);
+		  host_vec[newGradLaplOffset+2*NumOrbitals+iorb], testGrad[iorb][2]);
       }
     }
 #endif 
@@ -847,6 +862,19 @@ namespace qmcplusplus {
       grad[iw] += g;
       lapl[iw] += ratio_host[5*iw+4] - dot(g,g);
     }
+#ifdef CUDA_DEBUG
+    host_vector<CudaRealType> host_data;
+    vector<CudaRealType> cpu_ratios(walkers.size(), 0.0f);
+    for (int iw=0; iw<walkers.size(); iw++) {
+      host_data = walkers[iw]->cuda_DataSet;
+      for (int iorb=0; iorb<NumOrbitals; iorb++) {
+	cpu_ratios[iw] += host_data[AinvOffset+NumPtcls*iorb+iat-FirstIndex] *
+	  host_data[newGradLaplOffset + iorb + NumOrbitals];
+      }
+      fprintf (stderr, "CPU grad = %10.6e   GPU grad = %10.6e\n", 
+	       cpu_ratios[iw], grad[iw][1]);
+    }
+#endif
   }
 
   void 

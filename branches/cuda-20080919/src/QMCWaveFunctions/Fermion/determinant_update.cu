@@ -608,7 +608,7 @@ calc_ratio_grad_lapl (T *Ainv_list[], T *new_row_list[], T *grad_lapl_list[],
   ratio_prod[1][tid] = 0.0f;
   ratio_prod[2][tid] = 0.0f;
   ratio_prod[3][tid] = 0.0f;
-  ratio_prod[5][tid] = 0.0f;
+  ratio_prod[4][tid] = 0.0f;
   // This is *highly* uncoallesced, but we just have to eat it to allow
   // other kernels to operate quickly.
   __syncthreads();
@@ -637,6 +637,7 @@ calc_ratio_grad_lapl (T *Ainv_list[], T *new_row_list[], T *grad_lapl_list[],
     }
     __syncthreads();
   }
+
   if (tid < 5) 
     ratio_grad_lapl[5*blockIdx.x+tid] = ratio_prod[tid][0];
 
@@ -720,7 +721,7 @@ calc_grad_kernel (T *Ainv_list[], T *grad_lapl_list[],
     __syncthreads();
   }
   if (tid < 3) 
-    grad[4*blockIdx.x+tid] = ratio_prod[tid][0];
+    grad[3*blockIdx.x+tid] = ratio_prod[tid][0];
 }
 
 void
@@ -728,7 +729,7 @@ calc_gradient (float *Ainv_list[], float *grad_lapl_list[],
 	       float grad[], int N, int row_stride, int elec,
 	       int numWalkers)
 {
-  const int BS = 64;
+  const int BS = 32;
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
 

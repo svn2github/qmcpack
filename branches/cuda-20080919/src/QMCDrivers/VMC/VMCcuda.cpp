@@ -74,9 +74,6 @@ namespace qmcplusplus {
         ++step;++CurrentStep;
         for(int iat=0; iat<nat; ++iat)
         {
-          //calculate drift
-          //Psi.getGradient(W,iat,oldG);
-
           //create a 3N-Dimensional Gaussian with variance=1
           makeGaussRandomWithEngine(delpos,Random);
           for(int iw=0; iw<nw; ++iw) {
@@ -130,20 +127,10 @@ namespace qmcplusplus {
 	// fprintf (stderr, "Host:  %16.8f %16.8f %16.8f\n",
 	// 	 W[3]->R[ir][0], W[3]->R[ir][1], W[3]->R[ir][2]);
 
-	double Energy = 0.0;
 	//H.saveProperty (W);
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
 	Estimators->accumulate(W);
-
-	for (int iw=0; iw<nw; iw++)
-	  for (int iat=0; iat<nat; iat++)
-	    Energy -= 0.5*(dot (grad(iw,iat),grad(iw,iat))  + lapl(iw,iat));
-	Energy /= (double)nw;
-	vector<RealType> logPsi(W.WalkerList.size(), 0.0);
-
-	Esum += Energy;
-
       } while(step<nSteps);
       Psi.recompute(W);
 
@@ -184,53 +171,56 @@ namespace qmcplusplus {
     int nat = W.getTotalNum();
     int nw  = W.getActiveWalkers();
     
-    vector<RealType>  LocalEnergy(nw);
+    vector<RealType>  LocalEnergy(nw), oldScale(nw), newScale(nw);
     vector<PosType>   delpos(nw);
     vector<PosType>   dr(nw);
     vector<PosType>   newpos(nw);
-    vector<ValueType> ratios(nw);
-    vector<GradType>  oldG(nw), newG(nw);
+    vector<ValueType> ratios(nw), rplus(nw), rminus(nw);
+    vector<PosType>  oldG(nw), newG(nw);
     vector<ValueType> oldL(nw), newL(nw);
     vector<Walker_t*> accepted(nw);
     Matrix<ValueType> lapl(nw, nat);
     Matrix<GradType>  grad(nw, nat);
-    double Esum;
 
     do {
       IndexType step = 0;
       nAccept = nReject = 0;
-      Esum = 0.0;
       clock_t block_start = clock();
       Estimators->startBlock(nSteps);
       do {
         step++;
 	CurrentStep++;
         for(int iat=0; iat<nat; ++iat) {
-	  
 	  Psi.getGradient (W, iat, oldG);
 	  // for (int iw=0; iw<nw; iw++) 
-	  //   newpos[iw] = W[iw]->R[iat];
-	  // // This is a really bad way to do this:  it causes the splines to
-	  // // be reevaluated.
+	  //   newpos[iw] = W[iw]->R[iat] + 1.0e-3*PosType(0.0,1.0,0.0);
 	  // W.proposeMove_GPU(newpos, iat);
-	  // Psi.ratio(W,iat,ratios,oldG, oldL);
+	  // Psi.ratio(W,iat,rplus,newG, oldL);
+	  // for (int iw=0; iw<nw; iw++) 
+	  //   newpos[iw] = W[iw]->R[iat] - 1.0e-3*PosType(0.0,1.0,0.0);
+	  // W.proposeMove_GPU(newpos, iat);
+	  // Psi.ratio(W,iat,rminus,newG, oldL);
+	  // if (iat == 12) {
+	  //   fprintf (stderr, "FD  = %1.8e\n", (rplus[127] - rminus[127])/(2.0e-3));
+	  //   fprintf (stderr, "old = %1.8e\n", oldG[127][1]);
+	  //   fprintf (stderr, "new = %1.8e\n", newG[127][1]);
+	  // }
 
           //create a 3N-Dimensional Gaussian with variance=1
           makeGaussRandomWithEngine(delpos,Random);
-          for(int iw=0; iw<nw; ++iw) {
-	    // fprintf (stderr, "oldG[iw][0] = %16.8f %16.8f %16.8f\n",
-	    // 	     oldG[iw][0], oldG[iw][1], oldG[iw][2]);
-	    RealType sc=  getDriftScale(m_tauovermass,oldG[iw]);
-	    // fprintf (stderr, "sc = %1.8e\n", sc);
-	    dr[iw] = m_sqrttau*delpos[iw] + sc*real(oldG[iw]);
-            newpos[iw]=W[iw]->R[iat] + dr[iw];
+          for(int iw=0; iw<nw; iw++) {
+	    oldScale[iw] = getDriftScale(m_tauovermass,oldG[iw]);
+	    oldScale[iw] = 0.5*Tau;
+	    dr[iw] = m_sqrttau*delpos[iw] + oldScale[iw]*oldG[iw];
+            newpos[iw]=W[iw]->R[iat] + 
+	      m_sqrttau*delpos[iw] + oldScale[iw]*oldG[iw];
 	    ratios[iw] = 1.0;
 	  }
 	  W.proposeMove_GPU(newpos, iat);
 	  
           Psi.ratio(W,iat,ratios,newG, newL);
 	  
-	  // if (iat == 0) {
+	  // if (iat == 197) {
 	  //   fprintf (stderr, "oldG[0] = %16.8f %16.8f %16.8f\n",
 	  // 	     oldG[0][0], oldG[0][1], oldG[0][2]);
 	  //   fprintf (stderr, "newG[0] = %16.8f %16.8f %16.8f\n",
@@ -240,12 +230,20 @@ namespace qmcplusplus {
           accepted.clear();
 	  vector<bool> acc(nw, false);
           for(int iw=0; iw<nw; ++iw) {
-	    RealType logGf = -0.5*dot(delpos[iw],delpos[iw]);
-	    RealType scale = getDriftScale(m_tauovermass,newG[iw]);
-	    dr[iw] = W[iw]->R[iat]-newpos[iw]-scale*real(newG[iw]);
-	    RealType logGb = -m_oneover2tau*dot(dr[iw],dr[iw]);
-	    RealType prob = ratios[iw]*ratios[iw];
-            if(Random() < prob*std::exp(logGb-logGf)) {
+	    PosType drOld = 
+	      newpos[iw] - (W[iw]->R[iat] + oldScale[iw]*oldG[iw]);
+	    //RealType logGf = -m_oneover2tau * dot(drOld, drOld);
+	    RealType logGf = -0.5*dot(delpos[iw],delpos[iw]);			  
+	    newScale[iw]   = getDriftScale(m_tauovermass,newG[iw]);
+	    newScale[iw] = 0.5*Tau;
+	    PosType drNew  = 
+	      (newpos[iw] + newScale[iw]*newG[iw]) - W[iw]->R[iat];
+	    RealType logGb = -m_oneover2tau * dot(drNew, drNew);
+	    // cerr << "dotold = " << dot(drOld, drOld) << endl;	    
+	    // cerr << "dotnew = " << dot(drNew, drNew) << endl;
+	    RealType prob  = ratios[iw]*ratios[iw] * std::exp(std::sqrt(std::sqrt(2.0))*(logGb-logGf));
+	    
+            if(Random() < prob) {
               accepted.push_back(W[iw]);
 	      nAccept++;
 	      W[iw]->R[iat] = newpos[iw];
@@ -258,20 +256,10 @@ namespace qmcplusplus {
 	  if (accepted.size())
 	    Psi.update(accepted,iat);
 	}
-	
-	double Energy = 0.0;
+
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
 	Estimators->accumulate(W);
-
-	for (int iw=0; iw<nw; iw++)
-	  for (int iat=0; iat<nat; iat++)
-	    Energy -= 0.5*(dot (grad(iw,iat),grad(iw,iat))  + lapl(iw,iat));
-	Energy /= (double)nw;
-	vector<RealType> logPsi(W.WalkerList.size(), 0.0);
-
-	Esum += Energy;
-
       } while(step<nSteps);
       Psi.recompute(W);
       
@@ -303,9 +291,10 @@ namespace qmcplusplus {
     RealType mass = tspecies(massind,0);
     RealType oneovermass = 1.0/mass;
     RealType oneoversqrtmass = std::sqrt(oneovermass);
-    m_oneover2tau = 0.5/Tau;
+    m_oneover2tau = 0.5*mass/Tau;
     m_sqrttau = std::sqrt(Tau/mass);
     m_tauovermass = Tau/mass;
+    cerr << "m_oneover2tau = " << m_oneover2tau << endl;
 
     // Compute the size of data needed for each walker on the GPU card
     PointerPool<Walker_t::cuda_Buffer_t > pool;

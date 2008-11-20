@@ -233,7 +233,7 @@ two_body_sum_kernel(T *R[], int e1_first, int e1_last,
   	if (ptcl1 != ptcl2 && (ptcl1 < (N1+e1_first) ) && (ptcl2 < (N2+e2_first)))
 	  mysum += eval_1d_spline (dist, rMax, drInv, A, coefs);
       }
-
+      __syncthreads();
     }
   }
   __shared__ T shared_sum[BS];

@@ -14,7 +14,7 @@
 //////////////////////////////////////////////////////////////////
 
 #ifndef POINTER_POOL_H
-#define PIONTER_POOL_H
+#define POINTER_POOL_H
 
 #include <vector>
 
