@@ -164,14 +164,6 @@ namespace qmcplusplus {
 
   void NonLocalECPotential::resizeCuda(int nw)
   {
-    R_host.resize(OHMMS_DIM*NumElecs*nw);
-    R_GPU.resize(OHMMS_DIM*NumElecs*nw);
-    Rlist_host.resize(nw);
-    Rlist_GPU.resize(nw);
-    for (int iw=0; iw<nw; iw++)
-      Rlist_host[iw] = &(R_GPU[OHMMS_DIM*NumElecs*iw]);
-    Rlist_GPU = Rlist_host;
-
     MaxPairs = 2 * NumElecs;
         
     // Note: this will not cover pathological systems in which all
@@ -230,14 +222,6 @@ namespace qmcplusplus {
     if (CurrentNumWalkers < nw)
       resizeCuda(nw);
 
-    // Copy electron positions to GPU
-    for (int iw=0; iw<nw; iw++) 
-      for (int e=0; e<NumElecs; e++)
-	for (int dim=0; dim<OHMMS_DIM; dim++)
-	  R_host[OHMMS_DIM*NumElecs*iw + OHMMS_DIM*e + dim] = 
-	    walkers[iw]->R[e][dim];
-    R_GPU = R_host;
-
     // Loop over the ionic species
     vector<RealType> esum(walkers.size(), 0.0);
     for (int sp=0; sp<NumIonGroups; sp++) 
@@ -248,7 +232,7 @@ namespace qmcplusplus {
 
 	// First, we need to determine which ratios need to be updated
 	find_core_electrons 
-	  (Rlist_GPU.data(), NumElecs, 
+	  (W.RList_GPU.data(), NumElecs, 
 	   Ions_GPU.data(), IonFirst[sp], IonLast[sp],
 	   (CUDA_PRECISION)PPset[sp]->Rmax, L.data(), Linv.data(), 
 	   QuadPoints_GPU[sp].data(), PPset[sp]->nknot,
@@ -279,6 +263,57 @@ namespace qmcplusplus {
 	    }
 	  }
 	}
+
+
+
+
+#ifdef CUDA_DEBUG
+	host_vector<int> Elecs_host;
+	host_vector<int> NumPairs_host;
+	host_vector<CUDA_PRECISION> RatioPos_host;
+	RatioPos_host = RatioPos_GPU;
+	NumPairs_host = NumPairs_GPU;
+	Elecs_host    = Elecs_GPU;
+
+	DTD_BConds<double,3,SUPERCELL_BULK> bconds;
+	for (int iw=0; iw<walkers.size(); iw++) {
+	  Walker_t &w = *walkers[iw];
+	  int index = 0;
+	  int numPairs = 0;
+	  for (int i=IonFirst[sp]; i<=IonLast[sp]; i++) {
+	    PosType ion = SortedIons[i];
+	    for (int e=0; e<NumElecs; e++) {
+	      PosType elec = w.R[e];
+	      PosType disp = elec-ion;
+	      double dist = 
+		std::sqrt(bconds.apply(IonConfig.Lattice, disp));
+	      
+	      if (dist < PPset[sp]->Rmax) {
+		numPairs++;
+		// fprintf (stderr, "i_CPU=%d  i_GPU=%d  elec_CPU=%d  elec_GPU=%d\n",
+		// 	       i, Elecs_host[index],
+		// 	       e, Elecs_host[index]);
+		
+		// int nknot = PPset[sp]->nknot;
+		// for (int k=0; k<PPset[sp]->nknot; k++) {
+		// 	PosType r = ion + dist * PPset[sp]->rrotsgrid_m[k];
+		// 	fprintf (stderr, "CPU %d %12.6f %12.6f %12.6f\n",
+		// 		 index, r[0], r[1], r[2]);
+		// 	fprintf (stderr, "GPU %d %12.6f %12.6f %12.6f\n", index,
+		// 		 RatioPos_host[3*index*nknot+3*k+0], 
+		// 		 RatioPos_host[3*index*nknot+3*k+1],
+		// 		 RatioPos_host[3*index*nknot+3*k+2]);
+	      }
+	      index ++;
+	    }
+	  }
+	  if (numPairs != NumPairs_host[iw]) {
+	    cerr << "numPairs = " << numPairs << endl;
+	    cerr << "NumPairs_host[" << iw << "] =" << NumPairs_host[iw] << endl;
+	  }
+	}
+#endif
+  
 	RatioList.resize(QuadPosList.size());
 
 	RealType vrad[pp.nchannel];
@@ -329,50 +364,7 @@ namespace qmcplusplus {
   
 
 
-#ifdef CUDA_DEBUG
-	host_vector<int> Elecs_host;
-	host_vector<int> NumPairs_host;
-	host_vector<CUDA_PRECISION> RatioPos_host;
-	RatioPos_host = RatioPos_GPU;
-	NumPairs_host = NumPairs_GPU;
-	Elecs_host    = Elecs_GPU;
-
-	DTD_BConds<double,3,SUPERCELL_BULK> bconds;
-	Walker_t &w = *walkers[0];
-	int index = 0;
-	int numPairs = 0;
-	for (int i=IonFirst[sp]; i<=IonLast[sp]; i++) {
-	  PosType ion = SortedIons[i];
-	  for (int e=0; e<NumElecs; e++) {
-	    PosType elec = w.R[e];
-	    PosType disp = elec-ion;
-	    double dist = 
-	      std::sqrt(bconds.apply(IonConfig.Lattice, disp));
-	    
-	    if (dist < PPset[sp]->Rmax) {
-	      numPairs++;
-	      // fprintf (stderr, "i_CPU=%d  i_GPU=%d  elec_CPU=%d  elec_GPU=%d\n",
-	      // 	       i, Elecs_host[index],
-	      // 	       e, Elecs_host[index]);
-	      
-	      // int nknot = PPset[sp]->nknot;
-	      // for (int k=0; k<PPset[sp]->nknot; k++) {
-	      // 	PosType r = ion + dist * PPset[sp]->rrotsgrid_m[k];
-	      // 	fprintf (stderr, "CPU %d %12.6f %12.6f %12.6f\n",
-	      // 		 index, r[0], r[1], r[2]);
-	      // 	fprintf (stderr, "GPU %d %12.6f %12.6f %12.6f\n", index,
-	      // 		 RatioPos_host[3*index*nknot+3*k+0], 
-	      // 		 RatioPos_host[3*index*nknot+3*k+1],
-	      // 		 RatioPos_host[3*index*nknot+3*k+2]);
-	    }
-	    index ++;
-	  }
-	}
-      
-	cerr << "numPairs = " << numPairs << endl;
-	cerr << "NumPairs_host[0] =" << NumPairs_host[0] << endl;
-#endif
-  }
+}
 // 	for (int i=0; i<NumPairs_host[0]*PPset[sp]->nknot; i++) {
 // 	  fprintf (stderr, "%d %12.6f %12.6f %12.6f\n", i,
 // 		   RatioPos_host[3*i+0],

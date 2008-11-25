@@ -270,6 +270,7 @@ namespace qmcplusplus {
     void evaluate(const ParticleSet& P, int first, int last,
 		  RealValueMatrix_t& psi, RealGradMatrix_t& dpsi, 
 		  RealValueMatrix_t& d2psi);
+    void evaluate (const ParticleSet& P, PosType r, vector<RealType> &psi);
 
     // Complex return values
     void evaluate(const ParticleSet& P, int iat, ComplexValueVector_t& psi);

@@ -362,6 +362,7 @@ two_body_ratio_kernel(T *R[], int first, int last,
     
     if (ptcl1 != inew && (ptcl1 < (N+first) ))
       shared_sum[tid] += delta;
+    __syncthreads();
   }
   __syncthreads();
   for (int s=(BS>>1); s>0; s>>=1) {
@@ -512,6 +513,7 @@ two_body_ratio_grad_kernel(T *R[], int first, int last,
       shared_grad[tid][1] += du * dy;
       shared_grad[tid][2] += du * dz;
     }
+    __syncthreads();
   }
   __syncthreads();
   for (int s=(BS>>1); s>0; s>>=1) {
@@ -927,8 +929,8 @@ two_body_grad_lapl_kernel(T *R[], int e1_first, int e1_last,
 	  sGradLapl[tid][3] -= d2u + 2.0*du;
 	}
       }
+      __syncthreads();
     }
-    __syncthreads();
     for (int i=0; i<4; i++)
       if ((4*b1+i)*BS + tid < 4*N1)
 	gradLapl[offset + i*BS +tid] += sGradLapl[0][i*BS+tid];
@@ -1186,6 +1188,7 @@ one_body_sum_kernel(T C[], T *R[], int cfirst, int clast,
 	  mysum += eval_1d_spline (dist, rMax, drInv, A, coefs);
       }
     }
+    __syncthreads();
   }
   __shared__ T shared_sum[BS];
   shared_sum[tid] = mysum;
@@ -1308,8 +1311,9 @@ one_body_ratio_kernel(T C[], T *R[], int cfirst, int clast,
     
     if (ptcl1 < (Nc+cfirst) )
       shared_sum[tid] += delta;
+
+    __syncthreads();
   }
-  __syncthreads();
   for (int s=(BS>>1); s>0; s>>=1) {
     if (tid < s)
       shared_sum[tid] += shared_sum[tid+s];
@@ -1456,8 +1460,8 @@ one_body_ratio_grad_kernel(T C[], T *R[], int cfirst, int clast,
       shared_grad[tid][1] += du * dy;
       shared_grad[tid][2] += du * dz;
     }
+    __syncthreads();
   }
-  __syncthreads();
   for (int s=(BS>>1); s>0; s>>=1) {
     if (tid < s) {
       shared_sum[tid] += shared_sum[tid+s];
@@ -1671,6 +1675,7 @@ one_body_grad_lapl_kernel(T C[], T *R[], int cfirst, int clast,
 	  sGradLapl[tid][3] -= d2u + 2.0*du;
 	}
       }
+      __syncthreads();
     }
     __syncthreads();
     for (int i=0; i<4; i++)

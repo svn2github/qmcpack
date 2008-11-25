@@ -68,10 +68,6 @@ namespace qmcplusplus {
     int NumIonGroups;
     vector<int> IonFirst, IonLast;
     cuda_vector<CUDA_PRECISION> Ions_GPU, L, Linv;
-    host_vector<CUDA_PRECISION> R_host;
-    cuda_vector<CUDA_PRECISION> R_GPU;
-    host_vector<CUDA_PRECISION*> Rlist_host;
-    cuda_vector<CUDA_PRECISION*> Rlist_GPU;
     cuda_vector<int> Elecs_GPU;
     host_vector<int> Elecs_host;
     cuda_vector<CUDA_PRECISION> Dist_GPU;

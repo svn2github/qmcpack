@@ -268,6 +268,15 @@ namespace qmcplusplus {
 
   inline void
   EinsplineMultiEval (multi_UBspline_3d_d *restrict spline,
+		      TinyVector<double,3> r, 
+		      vector<double> &psi)
+  {
+    eval_multi_UBspline_3d_d (spline, r[0], r[1], r[2], &(psi[0]));
+  }
+
+
+  inline void
+  EinsplineMultiEval (multi_UBspline_3d_d *restrict spline,
 		      TinyVector<double,3> r,
 		      Vector<double> &psi,
 		      Vector<TinyVector<double,3> > &grad,
@@ -513,6 +522,28 @@ namespace qmcplusplus {
     EinsplineTimer.stop();
     ValueTimer.stop();
   }
+
+template<> void
+  EinsplineSetExtended<double>::evaluate
+  (const ParticleSet &P, PosType r, vector<RealType> &psi)
+  {
+    ValueTimer.start();
+    PosType ru(PrimLattice.toUnit(r));
+    for (int i=0; i<OHMMS_DIM; i++)
+      ru[i] -= std::floor (ru[i]);
+    EinsplineTimer.start();
+    EinsplineMultiEval (MultiSpline, ru, psi);
+    EinsplineTimer.stop();
+    ValueTimer.stop();
+  }
+
+  template<> void
+  EinsplineSetExtended<complex<double> >::evaluate
+  (const ParticleSet &P, PosType r, vector<RealType> &psi)
+  {
+    cerr << "Not Implemented.\n";
+  }
+
 
   // Value, gradient, and laplacian
   template<typename StorageType> void

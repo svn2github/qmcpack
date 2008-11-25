@@ -675,10 +675,11 @@ namespace qmcplusplus {
     // Now, compute determinant
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
-      host_vector<CUDA_PRECISION> host_data(data);
+      host_vector<CUDA_PRECISION> host_data;
+      host_data = data;
       //Vector<double> A(NumPtcls*NumOrbitals);
       Vector<CUDA_PRECISION> A(NumPtcls*NumOrbitals);
-      for (int i=0; i<NumPtcls*NumOrbitals; i++)
+      for (int i=0; i<NumPtcls*NumOrbitals; i++) 
 	A[i] = host_data[AOffset+i];
       logPsi[iw] += std::log(std::fabs(Invert(A.data(), NumPtcls, NumOrbitals)));
       int N = NumPtcls;
@@ -936,7 +937,45 @@ namespace qmcplusplus {
     }
 #endif
   }
-
+  
+  void
+  DiracDeterminantBase::NLratios_CPU
+  (MCWalkerConfiguration &W,     vector<NLjob> &jobList,
+   vector<PosType> &quadPoints,   vector<ValueType> &psi_ratios)
+  {
+    vector<Walker_t*> &walkers = W.WalkerList;
+    vector<ValueMatrix_t> Ainv_host;
+    int nw = walkers.size();
+    Ainv_host.resize(nw);
+    int mat_size = NumOrbitals*NumOrbitals*sizeof(CudaRealType);
+    for (int iw=0; iw<nw; iw++) {
+      Ainv_host[iw].resize(NumOrbitals, NumOrbitals);
+      ValueType *dest = &(Ainv_host[iw](0,0));
+      CudaRealType *src = &(walkers[iw]->cuda_DataSet[AinvOffset]);
+      cudaMemcpy(dest, src, mat_size, cudaMemcpyDeviceToHost);
+    }
+    vector<RealType> phi(NumOrbitals);
+    int index = 0;
+    for (int ijob=0; ijob < jobList.size(); ijob++) {
+      NLjob &job = jobList[ijob];
+      int numQuad = job.numQuadPoints;
+      int elec    = job.elec;
+      int iw      = job.walker;
+      // Check if this electron belongs to this determinant
+      if (elec < FirstIndex || elec >= LastIndex) 
+	index += numQuad;
+      else {
+	for (int iq=0; iq<numQuad; iq++) {
+	  Phi->evaluate(W, quadPoints[index], phi);
+	  ValueType ratio = 0.0;
+	  for (int i=0; i<NumOrbitals; i++)
+	    ratio += Ainv_host[iw](i,elec-FirstIndex) * phi[i];
+	  psi_ratios[index] *= ratio;
+	  index++;
+	}
+      }
+    }
+  }
 
   void 
   DiracDeterminantBase::NLratios (MCWalkerConfiguration &W,  
@@ -944,6 +983,12 @@ namespace qmcplusplus {
 				  vector<PosType> &quadPoints, 
 				  vector<ValueType> &psi_ratios)
   {
+    // DEBUG!
+    // vector<ValueType> cpu_ratios;
+    // cpu_ratios = psi_ratios;
+    // NLratios_CPU (W, jobList, quadPoints, cpu_ratios);
+    
+
     vector<Walker_t*> &walkers = W.WalkerList;
     int posIndex=0, numJobs=0;
     vector<PosType> posBuffer;
@@ -1008,7 +1053,8 @@ namespace qmcplusplus {
       
       for (int iq=0; iq < numQuad; iq++) {
 	posBuffer.push_back(quadPoints[posIndex]);
-	ratio_pointers.push_back(&(psi_ratios[posIndex++]));
+	ratio_pointers.push_back(&(psi_ratios[posIndex]));
+	posIndex++;
       }
       rowIndex += numQuad;
       numJobs++;
@@ -1032,6 +1078,15 @@ namespace qmcplusplus {
     NLratios_host = NLratios_d;
     for (int i=0; i<ratio_pointers.size(); i++) 
       *(ratio_pointers[i]) *= NLratios_host[i];
+
+    // DEBUG DEBUG DEBUG
+    // for (int i=0; i<psi_ratios.size(); i++) {
+    //   double diff = psi_ratios[i] - cpu_ratios[i];
+    //   if (std::fabs(diff) > 1.0e-8) 
+    // 	fprintf (stderr, "i=%d  GPU=%1.12f  CPU=%1.12f  FirstIndex=%d\n",
+    // 		 i, psi_ratios[i], cpu_ratios[i], FirstIndex);
+    // }
+
   }
 }
 

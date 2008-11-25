@@ -52,17 +52,21 @@ public:
   {
 #ifdef QMC_CUDA 
     //fprintf (stderr, "Allocating %ld bytes on GPU card.\n", s*sizeof(T));
-    pointer mem;
-    cudaMalloc ((void**)&mem, s*sizeof(T));
-
-    //fprintf (stderr, "mem = %p\n", mem);
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess) {
-      fprintf (stderr, "Failed to allocate %ld:\n  %s\n",
-	       s*sizeof(T), cudaGetErrorString(err));
-      abort();
+    if (s) {
+      pointer mem;
+      cudaMalloc ((void**)&mem, s*sizeof(T));
+      
+      //fprintf (stderr, "mem = %p\n", mem);
+      cudaError_t err = cudaGetLastError();
+      if (err != cudaSuccess) {
+	fprintf (stderr, "Failed to allocate %ld:\n  %s\n",
+		 s*sizeof(T), cudaGetErrorString(err));
+	abort();
+      }
+      return mem;
     }
-    return mem;
+    else
+      return 0;
 #else
     return (pointer) malloc(s*sizeof(T));
 #endif

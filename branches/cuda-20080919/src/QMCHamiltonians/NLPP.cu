@@ -100,10 +100,10 @@ find_core_electrons_kernel(T *R[], int numElec,
 
   __syncthreads();
 
-  int i0 = tid / 9;
-  int i1 = (tid - 9*i0)/3;
-  int i2 = (tid - 9*i0 - 3*i1);
-  __syncthreads();
+//   int i0 = tid / 9;
+//   int i1 = (tid - 9*i0)/3;
+//   int i2 = (tid - 9*i0 - 3*i1);
+//   __syncthreads();
 
 
   int numIon = lastIon - firstIon + 1;
@@ -151,8 +151,9 @@ find_core_electrons_kernel(T *R[], int numElec,
 	  }
 	}
       }
+      __syncthreads();
     }
-    
+    __syncthreads();
   }
   // Write pairs and distances remaining the final block
   if (tid < index) {
@@ -231,11 +232,6 @@ find_core_electrons_kernel(T *R[], int numElec,
 
   __syncthreads();
 
-  int i0 = tid / 9;
-  int i1 = (tid - 9*i0)/3;
-  int i2 = (tid - 9*i0 - 3*i1);
-  __syncthreads();
-
   int numIon = lastIon - firstIon + 1;
   int numElecBlocks = numElec/BS + ((numElec % BS) ? 1 : 0);
   int numIonBlocks  = numIon /BS + ((numIon  % BS) ? 1 : 0);
@@ -271,7 +267,7 @@ find_core_electrons_kernel(T *R[], int numElec,
 	  __syncthreads();
 	  if (dist[elec] < rcut) {
 	    // First, write quadrature points
-	    if (numQuadPoints + posIndex < BS) {
+	    if (numQuadPoints + posIndex <= BS) {
 	      if (tid < numQuadPoints) {
 	    	blockPos[posIndex+tid][0] = i[ion][0] + dist[elec]*qp[tid][0];
 	    	blockPos[posIndex+tid][1] = i[ion][1] + dist[elec]*qp[tid][1];
@@ -336,7 +332,6 @@ find_core_electrons_kernel(T *R[], int numElec,
 	}
       }
     }
-    
   }
   for (int j=0; j<3; j++)
     if (j*BS + tid < 3*posIndex)

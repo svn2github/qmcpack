@@ -106,7 +106,11 @@ namespace qmcplusplus {
      * @param psi values of the SPO
      */
     virtual void 
-    evaluate(const ParticleSet& P, int iat, ValueVector_t& psi)=0;
+    evaluate(const ParticleSet& P, int iat, ValueVector_t& psi) = 0;
+
+    virtual void
+    evaluate (const ParticleSet& P, PosType r, vector<RealType> &psi)
+    { cerr << "Not implemented.\n";  }
 
     /** evaluate the values, gradients and laplacians of this single-particle orbital set
      * @param P current ParticleSet

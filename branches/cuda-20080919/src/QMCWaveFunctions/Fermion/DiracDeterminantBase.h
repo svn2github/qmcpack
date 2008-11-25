@@ -272,6 +272,9 @@ namespace qmcplusplus {
     void NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
 		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
 
+    void NLratios_CPU (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
+		       vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
+
     ///flag to turn on/off to skip some calculations
     bool UseRatioOnly;
     ///total number of particles

@@ -224,7 +224,7 @@ namespace qmcplusplus {
       SpherGridType::iterator jt(rrotsgrid_m.begin());
       int ic=0;
       while(it != it_end) {*jt = dot(rmat,*it); ++it; ++jt;}
-      //copy the radomized grid to sphere
+      //copy the randomized grid to sphere
       std::copy(rrotsgrid_m.begin(), rrotsgrid_m.end(), sphere.begin());
     } else {
       //copy sphere to the radomized grid
@@ -248,7 +248,7 @@ namespace qmcplusplus {
     SpherGridType::iterator jt(rrotsgrid_m.begin());
     int ic=0;
     while(it != it_end) {*jt = dot(rmat,*it); ++it; ++jt;}
-    //copy the radomized grid to sphere
+    //copy the randomized grid to sphere
     for (int i=0; i<rrotsgrid_m.size(); i++)
       for (int j=0; j<OHMMS_DIM; j++)
 	sphere[OHMMS_DIM*i+j] = rrotsgrid_m[i][j];

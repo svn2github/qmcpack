@@ -521,7 +521,7 @@ namespace qmcplusplus {
   TrialWaveFunction::reserve
   (PointerPool<cuda_vector<CudaRealType> > &pool)
   {
-    for(int i=0; i<Z.size(); i++) 
+    for(int i=0; i<Z.size(); i++)  
       Z[i]->reserve(pool);
   }
 

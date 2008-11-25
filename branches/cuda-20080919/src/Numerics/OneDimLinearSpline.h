@@ -114,7 +114,8 @@ public:
    */
   inline value_type splint(point_type r) {
     if(r>=r_max) return ConstValue;
-    int k = static_cast<int>((r-r_min)*delta_inv);
+    //    int k = static_cast<int>((r-r_min)*delta_inv);
+    int k = (int)std::floor ((r-r_min)*delta_inv);
 #if defined(USE_MEMORYSAVEMODE)
     return m_Y[k]+(m_Y[k+1]-m_Y[k])*(r*delta_inv-k);
 #else
@@ -157,7 +158,8 @@ public:
    */
   inline void locate(point_type r, int &k, point_type& rfrac)
   {
-    k=static_cast<int>((r-r_min)*delta_inv);
+    //k=static_cast<int>((r-r_min)*delta_inv);
+    k=(int)std::floor((r-r_min)*delta_inv);
     rfrac=r*delta_inv-k;
   }
 

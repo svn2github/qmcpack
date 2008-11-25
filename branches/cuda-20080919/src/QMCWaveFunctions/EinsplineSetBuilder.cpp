@@ -48,6 +48,13 @@ namespace qmcplusplus {
     abort();
   }
 
+  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_z *in, 
+					     multi_UBspline_3d_s_cuda * &out)
+  { 
+    app_error() << "Attempted to convert complex CPU spline into a real "
+		<< " GPU spline.\n";
+    abort();
+  }
 
 
 

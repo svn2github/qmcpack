@@ -43,17 +43,15 @@ case 9:\
  break;			       \
  }
 
-
-#include <iostream>
+#include <stdio.h>
 
 TextureSpline::TextureSpline()
 {
-  cerr << "TextureSpline constructor.\n";
   int iTex = 0;
   while ( iTex < MAX_TEXTURES && textureInUse[iTex]) iTex++;
   if (iTex == MAX_TEXTURES) {
-    cerr << "Unable to allocated a texture.  Increase MAX_TEXTURES "
-	 << "in CudaCoulomb.cu.\n";
+    fprintf (stderr, "Unable to allocated a texture.  Increase MAX_TEXTURES "
+	     "in CudaCoulomb.cu.\n");
     abort();
   }
   MyTexture = iTex;

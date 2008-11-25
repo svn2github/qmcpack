@@ -41,7 +41,6 @@ namespace qmcplusplus {
       return runWithDrift();
 
     resetRun();
-    
     IndexType block = 0;
     IndexType nAcceptTot = 0;
     IndexType nRejectTot = 0;
@@ -294,7 +293,6 @@ namespace qmcplusplus {
     m_oneover2tau = 0.5*mass/Tau;
     m_sqrttau = std::sqrt(Tau/mass);
     m_tauovermass = Tau/mass;
-    cerr << "m_oneover2tau = " << m_oneover2tau << endl;
 
     // Compute the size of data needed for each walker on the GPU card
     PointerPool<Walker_t::cuda_Buffer_t > pool;
