@@ -515,25 +515,46 @@ namespace qmcplusplus {
     ValueTimer.start();
     PosType r (P.R[iat]);
     PosType ru(PrimLattice.toUnit(P.R[iat]));
-    for (int i=0; i<OHMMS_DIM; i++)
-      ru[i] -= std::floor (ru[i]);
+    int image[OHMMS_DIM];
+    for (int i=0; i<OHMMS_DIM; i++) {
+      RealType img = std::floor(ru[i]);
+      ru[i] -= img;
+      image[i] = (int) img;
+    }
     EinsplineTimer.start();
     EinsplineMultiEval (MultiSpline, ru, psi);
     EinsplineTimer.stop();
+    int sign = 0;
+    for (int i=0; i<OHMMS_DIM; i++) 
+      sign += HalfG[i] * image[i];
+    if (sign & 1) 
+      for (int j=0; j<psi.size(); j++)
+	psi[j] *= -1.0;
+    
     ValueTimer.stop();
   }
 
-template<> void
+  template<> void
   EinsplineSetExtended<double>::evaluate
   (const ParticleSet &P, PosType r, vector<RealType> &psi)
   {
     ValueTimer.start();
     PosType ru(PrimLattice.toUnit(r));
-    for (int i=0; i<OHMMS_DIM; i++)
-      ru[i] -= std::floor (ru[i]);
+    int image[OHMMS_DIM];
+    for (int i=0; i<OHMMS_DIM; i++) {
+      RealType img = std::floor(ru[i]);
+      ru[i] -= img;
+      image[i] = (int) img;
+    }
     EinsplineTimer.start();
     EinsplineMultiEval (MultiSpline, ru, psi);
     EinsplineTimer.stop();
+    int sign=0;
+    for (int i=0; i<OHMMS_DIM; i++) 
+      sign += HalfG[i]*image[i];
+    if (sign & 1) 
+      for (int j=0; j<psi.size(); j++)
+	psi[j] *= -1.0;
     ValueTimer.stop();
   }
 
@@ -767,11 +788,24 @@ template<> void
     VGLTimer.start();
     PosType r (P.R[iat]);
     PosType ru(PrimLattice.toUnit(P.R[iat]));
-    for (int i=0; i<OHMMS_DIM; i++)
-      ru[i] -= std::floor (ru[i]);
+    int image[OHMMS_DIM];
+    for (int i=0; i<OHMMS_DIM; i++) {
+      RealType img = std::floor(ru[i]);
+      ru[i] -= img;
+      image[i] = (int) img;
+    }
     EinsplineTimer.start();
     EinsplineMultiEval (MultiSpline, ru, psi, StorageGradVector, 
 			StorageHessVector);
+    int sign=0;
+    for (int i=0; i<OHMMS_DIM; i++) 
+      sign += HalfG[i]*image[i];
+    if (sign & 1) 
+      for (int j=0; j<psi.size(); j++) {
+	psi[j] *= -1.0;
+	StorageGradVector[j] *= -1.0;
+	StorageHessVector[j] *= -1.0;
+      }
     EinsplineTimer.stop();
     for (int i=0; i<psi.size(); i++) {
       dpsi[i]  = dot(PrimLattice.G, StorageGradVector[i]);
@@ -1014,13 +1048,27 @@ template<> void
     for(int iat=first,i=0; iat<last; iat++,i++) {
       PosType r (P.R[iat]);
       PosType ru(PrimLattice.toUnit(P.R[iat]));
-      for (int n=0; n<OHMMS_DIM; n++)
-	ru[n] -= std::floor (ru[n]);
+      int image[OHMMS_DIM];
+      for (int n=0; n<OHMMS_DIM; n++) {
+	RealType img = std::floor(ru[n]);
+	ru[n] -= img;
+	image[n] = (int) img;
+      }
       EinsplineTimer.start();
       EinsplineMultiEval (MultiSpline, ru, StorageValueVector,
 			  StorageGradVector, StorageHessVector);
       EinsplineTimer.stop();
-      complex<double> eye (0.0, 1.0);
+
+    int sign=0;
+    for (int n=0; n<OHMMS_DIM; n++) 
+      sign += HalfG[n]*image[n];
+
+    if (sign & 1) 
+      for (int j=0; j<OrbitalSetSize; j++) {
+	StorageValueVector[j] *= -1.0;
+	StorageGradVector[j] *= -1.0;
+	StorageHessVector[j] *= -1.0;
+      }
       for (int j=0; j<OrbitalSetSize; j++) {
         psi(j,i)   = StorageValueVector[j];
 	dpsi(i,j)  = dot(PrimLattice.G, StorageGradVector[j]);

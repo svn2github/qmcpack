@@ -247,6 +247,9 @@ namespace qmcplusplus {
     Vector<RealType> phase;
     Vector<complex<RealType> > eikr;
     inline void computePhaseFactors(TinyVector<RealType,OHMMS_DIM> r);
+    // For running at half G-vectors with real orbitals;  
+    // 0 if the twist is zero, 1 if the twist is G/2.
+    TinyVector<int,OHMMS_DIM> HalfG;
 
     ////////////
     // Timers //
@@ -260,6 +263,7 @@ namespace qmcplusplus {
     // This stores the inverse of the lattice vector matrix in
     // GPU memory.
     cuda_vector<CudaRealType> Linv_cuda;
+
   public:
     void registerTimers();
 
@@ -319,6 +323,8 @@ namespace qmcplusplus {
       TimerManager.addTimer (&VGLTimer);
       TimerManager.addTimer (&VGLMatTimer);
       TimerManager.addTimer (&EinsplineTimer);
+      for (int i=0; i<OHMMS_DIM; i++)
+	HalfG[i] = 0;
     }
   };
 
