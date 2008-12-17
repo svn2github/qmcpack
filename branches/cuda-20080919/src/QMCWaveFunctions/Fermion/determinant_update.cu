@@ -673,6 +673,16 @@ calc_ratio_grad_lapl (T *Ainv_list[], T *new_row_list[], T *grad_lapl_list[],
     }
     __syncthreads();
   }
+  // Subtract off gradient^2 from laplacian
+  if (tid == 0) 
+    ratio_prod[4][0] -= (ratio_prod[1][0]*ratio_prod[1][0] +
+			 ratio_prod[1][0]*ratio_prod[1][0] +
+			 ratio_prod[1][0]*ratio_prod[1][0]);
+  __syncthreads();
+  // Present gradient and laplacian are w.r.t old position.  Divide by 
+  // ratio to make it w.r.t. new position
+  if (tid < 4)
+    ratio_prod[tid+1][0] /= ratio_prod[0][0];
 
   if (tid < 5) 
     ratio_grad_lapl[5*blockIdx.x+tid] = ratio_prod[tid][0];

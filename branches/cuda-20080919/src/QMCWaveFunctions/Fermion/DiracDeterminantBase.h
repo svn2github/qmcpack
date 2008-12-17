@@ -177,8 +177,8 @@ namespace qmcplusplus {
     host_vector<updateJob> UpdateJobList;
     cuda_vector<updateJob> UpdateJobList_d;
     vector<CudaRealType*> srcList, destList, AList, AinvList, newRowList, AinvDeltaList, 
-      AinvColkList, gradLaplList, newGradLaplList, workList;
-    cuda_vector<CudaRealType*> srcList_d, destList_d, AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d, gradLaplList_d, newGradLaplList_d, workList_d;
+      AinvColkList, gradLaplList, newGradLaplList, workList, GLList;
+    cuda_vector<CudaRealType*> srcList_d, destList_d, AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d, gradLaplList_d, newGradLaplList_d, workList_d, GLList_d;
     cuda_vector<CudaRealType> ratio_d;
     host_vector<CudaRealType> ratio_host;
     cuda_vector<CudaRealType> gradLapl_d;
@@ -215,17 +215,18 @@ namespace qmcplusplus {
       AinvColkList.resize(numWalkers);     AinvColkList_d.resize(numWalkers);
       ratio_d.resize(5*numWalkers);        ratio_host.resize(5*numWalkers);
       gradLaplList.resize(numWalkers);     gradLaplList_d.resize(numWalkers);
+      GLList.resize(numWalkers);           GLList_d.resize(numWalkers);
       newGradLaplList.resize(numWalkers);  newGradLaplList_d.resize(numWalkers);
       workList.resize(numWalkers);         workList_d.resize(numWalkers);
 
       gradLapl_d.resize   (numWalkers*NumOrbitals*4);
       gradLapl_host.resize(numWalkers*NumOrbitals*4);
-      NLrowBuffer_d.resize(NLrowBufferRows*NumOrbitals);
-      NLrowBuffer_host.resize(NLrowBufferRows*NumOrbitals);
+      NLrowBuffer_d.resize(NLrowBufferRows*RowStride);
+      NLrowBuffer_host.resize(NLrowBufferRows*RowStride);
       SplineRowList_d.resize(NLrowBufferRows);
       SplineRowList_host.resize(NLrowBufferRows);
       for (int i=0; i<NLrowBufferRows; i++)
-	SplineRowList_host[i] = &(NLrowBuffer_d[i*NumOrbitals]);
+	SplineRowList_host[i] = &(NLrowBuffer_d[i*RowStride]);
       SplineRowList_d = SplineRowList_host;
       NLposBuffer_d.resize   (OHMMS_DIM * NLrowBufferRows);
       NLposBuffer_host.resize(OHMMS_DIM * NLrowBufferRows);
@@ -237,14 +238,16 @@ namespace qmcplusplus {
 
     void reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
     {
-      AOffset           = pool.reserve((size_t)    NumPtcls * NumOrbitals);
-      AinvOffset        = pool.reserve((size_t)    NumPtcls * NumOrbitals);
-      gradLaplOffset    = pool.reserve((size_t)4 * NumPtcls * NumOrbitals);
-      newRowOffset      = pool.reserve((size_t)1            * NumOrbitals);
-      AinvDeltaOffset   = pool.reserve((size_t)1            * NumOrbitals);
-      AinvColkOffset    = pool.reserve((size_t)1            * NumOrbitals);
-      newGradLaplOffset = pool.reserve((size_t)4            * NumOrbitals);
-      workOffset        = pool.reserve(cuda_inverse_many_double_worksize(NumOrbitals));
+      RowStride = ((NumOrbitals + 31)/32) * 32;
+
+      AOffset           = pool.reserve((size_t)    NumPtcls * RowStride);
+      AinvOffset        = pool.reserve((size_t)    NumPtcls * RowStride);
+      gradLaplOffset    = pool.reserve((size_t)4 * NumPtcls * RowStride);
+      newRowOffset      = pool.reserve((size_t)1            * RowStride);
+      AinvDeltaOffset   = pool.reserve((size_t)1            * RowStride);
+      AinvColkOffset    = pool.reserve((size_t)1            * RowStride);
+      newGradLaplOffset = pool.reserve((size_t)4            * RowStride);
+      workOffset        = pool.reserve(cuda_inverse_many_double_worksize(RowStride));
       Phi->reserve(pool);
     }
     
@@ -280,7 +283,7 @@ namespace qmcplusplus {
     ///total number of particles
     int NP;
     ///number of single-particle orbitals which belong to this Dirac determinant
-    int NumOrbitals;
+    int NumOrbitals, RowStride;
     ///number of particles which belong to this Dirac determinant
     int NumPtcls;
     ///index of the first particle with respect to the particle set

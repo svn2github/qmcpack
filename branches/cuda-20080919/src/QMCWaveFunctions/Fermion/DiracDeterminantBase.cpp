@@ -71,6 +71,7 @@ namespace qmcplusplus {
     LastIndex = FirstIndex + nel;
     NumPtcls=nel;
     NumOrbitals=norb;
+    RowStride = ((NumOrbitals + 31)/32) * 32;
   }
 
   DiracDeterminantBase::ValueType 
@@ -616,7 +617,7 @@ namespace qmcplusplus {
     // Recompute A matrices;
     vector<PosType> R(walkers.size());
     for (int iat=FirstIndex; iat<LastIndex; iat++) {
-      int off = (iat-FirstIndex)*NumOrbitals;
+      int off = (iat-FirstIndex)*RowStride;
       for (int iw=0; iw<walkers.size(); iw++) {
 	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
 	newRowList[iw]    =  &(data[AOffset+off]);
@@ -641,7 +642,7 @@ namespace qmcplusplus {
 
     // Copy A into Ainv
     multi_copy (AinvList_d.data(), AList_d.data(),
-		NumOrbitals*NumOrbitals, walkers.size());
+		NumOrbitals*RowStride, walkers.size());
     // Invert
     cuda_inverse_many_double (AinvList_d.data(), workList_d.data(), 
      			      NumOrbitals, walkers.size());
@@ -661,7 +662,7 @@ namespace qmcplusplus {
     vector<PosType> R(walkers.size());
     // Fill in the A matrix row by row   
     for (int iat=FirstIndex; iat<LastIndex; iat++) {
-      int off = (iat-FirstIndex)*NumOrbitals;
+      int off = (iat-FirstIndex)*RowStride;
       for (int iw=0; iw<walkers.size(); iw++) {
 	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
 	newRowList[iw]    =  &(data[AOffset+off]);
@@ -685,8 +686,9 @@ namespace qmcplusplus {
       int N = NumPtcls;
       bool passed = true;
 
-      for (int i=0; i<NumPtcls*NumOrbitals; i++)
-	host_data[AinvOffset+i] = A[i];
+      for (int i=0; i<NumPtcls; i++)
+	for (int j=0; j<NumOrbitals; j++)
+	  host_data[AinvOffset+i*RowStride+j] = A[i];
       data = host_data;
 
       // for (int i=0; i<N; i++)
@@ -724,24 +726,39 @@ namespace qmcplusplus {
     vector<Walker_t*> &walkers = W.WalkerList;
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
-    if (iat - FirstIndex == 0) {      
-      // First evaluate orbitals
+    //if (iat - FirstIndex == 0) {      
       for (int iw=0; iw<walkers.size(); iw++) {
 	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
 	AinvList[iw]        =  &(data[AinvOffset]);
-	gradLaplList[iw]    =  &(data[gradLaplOffset]);
+	GLList[iw]    =  &(data[gradLaplOffset]);
       }
       AinvList_d      = AinvList;
-      gradLaplList_d = gradLaplList;
-    }
-    calc_gradient (AinvList_d.data(), gradLaplList_d.data(), 
-		   ratio_d.data(), NumOrbitals, NumOrbitals, 
+      GLList_d = GLList;
+      //}
+    calc_gradient (AinvList_d.data(), GLList_d.data(), 
+		   ratio_d.data(), NumOrbitals, RowStride, 
 		   iat-FirstIndex, walkers.size());
     ratio_host = ratio_d;
 
     for (int iw=0; iw<walkers.size(); iw++) 
       for (int dim=0; dim<OHMMS_DIM; dim++)
     	grad[iw][dim] += ratio_host[3*iw+dim];
+
+
+#ifdef CUDA_DEBUG3
+    host_vector<CudaRealType> host_data;
+    vector<CudaRealType> cpu_ratios(walkers.size(), 0.0f);
+    for (int iw=0; iw<walkers.size(); iw++) {
+      host_data = walkers[iw]->cuda_DataSet;
+      for (int iorb=0; iorb<NumOrbitals; iorb++) {
+	cpu_ratios[iw] += host_data[AinvOffset+RowStride*iorb+iat-FirstIndex] *
+	  host_data[gradLaplOffset + 4*NumOrbitals*(iat-FirstIndex) + iorb + NumOrbitals];
+      }
+      fprintf (stderr, "CPU grad = %10.6e   GPU grad = %10.6e\n", 
+	       cpu_ratios[iw], grad[iw][1]);
+    }
+#endif
+
   }
 
   void DiracDeterminantBase::ratio (MCWalkerConfiguration &W, 
@@ -761,7 +778,7 @@ namespace qmcplusplus {
     }
     newRowList_d = newRowList;
     AinvList_d   = AinvList;
-      Phi->evaluate (walkers, W.Rnew, newRowList_d);
+    Phi->evaluate (walkers, W.Rnew, newRowList_d);
 
     // Now evaluate ratios
     determinant_ratios_cuda 
@@ -784,6 +801,9 @@ namespace qmcplusplus {
 
   }
 
+
+  // The gradient is (\nabla psi(Rnew))/psi(Rnew)
+  // The laplaican is (\nabla^2 psi(Rnew))/psi(Rew)
   void DiracDeterminantBase::ratio (MCWalkerConfiguration &W, int iat, 
 				    vector<ValueType> &psi_ratios, 
 				    vector<GradType>  &grad,
@@ -847,7 +867,7 @@ namespace qmcplusplus {
     for (int iw=0; iw<walkers.size(); iw++) {
       host_data = walkers[iw]->cuda_DataSet;
       for (int iorb=0; iorb<NumOrbitals; iorb++) {
-	cpu_ratios[iw] += host_data[AinvOffset+NumPtcls*iorb+iat-FirstIndex] *
+	cpu_ratios[iw] += host_data[AinvOffset+RowStride*iorb+iat-FirstIndex] *
 	  host_data[newRowOffset + iorb];
       }
       fprintf (stderr, "CPU ratio = %10.6e   GPU lapl = %10.6e\n", 
@@ -862,7 +882,9 @@ namespace qmcplusplus {
 		 ratio_host[5*iw+2],
 		 ratio_host[5*iw+3]);
       grad[iw] += g;
-      lapl[iw] += ratio_host[5*iw+4] - dot(g,g);
+      lapl[iw] += ratio_host[5*iw+0];
+      // grad[iw] += g / ratio_host[5*iw+0];
+      // lapl[iw] += (ratio_host[5*iw+4] - dot(g,g)) / ratio_host[5*iw+0];
     }
 #ifdef CUDA_DEBUG
     host_vector<CudaRealType> host_data;
@@ -870,10 +892,10 @@ namespace qmcplusplus {
     for (int iw=0; iw<walkers.size(); iw++) {
       host_data = walkers[iw]->cuda_DataSet;
       for (int iorb=0; iorb<NumOrbitals; iorb++) {
-	cpu_ratios[iw] += host_data[AinvOffset+NumPtcls*iorb+iat-FirstIndex] *
+	cpu_ratios[iw] += host_data[AinvOffset+RowStride*iorb+iat-FirstIndex] *
 	  host_data[newGradLaplOffset + iorb + NumOrbitals];
       }
-      fprintf (stderr, "CPU grad = %10.6e   GPU grad = %10.6e\n", 
+      fprintf (stderr, "ratio CPU grad = %10.6e   GPU grad = %10.6e\n", 
 	       cpu_ratios[iw], grad[iw][1]);
     }
 #endif
@@ -901,7 +923,7 @@ namespace qmcplusplus {
 
     calc_grad_lapl (&(AinvList_d[0]), &(gradLaplList_d[0]),
 		    &(newGradLaplList_d[0]), NumOrbitals, 
-		    NumOrbitals, walkers.size());
+		    RowStride, walkers.size());
     // Now copy data into the output matrices
     gradLapl_host = gradLapl_d;
     // for (int i=0; i<gradLapl_host.size(); i++)
@@ -1025,7 +1047,7 @@ namespace qmcplusplus {
 
 	calc_many_ratios (NLAinvList_d.data(), RatioRowList_d.data(),
 			  NLratioList_d.data(), NLnumRatioList_d.data(),
-			  NumOrbitals, NumOrbitals, NLelecList_d.data(),
+			  NumOrbitals, RowStride, NLelecList_d.data(),
 			  numJobs);
 	
 	// Write ratios out output vector
@@ -1049,7 +1071,7 @@ namespace qmcplusplus {
       NLnumRatioList_host.push_back(numQuad);
       NLelecList_host.push_back(job.elec-FirstIndex);
       NLratioList_host.push_back(&(NLratios_d[rowIndex]));
-      RatioRowList_host.push_back(&(NLrowBuffer_d[rowIndex*NumOrbitals]));
+      RatioRowList_host.push_back(&(NLrowBuffer_d[rowIndex*RowStride]));
       
       for (int iq=0; iq < numQuad; iq++) {
 	posBuffer.push_back(quadPoints[posIndex]);
@@ -1071,7 +1093,7 @@ namespace qmcplusplus {
     
     calc_many_ratios (NLAinvList_d.data(), RatioRowList_d.data(),
 		      NLratioList_d.data(), NLnumRatioList_d.data(),
-		      NumOrbitals, NumOrbitals, NLelecList_d.data(),
+		      NumOrbitals, RowStride, NLelecList_d.data(),
 		      numJobs);
     
     // Write ratios out output vector

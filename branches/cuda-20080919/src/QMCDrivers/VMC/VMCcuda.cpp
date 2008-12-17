@@ -66,7 +66,6 @@ namespace qmcplusplus {
       IndexType step = 0;
       nAccept = nReject = 0;
       Esum = 0.0;
-      clock_t block_start = clock();
       Estimators->startBlock(nSteps);
       do
       {
@@ -117,15 +116,6 @@ namespace qmcplusplus {
 	  
 	}
 
-	// host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > Rcheck;
-	// Rcheck = W[3]->R_GPU;
-	// int ir = 253;
-	// fprintf (stderr, "Cuda:  %16.8f %16.8f %16.8f\n",
-	// 	 Rcheck[ir][0], Rcheck[ir][1], Rcheck[ir][2]);
-	
-	// fprintf (stderr, "Host:  %16.8f %16.8f %16.8f\n",
-	// 	 W[3]->R[ir][0], W[3]->R[ir][1], W[3]->R[ir][2]);
-
 	//H.saveProperty (W);
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
@@ -144,13 +134,6 @@ namespace qmcplusplus {
       ++block;
       
       recordBlock(block);
-
-      clock_t block_end = clock();
-      double block_time = (double)(block_end-block_start)/CLOCKS_PER_SEC;
-      // fprintf (stderr, "Block energy = %10.5f    "
-      // 	       "Block accept ratio = %5.3f  Block time = %8.3f\n",
-      // 	       Esum/(double)nSteps, accept_ratio, block_time);
-      
     } while(block<nBlocks);
 
     //Mover->stopRun();
@@ -184,63 +167,41 @@ namespace qmcplusplus {
     do {
       IndexType step = 0;
       nAccept = nReject = 0;
-      clock_t block_start = clock();
       Estimators->startBlock(nSteps);
       do {
         step++;
 	CurrentStep++;
-        for(int iat=0; iat<nat; ++iat) {
+        for(int iat=0; iat<nat; iat++) {
 	  Psi.getGradient (W, iat, oldG);
-	  // for (int iw=0; iw<nw; iw++) 
-	  //   newpos[iw] = W[iw]->R[iat] + 1.0e-3*PosType(0.0,1.0,0.0);
-	  // W.proposeMove_GPU(newpos, iat);
-	  // Psi.ratio(W,iat,rplus,newG, oldL);
-	  // for (int iw=0; iw<nw; iw++) 
-	  //   newpos[iw] = W[iw]->R[iat] - 1.0e-3*PosType(0.0,1.0,0.0);
-	  // W.proposeMove_GPU(newpos, iat);
-	  // Psi.ratio(W,iat,rminus,newG, oldL);
-	  // if (iat == 12) {
-	  //   fprintf (stderr, "FD  = %1.8e\n", (rplus[127] - rminus[127])/(2.0e-3));
-	  //   fprintf (stderr, "old = %1.8e\n", oldG[127][1]);
-	  //   fprintf (stderr, "new = %1.8e\n", newG[127][1]);
-	  // }
 
           //create a 3N-Dimensional Gaussian with variance=1
           makeGaussRandomWithEngine(delpos,Random);
           for(int iw=0; iw<nw; iw++) {
 	    oldScale[iw] = getDriftScale(m_tauovermass,oldG[iw]);
-	    oldScale[iw] = 0.5*Tau;
-	    dr[iw] = m_sqrttau*delpos[iw] + oldScale[iw]*oldG[iw];
-            newpos[iw]=W[iw]->R[iat] + 
-	      m_sqrttau*delpos[iw] + oldScale[iw]*oldG[iw];
+	    dr[iw] = (m_sqrttau*delpos[iw]) + (oldScale[iw]*oldG[iw]);
+            newpos[iw]=W[iw]->R[iat] + dr[iw];
 	    ratios[iw] = 1.0;
 	  }
 	  W.proposeMove_GPU(newpos, iat);
 	  
           Psi.ratio(W,iat,ratios,newG, newL);
-	  
-	  // if (iat == 197) {
-	  //   fprintf (stderr, "oldG[0] = %16.8f %16.8f %16.8f\n",
-	  // 	     oldG[0][0], oldG[0][1], oldG[0][2]);
-	  //   fprintf (stderr, "newG[0] = %16.8f %16.8f %16.8f\n",
-	  // 	     newG[0][0], newG[0][1], newG[0][2]);
-	  // }
-
+	  	  
           accepted.clear();
 	  vector<bool> acc(nw, false);
           for(int iw=0; iw<nw; ++iw) {
 	    PosType drOld = 
 	      newpos[iw] - (W[iw]->R[iat] + oldScale[iw]*oldG[iw]);
-	    //RealType logGf = -m_oneover2tau * dot(drOld, drOld);
-	    RealType logGf = -0.5*dot(delpos[iw],delpos[iw]);			  
+	    if (dot(drOld, drOld) > 25.0)
+	      cerr << "Large drift encountered!  Old drift = " << drOld << endl;
+	    RealType logGf = -m_oneover2tau * dot(drOld, drOld);
 	    newScale[iw]   = getDriftScale(m_tauovermass,newG[iw]);
-	    newScale[iw] = 0.5*Tau;
 	    PosType drNew  = 
 	      (newpos[iw] + newScale[iw]*newG[iw]) - W[iw]->R[iat];
-	    RealType logGb = -m_oneover2tau * dot(drNew, drNew);
-	    // cerr << "dotold = " << dot(drOld, drOld) << endl;	    
-	    // cerr << "dotnew = " << dot(drNew, drNew) << endl;
-	    RealType prob  = ratios[iw]*ratios[iw] * std::exp(std::sqrt(std::sqrt(2.0))*(logGb-logGf));
+	    if (dot(drNew, drNew) > 25.0)
+	      cerr << "Large drift encountered!  Drift = " << drNew << endl;
+	    RealType logGb =  -m_oneover2tau * dot(drNew, drNew);
+	    RealType x = logGb - logGf;
+	    RealType prob = ratios[iw]*ratios[iw]*std::exp(x);
 	    
             if(Random() < prob) {
               accepted.push_back(W[iw]);
@@ -270,10 +231,6 @@ namespace qmcplusplus {
       ++block;
       
       recordBlock(block);
-
-      clock_t block_end = clock();
-      double block_time = (double)(block_end-block_start)/CLOCKS_PER_SEC;
-      
     } while(block<nBlocks);
     //finalize a qmc section
     return finalize(block);
@@ -288,6 +245,8 @@ namespace qmcplusplus {
     SpeciesSet tspecies(W.getSpeciesSet());
     int massind=tspecies.addAttribute("mass");
     RealType mass = tspecies(massind,0);
+    /// HACK HACK HACK
+    mass = 1.0;
     RealType oneovermass = 1.0/mass;
     RealType oneoversqrtmass = std::sqrt(oneovermass);
     m_oneover2tau = 0.5*mass/Tau;

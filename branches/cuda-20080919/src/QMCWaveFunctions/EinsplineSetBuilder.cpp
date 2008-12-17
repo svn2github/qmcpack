@@ -879,7 +879,7 @@ namespace qmcplusplus {
       int ti = DistinctTwists[i];
       PosType twist = TwistAngles[ti];
       for (int j=0; j<OHMMS_DIM; j++)
-	if (std::fabs(twist[j]-0.5) > 1.0e-8 &&
+	if (std::fabs(twist[j]-0.0) > 1.0e-8 &&
 	    std::fabs(twist[j]-0.5) > 1.0e-8 &&
 	    std::fabs(twist[j]+0.5) > 1.0e-8)
 	  UseRealOrbitals = false;
@@ -890,10 +890,6 @@ namespace qmcplusplus {
 		<< "      with more than one twist angle.\n";
       UseRealOrbitals = false;
     }
-
-    // UseRealOrbitals = (DistinctTwists.size() == 1) && 
-    //   (dot(TwistAngles[DistinctTwists[0]], 
-    // 	   TwistAngles[DistinctTwists[0]]) < 1.0e-10);
     
     if (UseRealOrbitals) 
       app_log() << "Using real orbitals.\n";
@@ -1433,10 +1429,6 @@ namespace qmcplusplus {
 	      }
 	    }
 	  }
-	  // for (int ix=0; ix<(nx-1); ix++)
-	  //   for (int iy=0; iy<(ny-1); iy++)
-	  //     for (int iz=0; iz<(nz-1); iz++)
-	  // 	splineData(ix,iy,iz) = real(rawData(ix,iy,iz));
 	}
 	myComm->bcast(splineData);
 	set_multi_UBspline_3d_d 
