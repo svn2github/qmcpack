@@ -58,6 +58,11 @@ IF(QMC_CUDA)
    SET(JASTROW_SRCS ${JASTROW_SRCS}
        Jastrow/CudaSpline.cu
       )
+   IF(HAVE_EINSPLINE)
+      SET(FERMION_SRCS ${FERMION_SRCS}
+         EinsplineSetCuda.cu
+         )
+   ENDIF(HAVE_EINSPLINE)
 ENDIF(QMC_CUDA)
 
 # wavefunctions only availbale to 3-dim problems

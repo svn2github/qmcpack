@@ -183,6 +183,16 @@ namespace qmcplusplus {
   };
 
 
+  template<typename StoreType, typename CudaPrec> struct StorageTypeConverter;
+  template<> struct StorageTypeConverter<double,double>
+  {    typedef double CudaStorageType;         };
+  template<> struct StorageTypeConverter<double,float>
+  {    typedef float CudaStorageType;           };
+  template<> struct StorageTypeConverter<complex<double>,float>
+  {    typedef complex<float> CudaStorageType ; };
+  template<> struct StorageTypeConverter<complex<double>,complex<double> >
+  {    typedef complex<double> CudaStorageType; };
+
   
 
 
@@ -200,8 +210,9 @@ namespace qmcplusplus {
     // Type definitions //
     //////////////////////
     //typedef CrystalLattice<RealType,OHMMS_DIM> UnitCellType;
+    typedef typename StorageTypeConverter<StorageType,CUDA_PRECISION>::CudaStorageType CudaStorageType;
     typedef typename MultiOrbitalTraits<StorageType,OHMMS_DIM>::SplineType SplineType; 
-    typedef typename MultiOrbitalTraits<CUDA_PRECISION,OHMMS_DIM>::CudaSplineType CudaSplineType; 
+    typedef typename MultiOrbitalTraits<CudaStorageType,OHMMS_DIM>::CudaSplineType CudaSplineType; 
     typedef typename OrbitalSetTraits<StorageType>::ValueVector_t StorageValueVector_t;
     typedef typename OrbitalSetTraits<StorageType>::GradVector_t  StorageGradVector_t;
     typedef typename OrbitalSetTraits<StorageType>::HessVector_t  StorageHessVector_t;
@@ -223,23 +234,31 @@ namespace qmcplusplus {
 //     typedef typename OrbitalSetTraits<ReturnType >::GradMatrix_t  ReturnGradMatrix_t;
 //     typedef typename OrbitalSetTraits<ReturnType >::HessMatrix_t  ReturnHessMatrix_t;
        
-    /////////////////////////////
-    /// Orbital storage object //
-    /////////////////////////////
+    //////////////////////////////
+    /// Orbital storage objects //
+    //////////////////////////////
     SplineType *MultiSpline;
     CudaSplineType *CudaMultiSpline;
     // Temporary storage for Eispline calls
     StorageValueVector_t StorageValueVector, StorageLaplVector;
     StorageGradVector_t  StorageGradVector;
     StorageHessVector_t  StorageHessVector;
+    // Cuda equivalents of the above
+    cuda_vector<CudaStorageType> CudaValueVector, CudaGradLaplVector;
+    cuda_vector<CudaStorageType*> CudaValuePointers, CudaGradLaplPointers;
+    void resizeCuda(int numWalkers);
     // Temporary storage used when blending functions        
     StorageValueVector_t BlendValueVector, BlendLaplVector;   
     StorageGradVector_t BlendGradVector;
         
     // True if we should unpack this orbital into two copies
     vector<bool>         MakeTwoCopies;
+    // Cuda equivalent
+    cuda_vector<int> CudaMakeTwoCopies;
     // k-points for each orbital
     Vector<TinyVector<RealType,OHMMS_DIM> > kPoints;
+    // Cuda equivalent
+    cuda_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM > > CudakPoints;
 
     ///////////////////
     // Phase factors //
@@ -251,6 +270,8 @@ namespace qmcplusplus {
     // 0 if the twist is zero, 1 if the twist is G/2.
     TinyVector<int,OHMMS_DIM> HalfG;
 
+    void applyPhaseFactors (cuda_vector<CudaStorageType*> &storageVector,
+			    cuda_vector<CudaRealType*> &phi);
     ////////////
     // Timers //
     ////////////

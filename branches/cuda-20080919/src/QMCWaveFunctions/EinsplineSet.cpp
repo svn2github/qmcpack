@@ -21,8 +21,13 @@
   #include <mkl_vml.h>
 #endif
 
+void apply_phase_factors(float kPoints[], int makeTwoCopies[], 
+			 float pos[], float *phi_in[], float *phi_out[], 
+			 int num_splines, int num_walkers);
+
 namespace qmcplusplus {
-  
+ 
+  // Real CUDA routines
   inline void
   eval_multi_multi_UBspline_3d_cuda (multi_UBspline_3d_s_cuda *spline, 
 				     float *pos, float *phi[], int N)
@@ -49,6 +54,37 @@ namespace qmcplusplus {
     eval_multi_multi_UBspline_3d_d_vgl_cuda
       (spline, pos, Linv, phi, grad_lapl, N, row_stride);
   }
+
+  // Complex CUDA routines
+  inline void
+  eval_multi_multi_UBspline_3d_cuda (multi_UBspline_3d_c_cuda *spline, 
+				     float *pos, complex<float> *phi[], int N)
+  { eval_multi_multi_UBspline_3d_c_cuda  (spline, pos, phi, N); }
+
+  inline void
+  eval_multi_multi_UBspline_3d_cuda (multi_UBspline_3d_z_cuda *spline, 
+				     double *pos, complex<double> *phi[], 
+				     int N)
+  { eval_multi_multi_UBspline_3d_z_cuda  (spline, pos, phi, N); }
+
+
+  inline void eval_multi_multi_UBspline_3d_vgl_cuda 
+  (multi_UBspline_3d_c_cuda *spline, float *pos, float Linv[],
+   complex<float> *phi[], complex<float> *grad_lapl[], int N, int row_stride)
+  {
+    eval_multi_multi_UBspline_3d_c_vgl_cuda
+      (spline, pos, Linv, phi, grad_lapl, N, row_stride);
+  }
+
+  inline void eval_multi_multi_UBspline_3d_vgl_cuda 
+  (multi_UBspline_3d_z_cuda *spline, double *pos, double Linv[],
+   complex<double> *phi[], complex<double> *grad_lapl[], int N, int row_stride)
+  {
+    eval_multi_multi_UBspline_3d_z_vgl_cuda
+      (spline, pos, Linv, phi, grad_lapl, N, row_stride);
+  }
+
+
 
 
   EinsplineSet::UnitCellType
@@ -1082,6 +1118,17 @@ namespace qmcplusplus {
   //////////////////////////////////////////////
   // Vectorized evaluation routines using GPU //
   //////////////////////////////////////////////
+
+  template<typename T> void
+  EinsplineSetExtended<T>::applyPhaseFactors
+  (cuda_vector<CudaStorageType*> &storageVector,
+   cuda_vector<CudaRealType*> &phi)
+  {
+    
+
+  }
+
+
   template<> void 
   EinsplineSetExtended<double>::evaluate 
   (vector<Walker_t*> &walkers, int iat,
@@ -1116,6 +1163,9 @@ namespace qmcplusplus {
   {
     int N = walkers.size();
 
+    if (CudaValuePointers.size() < N)
+      resizeCuda(N);
+
     if (cudaPos.size() < N) {
       hostPos.resize(N);
       cudaPos.resize(N);
@@ -1131,8 +1181,20 @@ namespace qmcplusplus {
 
     cudaPos = hostPos;
 
-    // eval_multi_multi_UBspline_3d_c_cuda 
-    //   (CudaMultiSpline, (float*)&(cudaPos[0]), &(phi[0]), N);
+    eval_multi_multi_UBspline_3d_cuda 
+      (CudaMultiSpline, (float*)cudaPos.data(), CudaValuePointers.data(), N);
+
+    // Now, add on phases
+    for (int iw=0; iw < N; iw++) 
+      hostPos[iw] = walkers[iw]->R[iat];
+    cudaPos = hostPos;
+
+    apply_phase_factors ((CUDA_PRECISION*) CudakPoints.data(),
+			 CudaMakeTwoCopies.data(),
+			 (CUDA_PRECISION*)cudaPos.data(),
+			 (CUDA_PRECISION**)CudaValuePointers.data(),
+			 phi.data(), CudaMultiSpline->num_splines, 
+			 walkers.size());
   }
 
 
@@ -1164,12 +1226,44 @@ namespace qmcplusplus {
     //app_log() << "End EinsplineSet CUDA evaluation\n";
   }
 
+  template<typename T> void
+  EinsplineSetExtended<T>::resizeCuda(int numWalkers)
+  {
+    CudaValuePointers.resize(numWalkers);
+    CudaGradLaplPointers.resize(numWalkers);
+    int N = CudaMultiSpline->num_splines;
+    CudaValueVector.resize(N*numWalkers);
+    CudaGradLaplVector.resize(4*N*numWalkers);
+    host_vector<CudaStorageType*> hostValuePointers(numWalkers);
+    host_vector<CudaStorageType*> hostGradLaplPointers(numWalkers);
+    for (int i=0; i<numWalkers; i++) {
+      hostValuePointers[i] = &(CudaValueVector[i*N]);
+      hostGradLaplPointers[i] = &(CudaGradLaplVector[i*N]);
+    }
+    CudaValuePointers    = hostValuePointers;
+    CudaGradLaplPointers = hostGradLaplPointers;
+
+    CudaMakeTwoCopies.resize(N);
+    host_vector<int> hostMakeTwoCopies(N);
+    for (int i=0; i<N; i++)
+      hostMakeTwoCopies[i] = MakeTwoCopies[i];
+    CudaMakeTwoCopies = hostMakeTwoCopies;
+
+    host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > hostkPoints(N);
+    for (int i=0; i<N; i++)
+      for (int j=0; j<OHMMS_DIM; j++)
+	hostkPoints[i][j] = kPoints[i][j];
+    CudakPoints = hostkPoints;
+  }
+
   template<> void 
   EinsplineSetExtended<complex<double> >::evaluate 
   (vector<Walker_t*> &walkers, vector<PosType> &newpos,
    cuda_vector<CudaRealType*> &phi)
   {
     int N = walkers.size();
+    if (CudaValuePointers.size() < N)
+      resizeCuda(N);
 
     if (cudaPos.size() < N) {
       hostPos.resize(N);
@@ -1185,9 +1279,22 @@ namespace qmcplusplus {
     }
 
     cudaPos = hostPos;
+    
+    eval_multi_multi_UBspline_3d_cuda 
+      (CudaMultiSpline, (float*)cudaPos.data(), CudaValuePointers.data(), N);
+    
+    // Now, add on phases
+    for (int iw=0; iw < N; iw++) 
+      hostPos[iw] = newpos[iw];
+    cudaPos = hostPos;
+    
+    apply_phase_factors ((CUDA_PRECISION*) CudakPoints.data(),
+			 CudaMakeTwoCopies.data(),
+			 (CUDA_PRECISION*)cudaPos.data(),
+			 (CUDA_PRECISION**)CudaValuePointers.data(),
+			 phi.data(), CudaMultiSpline->num_splines, 
+			 walkers.size());
 
-    // eval_multi_multi_UBspline_3d_c_cuda 
-    //   (CudaMultiSpline, (float*)&(cudaPos[0]), &(phi[0]), N);
   }
 
   template<> void
@@ -1233,6 +1340,8 @@ namespace qmcplusplus {
    int row_stride)
   {
     int N = walkers.size();
+    if (CudaValuePointers.size() < N)
+      resizeCuda(N);
 
     if (cudaPos.size() < N) {
       hostPos.resize(N);
@@ -1246,9 +1355,22 @@ namespace qmcplusplus {
       ru[2] -= std::floor (ru[2]);
       hostPos[iw] = ru;
     }
+
+    eval_multi_multi_UBspline_3d_c_vgl_cuda
+      (CudaMultiSpline, (float*)cudaPos.data(),  Linv_cuda.data(), CudaValuePointers.data(), 
+       CudaGradLaplPointers.data(), N, row_stride);
     
-    app_error() << "EinsplineSetExtended<complex<double> >::evaluate not yet implemented.\n";
-    abort();
+    // Now, add on phases
+    for (int iw=0; iw < N; iw++) 
+      hostPos[iw] = newpos[iw];
+    cudaPos = hostPos;
+    
+    apply_phase_factors ((CUDA_PRECISION*) CudakPoints.data(),
+			 CudaMakeTwoCopies.data(),
+			 (CUDA_PRECISION*)cudaPos.data(),
+			 (CUDA_PRECISION**)CudaValuePointers.data(),
+			 phi.data(), CudaMultiSpline->num_splines, 
+			 walkers.size());
   }
 
 
@@ -1290,9 +1412,36 @@ namespace qmcplusplus {
   EinsplineSetExtended<complex<double> >::evaluate 
   (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
   { 
-    app_error() << "EinsplineSetExtended<complex<double> >::evaluate "
-		<< "not yet implemented.\n";
-    abort();
+    int N = pos.size();
+    if (cudaPos.size() < N) {
+      hostPos.resize(N);
+      cudaPos.resize(N);
+    }
+    for (int iw=0; iw < N; iw++) {
+      PosType r = pos[iw];
+      PosType ru(PrimLattice.toUnit(r));
+      ru[0] -= std::floor (ru[0]);
+      ru[1] -= std::floor (ru[1]);
+      ru[2] -= std::floor (ru[2]);
+      hostPos[iw] = ru;
+    }
+
+    cudaPos = hostPos;
+    eval_multi_multi_UBspline_3d_cuda 
+      (CudaMultiSpline, (CUDA_PRECISION*) cudaPos.data(), 
+       CudaValuePointers.data(), N);
+    
+    // Now, add on phases
+    for (int iw=0; iw < N; iw++) 
+      hostPos[iw] = pos[iw];
+    cudaPos = hostPos;
+    
+    apply_phase_factors ((CUDA_PRECISION*) CudakPoints.data(),
+			 CudaMakeTwoCopies.data(),
+			 (CUDA_PRECISION*)cudaPos.data(),
+			 (CUDA_PRECISION**)CudaValuePointers.data(),
+			 phi.data(), CudaMultiSpline->num_splines, 
+			 N);
   }
 
   template<> void 
