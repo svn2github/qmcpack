@@ -14,20 +14,20 @@
 //   Materials Computation Center, UIUC
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
-#ifndef QMCPLUSPLUS_VMC_CUDA_H
-#define QMCPLUSPLUS_VMC_CUDA_H
+#ifndef QMCPLUSPLUS_DMC_CUDA_H
+#define QMCPLUSPLUS_DMC_CUDA_H
 #include "QMCDrivers/QMCDriver.h" 
 namespace qmcplusplus {
 
   class QMCUpdateBase;
 
   /** @ingroup QMCDrivers  PbyP
-   *@brief Implements the VMC algorithm using particle-by-particle move. 
+   *@brief Implements the DMC algorithm using particle-by-particle move. 
    */
-  class VMCcuda: public QMCDriver {
+  class DMCcuda: public QMCDriver {
   public:
     /// Constructor.
-    VMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h);
+    DMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h);
     bool run();
     bool put(xmlNodePtr cur);
  
@@ -39,9 +39,9 @@ namespace qmcplusplus {
     ///period for walker dump
     int myPeriod4WalkerDump;
     /// Copy Constructor (disabled)
-    VMCcuda(const VMCcuda& a): QMCDriver(a) { }
+    DMCcuda(const DMCcuda& a): QMCDriver(a) { }
     /// Copy operator (disabled).
-    VMCcuda& operator=(const VMCcuda&) { return *this;}
+    DMCcuda& operator=(const DMCcuda&) { return *this;}
     ///hide initialization from the main function
     void resetRun();
   };
@@ -49,7 +49,7 @@ namespace qmcplusplus {
 
 #endif
 /***************************************************************************
- * $RCSfile: VMCcuda.h,v $   $Author: jnkim $
+ * $RCSfile: DMCcuda.h,v $   $Author: jnkim $
  * $Revision: 1.5 $   $Date: 2006/07/17 14:29:40 $
- * $Id: VMCcuda.h,v 1.5 2006/07/17 14:29:40 jnkim Exp $ 
+ * $Id: DMCcuda.h,v 1.5 2006/07/17 14:29:40 jnkim Exp $ 
  ***************************************************************************/

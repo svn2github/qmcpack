@@ -191,14 +191,14 @@ namespace qmcplusplus {
           for(int iw=0; iw<nw; ++iw) {
 	    PosType drOld = 
 	      newpos[iw] - (W[iw]->R[iat] + oldScale[iw]*oldG[iw]);
-	    if (dot(drOld, drOld) > 25.0)
-	      cerr << "Large drift encountered!  Old drift = " << drOld << endl;
+	    // if (dot(drOld, drOld) > 25.0)
+	    //   cerr << "Large drift encountered!  Old drift = " << drOld << endl;
 	    RealType logGf = -m_oneover2tau * dot(drOld, drOld);
 	    newScale[iw]   = getDriftScale(m_tauovermass,newG[iw]);
 	    PosType drNew  = 
 	      (newpos[iw] + newScale[iw]*newG[iw]) - W[iw]->R[iat];
-	    if (dot(drNew, drNew) > 25.0)
-	      cerr << "Large drift encountered!  Drift = " << drNew << endl;
+	    // if (dot(drNew, drNew) > 25.0)
+	    //   cerr << "Large drift encountered!  Drift = " << drNew << endl;
 	    RealType logGb =  -m_oneover2tau * dot(drNew, drNew);
 	    RealType x = logGb - logGf;
 	    RealType prob = ratios[iw]*ratios[iw]*std::exp(x);
@@ -245,8 +245,6 @@ namespace qmcplusplus {
     SpeciesSet tspecies(W.getSpeciesSet());
     int massind=tspecies.addAttribute("mass");
     RealType mass = tspecies(massind,0);
-    /// HACK HACK HACK
-    mass = 1.0;
     RealType oneovermass = 1.0/mass;
     RealType oneoversqrtmass = std::sqrt(oneovermass);
     m_oneover2tau = 0.5*mass/Tau;
