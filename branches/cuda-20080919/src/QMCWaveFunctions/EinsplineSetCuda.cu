@@ -163,7 +163,19 @@ void phase_factor_kernel (T kPoints[], int makeTwoCopies[],
       in_shared[dim+1][2*tid+0] = gre*c - gim*s;
       in_shared[dim+1][2*tid+1] = gre*s + gim*c;
     }
-
+    // Add phase contribution to laplacian
+    T k2 = (kPoints_s[tid][0]*kPoints_s[tid][0] + 
+	    kPoints_s[tid][1]*kPoints_s[tid][1] + 
+	    kPoints_s[tid][2]*kPoints_s[tid][2]);
+    T lre = laplu_re - k2*u_re + 2.0*(kPoints_s[tid][0]*gradu_im[0]+
+				      kPoints_s[tid][1]*gradu_im[1]+
+				      kPoints_s[tid][2]*gradu_im[2]);
+    T lim = laplu_im - k2*u_im - 2.0*(kPoints_s[tid][0]*gradu_re[0]+
+				      kPoints_s[tid][1]*gradu_re[1]+
+				      kPoints_s[tid][2]*gradu_re[2]);
+    in_shared[4][2*tid+0] = lre*c - lim*s;
+    in_shared[4][2*tid+1] = lre*s + lim*c;
+    
     // Load makeTwoCopies with coallesced reads
     if (block*BS+tid < num_splines)
       m2c[tid] = makeTwoCopies[block*BS + tid];

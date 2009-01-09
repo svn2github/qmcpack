@@ -1247,10 +1247,7 @@ namespace qmcplusplus {
 
     CudakPoints.resize(N);
     host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > hostkPoints(N);
-    //    fprintf (stderr, "Sending kPoints to GPU.\n");
     for (int i=0; i<N; i++) {
-//       app_log() <<  kPoints[i][0] << " " << kPoints[i][1] 
-// 		<< " " << kPoints[i][2] << endl;
       for (int j=0; j<OHMMS_DIM; j++)
 	hostkPoints[i][j] = kPoints[i][j];
     }
@@ -1342,8 +1339,9 @@ namespace qmcplusplus {
    int row_stride)
   {
     //    app_log() << "Eval 3.\n";
-    //app_log() << "CudakPoints.size() = " << CudakPoints.size() << endl;
     int N = walkers.size();
+    int M = CudaMultiSpline->num_splines;
+
     if (CudaValuePointers.size() < N)
       resizeCuda(N);
 
@@ -1366,21 +1364,30 @@ namespace qmcplusplus {
       (CudaMultiSpline, (float*)cudaPos.data(),  Linv_cuda.data(), CudaValuePointers.data(), 
        CudaGradLaplPointers.data(), N, CudaMultiSpline->num_splines);
 
-//     complex<double> cpuSpline[CudaMultiSpline->num_splines];
-//     eval_multi_UBspline_3d_z (MultiSpline, hostPos[0][0], hostPos[0][1], hostPos[0][2],
-// 			      cpuSpline);
 
-//     host_vector<CudaStorageType*> pointers;
-//     pointers = CudaValuePointers;
-//     complex<float> gpuSpline[CudaMultiSpline->num_splines];
-//     cudaMemcpy(gpuSpline, pointers[0], 
-// 	       CudaMultiSpline->num_splines * sizeof(complex<float>), cudaMemcpyDeviceToHost);
+    // DEBUG
+  //   TinyVector<double,OHMMS_DIM> r(hostPos[0][0], hostPos[0][1], hostPos[0][2]);
+  //   Vector<complex<double > > psi(M);
+  //   Vector<TinyVector<complex<double>,3> > grad(M);
+  //   Vector<Tensor<complex<double>,3> > hess(M);
+  //   EinsplineMultiEval (MultiSpline, r, psi, grad, hess);
+      
+  //   // complex<double> cpuSpline[M];
+  //   // TinyVector<complex<double>,OHMMS_DIM> complex<double> cpuGrad[M];
+  //   // Tensor cpuHess[M];
+  //   // eval_multi_UBspline_3d_z_vgh (MultiSpline, hostPos[0][0], hostPos[0][1], hostPos[0][2],
+  //   // 				  cpuSpline);
 
-//     for (int i=0; i<CudaMultiSpline->num_splines; i++)
-//       fprintf (stderr, "%10.6f %10.6f   %10.6f %10.6f\n",
-// 	       cpuSpline[i].real(), gpuSpline[i].real(),
-// 	       cpuSpline[i].imag(), gpuSpline[i].imag());
+  //   host_vector<CudaStorageType*> pointers;
+  //   pointers = CudaGradLaplPointers;
+  //   complex<float> gpuSpline[4*M];
+  //   cudaMemcpy(gpuSpline, pointers[0], 
+  // 	       4*M * sizeof(complex<float>), cudaMemcpyDeviceToHost);
 
+  // for (int i=0; i<M; i++)
+  //   fprintf (stderr, "%10.6f %10.6f   %10.6f %10.6f\n",
+  // 	     trace(hess[i],GGt).real(), gpuSpline[3*M+i].real(),
+  // 	     trace(hess[i], GGt).imag(), gpuSpline[3*M+i].imag());
 
     // Now, add on phases
     for (int iw=0; iw < N; iw++) 
@@ -1393,14 +1400,6 @@ namespace qmcplusplus {
 			 (CUDA_PRECISION**)CudaValuePointers.data(), phi.data(), 
 			 (CUDA_PRECISION**)CudaGradLaplPointers.data(), grad_lapl.data(),
 			 CudaMultiSpline->num_splines,  walkers.size(), row_stride);
-
-
-    // apply_phase_factors ((CUDA_PRECISION*) CudakPoints.data(),
-    // 			 CudaMakeTwoCopies.data(),
-    // 			 (CUDA_PRECISION*)cudaPos.data(),
-    // 			 (CUDA_PRECISION**)CudaValuePointers.data(),
-    // 			 phi.data(), CudaMultiSpline->num_splines, 
-    // 			 walkers.size());
   }
 
 
