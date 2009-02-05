@@ -51,11 +51,9 @@ public:
   pointer allocate(size_type s, cuda_allocator<void>::const_pointer hint = 0)
   {
 #ifdef QMC_CUDA 
-    //fprintf (stderr, "Allocating %ld bytes on GPU card.\n", s*sizeof(T));
     if (s) {
       pointer mem;
       cudaMalloc ((void**)&mem, s*sizeof(T));
-      
       //fprintf (stderr, "mem = %p\n", mem);
       cudaError_t err = cudaGetLastError();
       if (err != cudaSuccess) {
@@ -100,25 +98,33 @@ template<typename T> class host_vector;
 template<typename T>
 class cuda_vector : public std::vector<T, cuda_allocator<T> >
 {
+private:
+  size_t mySize;
+
 public:
   cuda_vector() : std::vector<T, cuda_allocator<T> >()
   {
-
+    mySize = 0;
   }
 
   cuda_vector(int size) : 
-    std::vector<T, cuda_allocator<T> > (size)
-  {  }
+    std::vector<T, cuda_allocator<T> > ()
+  { resize(size); }
 
   cuda_vector(const host_vector<T> &vec);
 
   void resize (size_t size)
   {
-    std::vector<T,cuda_allocator<T> >::resize(size);
+    //std::vector<T,cuda_allocator<T> >::resize(size);
+    std::vector<T,cuda_allocator<T> >::reserve(size);
+    mySize = size;
 #ifdef QMC_CUDA
     cudaMemset((void*)data(), 0, this->size()*sizeof(T));
 #endif
   }
+
+  inline size_t size() const
+  { return mySize;  }
 
   cuda_vector(const cuda_vector<T> &vec) :
     std::vector<T, cuda_allocator<T> > ()
