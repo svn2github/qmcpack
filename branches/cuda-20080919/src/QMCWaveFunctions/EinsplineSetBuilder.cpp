@@ -309,6 +309,7 @@ namespace qmcplusplus {
     if(myComm->rank())
     {
       abuffer.rewind();
+      aibuffer.rewind();
       aibuffer.get(Version.begin(),Version.end());
       abuffer.get(Lattice.begin(),Lattice.end());
       abuffer.get(RecipLattice.begin(),RecipLattice.end());
@@ -357,7 +358,7 @@ namespace qmcplusplus {
     if (TwistAngles.size() != NumTwists) TwistAngles.resize(NumTwists);
     bbuffer.add(&TwistAngles[0][0],&TwistAngles[0][0]+OHMMS_DIM*NumTwists);
     //myComm->bcast(TwistAngles);
-    
+
     bibuffer.add(HaveLocalizedOrbs);
     //myComm->bcast(HaveLocalizedOrbs);
 
@@ -375,8 +376,7 @@ namespace qmcplusplus {
     myComm->bcast(bbuffer);
     myComm->bcast(bibuffer);
 
-    if(myComm->rank())
-    {
+    if(myComm->rank()) {
       bbuffer.rewind();
       for(int i=0; i<numIons; ++i) bibuffer.get(IonTypes[i]);
       bbuffer.get(&IonPos[0][0],&IonPos[0][0]+OHMMS_DIM*numIons);
