@@ -22,6 +22,28 @@
 #include "Platforms/sysutil.h"
 #include "OhmmsApp/ProjectData.h"
 #include "QMCApp/QMCMain.h"
+#ifdef QMC_CUDA
+  #include <cuda_runtime_api.h>
+#endif
+
+
+void Init_CUDA(int rank, int size)
+{
+#ifdef QMC_CUDA
+  int numGPUs;
+  cudaGetDeviceCount(&numGPUs);
+  cerr << "There are " << numGPUs << " GPUs.";
+  cerr << "Size = " << size << endl;
+  int chunk = size/numGPUs;
+  //  int device_num = rank % numGPUs;
+  int device_num = rank * numGPUs / size;
+  cerr << "My device number is " << device_num << endl;
+  cudaSetDevice (device_num);
+#else
+  cerr << "Flag \"--gpu\" used, but QMC_CUDA was not set at build time.\n";
+  abort();
+#endif
+}
 
 
 /** @file qmcapp.cpp
@@ -41,11 +63,14 @@ int main(int argc, char **argv) {
   //check the options first
   int clones=1;
   vector<string> fgroup1,fgroup2;
+  bool useGPU = false;
   int i=1;
   while(i<argc)
   {
     string c(argv[i]);
-    if(c.find("clones")<c.size())
+    if (c.find("--gpu") < c.size()) 
+      useGPU = true;
+    else if(c.find("clones")<c.size())
     {
       clones=atoi(argv[++i]);
     }
@@ -97,6 +122,10 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  if (useGPU)
+    Init_CUDA(OHMMS::Controller->rank(),
+	      OHMMS::Controller->size());
+
   //safe to move on
   Communicate* qmcComm=OHMMS::Controller;
   if(inputs.size()>1)
@@ -128,6 +157,7 @@ int main(int argc, char **argv) {
   OHMMS::Controller->finalize();
   return 0;
 }
+
 /***************************************************************************
  * $RCSfile$   $Author$
  * $Revision$   $Date$
