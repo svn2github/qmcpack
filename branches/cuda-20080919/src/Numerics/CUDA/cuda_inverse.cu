@@ -587,6 +587,31 @@ convert (Tdest *dest_list[], Tsrc *src_list[], int len)
 }
 
 
+template<typename Tdest, typename Tsrc>
+__global__ void
+convert (Tdest *dest_list[], Tsrc *src_list[], 
+	 int dest_rows, int dest_cols, int dest_rowstride,
+	 int src_rows,  int src_cols,  int src_rowstride)
+{
+  __shared__ Tsrc *mysrc;
+  __shared__ Tdest *mydest;
+  if (threadIdx.x ==0) {
+    mysrc = src_list[blockIdx.y];
+    mydest = dest_list[blockIdx.y];
+  }
+  __syncthreads();
+  int i = blockIdx.x * CONVERT_BS + threadIdx.x;
+  int row = i / dest_rowstride;
+  int col = i - row*dest_rowstride;
+  if (row < dest_rows) {
+    if (col < src_cols && row < src_rows)
+      mydest[i] = (Tdest)mysrc[row*src_rowstride + col];
+    else
+      mydest[i] = (row == col) ? (Tdest)1.0 : (Tdest)0.0;
+  }
+}
+
+
 
 
 
@@ -607,14 +632,16 @@ cuda_inverse_many (float *Alist_d[], float *worklist_d[],
 size_t
 cuda_inverse_many_worksize(int N)
 {
-  return (N*N + INVERSE_BS*INVERSE_BS);
+  return (N * N + INVERSE_BS*INVERSE_BS);
 }
 
 
 size_t
 cuda_inverse_many_double_worksize(int N)
 {
-  return 2*(2*N*N + INVERSE_BS*INVERSE_BS);
+  int N_double = ((N+INVERSE_BS-1)/INVERSE_BS) * INVERSE_BS;
+  
+  return 2*(2*N_double*N_double + INVERSE_BS*INVERSE_BS);
 }
 
 void
@@ -671,6 +698,78 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
     (Alist_d, (double**) worklist_d, N*N);
 
 }
+
+
+void
+cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
+			  int N, int row_stride, int num_mats)
+{
+  int N_double = ((N + INVERSE_BS-1)/INVERSE_BS)*INVERSE_BS;
+  fprintf (stderr, "N_double = %d\n", N_double);
+  
+  dim3 dimBlockConvert (CONVERT_BS);
+  dim3 dimGridConvert((N_double*N_double+(CONVERT_BS-1))/CONVERT_BS, 
+		      num_mats);
+  convert<<<dimGridConvert,dimBlockConvert>>> 
+    ((double**)worklist_d, Alist_d, 
+     N_double, N_double, N_double,
+     N, N, row_stride);
+
+  // We need to replace the pointers to the single-precision A
+  // with the double-precision version we just converted.  We
+  // Also need generate a new set of workspace pointers to point
+  // to the region after the double-precision A.
+
+  float *Alist_new[num_mats], *Alist_h[num_mats];
+  float *worklist_h[num_mats];
+  double *worklist_double_h[num_mats];
+
+  // Save the original pointer lists on the host
+  cudaMemcpy (worklist_h, worklist_d, num_mats*sizeof(float*),
+	      cudaMemcpyDeviceToHost);
+  cudaMemcpy (Alist_h, Alist_d, num_mats*sizeof(float*),
+	      cudaMemcpyDeviceToHost);
+
+  // Create new pointers as discussed above
+  for (int i=0; i<num_mats; i++) {
+    Alist_new[i] = worklist_h[i];
+    worklist_double_h[i] = (double*)(worklist_h[i]) +N_double*N_double;
+  }
+  cudaMemcpy (worklist_d, worklist_double_h, num_mats*sizeof(double*),
+	      cudaMemcpyHostToDevice);
+  cudaMemcpy (Alist_d, Alist_new, num_mats*sizeof(double*),
+	      cudaMemcpyHostToDevice);
+
+
+  // Do the inversion in double-precision
+  dim3 dimBlock(INVERSE_BS,2);
+  dim3 dimGrid(num_mats);
+  
+  inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+    ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in inverse_many_pivot<double,%d>:\n  %s\n",
+	     INVERSE_BS, cudaGetErrorString(err));
+    abort();
+  }
+
+  // Copy original pointer lists back to device
+  cudaMemcpy (Alist_d, Alist_h, num_mats*sizeof(float*),
+	      cudaMemcpyHostToDevice);
+
+  cudaMemcpy (worklist_d, worklist_h, num_mats*sizeof(float*),
+	      cudaMemcpyHostToDevice);
+
+  // Convert back to single precision.
+  convert<<<dimGridConvert,dimBlockConvert>>> 
+    (Alist_d, (double**) worklist_d, 
+     N, N, row_stride,
+     N_double, N_double, N_double);
+}
+
 
 
 
@@ -914,14 +1013,94 @@ test_inverse_many_double()
 
 
 
+void 
+test_inverse_many_double_conv()
+{
+  int numMats = 1000;
+
+  int N = 125;
+  int row_stride = 128;
+
+  int lwork = cuda_inverse_many_double_worksize(N);
+  fprintf (stderr, "lwork = %d\n", lwork);
+
+  float **Alist, **worklist;
+  float **Alist_d, **worklist_d;
+
+  Alist    = (float**)malloc(numMats*sizeof(float*));
+  worklist = (float**)malloc(numMats*sizeof(float*));
+  cudaMalloc((void**)&Alist_d,    numMats*sizeof(float*));
+  cudaMalloc((void**)&worklist_d, numMats*sizeof(float*));
+
+  float A[N*row_stride];
+  for (int i=0; i<N*row_stride; i++)
+    A[i] = drand48();
+
+  for (int mat=0; mat<numMats; mat++) {
+    cudaMalloc ((void**)&(Alist[mat]),    N*row_stride*sizeof(float));
+    cudaMalloc ((void**)&(worklist[mat]), lwork*sizeof(float));
+    cudaMemcpy(Alist[mat], A, N*row_stride*sizeof(float), cudaMemcpyHostToDevice);
+  }
+  
+  cudaMemcpy(Alist_d   ,    Alist, numMats*sizeof(float*), 
+	     cudaMemcpyHostToDevice);
+  cudaMemcpy(worklist_d, worklist, numMats*sizeof(float*), 
+	     cudaMemcpyHostToDevice);
+  
+  dim3 dimBlock(INVERSE_BS,2);
+  dim3 dimGrid(numMats);
+  
+  clock_t start = clock();
+  for (int i=0; i<1; i++) {
+    cuda_inverse_many_double (Alist_d, worklist_d, N, row_stride, numMats);
+    //    cuda_inverse_many_double (Alist_d, worklist_d, N, numMats);
+    cudaThreadSynchronize();
+  }
+
+  clock_t end = clock();
+  
+  double t = (double)(end-start)/(double)CLOCKS_PER_SEC / (double)numMats;
+  double rate = 1.0/t;
+  fprintf (stderr, "Rate is %1.3f matrix inversions per second.\n",
+	   rate);
+
+
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in block_inverse:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
+  // Copy Ainv back to host memory
+  float Ainv[N*row_stride];
+  cudaMemcpy(Ainv, Alist[10], N*row_stride*sizeof(float), cudaMemcpyDeviceToHost);
+
+  double error = 0.0;
+  for (int i=0; i<N; i++)
+    for (int j=0; j<N; j++) {
+      double val = 0.0;
+      for (int k=0; k<N; k++)
+	val += Ainv[i*row_stride+k]*A[k*row_stride+j];
+      double diff = (i==j) ? (1.0f-val) : val;
+      error += diff*diff;
+    }
+  fprintf (stderr, "error = %1.8e\n", sqrt(error/(double)(N*N)));
+
+}
+
+
+
+
 
 
 #include <stdio.h>
 
 main()
 {
-  test_inverse_many();
-  test_inverse_many_double();
+  //test_inverse_many();
+  test_inverse_many_double_conv();
+  //test_inverse_many_double();
 
   // int N=32;
   // float A[N*N], Acopy[N*N];
