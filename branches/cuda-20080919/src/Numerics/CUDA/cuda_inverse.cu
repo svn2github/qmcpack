@@ -461,7 +461,7 @@ inverse_many_pivot (T *A_list[], T *work_list[], int N, int stride)
       // invert pivot
       blockdet = block_inverse1<T,BS> (in);
       __syncthreads();
-      if (fabsf(blockdet) > fabs(maxdet)) {
+      if (fabs(blockdet) > fabs(maxdet)) {
       //if (block == kb) {
     	imax = block;
     	maxdet = blockdet;
@@ -705,7 +705,6 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
 			  int N, int row_stride, int num_mats)
 {
   int N_double = ((N + INVERSE_BS-1)/INVERSE_BS)*INVERSE_BS;
-  fprintf (stderr, "N_double = %d\n", N_double);
   
   dim3 dimBlockConvert (CONVERT_BS);
   dim3 dimGridConvert((N_double*N_double+(CONVERT_BS-1))/CONVERT_BS, 
@@ -745,8 +744,14 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
   dim3 dimBlock(INVERSE_BS,2);
   dim3 dimGrid(num_mats);
   
-  inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+  // This appears to cause NANs for certain matrix sizes on occasion.
+  // Check the pivoting algorithm.
+  // inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+  //   ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+  inverse_many<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
     ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+
+
 
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
@@ -763,8 +768,10 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
   cudaMemcpy (worklist_d, worklist_h, num_mats*sizeof(float*),
 	      cudaMemcpyHostToDevice);
 
+  dim3 dimGridConvert2((N*row_stride+(CONVERT_BS-1))/CONVERT_BS, num_mats);
+
   // Convert back to single precision.
-  convert<<<dimGridConvert,dimBlockConvert>>> 
+  convert<<<dimGridConvert2,dimBlockConvert>>> 
     (Alist_d, (double**) worklist_d, 
      N, N, row_stride,
      N_double, N_double, N_double);
@@ -1016,10 +1023,12 @@ test_inverse_many_double()
 void 
 test_inverse_many_double_conv()
 {
+  
+  srand48((long) 123934);
   int numMats = 1000;
 
-  int N = 125;
-  int row_stride = 128;
+  int N = 31;
+  int row_stride = 32;
 
   int lwork = cuda_inverse_many_double_worksize(N);
   fprintf (stderr, "lwork = %d\n", lwork);
