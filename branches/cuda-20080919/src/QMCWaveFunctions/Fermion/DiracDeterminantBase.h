@@ -185,7 +185,7 @@ namespace qmcplusplus {
     host_vector<CudaRealType> gradLapl_host;
     
     // Data members for nonlocal psuedopotential ratio evaluation
-    static const int NLrowBufferRows = 48000;
+    static const int NLrowBufferRows = 4800;
     cuda_vector<CudaRealType> NLrowBuffer_d;
     host_vector<CudaRealType> NLrowBuffer_host;
 

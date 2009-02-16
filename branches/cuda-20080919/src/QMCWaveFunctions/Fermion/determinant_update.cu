@@ -1206,8 +1206,10 @@ all_ratios_grad_lapl_kernel (T *Ainv_list[], T *grad_lapl_list[],
     //unsigned int yIndex = 4*yBlock*RATIO_BS + 4*threadIdx.y + threadIdx.x;
 
     unsigned int ix = 16*threadIdx.y + threadIdx.x;
+    
+    unsigned int yIndex = RATIO_BS * yBlock + (ix >> 2);
 
-    if (ix < 64) 
+    if (ix < 64 && yIndex < N) 
       out[64*yBlock + ix] = grad_lapl_block[ix&3][ix>>2][0];
     // IMPORTANT!!!
     __syncthreads();
