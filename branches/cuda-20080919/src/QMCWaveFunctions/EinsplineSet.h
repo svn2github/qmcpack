@@ -279,8 +279,10 @@ namespace qmcplusplus {
     NewTimer EinsplineTimer;
 
     // Data for vectorized evaluations
-    host_vector<CudaPosType> hostPos;
-    cuda_vector<CudaPosType> cudaPos;
+    host_vector<CudaPosType> hostPos, NLhostPos;
+    cuda_vector<CudaPosType> cudaPos, NLcudaPos;
+    host_vector<CudaRealType> hostSign, NLhostSign;
+    cuda_vector<CudaRealType> cudaSign, NLcudaSign;
     // This stores the inverse of the lattice vector matrix in
     // GPU memory.
     cuda_vector<CudaRealType> Linv_cuda;

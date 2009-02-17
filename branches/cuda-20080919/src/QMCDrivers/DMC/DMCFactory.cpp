@@ -20,15 +20,26 @@
 #if defined(ENABLE_OPENMP)
 #include "QMCDrivers/DMC/DMCOMP.h" 
 #endif
+
+#ifdef QMC_CUDA
+  #include "QMCDrivers/DMC/DMCcuda.h"
+#endif
+
 #include "Message/OpenMP.h"
 
 //#define PETA_DMC_TEST
 
 namespace qmcplusplus {
 
-  QMCDriver* DMCFactory::create(MCWalkerConfiguration& w, TrialWaveFunction& psi, 
-      QMCHamiltonian& h, HamiltonianPool& hpool) {
+  QMCDriver* 
+  DMCFactory::create(MCWalkerConfiguration& w, TrialWaveFunction& psi, 
+		     QMCHamiltonian& h, HamiltonianPool& hpool) 
+  {
     QMCDriver* qmc=0;
+
+    if (GPU)
+      return new DMCcuda (w, psi, h);
+    
 #if defined(PETA_DMC_TEST)
     qmc = new DMCPeta(w,psi,h);
 #else

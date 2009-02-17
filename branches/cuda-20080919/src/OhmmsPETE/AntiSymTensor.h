@@ -389,7 +389,7 @@ public:
 
   private:
 
-    mutable Type_t &elem_m;
+    /*mutable*/ Type_t &elem_m;
     mutable int where_m;
   };
 

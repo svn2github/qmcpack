@@ -117,6 +117,9 @@ namespace qmcplusplus {
 	}
 
 	//H.saveProperty (W);
+	// HACK HACK HACK
+	//Psi.recompute(W);
+
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
 	Estimators->accumulate(W);
@@ -216,7 +219,6 @@ namespace qmcplusplus {
 	  if (accepted.size())
 	    Psi.update(accepted,iat);
 	}
-
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
 	Estimators->accumulate(W);
@@ -262,6 +264,7 @@ namespace qmcplusplus {
       Walker_t &walker = *(W.WalkerList[iw]);
       pool.allocate(walker.cuda_DataSet);
     }
+    app_log() << "Successfully allocated walkers.\n";
     W.copyWalkersToGPU();
     W.updateLists_GPU();
     vector<RealType> logPsi(W.WalkerList.size(), 0.0);

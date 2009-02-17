@@ -33,10 +33,16 @@ void apply_phase_factors(float kPoints[], int makeTwoCopies[],
 namespace qmcplusplus {
  
   // Real CUDA routines
+//   inline void
+//   eval_multi_multi_UBspline_3d_cuda (multi_UBspline_3d_s_cuda *spline, 
+// 				     float *pos, float *phi[], int N)
+//   { eval_multi_multi_UBspline_3d_s_cuda  (spline, pos, phi, N); }
+
   inline void
   eval_multi_multi_UBspline_3d_cuda (multi_UBspline_3d_s_cuda *spline, 
-				     float *pos, float *phi[], int N)
-  { eval_multi_multi_UBspline_3d_s_cuda  (spline, pos, phi, N); }
+				     float *pos, float *sign, float *phi[], int N)
+  { eval_multi_multi_UBspline_3d_s_sign_cuda  (spline, pos, sign, phi, N); }
+
 
   inline void
   eval_multi_multi_UBspline_3d_cuda (multi_UBspline_3d_d_cuda *spline, 
@@ -44,13 +50,22 @@ namespace qmcplusplus {
   { eval_multi_multi_UBspline_3d_d_cuda  (spline, pos, phi, N); }
 
 
+//   inline void eval_multi_multi_UBspline_3d_vgl_cuda 
+//   (multi_UBspline_3d_s_cuda *spline, float *pos, float Linv[],
+//    float *phi[], float *grad_lapl[], int N, int row_stride)
+//   {
+//     eval_multi_multi_UBspline_3d_s_vgl_cuda
+//       (spline, pos, Linv, phi, grad_lapl, N, row_stride);
+//   }
+
   inline void eval_multi_multi_UBspline_3d_vgl_cuda 
-  (multi_UBspline_3d_s_cuda *spline, float *pos, float Linv[],
+  (multi_UBspline_3d_s_cuda *spline, float *pos, float *sign, float Linv[],
    float *phi[], float *grad_lapl[], int N, int row_stride)
   {
-    eval_multi_multi_UBspline_3d_s_vgl_cuda
-      (spline, pos, Linv, phi, grad_lapl, N, row_stride);
+    eval_multi_multi_UBspline_3d_s_vgl_sign_cuda
+      (spline, pos, sign, Linv, phi, grad_lapl, N, row_stride);
   }
+
 
   inline void eval_multi_multi_UBspline_3d_vgl_cuda 
   (multi_UBspline_3d_d_cuda *spline, double *pos, double Linv[],
@@ -1131,24 +1146,34 @@ namespace qmcplusplus {
   {
     // app_log() << "Start EinsplineSet CUDA evaluation\n";
     int N = walkers.size();
+    CudaRealType plus_minus[2] = {-1.0, 1.0};
     if (cudaPos.size() < N) {
       hostPos.resize(N);
       cudaPos.resize(N);
+      hostSign.resize(N);
+      cudaSign.resize(N);
     }
     for (int iw=0; iw < N; iw++) {
       PosType r = walkers[iw]->R[iat];
       PosType ru(PrimLattice.toUnit(r));
-      ru[0] -= std::floor (ru[0]);
-      ru[1] -= std::floor (ru[1]);
-      ru[2] -= std::floor (ru[2]);
-      hostPos[iw][0] = ru[0];
-      hostPos[iw][1] = ru[1];
-      hostPos[iw][2] = ru[2];
+      int image[OHMMS_DIM];
+      for (int i=0; i<OHMMS_DIM; i++) {
+	RealType img = std::floor(ru[i]);
+	ru[i] -= img;
+	image[i] = (int) img;
+      }
+      int sign = 0;
+      for (int i=0; i<OHMMS_DIM; i++) 
+	sign += HalfG[i] * image[i];
+      
+      hostSign[iw] = plus_minus[sign&1];
+      hostPos[iw] = ru;
     }
 
     cudaPos = hostPos;
+    cudaSign = hostSign;
     eval_multi_multi_UBspline_3d_cuda 
-      (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), phi.data(), N);
+      (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), cudaSign.data(), phi.data(), N);
   }
 
   template<> void 
@@ -1201,24 +1226,37 @@ namespace qmcplusplus {
   {
     // app_log() << "Start EinsplineSet CUDA evaluation\n";
     int N = newpos.size();
+    CudaRealType plus_minus[2] = {-1.0, 1.0};
+    
     if (cudaPos.size() < N) {
       hostPos.resize(N);
       cudaPos.resize(N);
+      hostSign.resize(N);
+      cudaSign.resize(N);
     }
+
     for (int iw=0; iw < N; iw++) {
       PosType r = newpos[iw];
       PosType ru(PrimLattice.toUnit(r));
-      ru[0] -= std::floor (ru[0]);
-      ru[1] -= std::floor (ru[1]);
-      ru[2] -= std::floor (ru[2]);
-      hostPos[iw][0] = ru[0];
-      hostPos[iw][1] = ru[1];
-      hostPos[iw][2] = ru[2];
+      int image[OHMMS_DIM];
+      for (int i=0; i<OHMMS_DIM; i++) {
+	RealType img = std::floor(ru[i]);
+	ru[i] -= img;
+	image[i] = (int) img;
+      }
+      int sign = 0;
+      for (int i=0; i<OHMMS_DIM; i++) 
+	sign += HalfG[i] * image[i];
+      
+      hostSign[iw] = plus_minus[sign&1];
+      hostPos[iw] = ru;
     }
 
     cudaPos = hostPos;
+    cudaSign = hostSign;
     eval_multi_multi_UBspline_3d_cuda 
-      (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), phi.data(), N);
+      (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), cudaSign.data(), 
+       phi.data(), N);
     //app_log() << "End EinsplineSet CUDA evaluation\n";
   }
 
@@ -1303,25 +1341,36 @@ namespace qmcplusplus {
    int row_stride)
   {
     int N = walkers.size();
-
+    CudaRealType plus_minus[2] = {-1.0, 1.0};
     if (cudaPos.size() < N) {
       hostPos.resize(N);
       cudaPos.resize(N);
+      hostSign.resize(N);
+      cudaSign.resize(N);
     }
     for (int iw=0; iw < N; iw++) {
       PosType r = newpos[iw];
       PosType ru(PrimLattice.toUnit(r));
-      ru[0] -= std::floor (ru[0]);
-      ru[1] -= std::floor (ru[1]);
-      ru[2] -= std::floor (ru[2]);
+      int image[OHMMS_DIM];
+      for (int i=0; i<OHMMS_DIM; i++) {
+	RealType img = std::floor(ru[i]);
+	ru[i] -= img;
+	image[i] = (int) img;
+      }
+      int sign = 0;
+      for (int i=0; i<OHMMS_DIM; i++) 
+	sign += HalfG[i] * image[i];
+      
+      hostSign[iw] = plus_minus[sign&1];
       hostPos[iw] = ru;
     }
     
     cudaPos = hostPos;
+    cudaSign = hostSign;
 
     eval_multi_multi_UBspline_3d_vgl_cuda
-      (CudaMultiSpline, (CudaRealType*)cudaPos.data(), Linv_cuda.data(), 
-       phi.data(), grad_lapl.data(), N, row_stride);
+      (CudaMultiSpline, (CudaRealType*)cudaPos.data(), cudaSign.data(), 
+       Linv_cuda.data(), phi.data(), grad_lapl.data(), N, row_stride);
 
     // host_vector<CudaRealType*> pointers;
     // pointers = phi;
@@ -1408,22 +1457,37 @@ namespace qmcplusplus {
   (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
   { 
     int N = pos.size();
+    CudaRealType plus_minus[2] = {-1.0, 1.0};
+
     if (cudaPos.size() < N) {
-      hostPos.resize(N);
-      cudaPos.resize(N);
+      NLhostPos.resize(N);
+      NLcudaPos.resize(N);
+      NLhostSign.resize(N);
+      NLcudaSign.resize(N);
     }
     for (int iw=0; iw < N; iw++) {
       PosType r = pos[iw];
       PosType ru(PrimLattice.toUnit(r));
-      ru[0] -= std::floor (ru[0]);
-      ru[1] -= std::floor (ru[1]);
-      ru[2] -= std::floor (ru[2]);
-      hostPos[iw] = ru;
+      int image[OHMMS_DIM];
+      for (int i=0; i<OHMMS_DIM; i++) {
+	RealType img = std::floor(ru[i]);
+	ru[i] -= img;
+	image[i] = (int) img;
+      }
+      int sign = 0;
+      for (int i=0; i<OHMMS_DIM; i++) 
+	sign += HalfG[i] * image[i];
+      
+      NLhostSign[iw] = plus_minus[sign&1];
+      //      cerr << "sign = " << sign << "  hostsign[iw] = " << hostSign[iw] << endl;
+      NLhostPos[iw] = ru;
     }
 
-    cudaPos = hostPos;
+    NLcudaPos  = NLhostPos;
+    NLcudaSign = NLhostSign;
     eval_multi_multi_UBspline_3d_cuda 
-      (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), phi.data(), N);    
+      (CudaMultiSpline, (CudaRealType*)(NLcudaPos.data()), 
+       NLcudaSign.data(), phi.data(), N);    
   }
 
   template<> void 

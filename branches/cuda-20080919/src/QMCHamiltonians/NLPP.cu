@@ -1,7 +1,7 @@
 template<typename T, int BS>
 __device__
-T min_dist (T x, T y, T z, 
-	    T L[3][3], T Linv[3][3], T images[27][3])
+T min_dist_all (T x, T y, T z, 
+		T L[3][3], T Linv[3][3], T images[27][3])
 {
   int tid = threadIdx.x;
 
@@ -272,9 +272,9 @@ find_core_electrons_kernel(T *R[], int numElec,
 	    // First, write quadrature points
 	    if (numQuadPoints + posIndex <= BS) {
 	      if (tid < numQuadPoints) {
-	    	blockPos[posIndex+tid][0] = i[ion][0] + dist[elec]*qp[tid][0];
-	    	blockPos[posIndex+tid][1] = i[ion][1] + dist[elec]*qp[tid][1];
-	    	blockPos[posIndex+tid][2] = i[ion][2] + dist[elec]*qp[tid][2];
+	    	blockPos[posIndex+tid][0] = r[elec][0] - disp[elec][0] /*i[ion][0]*/ + dist[elec]*qp[tid][0];
+		blockPos[posIndex+tid][1] = r[elec][1] - disp[elec][1] /*i[ion][1]*/ + dist[elec]*qp[tid][1];
+	    	blockPos[posIndex+tid][2] = r[elec][2] - disp[elec][2] /*i[ion][2]*/ + dist[elec]*qp[tid][2];
 		blockCosTheta[posIndex+tid] = 
 		  (disp[elec][0]*qp[tid][0] +
 		   disp[elec][1]*qp[tid][1] +
@@ -286,9 +286,9 @@ find_core_electrons_kernel(T *R[], int numElec,
 	      // Write whatever will fit in the shared buffer
 	      int numWrite = BS - posIndex;
 	      if (tid < numWrite) {
-	    	blockPos[posIndex+tid][0] = i[ion][0] + dist[elec]*qp[tid][0];
-	    	blockPos[posIndex+tid][1] = i[ion][1] + dist[elec]*qp[tid][1];
-	    	blockPos[posIndex+tid][2] = i[ion][2] + dist[elec]*qp[tid][2];
+	    	blockPos[posIndex+tid][0] = r[elec][0] - disp[elec][0] /*i[ion][0]*/ + dist[elec]*qp[tid][0];
+	    	blockPos[posIndex+tid][1] = r[elec][1] - disp[elec][1] /*i[ion][1]*/ + dist[elec]*qp[tid][1];
+	    	blockPos[posIndex+tid][2] = r[elec][2] - disp[elec][2] /*i[ion][2]*/ + dist[elec]*qp[tid][2];
 		blockCosTheta[posIndex+tid] = 
 		  (disp[elec][0]*qp[tid][0] +
 		   disp[elec][1]*qp[tid][1] +
@@ -304,9 +304,9 @@ find_core_electrons_kernel(T *R[], int numElec,
 	      __syncthreads();
 	      // Write the remainder into shared memory
 	      if (tid < (numQuadPoints - numWrite)) {
-	    	blockPos[tid][0] = i[ion][0] + dist[elec]*qp[tid+numWrite][0];
-	    	blockPos[tid][1] = i[ion][1] + dist[elec]*qp[tid+numWrite][1];
-	    	blockPos[tid][2] = i[ion][2] + dist[elec]*qp[tid+numWrite][2];
+	    	blockPos[tid][0] = r[elec][0] - disp[elec][0] /*i[ion][0]*/ + dist[elec]*qp[tid+numWrite][0];
+	    	blockPos[tid][1] = r[elec][1] - disp[elec][1] /*i[ion][1]*/ + dist[elec]*qp[tid+numWrite][1];
+	    	blockPos[tid][2] = r[elec][2] - disp[elec][2] /*i[ion][2]*/ + dist[elec]*qp[tid+numWrite][2];
 		blockCosTheta[tid] = 
 		  (disp[elec][0]*qp[tid+numWrite][0] +
 		   disp[elec][1]*qp[tid+numWrite][1] +

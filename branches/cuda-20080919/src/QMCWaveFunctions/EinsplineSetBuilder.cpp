@@ -560,6 +560,7 @@ namespace qmcplusplus {
 	      (orbitalSet->MultiSpline, orbitalSet->CudaMultiSpline);
 	    host_vector<CudaRealType> Linv_host;
 	    Linv_host.resize(9);
+	    orbitalSet->Linv_cuda.resize(9);
 	    for (int i=0; i<3; i++)
 	      for (int j=0; j<3; j++)
 		Linv_host[i*3+j] = (float)orbitalSet->PrimLattice.G(i,j);

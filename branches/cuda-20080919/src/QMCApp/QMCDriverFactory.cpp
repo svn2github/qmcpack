@@ -264,7 +264,8 @@ namespace qmcplusplus {
     } 
     else if(curRunType == DMC_RUN) 
     {
-      DMCFactory fac(curQmcModeBits[UPDATE_MODE],cur);
+      DMCFactory fac(curQmcModeBits[UPDATE_MODE],
+		     curQmcModeBits[GPU_MODE], cur);
       qmcDriver = fac.create(*qmcSystem,*primaryPsi,*primaryH,*hamPool);
     } 
     else if (curRunType==RMC_PBYP_RUN)

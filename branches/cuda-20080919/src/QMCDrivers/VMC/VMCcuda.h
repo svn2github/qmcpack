@@ -35,7 +35,6 @@ namespace qmcplusplus {
   private:
     /// tau/mass
     RealType m_tauovermass;
-
     /// Whether to use drift or not
     string UseDrift;
     ///number of warmup steps

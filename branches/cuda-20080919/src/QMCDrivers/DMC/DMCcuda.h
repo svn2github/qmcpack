@@ -32,12 +32,14 @@ namespace qmcplusplus {
     bool put(xmlNodePtr cur);
  
   private:
-    /// Whether to use drift or not
-    string UseDrift;
+    /// tau/mass
+    RealType m_tauovermass;
     ///number of warmup steps
     int myWarmupSteps;
     ///period for walker dump
     int myPeriod4WalkerDump;
+    ///update engine
+    QMCUpdateBase* Mover;
     /// Copy Constructor (disabled)
     DMCcuda(const DMCcuda& a): QMCDriver(a) { }
     /// Copy operator (disabled).

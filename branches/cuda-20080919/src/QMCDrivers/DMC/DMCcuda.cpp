@@ -15,15 +15,17 @@
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
 #include "QMCDrivers/DMC/DMCcuda.h"
+#include "QMCDrivers/QMCUpdateBase.h"
 #include "OhmmsApp/RandomNumberControl.h"
 #include "Utilities/RandomGenerator.h"
 #include "ParticleBase/RandomSeqGenerator.h"
+#include "QMCDrivers/DriftOperators.h"
 
 namespace qmcplusplus { 
 
   /// Constructor.
   DMCcuda::DMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h):
-    QMCDriver(w,psi,h), myWarmupSteps(0), UseDrift("yes")
+    QMCDriver(w,psi,h), myWarmupSteps(0)
   { 
     RootName = "dmc";
     QMCType ="DMCcuda";
@@ -105,6 +107,10 @@ namespace qmcplusplus {
 
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
+	// Now branch
+	Mover->setMultiplicity(W.begin(), W.end());
+	branchEngine->branch(CurrentStep,W);
+
 	Estimators->accumulate(W);
       } while(step<nSteps);
       Psi.recompute(W);
@@ -121,6 +127,82 @@ namespace qmcplusplus {
     //finalize a qmc section
     return finalize(block);
   }
+
+
+  // void DMCcuda::resetUpdateEngine()
+  // {
+    // bool fixW=(Reconfiguration == "yes");
+
+    // if(Mover==0) //disable switching update modes for DMC in a run
+    // {
+    //   //load walkers if they were saved
+    //   W.loadEnsemble();
+      
+    //   branchEngine->initWalkerController(W,Tau,fixW);
+      
+    //   if(QMCDriverMode[QMC_UPDATE_MODE]) {
+    // 	if(NonLocalMove == "yes") {
+    //       app_log() << "  Non-local update is used." << endl;
+    //       DMCNonLocalUpdatePbyP* nlocMover= new DMCNonLocalUpdatePbyP(W,Psi,H,Random); 
+    //       nlocMover->put(qmcNode);
+    //       Mover=nlocMover;
+    //     } 
+    //     else {
+    //       Mover= new DMCUpdatePbyPWithRejection(W,Psi,H,Random); 
+    //     }
+    //     Mover->resetRun(branchEngine,Estimators);
+    //     Mover->initWalkersForPbyP(W.begin(),W.end());
+    //   } 
+    //   else {
+    //     if(NonLocalMove == "yes") {
+    //       app_log() << "  Non-local update is used." << endl;
+    //       DMCNonLocalUpdate* nlocMover= new DMCNonLocalUpdate(W,Psi,H,Random);
+    //       nlocMover->put(qmcNode);
+    //       Mover=nlocMover;
+    //     } else {
+    //       if(KillNodeCrossing) 
+    //         Mover = new DMCUpdateAllWithKill(W,Psi,H,Random);
+    // 	  else 
+    //         Mover = new DMCUpdateAllWithRejection(W,Psi,H,Random);
+    //     }
+    //     Mover->resetRun(branchEngine,Estimators);
+    //     Mover->initWalkers(W.begin(),W.end());
+    //   }
+    //   branchEngine->checkParameters(W);
+    // }
+    // else if(QMCDriverMode[QMC_UPDATE_MODE])
+    //   Mover->updateWalkers(W.begin(),W.end());
+    
+    // if(fixW) {
+    //   if(QMCDriverMode[QMC_UPDATE_MODE])
+    //     app_log() << "  DMC PbyP Update with reconfigurations" << endl;
+    //   else
+    //     app_log() << "  DMC walker Update with reconfigurations" << endl;
+      
+    //   Mover->MaxAge=0;
+    //   if(BranchInterval<0) {
+    //     BranchInterval=nSteps;
+    //   //nSteps=1;
+    // } 
+    // else 
+    // {
+    //   if(QMCDriverMode[QMC_UPDATE_MODE])
+    //   {
+    //     app_log() << "  DMC PbyP Update with a fluctuating population" << endl;
+    //     Mover->MaxAge=1;
+    //   }
+    //   else
+    //   {
+    //     app_log() << "  DMC walker Update with a fluctuating population" << endl;
+    //     Mover->MaxAge=3;
+    //   }
+    //   if(BranchInterval<0) BranchInterval=1;
+    // }
+    // app_log() << "  BranchInterval = " << BranchInterval << endl;
+    // app_log() << "  Steps per block = " << nSteps << endl;
+    // app_log() << "  Number of blocks = " << nBlocks << endl;
+    //  }
+
 
 
   void DMCcuda::resetRun()
@@ -144,8 +226,10 @@ namespace qmcplusplus {
       Walker_t &walker = *(W.WalkerList[iw]);
       pool.allocate(walker.cuda_DataSet);
     }
+    W.copyWalkersToGPU();
+    W.updateLists_GPU();
     vector<RealType> logPsi(W.WalkerList.size(), 0.0);
-    Psi.evaluateLog(W.WalkerList, logPsi);
+    Psi.evaluateLog(W, logPsi);
     Estimators->start(nBlocks, true);
   }
 
