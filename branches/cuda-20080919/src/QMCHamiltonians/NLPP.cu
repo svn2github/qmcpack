@@ -55,6 +55,9 @@ T min_dist_only (T x, T y, T z, T L[3][3], T Linv[3][3])
 
 
 
+// This should be okay for all but the smallest of primitive cells.
+// That is, the r_c for the core should be smaller than the simulation
+// cell radius
 template<typename T>
 __device__
 T min_dist (T &x, T &y, T &z, T L[3][3], T Linv[3][3])
