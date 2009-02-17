@@ -219,8 +219,13 @@ namespace qmcplusplus {
       newGradLaplList.resize(numWalkers);  newGradLaplList_d.resize(numWalkers);
       workList.resize(numWalkers);         workList_d.resize(numWalkers);
 
-      gradLapl_d.resize   (numWalkers*NumOrbitals*4);
-      gradLapl_host.resize(numWalkers*NumOrbitals*4);
+      // HACK HACK HACK
+      // gradLapl_d.resize   (numWalkers*NumOrbitals*4);
+      // gradLapl_host.resize(numWalkers*NumOrbitals*4);
+      gradLapl_d.resize   (numWalkers*RowStride*4);
+      gradLapl_host.resize(numWalkers*RowStride*4);
+
+
       NLrowBuffer_d.resize(NLrowBufferRows*RowStride);
       NLrowBuffer_host.resize(NLrowBufferRows*RowStride);
       SplineRowList_d.resize(NLrowBufferRows);

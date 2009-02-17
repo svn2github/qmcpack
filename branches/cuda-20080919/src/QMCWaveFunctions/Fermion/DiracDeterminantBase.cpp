@@ -557,6 +557,7 @@ namespace qmcplusplus {
     // Copy temporary gradients and laplacians into matrix
     multi_copy (destList_d.data(), srcList_d.data(),
 		4*RowStride, walkers.size());
+
     
 #ifdef DEBUG_CUDA
     
@@ -647,6 +648,7 @@ namespace qmcplusplus {
     // Invert
     cuda_inverse_many_double (AinvList_d.data(), workList_d.data(), 
      			      NumPtcls, RowStride, walkers.size());
+
     // cuda_inverse_many(AinvList_d.data(), workList_d.data(), 
     // 		      NumOrbitals, walkers.size());
 
@@ -783,7 +785,6 @@ namespace qmcplusplus {
     Phi->evaluate (walkers, W.Rnew, newRowList_d);
 
     // Now evaluate ratios
-    // HACK HACK HACK
     determinant_ratios_cuda 
       (&(AinvList_d[0]), &(newRowList_d[0]), &(ratio_d[0]), 
 	 NumPtcls, RowStride, iat-FirstIndex, walkers.size());
@@ -819,20 +820,21 @@ namespace qmcplusplus {
 
     //    if (iat-FirstIndex == 0) {
       // First evaluate orbitals
-      for (int iw=0; iw<walkers.size(); iw++) {
-	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
-	AinvList[iw]        =  &(data[AinvOffset]);
-	newRowList[iw]      =  &(data[newRowOffset]);
-	newGradLaplList[iw] =  &(data[newGradLaplOffset]);
-	if (((unsigned long)AinvList[iw] %64) || 
-	    ((unsigned long)newRowList[iw] % 64) ||
-	    ((unsigned long)newGradLaplList[iw] %64))
-	  app_log() << "**** CUDA misalignment!!!! ***\n";
-      }
-      newRowList_d = newRowList;
-      newGradLaplList_d = newGradLaplList; 
-      AinvList_d   = AinvList;
-      //    }
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+      AinvList[iw]        =  &(data[AinvOffset]);
+      newRowList[iw]      =  &(data[newRowOffset]);
+      newGradLaplList[iw] =  &(data[newGradLaplOffset]);
+      if (((unsigned long)AinvList[iw] %64) || 
+	  ((unsigned long)newRowList[iw] % 64) ||
+	  ((unsigned long)newGradLaplList[iw] %64))
+	app_log() << "**** CUDA misalignment!!!! ***\n";
+    }
+    newRowList_d = newRowList;
+    newGradLaplList_d = newGradLaplList; 
+    AinvList_d   = AinvList;
+    //    }
+    
     Phi->evaluate (walkers, W.Rnew, newRowList_d, newGradLaplList_d, RowStride);
 
 #ifdef CUDA_DEBUG2
@@ -855,11 +857,9 @@ namespace qmcplusplus {
       }
     }
 #endif 
-    
     determinant_ratios_grad_lapl_cuda 
       (AinvList_d.data(), newRowList_d.data(), newGradLaplList_d.data(),
        ratio_d.data(), NumPtcls, RowStride, iat-FirstIndex, walkers.size());
-
     // Copy back to host
     ratio_host = ratio_d;
 

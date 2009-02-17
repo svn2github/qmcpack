@@ -40,7 +40,9 @@ update_inverse_cuda1 (updateJob updateList[],
       A[k*rowstride + block*BS + threadIdx.x];
     __syncthreads();
     
-    for (int i=0; i<BS; i++) {
+    
+    int istop = min(BS, N-block*BS);
+    for (int i=0; i<istop; i++) {
       int row = block*BS + i;
       T a = Ainv[row*rowstride+col];
       if (col == k)
@@ -49,7 +51,8 @@ update_inverse_cuda1 (updateJob updateList[],
       __syncthreads();
     }
     if (blockIdx.x == kBlock) 
-      Ainv_colk[block*BS+threadIdx.x] = Ainv_colk_shared[threadIdx.x];
+      if (block*BS+threadIdx.x < N)
+	Ainv_colk[block*BS+threadIdx.x] = Ainv_colk_shared[threadIdx.x];
     __syncthreads();
   }
   
@@ -96,7 +99,8 @@ update_inverse_cuda2 (updateJob updateList[],
       prefact*Ainv_colk[block*BS+threadIdx.x];
     __syncthreads();
     T *Ainv_row = Ainv+block*BS*rowstride + col;
-    for (int i=0; i<BS; i++, Ainv_row+=rowstride) 
+    int istop = min (BS, N-block*BS);
+    for (int i=0; i<istop; i++, Ainv_row+=rowstride) 
       *Ainv_row += Ainv_delta_shared[tid]*Ainv_colk_shared[i];
     __syncthreads();
   }
@@ -1276,9 +1280,7 @@ void
 multi_copy (float *dest[], float *src[], int len, int num)
 {
   dim3 dimBlock(COPY_BS);
-  dim3 dimGrid (len/COPY_BS, num);
-  if (len % COPY_BS)
-    dimGrid.x++;
+  dim3 dimGrid ((len+COPY_BS-1)/COPY_BS, num);
   
   multi_copy<float><<<dimGrid,dimBlock>>>(dest, src, len);
 }
