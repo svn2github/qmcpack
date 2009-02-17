@@ -1146,7 +1146,7 @@ namespace qmcplusplus {
   {
     // app_log() << "Start EinsplineSet CUDA evaluation\n";
     int N = walkers.size();
-    CudaRealType plus_minus[2] = {-1.0, 1.0};
+    CudaRealType plus_minus[2] = {1.0, -1.0};
     if (cudaPos.size() < N) {
       hostPos.resize(N);
       cudaPos.resize(N);
@@ -1226,7 +1226,7 @@ namespace qmcplusplus {
   {
     // app_log() << "Start EinsplineSet CUDA evaluation\n";
     int N = newpos.size();
-    CudaRealType plus_minus[2] = {-1.0, 1.0};
+    CudaRealType plus_minus[2] = {1.0, -1.0};
     
     if (cudaPos.size() < N) {
       hostPos.resize(N);
@@ -1341,7 +1341,7 @@ namespace qmcplusplus {
    int row_stride)
   {
     int N = walkers.size();
-    CudaRealType plus_minus[2] = {-1.0, 1.0};
+    CudaRealType plus_minus[2] = {1.0, -1.0};
     if (cudaPos.size() < N) {
       hostPos.resize(N);
       cudaPos.resize(N);
@@ -1457,7 +1457,7 @@ namespace qmcplusplus {
   (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
   { 
     int N = pos.size();
-    CudaRealType plus_minus[2] = {-1.0, 1.0};
+    CudaRealType plus_minus[2] = {1.0, -1.0};
 
     if (cudaPos.size() < N) {
       NLhostPos.resize(N);

@@ -378,6 +378,7 @@ namespace qmcplusplus {
 
     if(myComm->rank()) {
       bbuffer.rewind();
+      bibuffer.rewind();
       for(int i=0; i<numIons; ++i) bibuffer.get(IonTypes[i]);
       bbuffer.get(&IonPos[0][0],&IonPos[0][0]+OHMMS_DIM*numIons);
       bbuffer.get(&TwistAngles[0][0],&TwistAngles[0][0]+OHMMS_DIM*NumTwists);
