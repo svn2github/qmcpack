@@ -23,8 +23,9 @@
 namespace qmcplusplus { 
 
   /// Constructor.
-  VMCcuda::VMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h):
-    QMCDriver(w,psi,h), myWarmupSteps(0), UseDrift("yes")
+  VMCcuda::VMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, 
+		   QMCHamiltonian& h):
+    QMCDriver(w,psi,h), myWarmupSteps(0), UseDrift("yes"),    nSubSteps(1)
   { 
     RootName = "vmc";
     QMCType ="VMCcuda";
@@ -34,6 +35,7 @@ namespace qmcplusplus {
     m_param.add(UseDrift,"usedrift","string");
     m_param.add(myWarmupSteps,"warmupSteps","int");
     m_param.add(nTargetSamples,"targetWalkers","int");
+    m_param.add(nSubSteps, "substeps", "int");
   }
   
   bool VMCcuda::run() { 
@@ -70,56 +72,37 @@ namespace qmcplusplus {
       do
       {
         ++step;++CurrentStep;
-        for(int iat=0; iat<nat; ++iat)
-        {
-          //create a 3N-Dimensional Gaussian with variance=1
-          makeGaussRandomWithEngine(delpos,Random);
-          for(int iw=0; iw<nw; ++iw) {
-	    PosType G = W[iw]->Grad[iat];
-            newpos[iw]=W[iw]->R[iat] + m_sqrttau*delpos[iw];
-	    ratios[iw] = 1.0;
-	  }
-	  W.proposeMove_GPU(newpos, iat);
-
-#ifdef CUDA_DEBUG
-	  vector<RealType> logPsi1(W.size(), 0.0);
-	  Psi.evaluateLog(W, logPsi1);
-#endif
-          Psi.ratio(W,iat,ratios,newG, newL);
-	  
-          accepted.clear();
-	  vector<bool> acc(nw, false);
-          for(int iw=0; iw<nw; ++iw) {
-            if(ratios[iw]*ratios[iw] > Random()) {
-              accepted.push_back(W[iw]);
-	      nAccept++;
-	      W[iw]->R[iat] = newpos[iw];
-	      acc[iw] = true;
+	for (int isub=0; isub<nSubSteps; isub++) {
+	  for(int iat=0; iat<nat; ++iat)  {
+	    //create a 3N-Dimensional Gaussian with variance=1
+	    makeGaussRandomWithEngine(delpos,Random);
+	    for(int iw=0; iw<nw; ++iw) {
+	      PosType G = W[iw]->Grad[iat];
+	      newpos[iw]=W[iw]->R[iat] + m_sqrttau*delpos[iw];
+	      ratios[iw] = 1.0;
 	    }
-	    else 
-	      nReject++;
+	    W.proposeMove_GPU(newpos, iat);
+	    
+	    Psi.ratio(W,iat,ratios,newG, newL);
+	    
+	    accepted.clear();
+	    vector<bool> acc(nw, false);
+	    for(int iw=0; iw<nw; ++iw) {
+	      if(ratios[iw]*ratios[iw] > Random()) {
+		accepted.push_back(W[iw]);
+		nAccept++;
+		W[iw]->R[iat] = newpos[iw];
+		acc[iw] = true;
+	      }
+	      else 
+		nReject++;
+	    }
+	    W.acceptMove_GPU(acc);
+	    if (accepted.size())
+	      Psi.update(accepted,iat);
 	  }
-	  W.acceptMove_GPU(acc);
-	  if (accepted.size())
-	    Psi.update(accepted,iat);
-
-	 
-#ifdef CUDA_DEBUG
-	  vector<RealType> logPsi2(W.WalkerList.size(), 0.0);
-	  Psi.evaluateLog(W, logPsi2);
-	  for (int iw=0; iw<nw; iw++) {
-	    if (acc[iw])
-	      cerr << "ratio[" << iw << "] = " << ratios[iw]
-		   << "  exp(Log2-Log1) = " << std::exp(logPsi2[iw]-logPsi1[iw]) << endl;
-	  }
-#endif
-	  
 	}
-
-	//H.saveProperty (W);
-	// HACK HACK HACK
-	//Psi.recompute(W);
-
+	
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
 	Estimators->accumulate(W);
@@ -174,50 +157,52 @@ namespace qmcplusplus {
       do {
         step++;
 	CurrentStep++;
-        for(int iat=0; iat<nat; iat++) {
-	  Psi.getGradient (W, iat, oldG);
-
-          //create a 3N-Dimensional Gaussian with variance=1
-          makeGaussRandomWithEngine(delpos,Random);
-          for(int iw=0; iw<nw; iw++) {
-	    oldScale[iw] = getDriftScale(m_tauovermass,oldG[iw]);
-	    dr[iw] = (m_sqrttau*delpos[iw]) + (oldScale[iw]*oldG[iw]);
-            newpos[iw]=W[iw]->R[iat] + dr[iw];
-	    ratios[iw] = 1.0;
-	  }
-	  W.proposeMove_GPU(newpos, iat);
-	  
-          Psi.ratio(W,iat,ratios,newG, newL);
-	  	  
-          accepted.clear();
-	  vector<bool> acc(nw, false);
-          for(int iw=0; iw<nw; ++iw) {
-	    PosType drOld = 
-	      newpos[iw] - (W[iw]->R[iat] + oldScale[iw]*oldG[iw]);
-	    // if (dot(drOld, drOld) > 25.0)
-	    //   cerr << "Large drift encountered!  Old drift = " << drOld << endl;
-	    RealType logGf = -m_oneover2tau * dot(drOld, drOld);
-	    newScale[iw]   = getDriftScale(m_tauovermass,newG[iw]);
-	    PosType drNew  = 
-	      (newpos[iw] + newScale[iw]*newG[iw]) - W[iw]->R[iat];
-	    // if (dot(drNew, drNew) > 25.0)
-	    //   cerr << "Large drift encountered!  Drift = " << drNew << endl;
-	    RealType logGb =  -m_oneover2tau * dot(drNew, drNew);
-	    RealType x = logGb - logGf;
-	    RealType prob = ratios[iw]*ratios[iw]*std::exp(x);
+	for (int isub=0; isub<nSubSteps; isub++) {
+	  for(int iat=0; iat<nat; iat++) {
+	    Psi.getGradient (W, iat, oldG);
 	    
-            if(Random() < prob) {
-              accepted.push_back(W[iw]);
-	      nAccept++;
-	      W[iw]->R[iat] = newpos[iw];
-	      acc[iw] = true;
+	    //create a 3N-Dimensional Gaussian with variance=1
+	    makeGaussRandomWithEngine(delpos,Random);
+	    for(int iw=0; iw<nw; iw++) {
+	      oldScale[iw] = getDriftScale(m_tauovermass,oldG[iw]);
+	      dr[iw] = (m_sqrttau*delpos[iw]) + (oldScale[iw]*oldG[iw]);
+	      newpos[iw]=W[iw]->R[iat] + dr[iw];
+	      ratios[iw] = 1.0;
 	    }
-	    else 
-	      nReject++;
+	    W.proposeMove_GPU(newpos, iat);
+	    
+	    Psi.ratio(W,iat,ratios,newG, newL);
+	    
+	    accepted.clear();
+	    vector<bool> acc(nw, false);
+	    for(int iw=0; iw<nw; ++iw) {
+	      PosType drOld = 
+		newpos[iw] - (W[iw]->R[iat] + oldScale[iw]*oldG[iw]);
+	      // if (dot(drOld, drOld) > 25.0)
+	      //   cerr << "Large drift encountered!  Old drift = " << drOld << endl;
+	      RealType logGf = -m_oneover2tau * dot(drOld, drOld);
+	      newScale[iw]   = getDriftScale(m_tauovermass,newG[iw]);
+	      PosType drNew  = 
+		(newpos[iw] + newScale[iw]*newG[iw]) - W[iw]->R[iat];
+	      // if (dot(drNew, drNew) > 25.0)
+	      //   cerr << "Large drift encountered!  Drift = " << drNew << endl;
+	      RealType logGb =  -m_oneover2tau * dot(drNew, drNew);
+	      RealType x = logGb - logGf;
+	      RealType prob = ratios[iw]*ratios[iw]*std::exp(x);
+	      
+	      if(Random() < prob) {
+		accepted.push_back(W[iw]);
+		nAccept++;
+		W[iw]->R[iat] = newpos[iw];
+		acc[iw] = true;
+	      }
+	      else 
+		nReject++;
+	    }
+	    W.acceptMove_GPU(acc);
+	    if (accepted.size())
+	      Psi.update(accepted,iat);
 	  }
-	  W.acceptMove_GPU(acc);
-	  if (accepted.size())
-	    Psi.update(accepted,iat);
 	}
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);

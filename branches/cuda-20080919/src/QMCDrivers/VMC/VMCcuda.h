@@ -38,7 +38,7 @@ namespace qmcplusplus {
     /// Whether to use drift or not
     string UseDrift;
     ///number of warmup steps
-    int myWarmupSteps;
+    int myWarmupSteps, nSubSteps;
     ///period for walker dump
     int myPeriod4WalkerDump;
     /// Copy Constructor (disabled)
