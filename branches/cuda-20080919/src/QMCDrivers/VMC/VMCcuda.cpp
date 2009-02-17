@@ -36,6 +36,7 @@ namespace qmcplusplus {
     m_param.add(myWarmupSteps,"warmupSteps","int");
     m_param.add(nTargetSamples,"targetWalkers","int");
     m_param.add(nSubSteps, "substeps", "int");
+    m_param.add(nSubSteps, "subSteps", "int");
   }
   
   bool VMCcuda::run() { 
