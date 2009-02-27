@@ -216,6 +216,8 @@ namespace qmcplusplus {
      */
     inline RealType branchWeightBare(RealType enew, RealType eold) const 
     { 
+      // cerr << "Etrial = " << vParam[B_ETRIAL] << "  Eavg = " << 0.5*(enew+eold) << endl;
+      // cerr << "TauEff = " << vParam[B_TAUEFF] << endl;
       return std::exp(vParam[B_TAUEFF]*(vParam[B_ETRIAL]-0.5*(enew+eold)));
     }
 

@@ -40,6 +40,7 @@ namespace qmcplusplus {
   bool DMCcuda::run() 
   { 
     resetRun();
+    Mover->MaxAge = 2;
     IndexType block = 0;
     IndexType nAcceptTot = 0;
     IndexType nRejectTot = 0;
@@ -62,6 +63,7 @@ namespace qmcplusplus {
       IndexType step = 0;
       nAccept = nReject = 0;
       Estimators->startBlock(nSteps);
+      
       do {
 	//	cerr << "Step = " << step << endl;
         step++;
@@ -88,6 +90,9 @@ namespace qmcplusplus {
 	grad.resize(nw, nat);
 
 	W.updateLists_GPU();
+	for (int iw=0; iw<nw; iw++)
+	  W[iw]->Age++;
+
         for(int iat=0; iat<nat; iat++) {
 	  Psi.getGradient (W, iat, oldG);
 
@@ -116,10 +121,11 @@ namespace qmcplusplus {
 	    RealType x = logGb - logGf;
 	    RealType prob = ratios[iw]*ratios[iw]*std::exp(x);
 	    
-            if(Random() < prob) {
+            if(Random() < prob /*&& ratios[iw] > 0.0*/) {
               accepted.push_back(W[iw]);
 	      nAccept++;
 	      W[iw]->R[iat] = newpos[iw];
+	      W[iw]->Age = 0;
 	      acc[iw] = true;
 	    }
 	    else 
@@ -132,11 +138,12 @@ namespace qmcplusplus {
 
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
+	if (CurrentStep == 1)
+	  LocalEnergyOld = LocalEnergy;
 	// Now branch
 	for (int iw=0; iw<nw; iw++) {
 	  // double wold = W[iw]->Weight;
-	  W[iw]->Weight *= branchEngine->branchWeightBare(LocalEnergy[iw], LocalEnergyOld[iw]);
-	  W[iw]->Age = 0;
+	  W[iw]->Weight *= branchEngine->branchWeight(LocalEnergy[iw], LocalEnergyOld[iw]);
 	  // double wnew = W[iw]->Weight;
 	  // fprintf (stderr, "wold = %1.8f  wnew = %1.8f  eold = %1.8f  enew = %1.8f\n",
 	  // 	  wold, wnew, LocalEnergyOld[iw], LocalEnergy[iw]);
