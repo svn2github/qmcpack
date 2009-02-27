@@ -127,6 +127,8 @@ namespace qmcplusplus {
    vector<ValueType> &lapl)
   {
     vector<Walker_t*> &walkers = W.WalkerList;
+    if (SumGPU.size() < 4*walkers.size())
+      SumGPU.resize(4*walkers.size());
 #ifdef CPU_RATIO
     DTD_BConds<double,3,SUPERCELL_BULK> bconds;
 
@@ -288,6 +290,12 @@ namespace qmcplusplus {
 					  ValueMatrix_t &lapl)
   {
     vector<Walker_t*> &walkers = W.WalkerList;
+    int numGL = 4*N*walkers.size();
+    if (GradLaplGPU.size()  < numGL) {
+      GradLaplGPU.resize(numGL);
+      GradLaplHost.resize(numGL);
+    }
+
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;

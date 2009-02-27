@@ -270,6 +270,14 @@ two_body_sum (float *R[], int e1_first, int e1_last, int e2_first, int e2_last,
   two_body_sum_kernel<float,BS><<<dimGrid,dimBlock>>>
     (R, e1_first, e1_last, e2_first, e2_last, 
      spline_coefs, numCoefs, rMax, lattice, latticeInv, sum);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in two_body_sum:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
 }
 
 
@@ -289,6 +297,14 @@ two_body_sum (double *R[], int e1_first, int e1_last, int e2_first, int e2_last,
   two_body_sum_kernel<double,BS><<<dimGrid,dimBlock>>>
     (R, e1_first, e1_last, e2_first, e2_last, 
      spline_coefs, numCoefs, rMax, lattice, latticeInv, sum);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in two_body_sum:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
 }
 
 
@@ -398,7 +414,7 @@ two_body_ratio (float *R[], int first, int last,
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf (stderr, "CUDA error in two_body_ratio:\n  %s\n",
+    fprintf (stderr, "CUDA error in two_body_ratio1:\n  %s\n",
 	     cudaGetErrorString(err));
     abort();
   }
@@ -424,7 +440,7 @@ two_body_ratio (double *R[], int first, int last,
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf (stderr, "CUDA error in two_body_ratio:\n  %s\n",
+    fprintf (stderr, "CUDA error in two_body_ratio2:\n  %s\n",
 	     cudaGetErrorString(err));
     abort();
   }
@@ -556,6 +572,14 @@ two_body_ratio_grad(float *R[], int first, int last,
   two_body_ratio_grad_kernel<float,BS><<<dimGrid,dimBlock>>>
     (R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax,
      lattice, latticeInv, zero, ratio_grad);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in two_body_ratio_grad:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
 }
 
 
@@ -573,6 +597,14 @@ two_body_ratio_grad(double *R[], int first, int last,
   two_body_ratio_grad_kernel<double,BS><<<dimGrid,dimBlock>>>
     (R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax,
      lattice, latticeInv, zero, ratio_grad);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in two_body_ratio_grad_2:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
 }
 
   
@@ -780,6 +812,14 @@ two_body_NLratios(NLjobGPU<float> jobs[], int first, int last,
   two_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
     (jobs, first, last, spline_coefs, numCoefs, rMax,
      lattice, latticeInv);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in two_body_NLratios:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
 }
 
 
@@ -796,6 +836,14 @@ two_body_NLratios(NLjobGPU<double> jobs[], int first, int last,
   two_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
     (jobs, first, last, spline_coefs, numCoefs, rMax,
      lattice, latticeInv);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in two_body_NLratios2:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
 }
 
 
@@ -841,7 +889,7 @@ two_body_update(double *R[], int N, int iat, int numWalkers)
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf (stderr, "CUDA error in two_body_update:\n  %s\n",
+    fprintf (stderr, "CUDA error in two_body_update2:\n  %s\n",
 	     cudaGetErrorString(err));
     abort();
   }
@@ -982,7 +1030,7 @@ two_body_grad_lapl(double *R[], int e1_first, int e1_last,
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf (stderr, "CUDA error in two_body_grad_lapl:\n  %s\n",
+    fprintf (stderr, "CUDA error in two_body_grad_lapl2:\n  %s\n",
 	     cudaGetErrorString(err));
     abort();
   }
@@ -1087,7 +1135,7 @@ two_body_gradient (float *R[], int first, int last, int iat,
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf (stderr, "CUDA error in two_body_grad_lapl:\n  %s\n",
+    fprintf (stderr, "CUDA error in two_body_gradient:\n  %s\n",
 	     cudaGetErrorString(err));
     abort();
   }
@@ -1112,7 +1160,7 @@ two_body_gradient (double *R[], int first, int last, int iat,
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf (stderr, "CUDA error in two_body_grad_lapl:\n  %s\n",
+    fprintf (stderr, "CUDA error in two_body_gradient2:\n  %s\n",
 	     cudaGetErrorString(err));
     abort();
   }
@@ -1220,6 +1268,13 @@ one_body_sum (float C[], float *R[], int cfirst, int clast, int efirst, int elas
   one_body_sum_kernel<float,BS><<<dimGrid,dimBlock>>>
     (C, R, cfirst, clast, efirst, elast, 
      spline_coefs, numCoefs, rMax, lattice, latticeInv, sum);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in one_body_sum:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 
@@ -1239,6 +1294,13 @@ one_body_sum (double C[], double *R[], int cfirst, int clast, int efirst, int el
   one_body_sum_kernel<double,BS><<<dimGrid,dimBlock>>>
     (C, R, cfirst, clast, efirst, elast, 
      spline_coefs, numCoefs, rMax, lattice, latticeInv, sum);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in one_body_sum2:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 
@@ -1373,7 +1435,7 @@ one_body_ratio (double C[], double *R[], int first, int last,
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf (stderr, "CUDA error in one_body_ratio:\n  %s\n",
+    fprintf (stderr, "CUDA error in one_body_ratio2:\n  %s\n",
 	     cudaGetErrorString(err));
     abort();
   }
@@ -1538,7 +1600,7 @@ one_body_ratio_grad (double C[], double *R[], int first, int last,
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf (stderr, "CUDA error in one_body_ratio_grad:\n  %s\n",
+    fprintf (stderr, "CUDA error in one_body_ratio_grad2:\n  %s\n",
 	     cudaGetErrorString(err));
     abort();
   }
@@ -1927,6 +1989,13 @@ one_body_NLratios(NLjobGPU<float> jobs[], float C[], int first, int last,
   one_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
     (jobs, C, first, last, spline_coefs, numCoefs, rMax,
      lattice, latticeInv);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in one_body_NLratios:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 
@@ -1943,6 +2012,13 @@ one_body_NLratios(NLjobGPU<double> jobs[], double C[], int first, int last,
   one_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
     (jobs, C, first, last, spline_coefs, numCoefs, rMax,
      lattice, latticeInv);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in one_body_NLratios2:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 
@@ -2039,6 +2115,14 @@ one_body_gradient (float *Rlist[], int iat, float C[], int first, int last,
   one_body_grad_kernel<float,BS><<<dimGrid,dimBlock>>>
     (Rlist, iat, C, first, last, spline_coefs, num_coefs, rMax,
      L, Linv, zeroSum, grad);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in one_body_gradient:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
 }
 		   
 
@@ -2055,6 +2139,13 @@ one_body_gradient (double *Rlist[], int iat, double C[], int first, int last,
   one_body_grad_kernel<double,BS><<<dimGrid,dimBlock>>>
     (Rlist, iat, C, first, last, spline_coefs, num_coefs, rMax,
      L, Linv, zeroSum, grad);
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in one_body_gradient1:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
 }
 
 

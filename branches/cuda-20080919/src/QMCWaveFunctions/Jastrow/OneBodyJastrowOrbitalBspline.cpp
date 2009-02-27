@@ -121,6 +121,8 @@ namespace qmcplusplus {
   {
     vector<Walker_t*> &walkers = W.WalkerList;
     bool zero = true;
+    if (SumGPU.size() < 4*walkers.size())
+      SumGPU.resize(4*walkers.size());
     for (int group=0; group<NumCenterGroups; group++) {
       int first = CenterFirst[group];
       int last  = CenterLast[group];
@@ -270,6 +272,13 @@ namespace qmcplusplus {
 					  ValueMatrix_t &lapl)
   {
     vector<Walker_t*> &walkers = W.WalkerList;
+
+    int numGL = 4*N*walkers.size();
+    if (GradLaplGPU.size()  < numGL) {
+      GradLaplGPU.resize(numGL);
+      GradLaplHost.resize(numGL);
+    }
+    
     for (int i=0; i<walkers.size()*4*N; i++)
       GradLaplHost[i] = 0.0;
     GradLaplGPU = GradLaplHost;
