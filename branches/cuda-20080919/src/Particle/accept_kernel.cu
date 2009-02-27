@@ -31,11 +31,12 @@ __global__ void accept_kernel (T* Rlist[], T Rnew[],
     int index = i*BS + tid;
     int iw = index / 3;
     int dim = index % 3;
-    if (iw < N && accept_shared[iw])
-      myR[iw][dim] = Rnew_shared[index];
+    if (iw+block*BS < N && accept_shared[iw])
+      myR[iw%BS][dim] = Rnew_shared[index];
   }
 }
 
+#include <cstdio>
 
 void
 accept_move_GPU_cuda (float* Rlist[], float new_pos[], 

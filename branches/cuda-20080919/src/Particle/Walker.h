@@ -149,6 +149,7 @@ namespace qmcplusplus {
     ///copy the content of a walker
     inline void makeCopy(const Walker& a) 
     {    
+      cerr << "Start makeCopy.\n";
       ID=a.ID;
       ParentID=a.ParentID;
       Generation=a.Generation;
@@ -161,6 +162,10 @@ namespace qmcplusplus {
       Properties.copy(a.Properties);
       DataSet=a.DataSet;
       cuda_DataSet = a.cuda_DataSet;
+      R_GPU = a.R_GPU;
+      Grad_GPU = a.Grad_GPU;
+      Lap_GPU = a.Lap_GPU;
+      cerr << "End makeCopy.\n";
     }
 
     //return the address of the values of Hamiltonian terms

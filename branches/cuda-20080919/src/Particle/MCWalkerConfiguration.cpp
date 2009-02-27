@@ -356,6 +356,8 @@ void MCWalkerConfiguration::copyWalkersToGPU()
 void MCWalkerConfiguration::proposeMove_GPU
 (vector<PosType> &newPos, int iat)
 {
+  if (Rnew_host.size() < newPos.size())
+    Rnew_host.resize(newPos.size());
   for (int i=0; i<newPos.size(); i++)
     for (int dim=0; dim<OHMMS_DIM; dim++)
       Rnew_host[i][dim] = newPos[i][dim];
@@ -368,6 +370,8 @@ void MCWalkerConfiguration::proposeMove_GPU
 
 void MCWalkerConfiguration::acceptMove_GPU(vector<bool> &toAccept)
 {
+  if (AcceptList_host.size() < toAccept.size())
+    AcceptList_host.resize(toAccept.size());
   for (int i=0; i<toAccept.size(); i++)
     AcceptList_host[i] = (int)toAccept[i];
   AcceptList_GPU = AcceptList_host;
