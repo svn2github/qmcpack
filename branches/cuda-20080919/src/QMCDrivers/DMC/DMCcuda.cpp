@@ -15,6 +15,7 @@
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
 #include "QMCDrivers/DMC/DMCcuda.h"
+#include "QMCDrivers/DMC/DMCUpdatePbyP.h"
 #include "QMCDrivers/QMCUpdateBase.h"
 #include "OhmmsApp/RandomNumberControl.h"
 #include "Utilities/RandomGenerator.h"
@@ -25,7 +26,7 @@ namespace qmcplusplus {
 
   /// Constructor.
   DMCcuda::DMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h):
-    QMCDriver(w,psi,h), myWarmupSteps(0)
+    QMCDriver(w,psi,h), myWarmupSteps(0), Mover(0)
   { 
     RootName = "dmc";
     QMCType ="DMCcuda";
@@ -45,7 +46,7 @@ namespace qmcplusplus {
     int nat = W.getTotalNum();
     int nw  = W.getActiveWalkers();
     
-    vector<RealType>  LocalEnergy(nw), oldScale(nw), newScale(nw);
+    vector<RealType>  LocalEnergy(nw), LocalEnergyOld(nw), oldScale(nw), newScale(nw);
     vector<PosType>   delpos(nw);
     vector<PosType>   dr(nw);
     vector<PosType>   newpos(nw);
@@ -55,14 +56,38 @@ namespace qmcplusplus {
     vector<Walker_t*> accepted(nw);
     Matrix<ValueType> lapl(nw, nat);
     Matrix<GradType>  grad(nw, nat);
-
+    for (int iw=0; iw<nw; iw++)
+      W[iw]->Weight = 1.0;
     do {
       IndexType step = 0;
       nAccept = nReject = 0;
       Estimators->startBlock(nSteps);
       do {
+	//	cerr << "Step = " << step << endl;
         step++;
 	CurrentStep++;
+	LocalEnergyOld = LocalEnergy;
+	nw = W.getActiveWalkers();
+	
+	LocalEnergy.resize(nw);
+	LocalEnergyOld.resize(nw);
+	oldScale.resize(nw);
+	newScale.resize(nw);
+	delpos.resize(nw);
+	dr.resize(nw);
+	newpos.resize(nw);
+	ratios.resize(nw);
+	rplus.resize(nw);
+	rminus.resize(nw);
+	oldG.resize(nw);
+	newG.resize(nw);
+	oldL.resize(nw);
+	newL.resize(nw);
+	accepted.resize(nw);
+	lapl.resize(nw, nat);
+	grad.resize(nw, nat);
+
+	W.updateLists_GPU();
         for(int iat=0; iat<nat; iat++) {
 	  Psi.getGradient (W, iat, oldG);
 
@@ -108,6 +133,16 @@ namespace qmcplusplus {
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
 	// Now branch
+	for (int iw=0; iw<nw; iw++) {
+	  // double wold = W[iw]->Weight;
+	  W[iw]->Weight *= branchEngine->branchWeightBare(LocalEnergy[iw], LocalEnergyOld[iw]);
+	  W[iw]->Age = 0;
+	  // double wnew = W[iw]->Weight;
+	  // fprintf (stderr, "wold = %1.8f  wnew = %1.8f  eold = %1.8f  enew = %1.8f\n",
+	  // 	  wold, wnew, LocalEnergyOld[iw], LocalEnergy[iw]);
+	  W[iw]->getPropertyBase()[R2ACCEPTED] = 1.0;
+	  W[iw]->getPropertyBase()[R2PROPOSED] = 1.0;
+	}
 	Mover->setMultiplicity(W.begin(), W.end());
 	branchEngine->branch(CurrentStep,W);
 
@@ -129,84 +164,33 @@ namespace qmcplusplus {
   }
 
 
-  // void DMCcuda::resetUpdateEngine()
-  // {
-    // bool fixW=(Reconfiguration == "yes");
-
-    // if(Mover==0) //disable switching update modes for DMC in a run
-    // {
-    //   //load walkers if they were saved
-    //   W.loadEnsemble();
+  void DMCcuda::resetUpdateEngine()
+  {
+    if(Mover==0) //disable switching update modes for DMC in a run  
+    {
+      //load walkers if they were saved
+      W.loadEnsemble();
       
-    //   branchEngine->initWalkerController(W,Tau,fixW);
+      branchEngine->initWalkerController(W,Tau,false);
       
-    //   if(QMCDriverMode[QMC_UPDATE_MODE]) {
-    // 	if(NonLocalMove == "yes") {
-    //       app_log() << "  Non-local update is used." << endl;
-    //       DMCNonLocalUpdatePbyP* nlocMover= new DMCNonLocalUpdatePbyP(W,Psi,H,Random); 
-    //       nlocMover->put(qmcNode);
-    //       Mover=nlocMover;
-    //     } 
-    //     else {
-    //       Mover= new DMCUpdatePbyPWithRejection(W,Psi,H,Random); 
-    //     }
-    //     Mover->resetRun(branchEngine,Estimators);
-    //     Mover->initWalkersForPbyP(W.begin(),W.end());
-    //   } 
-    //   else {
-    //     if(NonLocalMove == "yes") {
-    //       app_log() << "  Non-local update is used." << endl;
-    //       DMCNonLocalUpdate* nlocMover= new DMCNonLocalUpdate(W,Psi,H,Random);
-    //       nlocMover->put(qmcNode);
-    //       Mover=nlocMover;
-    //     } else {
-    //       if(KillNodeCrossing) 
-    //         Mover = new DMCUpdateAllWithKill(W,Psi,H,Random);
-    // 	  else 
-    //         Mover = new DMCUpdateAllWithRejection(W,Psi,H,Random);
-    //     }
-    //     Mover->resetRun(branchEngine,Estimators);
-    //     Mover->initWalkers(W.begin(),W.end());
-    //   }
-    //   branchEngine->checkParameters(W);
-    // }
-    // else if(QMCDriverMode[QMC_UPDATE_MODE])
-    //   Mover->updateWalkers(W.begin(),W.end());
+      Mover = new DMCUpdatePbyPWithRejection(W,Psi,H,Random); 
+      Mover->resetRun(branchEngine,Estimators);
+      Mover->initWalkersForPbyP(W.begin(),W.end());
+      branchEngine->checkParameters(W);
+    }
+    //    Mover->updateWalkers(W.begin(),W.end());
     
-    // if(fixW) {
-    //   if(QMCDriverMode[QMC_UPDATE_MODE])
-    //     app_log() << "  DMC PbyP Update with reconfigurations" << endl;
-    //   else
-    //     app_log() << "  DMC walker Update with reconfigurations" << endl;
-      
-    //   Mover->MaxAge=0;
-    //   if(BranchInterval<0) {
-    //     BranchInterval=nSteps;
-    //   //nSteps=1;
-    // } 
-    // else 
-    // {
-    //   if(QMCDriverMode[QMC_UPDATE_MODE])
-    //   {
-    //     app_log() << "  DMC PbyP Update with a fluctuating population" << endl;
-    //     Mover->MaxAge=1;
-    //   }
-    //   else
-    //   {
-    //     app_log() << "  DMC walker Update with a fluctuating population" << endl;
-    //     Mover->MaxAge=3;
-    //   }
-    //   if(BranchInterval<0) BranchInterval=1;
-    // }
-    // app_log() << "  BranchInterval = " << BranchInterval << endl;
-    // app_log() << "  Steps per block = " << nSteps << endl;
-    // app_log() << "  Number of blocks = " << nBlocks << endl;
-    //  }
-
+    app_log() << "  DMC PbyP Update with a fluctuating population" << endl;
+    Mover->MaxAge=1;
+    app_log() << "  Steps per block = " << nSteps << endl;
+    app_log() << "  Number of blocks = " << nBlocks << endl;
+  }
+    
 
 
   void DMCcuda::resetRun()
   {
+    resetUpdateEngine();
     SpeciesSet tspecies(W.getSpeciesSet());
     int massind=tspecies.addAttribute("mass");
     RealType mass = tspecies(massind,0);
@@ -218,7 +202,8 @@ namespace qmcplusplus {
     // Compute the size of data needed for each walker on the GPU card
     PointerPool<Walker_t::cuda_Buffer_t > pool;
     Psi.reserve (pool);
-    app_log() << "Each walker requires " << pool.getTotalSize() * sizeof(CudaRealType)
+    app_log() << "Each walker requires " 
+	      << pool.getTotalSize() * sizeof(CudaRealType)
 	      << " bytes in GPU memory.\n";
 
     // Now allocate memory on the GPU card for each walker

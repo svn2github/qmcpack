@@ -520,10 +520,14 @@ namespace qmcplusplus {
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
     int gradoff = 4*(iat-FirstIndex)*RowStride;
-    if (UpdateJobList.size() < walkers.size()) {
+    if (UpdateJobList.size() != walkers.size()) {
       UpdateJobList.resize(walkers.size());
       srcList.resize(walkers.size());
       destList.resize(walkers.size());
+      UpdateJobList_d.resize(walkers.size());
+      srcList_d.resize(walkers.size());
+      destList_d.resize(walkers.size());
+      
     }
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t::cuda_Buffer_t &data = walkers[iw]->cuda_DataSet;

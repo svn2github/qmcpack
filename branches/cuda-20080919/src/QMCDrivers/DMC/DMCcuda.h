@@ -30,7 +30,8 @@ namespace qmcplusplus {
     DMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h);
     bool run();
     bool put(xmlNodePtr cur);
- 
+    void resetUpdateEngine();
+
   private:
     /// tau/mass
     RealType m_tauovermass;

@@ -182,6 +182,7 @@ QMCHamiltonian::evaluate(MCWalkerConfiguration &W,
       LocalEnergyVector[iw] - walkers[iw]->getPropertyBase()[NUMPROPERTIES];
   }
 
+  energyVector = LocalEnergyVector;
 
   // P.PropertyList[LOCALENERGY]=LocalEnergy;
   // P.PropertyList[LOCALPOTENTIAL]=LocalEnergy-KineticEnergy;

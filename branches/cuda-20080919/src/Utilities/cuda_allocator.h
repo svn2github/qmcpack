@@ -87,7 +87,7 @@ public:
   }
   
   void destroy(pointer p) {
-    p->~T();
+    //p->~T();
   }
 };
 
@@ -120,6 +120,12 @@ public:
     mySize = size;
 #ifdef QMC_CUDA
     cudaMemset((void*)data(), 0, this->size()*sizeof(T));
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+      fprintf (stderr, "CUDA error in resize():\n  %s\n",
+	       cudaGetErrorString(err));
+      abort();
+    }
 #endif
   }
 
@@ -127,13 +133,12 @@ public:
   { return mySize;  }
 
   cuda_vector(const cuda_vector<T> &vec) :
-    std::vector<T, cuda_allocator<T> > ()
+    std::vector<T, cuda_allocator<T> > (), mySize(0)
   {
-    if (this->size() != vec.size())
-      resize(vec.size());
+    resize(vec.size());
 #ifdef QMC_CUDA
     if (this->size() != 0) {
-      cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T),
+      cudaMemcpy (&((*this)[0]), &(vec[0]), vec.size()*sizeof(T),
 		  cudaMemcpyDeviceToDevice);
       cudaError_t err = cudaGetLastError();
       if (err != cudaSuccess) {
@@ -155,8 +160,10 @@ public:
 		cudaMemcpyDeviceToDevice);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-      fprintf (stderr, "CUDA error in cuda_vector::operator=():\n  %s\n",
+      fprintf (stderr, 
+	       "CUDA error in cuda_vector::operator=(cuda_vector):\n  %s\n",
 	       cudaGetErrorString(err));
+      cerr << "vec.size() = " << vec.size();
       abort();
     }
 #endif
@@ -173,8 +180,9 @@ public:
 		cudaMemcpyHostToDevice);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-      fprintf (stderr, "CUDA error in cuda_vector::operator=():\n  %s\n",
+      fprintf (stderr, "CUDA error in cuda_vector::operator=(vector):\n  %s\n",
 	       cudaGetErrorString(err));
+      cerr << "size = " << vec.size() << endl;
       abort();
     }
 #endif
@@ -187,12 +195,16 @@ public:
     if (this->size() != vec.size()) 
       this->resize(vec.size());
 #ifdef QMC_CUDA
-    cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
+    cudaMemcpy (&((*this)[0]), &(vec[0]), vec.size()*sizeof(T), 
 		cudaMemcpyHostToDevice);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-      fprintf (stderr, "CUDA error in cuda_vector::operator=():\n  %s\n",
+      fprintf (stderr, 
+	       "CUDA error in cuda_vector::operator=(host_vector):\n  %s\n",
 	       cudaGetErrorString(err));
+      cerr << "size = " << vec.size() << endl;
+      cerr << "mysize = " << size() << endl;
+      cerr << "capacity = " << this->capacity() << endl;
       abort();
     }
 #endif
