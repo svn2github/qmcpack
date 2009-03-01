@@ -294,7 +294,8 @@ namespace qmcplusplus {
 
     int sizeofgood = good_w.size();
 
-    //check if the projected number of walkers is too small or too large
+    //check if the projected number of walkers is too small or too
+    //large
     if(NumWalkers>Nmax) {
       int nsub=0;
       int nsub_target=NumWalkers-static_cast<int>(0.9*Nmax);

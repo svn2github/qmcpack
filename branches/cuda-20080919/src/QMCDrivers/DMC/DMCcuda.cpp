@@ -40,7 +40,7 @@ namespace qmcplusplus {
   bool DMCcuda::run() 
   { 
     resetRun();
-    Mover->MaxAge = 2;
+    Mover->MaxAge = 5;
     IndexType block = 0;
     IndexType nAcceptTot = 0;
     IndexType nRejectTot = 0;
@@ -68,7 +68,6 @@ namespace qmcplusplus {
 	//	cerr << "Step = " << step << endl;
         step++;
 	CurrentStep++;
-	LocalEnergyOld = LocalEnergy;
 	nw = W.getActiveWalkers();
 	
 	LocalEnergy.resize(nw);
@@ -89,13 +88,15 @@ namespace qmcplusplus {
 	lapl.resize(nw, nat);
 	grad.resize(nw, nat);
 
+	LocalEnergyOld = LocalEnergy;
+
 	W.updateLists_GPU();
 	for (int iw=0; iw<nw; iw++)
 	  W[iw]->Age++;
-
+	
         for(int iat=0; iat<nat; iat++) {
 	  Psi.getGradient (W, iat, oldG);
-
+	  
           //create a 3N-Dimensional Gaussian with variance=1
           makeGaussRandomWithEngine(delpos,Random);
           for(int iw=0; iw<nw; iw++) {
@@ -121,7 +122,7 @@ namespace qmcplusplus {
 	    RealType x = logGb - logGf;
 	    RealType prob = ratios[iw]*ratios[iw]*std::exp(x);
 	    
-            if(Random() < prob /*&& ratios[iw] > 0.0*/) {
+            if(Random() < prob && ratios[iw] > 0.0) {
               accepted.push_back(W[iw]);
 	      nAccept++;
 	      W[iw]->R[iat] = newpos[iw];
