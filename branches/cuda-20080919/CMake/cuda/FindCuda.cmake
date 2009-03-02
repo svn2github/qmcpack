@@ -117,7 +117,7 @@ ELSE(CUDA_BUILD_TYPE MATCHES "Emulation")
 ENDIF(CUDA_BUILD_TYPE MATCHES "Emulation")
 
 SET(CUDA_BUILD_CUBIN TRUE CACHE BOOL "Generate and parse .cubin files in Device mode.")
-SET(CUDA_NVCC_FLAGS "" CACHE STRING "Semi-colon delimit multiple arguments.")
+SET(CUDA_NVCC_FLAGS "-arch;sm_13" CACHE STRING "Semi-colon delimit multiple arguments.")
 
 # Search for the cuda distribution.
 IF(NOT CUDA_INSTALL_PREFIX)
