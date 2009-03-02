@@ -63,15 +63,14 @@ namespace qmcplusplus {
       IndexType step = 0;
       nAccept = nReject = 0;
       Estimators->startBlock(nSteps);
+      LocalEnergyOld.resize(nw);
       
       do {
 	//	cerr << "Step = " << step << endl;
         step++;
 	CurrentStep++;
 	nw = W.getActiveWalkers();
-	
 	LocalEnergy.resize(nw);
-	LocalEnergyOld.resize(nw);
 	oldScale.resize(nw);
 	newScale.resize(nw);
 	delpos.resize(nw);
@@ -87,8 +86,6 @@ namespace qmcplusplus {
 	accepted.resize(nw);
 	lapl.resize(nw, nat);
 	grad.resize(nw, nat);
-
-	LocalEnergyOld = LocalEnergy;
 
 	W.updateLists_GPU();
 	for (int iw=0; iw<nw; iw++)
@@ -152,7 +149,16 @@ namespace qmcplusplus {
 	  W[iw]->getPropertyBase()[R2PROPOSED] = 1.0;
 	}
 	Mover->setMultiplicity(W.begin(), W.end());
+	// double Msum = 0.0;
+	// for (int iw=0; iw<nw; iw++)
+	//   Msum += std::floor(W[iw]->Multiplicity);
+	// cerr << "WeightSum = " << weightsum << "  Msum = " << Msum << endl;
+
 	branchEngine->branch(CurrentStep,W);
+	nw = W.getActiveWalkers();
+	LocalEnergyOld.resize(nw);
+	for (int iw=0; iw<nw; iw++)
+	  LocalEnergyOld[iw] = W[iw]->getPropertyBase()[LOCALENERGY];
 
 	Estimators->accumulate(W);
       } while(step<nSteps);
