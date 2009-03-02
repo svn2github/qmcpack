@@ -40,7 +40,7 @@ namespace qmcplusplus {
   bool DMCcuda::run() 
   { 
     resetRun();
-    Mover->MaxAge = 5;
+    Mover->MaxAge = 2;
     IndexType block = 0;
     IndexType nAcceptTot = 0;
     IndexType nRejectTot = 0;
@@ -140,20 +140,11 @@ namespace qmcplusplus {
 	  LocalEnergyOld = LocalEnergy;
 	// Now branch
 	for (int iw=0; iw<nw; iw++) {
-	  // double wold = W[iw]->Weight;
 	  W[iw]->Weight *= branchEngine->branchWeight(LocalEnergy[iw], LocalEnergyOld[iw]);
-	  // double wnew = W[iw]->Weight;
-	  // fprintf (stderr, "wold = %1.8f  wnew = %1.8f  eold = %1.8f  enew = %1.8f\n",
-	  // 	  wold, wnew, LocalEnergyOld[iw], LocalEnergy[iw]);
 	  W[iw]->getPropertyBase()[R2ACCEPTED] = 1.0;
 	  W[iw]->getPropertyBase()[R2PROPOSED] = 1.0;
 	}
 	Mover->setMultiplicity(W.begin(), W.end());
-	// double Msum = 0.0;
-	// for (int iw=0; iw<nw; iw++)
-	//   Msum += std::floor(W[iw]->Multiplicity);
-	// cerr << "WeightSum = " << weightsum << "  Msum = " << Msum << endl;
-
 	branchEngine->branch(CurrentStep,W);
 	nw = W.getActiveWalkers();
 	LocalEnergyOld.resize(nw);
@@ -212,6 +203,7 @@ namespace qmcplusplus {
     RealType oneoversqrtmass = std::sqrt(oneovermass);
     m_oneover2tau = 0.5/Tau;
     m_sqrttau = std::sqrt(Tau/mass);
+    m_tauovermass = Tau/mass;
 
     // Compute the size of data needed for each walker on the GPU card
     PointerPool<Walker_t::cuda_Buffer_t > pool;
