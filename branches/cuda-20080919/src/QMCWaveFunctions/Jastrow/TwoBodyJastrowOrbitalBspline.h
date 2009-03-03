@@ -43,7 +43,7 @@ namespace qmcplusplus {
     
     void checkInVariables(opt_variables_type& active);
     void addFunc(const string& aname, int ia, int ib, FT* j);
-    void recompute(MCWalkerConfiguration &W);
+    void recompute(MCWalkerConfiguration &W, bool firstTime);
     void reserve (PointerPool<cuda_vector<CudaRealType> > &pool);
     void addLog (MCWalkerConfiguration &W, vector<RealType> &logPsi);
     void update (vector<Walker_t*> &walkers, int iat);

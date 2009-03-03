@@ -5,7 +5,8 @@
 namespace qmcplusplus {
 
   void
-  OneBodyJastrowOrbitalBspline::recompute(MCWalkerConfiguration &W)
+  OneBodyJastrowOrbitalBspline::recompute(MCWalkerConfiguration &W,
+					  bool firstTime)
   {
   }
   
