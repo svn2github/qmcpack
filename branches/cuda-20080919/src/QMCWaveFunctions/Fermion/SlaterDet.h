@@ -107,10 +107,10 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
-    void recompute(MCWalkerConfiguration &W)
+    void recompute(MCWalkerConfiguration &W, bool firstTime)
     {
       for (int id=0; id<Dets.size(); id++)
-	Dets[id]->recompute(W);
+	Dets[id]->recompute(W, firstTime);
     }
 
     void 

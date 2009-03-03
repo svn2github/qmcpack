@@ -296,7 +296,7 @@ namespace qmcplusplus {
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
 
-    virtual void recompute(MCWalkerConfiguration &W)
+    virtual void recompute(MCWalkerConfiguration &W, bool firstTime)
     { }
 
     virtual void reserve (PointerPool<cuda_vector<CudaRealType> > &pool)

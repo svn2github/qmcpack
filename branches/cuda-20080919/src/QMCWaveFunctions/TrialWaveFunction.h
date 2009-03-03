@@ -135,7 +135,7 @@ namespace qmcplusplus {
     /////////////////////////
     // Vectorized versions //
     /////////////////////////
-    void recompute (MCWalkerConfiguration &W);
+    void recompute (MCWalkerConfiguration &W, bool firstTime=true);
 
     void reserve (PointerPool<cuda_vector<CudaRealType> > &pool);
 

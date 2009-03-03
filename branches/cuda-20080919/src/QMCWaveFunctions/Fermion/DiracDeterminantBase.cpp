@@ -613,28 +613,30 @@ namespace qmcplusplus {
   }
   
   void
-  DiracDeterminantBase::recompute(MCWalkerConfiguration &W)
+  DiracDeterminantBase::recompute(MCWalkerConfiguration &W, bool firstTime)
   {
     vector<Walker_t*> &walkers = W.WalkerList;
 
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
 
-    // Recompute A matrices;
-    vector<PosType> R(walkers.size());
-    for (int iat=FirstIndex; iat<LastIndex; iat++) {
-      int off = (iat-FirstIndex)*RowStride;
-      for (int iw=0; iw<walkers.size(); iw++) {
-	Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
-	newRowList[iw]    =  &(data[AOffset+off]);
-	gradLaplList[iw]  =  &(data[gradLaplOffset+4*off]);
-	R[iw] = walkers[iw]->R[iat];
+    // Only reevalute the orbitals if this is the first time
+    if (firstTime) {
+      // Recompute A matrices;
+      vector<PosType> R(walkers.size());
+      for (int iat=FirstIndex; iat<LastIndex; iat++) {
+	int off = (iat-FirstIndex)*RowStride;
+	for (int iw=0; iw<walkers.size(); iw++) {
+	  Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+	  newRowList[iw]    =  &(data[AOffset+off]);
+	  gradLaplList[iw]  =  &(data[gradLaplOffset+4*off]);
+	  R[iw] = walkers[iw]->R[iat];
+	}
+	newRowList_d = newRowList;
+	gradLaplList_d = gradLaplList;
+	Phi->evaluate (walkers, R, newRowList_d, gradLaplList_d, RowStride);
       }
-      newRowList_d = newRowList;
-      gradLaplList_d = gradLaplList;
-      Phi->evaluate (walkers, R, newRowList_d, gradLaplList_d, RowStride);
     }
-    
 
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;

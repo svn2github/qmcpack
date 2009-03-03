@@ -510,10 +510,10 @@ namespace qmcplusplus {
   ///////////////////////////////
   void
   TrialWaveFunction::recompute
-  (MCWalkerConfiguration &W)
+  (MCWalkerConfiguration &W, bool firstTime)
   {
     for(int i=0; i<Z.size(); i++) 
-      Z[i]->recompute(W);
+      Z[i]->recompute(W, firstTime);
   }
 
 

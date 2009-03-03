@@ -256,7 +256,7 @@ namespace qmcplusplus {
       Phi->reserve(pool);
     }
     
-    void recompute (MCWalkerConfiguration &W);
+    void recompute (MCWalkerConfiguration &W, bool firstTime);
     
     void addLog (MCWalkerConfiguration &W, vector<RealType> &logPsi);
 
