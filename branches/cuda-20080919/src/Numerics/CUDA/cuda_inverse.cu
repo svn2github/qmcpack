@@ -332,7 +332,7 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
 {
   int tid = threadIdx.x;
   __shared__ T *A, *work;
-  if (tid == 0) {
+  if (tid == 0 && threadIdx.y == 0) {
     A    = A_list[blockIdx.x];
     work = work_list[blockIdx.x];
   }
@@ -350,7 +350,7 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
     // load pivot block
     int row = kb*BS;
     for (int j=0; j<BS; j++)
-      if (row+tid < N)
+      if (row+tid < N && threadIdx.y == 0)
 	pivot[j][tid] = A[(row+j)*stride + row+tid];
     
     // invert pivot
@@ -361,59 +361,66 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
     for (int jb=0; jb < NB; jb++) {
       int row = jb*BS;
       if (kb != jb) {
-    	for (int j=0; j<BS; j++)
-    	  in[j][tid] = -A[(row+j)*stride + col + tid];
+	if (threadIdx.y == 0)
+	  for (int j=0; j<BS; j++)
+	    in[j][tid] = -A[(row+j)*stride + col + tid];
     	block_mul_set<T,BS>(in, pivot, A+row*stride+col, stride);
       }
-      else {
+      else if (threadIdx.y == 0)
     	for (int j=0; j<BS; j++)
     	  A[(row+j)*stride + col+tid] = (T)0.0;
-      }
     }	
 
     // Save pivot to global memory here!
     // We use it for temporary space in the rank-1 update
-    for (int j=0; j<BS; j++)
-      pivot_tmp[j*BS+tid] = pivot[j][tid];
+    if (threadIdx.y == 0) {
+      for (int j=0; j<BS; j++)
+	pivot_tmp[j*BS+tid] = pivot[j][tid];
 
-
-    // Copy Ato Atmp
-    for (int ib=0; ib<NB; ib++)
-      for (int row=0; row<N; row++)
-    	Atmp[row*stride+ib*BS+tid] =  A[row*stride+ib*BS+tid];
+      // Copy Ato Atmp
+      for (int ib=0; ib<NB; ib++)
+	for (int row=0; row<N; row++)
+	  Atmp[row*stride+ib*BS+tid] =  A[row*stride+ib*BS+tid];
+    }
     
     // Rank-1 update
     for (int ib=0; ib < NB; ib++) {
-      for (int i=0; i<BS; i++)
-    	in[i][tid] = A[(ib*BS+i)*stride + kb*BS + tid];
+      if (threadIdx.y == 0)
+	for (int i=0; i<BS; i++)
+	  in[i][tid] = A[(ib*BS+i)*stride + kb*BS + tid];
       for (int jb=0; jb<NB; jb++) {
-    	for (int i=0; i<BS; i++) 
-    	  pivot[i][tid] = A[(kb*BS+i)*stride + jb*BS + tid];
+	if (threadIdx.y == 0)
+	  for (int i=0; i<BS; i++) 
+	    pivot[i][tid] = A[(kb*BS+i)*stride + jb*BS + tid];
     	block_mul_add<T,BS>(in, pivot,  Atmp+(ib*BS)*stride + jb*BS,
     			    stride);
       }
     }
     // Copy Atmp back to A
-    for (int ib=0; ib<NB; ib++)
-      for (int row=0; row<N; row++)
-    	A[row*stride+ib*BS+tid] =  Atmp[row*stride+ib*BS+tid];
+    if (threadIdx.y == 0)
+      for (int ib=0; ib<NB; ib++)
+	for (int row=0; row<N; row++)
+	  A[row*stride+ib*BS+tid] =  Atmp[row*stride+ib*BS+tid];
 
     // Restore pivot from global memory here!
-    for (int j=0; j<BS; j++)
-      pivot[j][tid] = pivot_tmp[j*BS+tid];
+    if (threadIdx.y == 0)
+      for (int j=0; j<BS; j++)
+	pivot[j][tid] = pivot_tmp[j*BS+tid];
 
     // Row-scaling
     for (int ib=0; ib<NB; ib++) {
       int row = kb*BS;
       int col = ib*BS;
       if (kb != ib) {
-    	for (int j=0; j<BS; j++)
-    	  in[j][tid] = A[(row+j)*stride + col+tid];
+	if (threadIdx.y == 0)
+	  for (int j=0; j<BS; j++)
+	    in[j][tid] = A[(row+j)*stride + col+tid];
     	block_mul_set<T,BS>(pivot, in, A+row*stride+col, stride);
       }
       else {
-    	for (int j=0; j<BS; j++) 
-    	  A[(row+j)*stride + col+tid] = pivot[j][tid];
+	if (threadIdx.y == 0)
+	  for (int j=0; j<BS; j++) 
+	    A[(row+j)*stride + col+tid] = pivot[j][tid];
       }
     }	
   }
@@ -1024,11 +1031,11 @@ void
 test_inverse_many_double_conv()
 {
   
-  srand48((long) 123934);
-  int numMats = 1000;
+  srand48((long) 12394);
+  int numMats = 100;
 
-  int N = 31;
-  int row_stride = 32;
+  int N = 168;
+  int row_stride = 176;
 
   int lwork = cuda_inverse_many_double_worksize(N);
   fprintf (stderr, "lwork = %d\n", lwork);
@@ -1041,14 +1048,15 @@ test_inverse_many_double_conv()
   cudaMalloc((void**)&Alist_d,    numMats*sizeof(float*));
   cudaMalloc((void**)&worklist_d, numMats*sizeof(float*));
 
-  float A[N*row_stride];
-  for (int i=0; i<N*row_stride; i++)
-    A[i] = drand48();
+  float A[numMats*N*row_stride];
+  for (int j=0; j<numMats; j++)
+    for (int i=0; i<N*row_stride; i++)
+      A[j*N*row_stride+i] = 1.0e-30*(drand48()-0.5);
 
   for (int mat=0; mat<numMats; mat++) {
     cudaMalloc ((void**)&(Alist[mat]),    N*row_stride*sizeof(float));
     cudaMalloc ((void**)&(worklist[mat]), lwork*sizeof(float));
-    cudaMemcpy(Alist[mat], A, N*row_stride*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(Alist[mat], &A[mat*N*row_stride], N*row_stride*sizeof(float), cudaMemcpyHostToDevice);
   }
   
   cudaMemcpy(Alist_d   ,    Alist, numMats*sizeof(float*), 
@@ -1082,19 +1090,21 @@ test_inverse_many_double_conv()
   }
 
   // Copy Ainv back to host memory
-  float Ainv[N*row_stride];
-  cudaMemcpy(Ainv, Alist[10], N*row_stride*sizeof(float), cudaMemcpyDeviceToHost);
-
-  double error = 0.0;
-  for (int i=0; i<N; i++)
-    for (int j=0; j<N; j++) {
-      double val = 0.0;
-      for (int k=0; k<N; k++)
-	val += Ainv[i*row_stride+k]*A[k*row_stride+j];
-      double diff = (i==j) ? (1.0f-val) : val;
-      error += diff*diff;
-    }
-  fprintf (stderr, "error = %1.8e\n", sqrt(error/(double)(N*N)));
+  for (int mat=0; mat<numMats; mat++) {
+    float Ainv[N*row_stride];
+    cudaMemcpy(Ainv, Alist[mat], N*row_stride*sizeof(float), cudaMemcpyDeviceToHost);
+    
+    double error = 0.0;
+    for (int i=0; i<N; i++)
+      for (int j=0; j<N; j++) {
+	double val = 0.0;
+	for (int k=0; k<N; k++)
+	  val += Ainv[i*row_stride+k]*A[mat*N*row_stride+k*row_stride+j];
+	double diff = (i==j) ? (1.0f-val) : val;
+	error += diff*diff;
+      }
+    fprintf (stderr, "error = %1.8e\n", sqrt(error/(double)(N*N)));
+  }
 
 }
 
