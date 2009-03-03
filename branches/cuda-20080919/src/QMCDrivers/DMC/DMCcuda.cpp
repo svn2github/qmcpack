@@ -63,7 +63,6 @@ namespace qmcplusplus {
       IndexType step = 0;
       nAccept = nReject = 0;
       Estimators->startBlock(nSteps);
-      LocalEnergyOld.resize(nw);
       
       do {
 	//	cerr << "Step = " << step << endl;
@@ -150,11 +149,11 @@ namespace qmcplusplus {
 	LocalEnergyOld.resize(nw);
 	for (int iw=0; iw<nw; iw++)
 	  LocalEnergyOld[iw] = W[iw]->getPropertyBase()[LOCALENERGY];
-
+	Psi.recompute(W);
 	Estimators->accumulate(W);
       } while(step<nSteps);
-      Psi.recompute(W);
-      
+      //Psi.recompute(W);
+
       double accept_ratio = (double)nAccept/(double)(nAccept+nReject);
       Estimators->stopBlock(accept_ratio);
 

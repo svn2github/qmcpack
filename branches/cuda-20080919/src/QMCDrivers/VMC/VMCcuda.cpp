@@ -102,6 +102,9 @@ namespace qmcplusplus {
 	    if (accepted.size())
 	      Psi.update(accepted,iat);
 	  }
+	  // cerr << "Rank = " << myComm->rank() <<
+	  //   "  CurrentStep = " << CurrentStep << 
+	  //   "  isub = " << isub << endl;
 	}
 	
 	Psi.gradLapl(W, grad, lapl);
@@ -119,7 +122,6 @@ namespace qmcplusplus {
       nAcceptTot += nAccept;
       nRejectTot += nReject;
       ++block;
-      
       recordBlock(block);
     } while(block<nBlocks);
 
@@ -204,6 +206,9 @@ namespace qmcplusplus {
 	    if (accepted.size())
 	      Psi.update(accepted,iat);
 	  }
+	  // cerr << "Rank = " << myComm->rank() <<
+	  //   "  CurrentStep = " << CurrentStep << "  isub = " << isub << endl;
+
 	}
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
@@ -217,7 +222,6 @@ namespace qmcplusplus {
       nAcceptTot += nAccept;
       nRejectTot += nReject;
       ++block;
-      
       recordBlock(block);
     } while(block<nBlocks);
     //finalize a qmc section
