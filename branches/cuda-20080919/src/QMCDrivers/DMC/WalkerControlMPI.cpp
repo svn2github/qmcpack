@@ -45,6 +45,7 @@ using namespace qmcplusplus;
  */
 WalkerControlMPI::WalkerControlMPI(Communicate* c): WalkerControlBase(c) 
 {
+  app_log() << "Constructor for WalkerControlMPI.\n";
   SwapMode=1;
   NumSwaps=0;
   Cur_min=0;
@@ -107,7 +108,8 @@ WalkerControlMPI::branch(int iter, MCWalkerConfiguration& W, RealType trigger)
   myTimers[1]->stop();
 
   myTimers[2]->start();
-  swapWalkersSimple(W); 
+  // HACK HACK HACK
+  //  swapWalkersSimple(W); 
   myTimers[2]->stop();
 
   //Do not need to use a trigger.

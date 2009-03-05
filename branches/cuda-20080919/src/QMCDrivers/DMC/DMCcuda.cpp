@@ -47,7 +47,8 @@ namespace qmcplusplus {
     int nat = W.getTotalNum();
     int nw  = W.getActiveWalkers();
     
-    vector<RealType>  LocalEnergy(nw), LocalEnergyOld(nw), oldScale(nw), newScale(nw);
+    vector<RealType>  LocalEnergy(nw), LocalEnergyOld(nw), 
+      oldScale(nw), newScale(nw);
     vector<PosType>   delpos(nw);
     vector<PosType>   dr(nw);
     vector<PosType>   newpos(nw);
@@ -132,7 +133,7 @@ namespace qmcplusplus {
 	  if (accepted.size())
 	    Psi.update(accepted,iat);
 	}
-
+	//	Psi.recompute(W, false);
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
 	if (CurrentStep == 1)
@@ -144,15 +145,19 @@ namespace qmcplusplus {
 	  W[iw]->getPropertyBase()[R2PROPOSED] = 1.0;
 	}
 	Mover->setMultiplicity(W.begin(), W.end());
+	// HACK HACK HACK
+	// 	for (int iw=0; iw<nw; iw++)
+	// 	  W[iw]->Multiplicity = 1.0;
 	branchEngine->branch(CurrentStep,W);
 	nw = W.getActiveWalkers();
 	LocalEnergyOld.resize(nw);
+	// End HACK HACK HACK
 	for (int iw=0; iw<nw; iw++)
 	  LocalEnergyOld[iw] = W[iw]->getPropertyBase()[LOCALENERGY];
-	Psi.recompute(W);
 	Estimators->accumulate(W);
       } while(step<nSteps);
-      //Psi.recompute(W);
+      Psi.recompute(W, true);
+
 
       double accept_ratio = (double)nAccept/(double)(nAccept+nReject);
       Estimators->stopBlock(accept_ratio);
