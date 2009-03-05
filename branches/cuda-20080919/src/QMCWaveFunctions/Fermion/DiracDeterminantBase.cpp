@@ -617,11 +617,35 @@ namespace qmcplusplus {
   {
     vector<Walker_t*> &walkers = W.WalkerList;
 
+    // HACK HACK HACK
+//     app_log() << "Before recompute:\n";
+//     host_vector<CUDA_PRECISION> host_data;
+//     for (int iw=0; iw<walkers.size(); iw++) {
+//        Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+//        host_data = data;
+//        double sum2 = 0.0;
+//        for (int i=0; i<NumPtcls; i++)
+// 	 for (int j=0; j<NumPtcls; j++) {
+// 	   double val = 0.0;
+// 	   for (int k=0; k<NumPtcls; k++)
+// 	     val += host_data[AinvOffset + i*RowStride+k] *
+// 	       host_data[AOffset+k*RowStride+j];
+// 	   val -= (i==j) ? 1.0 : 0.0;
+// 	   sum2 += val*val;
+// 	 }
+//        app_log() << "iw = " << iw << "  RMS deviation = " 
+// 		 << std::sqrt(sum2/(double)(NumPtcls*NumPtcls)) << endl;
+//     }
+
+
     if (AList.size() < walkers.size())
       resizeLists(walkers.size());
 
     // Only reevalute the orbitals if this is the first time
     if (firstTime) {
+//       int iwsave = walkers.size()-1;
+//       host_vector<float> old_data, new_data;
+//       old_data = walkers[iwsave]->cuda_DataSet;
       // Recompute A matrices;
       vector<PosType> R(walkers.size());
       for (int iat=FirstIndex; iat<LastIndex; iat++) {
@@ -629,13 +653,26 @@ namespace qmcplusplus {
 	for (int iw=0; iw<walkers.size(); iw++) {
 	  Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
 	  newRowList[iw]    =  &(data[AOffset+off]);
-	  gradLaplList[iw]  =  &(data[gradLaplOffset+4*off]);
+	  newGradLaplList[iw]  =  &(data[gradLaplOffset+4*off]);
 	  R[iw] = walkers[iw]->R[iat];
 	}
 	newRowList_d = newRowList;
-	gradLaplList_d = gradLaplList;
-	Phi->evaluate (walkers, R, newRowList_d, gradLaplList_d, RowStride);
+	newGradLaplList_d = newGradLaplList;
+	Phi->evaluate (walkers, R, newRowList_d, newGradLaplList_d, RowStride);
       }
+//       new_data = walkers[iwsave]->cuda_DataSet;
+//       for (int i=0; i<NumOrbitals; i++)
+// 	for (int j=0; j<NumOrbitals; j++) {
+// 	  int off = i*RowStride+j + AOffset;
+// 	  double oldA = old_data[off];
+// 	  double newA = new_data[off];
+// 	  if (std::fabs(oldA-newA) > 1.0e-9) {
+// 	    char buff[200];
+// 	    snprintf (buff, 200, "(%3d, %3d)  old=%10.6e  new=%10.6e\n",
+// 		      i,j, oldA, newA);
+// 	    app_log() << buff;
+// 	  }
+// 	}
     }
 
     for (int iw=0; iw<walkers.size(); iw++) {
@@ -655,6 +692,47 @@ namespace qmcplusplus {
     cuda_inverse_many_double (AinvList_d.data(), workList_d.data(), 
      			      NumPtcls, RowStride, walkers.size());
 
+    // HACK HACK HACK
+//     app_log() << "After recompute:\n";
+//     double A[NumPtcls*NumPtcls], work[NumPtcls*NumPtcls];
+//     int piv[NumPtcls];
+//     for (int iw=0; iw<walkers.size(); iw++) {
+//        Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+//        host_data = data;
+//        double sum2 = 0.0;
+//        for (int i=0; i<NumPtcls; i++)
+// 	 for (int j=0; j<NumPtcls; j++) {
+// 	   A[i*NumPtcls+j] = host_data[AinvOffset + i*RowStride +j];
+// 	   double val = 0.0;
+// 	   for (int k=0; k<NumPtcls; k++)
+// 	     val += host_data[AinvOffset + i*RowStride+k] *
+// 	       host_data[AOffset+k*RowStride+j];
+// 	   val -= (i==j) ? 1.0 : 0.0;
+// 	   sum2 += val*val;
+// 	 }
+//        double phase;
+//        double error = std::sqrt(sum2/(double)(NumPtcls*NumPtcls));
+//        double logdet =InvertWithLog(A,NumPtcls,NumOrbitals,work,piv,phase);
+//        app_log() << "iw = " << iw << "  RMS deviation = " << error 
+// 		 << "  LogDet = " << logdet << endl;
+//        if (error > 0.05) {
+// 	 FILE *CUDA = fopen ("Ainv_cuda", "w");
+// 	 FILE *CPU  = fopen ("Ainv_CPU","w");
+// 	 for (int i=0; i<NumPtcls; i++) {
+// 	   for (int j=0; j<NumPtcls; j++) {
+// 	     fprintf (CUDA, "%16.12e ", host_data[AinvOffset + i*RowStride+j]);
+// 	     fprintf (CPU,  "%16.12e ", A[i*NumPtcls+j]);
+// 	   }
+// 	   fprintf (CUDA, "\n");
+// 	   fprintf (CPU,  "\n");
+// 	 }
+// 	 fclose(CUDA);
+// 	 fclose(CPU);
+// 	 abort();
+//        }
+//     }
+
+	   
     // cuda_inverse_many(AinvList_d.data(), workList_d.data(), 
     // 		      NumOrbitals, walkers.size());
 
@@ -696,9 +774,12 @@ namespace qmcplusplus {
       int N = NumPtcls;
       bool passed = true;
 
-      for (int i=0; i<NumPtcls; i++)
+      for (int i=0; i<NumPtcls; i++) {
 	for (int j=0; j<NumOrbitals; j++)
 	  host_data[AinvOffset+i*RowStride+j] = A[i*NumOrbitals + j];
+	for (int j=NumOrbitals; j<RowStride; j++)
+	  host_data[AinvOffset+i*RowStride+j] = 0.0;
+      }
       data = host_data;
 
       // for (int i=0; i<N; i++)
