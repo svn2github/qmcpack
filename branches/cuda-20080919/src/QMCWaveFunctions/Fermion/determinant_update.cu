@@ -57,7 +57,8 @@ update_inverse_cuda1 (updateJob updateList[],
   }
   
   // Write the data back to global memory
-  Ainv_delta[col]    = Ainv_delta_shared[threadIdx.x];
+  if (col < N)
+    Ainv_delta[col]    = Ainv_delta_shared[threadIdx.x];
  __syncthreads();
 }
 
@@ -85,7 +86,8 @@ update_inverse_cuda2 (updateJob updateList[],
   // Read the data back from global memory
   Ainv_delta_shared[threadIdx.x] = Ainv_delta[col];
   Ainv_colk_shared[threadIdx.x] = Ainv_colk[col];
-  A[k*rowstride + col] = u[col];
+  if (col < N)
+    A[k*rowstride + col] = u[col];
   __syncthreads();
   
   __shared__ T prefact;
@@ -100,8 +102,9 @@ update_inverse_cuda2 (updateJob updateList[],
     __syncthreads();
     T *Ainv_row = Ainv+block*BS*rowstride + col;
     int istop = min (BS, N-block*BS);
-    for (int i=0; i<istop; i++, Ainv_row+=rowstride) 
-      *Ainv_row += Ainv_delta_shared[tid]*Ainv_colk_shared[i];
+    if (col < N)
+      for (int i=0; i<istop; i++, Ainv_row+=rowstride) 
+	*Ainv_row += Ainv_delta_shared[tid]*Ainv_colk_shared[i];
     __syncthreads();
   }
 }
@@ -245,7 +248,8 @@ update_inverse_cuda2 (T *A_g[], T *Ainv_g[], T *u_g[],
   // Read the data back from global memory
   Ainv_delta_shared[threadIdx.x] = Ainv_delta[col];
   Ainv_colk_shared[threadIdx.x] = Ainv_colk[col];
-  A[k*rowstride + col] = u[col];
+  if (col < N)
+    A[k*rowstride + col] = u[col];
   __syncthreads();
   
   __shared__ T prefact;
