@@ -364,6 +364,7 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
 	if (threadIdx.y == 0)
 	  for (int j=0; j<BS; j++)
 	    in[j][tid] = -A[(row+j)*stride + col + tid];
+	__syncthreads();
     	block_mul_set<T,BS>(in, pivot, A+row*stride+col, stride);
       }
       else if (threadIdx.y == 0)
@@ -383,6 +384,7 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
 	  Atmp[row*stride+ib*BS+tid] =  A[row*stride+ib*BS+tid];
     }
     
+    __syncthreads();
     // Rank-1 update
     for (int ib=0; ib < NB; ib++) {
       if (threadIdx.y == 0)
@@ -392,8 +394,10 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
 	if (threadIdx.y == 0)
 	  for (int i=0; i<BS; i++) 
 	    pivot[i][tid] = A[(kb*BS+i)*stride + jb*BS + tid];
+	__syncthreads();
     	block_mul_add<T,BS>(in, pivot,  Atmp+(ib*BS)*stride + jb*BS,
     			    stride);
+	__syncthreads();
       }
     }
     // Copy Atmp back to A
@@ -415,6 +419,7 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
 	if (threadIdx.y == 0)
 	  for (int j=0; j<BS; j++)
 	    in[j][tid] = A[(row+j)*stride + col+tid];
+	__syncthreads();
     	block_mul_set<T,BS>(pivot, in, A+row*stride+col, stride);
       }
       else {
@@ -610,7 +615,7 @@ convert (Tdest *dest_list[], Tsrc *src_list[],
   int i = blockIdx.x * CONVERT_BS + threadIdx.x;
   int row = i / dest_rowstride;
   int col = i - row*dest_rowstride;
-  if (row < dest_rows) {
+  if (row < dest_rows && col < dest_rowstride) {
     if (col < src_cols && row < src_rows)
       mydest[i] = (Tdest)mysrc[row*src_rowstride + col];
     else
@@ -755,7 +760,7 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
   // Check the pivoting algorithm.
   // inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
   //   ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-  inverse_many<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+  inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
     ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
 
 
@@ -763,7 +768,7 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf (stderr, "CUDA error in inverse_many_pivot<double,%d>:\n  %s\n",
+    fprintf (stderr, "CUDA error in inverse_many<double,%d>:\n  %s\n",
 	     INVERSE_BS, cudaGetErrorString(err));
     abort();
   }
