@@ -97,12 +97,19 @@ namespace qmcplusplus {
 
     /// Data for GPU-vectorized versions
 #ifdef QMC_CUDA
+    static int cuda_DataSize;
     typedef cuda_vector<CUDA_PRECISION> cuda_Buffer_t;
     cuda_Buffer_t cuda_DataSet;
     // Note that R_GPU has size N+1.  The last element contains the
     // proposed position for single-particle moves.
     cuda_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_GPU, Grad_GPU;
     cuda_vector<CUDA_PRECISION> Lap_GPU;
+    inline void resizeCuda(int size) {
+      if (cuda_DataSize != size)
+	cuda_DataSize = size;
+      cuda_DataSet.resize(size);
+    }
+
 #endif
 
 
@@ -254,8 +261,15 @@ namespace qmcplusplus {
      */
     inline int byteSize() 
     {
-      return 2*sizeof(long)+2*sizeof(int)+(Properties.size()+DIM*2*R.size()+DataSet.size())*sizeof(T);
-      //return 2*sizeof(int)+(Properties.size()+DIM*2*R.size()+DataSet.size())*sizeof(T);
+      int bsize = 2*sizeof(long)+2*sizeof(int)+(Properties.size()+DIM*2*R.size()+DataSet.size())*sizeof(T);
+#ifdef QMC_CUDA
+      bsize += 2 *sizeof (int); // size and N
+      bsize += cuda_DataSize             * sizeof(CUDA_PRECISION); // cuda_DataSet
+      bsize += R.size()      * OHMMS_DIM * sizeof(CUDA_PRECISION); // R_GPU
+      bsize += R.size()      * OHMMS_DIM * sizeof(CUDA_PRECISION); // Grad_GPU
+      bsize += R.size()      * 1         * sizeof(CUDA_PRECISION); // Lap_GPU
+#endif   
+      return bsize;
     }
 
     template<class Msg>
@@ -267,6 +281,27 @@ namespace qmcplusplus {
       for(int iat=0; iat<nat;iat++) Drift[iat].putMessage(m);
       Properties.putMessage(m);
       DataSet.putMessage(m);
+#ifdef QMC_CUDA
+      // Pack GPU data
+      host_vector<CUDA_PRECISION> host_data;
+      host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
+      host_vector<CUDA_PRECISION> host_lapl;
+
+      host_data = cuda_DataSet;
+      R_host = R_GPU;
+      int size = host_data.size();
+      int N = R_host.size();
+      m.Pack(size);
+      m.Pack(N);
+      m.Pack(&(host_data[0]), host_data.size());
+      m.Pack(&(R_host[0][0]), OHMMS_DIM*R_host.size());
+      R_host = Grad_GPU;
+      m.Pack(&(R_host[0][0]), OHMMS_DIM*R_host.size());
+      
+      host_lapl = Lap_GPU;
+      m.Pack(&(host_lapl[0]), host_lapl.size());
+#endif
+
       return m;
     }
 
@@ -279,6 +314,33 @@ namespace qmcplusplus {
       for(int iat=0; iat<nat;iat++) Drift[iat].getMessage(m);
       Properties.getMessage(m);
       DataSet.getMessage(m);
+#ifdef QMC_CUDA
+      // Pack GPU data
+      host_vector<CUDA_PRECISION> host_data;
+      host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
+      host_vector<CUDA_PRECISION> host_lapl;
+
+      int size, N;
+      m.Unpack(size);
+      m.Unpack(N);
+      host_data.resize(size);
+      R_host.resize(N);
+      host_lapl.resize(N);
+
+      m.Unpack(&(host_data[0]), size);
+      cuda_DataSet = host_data;
+
+      m.Unpack(&(R_host[0][0]), OHMMS_DIM*N);
+      R_GPU = R_host;
+      m.Unpack(&(R_host[0][0]), OHMMS_DIM*N);
+      Grad_GPU = R_host;
+      
+      m.Unpack(&(host_lapl[0]), N);
+      Lap_GPU = host_lapl;
+#endif
+
+
+
       return m;
     }
 

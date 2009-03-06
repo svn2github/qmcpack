@@ -51,6 +51,15 @@ accept_move_GPU_cuda (float* Rlist[], float new_pos[],
   
   accept_kernel<float,BS><<<dimGrid,dimBlock>>>
     (Rlist, new_pos, toAccept, iat, N);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in accept_move_GPU_cuda:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
 }
 
 

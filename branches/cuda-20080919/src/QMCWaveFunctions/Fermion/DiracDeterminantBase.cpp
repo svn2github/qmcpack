@@ -1026,6 +1026,17 @@ namespace qmcplusplus {
     		   gradLapl_host[4*(iw*NumPtcls + iat)+2]);
     	grads(iw,iat+FirstIndex) += g;
     	lapl(iw,iat+FirstIndex)  += gradLapl_host[4*(iw*NumPtcls + iat)+3] - dot(g,g);
+	if (std::isnan(lapl(iw,iat+FirstIndex))) {
+	  cuda_vector<CUDA_PRECISION> host_data;
+	  host_data = walkers[iw]->cuda_DataSet;
+	  for (int i=0; i<NumPtcls; i++)
+	    for (int j=0; j<NumPtcls; j++)
+	      if (std::isnan(host_data[AinvOffset+i*RowStride+j]))
+		cerr << "NAN in inverse at (" << i << "," << j << ")\n";
+	  cerr << "NAN in walker " << iw << ", iat " << iat + FirstIndex 
+	       << "  grad = " << grads(iw,iat+FirstIndex) 
+	       << "  lapl = " << gradLapl_host[4*(iw*NumPtcls + iat)+3] << endl;
+	}
       }
     }
     

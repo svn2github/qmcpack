@@ -108,8 +108,7 @@ WalkerControlMPI::branch(int iter, MCWalkerConfiguration& W, RealType trigger)
   myTimers[1]->stop();
 
   myTimers[2]->start();
-  // HACK HACK HACK
-  //  swapWalkersSimple(W); 
+  swapWalkersSimple(W); 
   myTimers[2]->stop();
 
   //Do not need to use a trigger.

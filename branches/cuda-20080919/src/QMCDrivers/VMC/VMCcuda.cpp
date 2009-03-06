@@ -259,6 +259,7 @@ namespace qmcplusplus {
     W.updateLists_GPU();
     vector<RealType> logPsi(W.WalkerList.size(), 0.0);
     Psi.evaluateLog(W, logPsi);
+    Psi.recompute(W, true);
     Estimators->start(nBlocks, true);
   }
 

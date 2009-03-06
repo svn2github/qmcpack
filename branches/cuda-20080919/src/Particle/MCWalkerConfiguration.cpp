@@ -322,19 +322,31 @@ void MCWalkerConfiguration::updateLists_GPU()
     Rnew.resize(nw);
     AcceptList_GPU.resize(nw);
     AcceptList_host.resize(nw);
+    RList_GPU.resize(nw);
+    GradList_GPU.resize(nw);
+    LapList_GPU.resize(nw);
   }
 
   host_vector<CUDA_PRECISION*> hostlist(nw);
-  for (int iw=0; iw<nw; iw++)
+  for (int iw=0; iw<nw; iw++) {
+    if (WalkerList[iw]->R_GPU.size() != R.size())
+      cerr << "Error in R_GPU size for iw = " << iw << "!\n";
     hostlist[iw] = (CUDA_PRECISION*)WalkerList[iw]->R_GPU.data();
+  }
   RList_GPU = hostlist;
 
-  for (int iw=0; iw<nw; iw++)
+  for (int iw=0; iw<nw; iw++) {
+    if (WalkerList[iw]->Grad_GPU.size() != R.size())
+      cerr << "Error in Grad_GPU size for iw = " << iw << "!\n";
     hostlist[iw] = (CUDA_PRECISION*)WalkerList[iw]->Grad_GPU.data();
+  }
   GradList_GPU = hostlist;
 
-  for (int iw=0; iw<nw; iw++)
+  for (int iw=0; iw<nw; iw++) {
+    if (WalkerList[iw]->Lap_GPU.size() != R.size())
+      cerr << "Error in Lap_GPU size for iw = " << iw << "!\n";
     hostlist[iw] = (CUDA_PRECISION*)WalkerList[iw]->Lap_GPU.data();
+  }
   LapList_GPU = hostlist;
   
 }
@@ -375,6 +387,18 @@ void MCWalkerConfiguration::acceptMove_GPU(vector<bool> &toAccept)
   for (int i=0; i<toAccept.size(); i++)
     AcceptList_host[i] = (int)toAccept[i];
   AcceptList_GPU = AcceptList_host;
+//   app_log() << "toAccept.size()        = " << toAccept.size() << endl;
+//   app_log() << "AcceptList_host.size() = " << AcceptList_host.size() << endl;
+//   app_log() << "AcceptList_GPU.size()  = " << AcceptList_GPU.size() << endl;
+//   app_log() << "WalkerList.size()      = " << WalkerList.size() << endl;
+//   app_log() << "Rnew_GPU.size()        = " << Rnew_GPU.size() << endl;
+//   app_log() << "RList_GPU.size()       = " << RList_GPU.size() << endl;
+  if (RList_GPU.size() != WalkerList.size())
+    cerr << "Error in RList_GPU size.\n";
+  if (Rnew_GPU.size() != WalkerList.size())
+    cerr << "Error in Rnew_GPU size.\n";
+  if (AcceptList_GPU.size() != WalkerList.size())
+    cerr << "Error in AcceptList_GPU_GPU size.\n";
   accept_move_GPU_cuda 
     (RList_GPU.data(), (CUDA_PRECISION*)Rnew_GPU.data(), 
      AcceptList_GPU.data(), CurrentParticle, WalkerList.size());

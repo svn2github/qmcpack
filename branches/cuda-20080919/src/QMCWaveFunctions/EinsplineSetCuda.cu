@@ -119,7 +119,6 @@ void phase_factor_kernel (T kPoints[], int makeTwoCopies[],
   int outIndex=0;
   int outBlock=0;
   __shared__ int m2c[BS];
-  int numWrite = min(BS, num_walkers-blockIdx.x*BS);
   for (int block=0; block<nb; block++) {
     // Load kpoints into shared memory
     for (int i=0; i<3; i++) {
@@ -212,6 +211,7 @@ void phase_factor_kernel (T kPoints[], int makeTwoCopies[],
 	  my_GL_out[3*row_stride +outBlock*BS+tid] = out_shared[4][tid];
 	  outIndex = 0;
 	  outBlock++;
+	  __syncthreads();
 	}
       }
     }

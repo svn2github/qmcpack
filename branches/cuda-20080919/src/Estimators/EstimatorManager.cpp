@@ -282,12 +282,10 @@ namespace qmcplusplus {
     PropertyCache[cpuInd] = MyTimer.elapsed();
     PropertyCache[acceptInd] = accept;
 
-
     for(int i=0; i<Estimators.size(); i++) 
     {
       Estimators[i]->takeBlockAverage(AverageCache.begin());
     }
-
     if(CompEstimators) CompEstimators->stopBlock();
 
     collectBlockAverages();
@@ -356,7 +354,9 @@ namespace qmcplusplus {
       else //not a master, pack and send the data
         myRequest[0]=myComm->isend(0,myComm->rank(),*RemoteData[0]);
 #else
-      myComm->reduce(*RemoteData[0]);
+    // HACK HACK HACK
+    //      myComm->reduce(*RemoteData[0]);
+      myComm->allreduce(*RemoteData[0]);
 #endif
 
       if(Options[MANAGE])
