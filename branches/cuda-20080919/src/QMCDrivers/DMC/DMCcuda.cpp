@@ -52,7 +52,7 @@ namespace qmcplusplus {
     vector<PosType>   delpos(nw);
     vector<PosType>   dr(nw);
     vector<PosType>   newpos(nw);
-    vector<ValueType> ratios(nw), rplus(nw), rminus(nw);
+    vector<ValueType> ratios(nw), rplus(nw), rminus(nw), R2prop(nw), R2acc(nw);
     vector<PosType>  oldG(nw), newG(nw);
     vector<ValueType> oldL(nw), newL(nw);
     vector<Walker_t*> accepted(nw);
@@ -86,6 +86,7 @@ namespace qmcplusplus {
 	accepted.resize(nw);
 	lapl.resize(nw, nat);
 	grad.resize(nw, nat);
+	R2prop.resize(nw,0.0); R2acc.resize(nw,0.0);
 
 	W.updateLists_GPU();
 	for (int iw=0; iw<nw; iw++)
@@ -101,6 +102,7 @@ namespace qmcplusplus {
 	    dr[iw] = (m_sqrttau*delpos[iw]) + (oldScale[iw]*oldG[iw]);
             newpos[iw]=W[iw]->R[iat] + dr[iw];
 	    ratios[iw] = 1.0;
+	    R2prop[iw] += dot(dr[iw], dr[iw]);
 	  }
 	  W.proposeMove_GPU(newpos, iat);
 	  
@@ -125,6 +127,7 @@ namespace qmcplusplus {
 	      W[iw]->R[iat] = newpos[iw];
 	      W[iw]->Age = 0;
 	      acc[iw] = true;
+	      R2acc[iw] += dot(dr[iw], dr[iw]);
 	    }
 	    else 
 	      nReject++;
@@ -141,8 +144,8 @@ namespace qmcplusplus {
 	// Now branch
 	for (int iw=0; iw<nw; iw++) {
 	  W[iw]->Weight *= branchEngine->branchWeight(LocalEnergy[iw], LocalEnergyOld[iw]);
-	  W[iw]->getPropertyBase()[R2ACCEPTED] = 1.0;
-	  W[iw]->getPropertyBase()[R2PROPOSED] = 1.0;
+	  W[iw]->getPropertyBase()[R2ACCEPTED] = R2acc[iw];
+	  W[iw]->getPropertyBase()[R2PROPOSED] = R2prop[iw];
 	}
 	Mover->setMultiplicity(W.begin(), W.end());
 	// HACK HACK HACK
@@ -154,7 +157,8 @@ namespace qmcplusplus {
 	// End HACK HACK HACK
 	for (int iw=0; iw<nw; iw++)
 	  LocalEnergyOld[iw] = W[iw]->getPropertyBase()[LOCALENERGY];
-	Estimators->accumulate(W);
+	// This is done during the branchEngine->branch call in DMC
+	//Estimators->accumulate(W);
       } while(step<nSteps);
       Psi.recompute(W, true);
 
