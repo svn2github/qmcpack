@@ -98,11 +98,12 @@ namespace qmcplusplus {
           //create a 3N-Dimensional Gaussian with variance=1
           makeGaussRandomWithEngine(delpos,Random);
           for(int iw=0; iw<nw; iw++) {
+	    delpos[iw] *= m_sqrttau;
 	    oldScale[iw] = getDriftScale(m_tauovermass,oldG[iw]);
-	    dr[iw] = (m_sqrttau*delpos[iw]) + (oldScale[iw]*oldG[iw]);
+	    dr[iw] = delpos[iw] + (oldScale[iw]*oldG[iw]);
             newpos[iw]=W[iw]->R[iat] + dr[iw];
 	    ratios[iw] = 1.0;
-	    R2prop[iw] += dot(dr[iw], dr[iw]);
+	    R2prop[iw] += dot(delpos[iw], delpos[iw]);
 	  }
 	  W.proposeMove_GPU(newpos, iat);
 	  
@@ -127,7 +128,7 @@ namespace qmcplusplus {
 	      W[iw]->R[iat] = newpos[iw];
 	      W[iw]->Age = 0;
 	      acc[iw] = true;
-	      R2acc[iw] += dot(dr[iw], dr[iw]);
+	      R2acc[iw] += dot(delpos[iw], delpos[iw]);
 	    }
 	    else 
 	      nReject++;
