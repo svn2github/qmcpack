@@ -559,6 +559,8 @@ namespace qmcplusplus {
 	    app_log() << "Copying einspline orbitals to GPU.\n";
 	    create_multi_UBspline_3d_cuda 
 	      (orbitalSet->MultiSpline, orbitalSet->CudaMultiSpline);
+	    // Destroy original CPU spline
+	    destroy_Bspline (orbitalSet->MultiSpline);
 	    host_vector<CudaRealType> Linv_host;
 	    Linv_host.resize(9);
 	    orbitalSet->Linv_cuda.resize(9);
@@ -580,6 +582,8 @@ namespace qmcplusplus {
 	    app_log() << "Copying einspline orbitals to GPU.\n";
 	    create_multi_UBspline_3d_cuda (orbitalSet->MultiSpline,
 					   orbitalSet->CudaMultiSpline);
+	    // Destroy original CPU spline
+	    destroy_Bspline (orbitalSet->MultiSpline);
 
 	    host_vector<CudaRealType> Linv_host;
 	    Linv_host.resize(9);
