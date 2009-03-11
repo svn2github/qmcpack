@@ -189,7 +189,7 @@ namespace qmcplusplus {
       
       Mover = new DMCUpdatePbyPWithRejection(W,Psi,H,Random); 
       Mover->resetRun(branchEngine,Estimators);
-      Mover->initWalkersForPbyP(W.begin(),W.end());
+      //Mover->initWalkersForPbyP(W.begin(),W.end());
       branchEngine->checkParameters(W);
     }
     //    Mover->updateWalkers(W.begin(),W.end());
@@ -232,6 +232,7 @@ namespace qmcplusplus {
     W.updateLists_GPU();
     vector<RealType> logPsi(W.WalkerList.size(), 0.0);
     Psi.evaluateLog(W, logPsi);
+    Psi.recompute(W);
     Estimators->start(nBlocks, true);
   }
 
