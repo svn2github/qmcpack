@@ -135,11 +135,13 @@ namespace qmcplusplus {
 // 			spline.coefs.data(), spline.coefs.size(),
 // 			spline.rMax, L.data(), Linv.data(),
 // 			SumGPU.data(), walkers.size());
+	bool use_fast_image = W.Lattice.SimulationCellRadius >= spline.rMax;
+      
 	one_body_ratio_grad (C.data(), W.RList_GPU.data(), first, last, 
 			     (CudaReal*)W.Rnew_GPU.data(), iat, 
 			     spline.coefs.data(), spline.coefs.size(),
 			     spline.rMax, L.data(), Linv.data(), zero,
-			     SumGPU.data(), walkers.size());
+			     SumGPU.data(), walkers.size(), use_fast_image);
 	zero = false;
       }
     }
@@ -183,6 +185,7 @@ namespace qmcplusplus {
    vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
   {
     vector<Walker_t*> &walkers = W.WalkerList;
+    float sim_cell_radius = W.Lattice.SimulationCellRadius;
     int njobs = jobList.size();
     if (NL_JobListHost.size() < njobs) {
       NL_JobListHost.resize(njobs);      
@@ -226,7 +229,8 @@ namespace qmcplusplus {
 	CudaSpline<CudaReal> &spline = *(GPUSplines[group]);
 	one_body_NLratios(NL_JobListGPU.data(), C.data(), first, last,
 			  spline.coefs.data(), spline.coefs.size(),
-			  spline.rMax, L.data(), Linv.data(), njobs);
+			  spline.rMax, L.data(), Linv.data(), sim_cell_radius,
+			  njobs);
       }
     }
     NL_RatiosHost = NL_RatiosGPU;

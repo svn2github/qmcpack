@@ -39,7 +39,7 @@ two_body_ratio_grad(float *R[], int first, int last,
 		    float  Rnew[], int inew,
 		    float spline_coefs[], int numCoefs, float rMax,  
 		    float lattice[], float latticeInv[], bool zero,
-		    float ratio_grad[], int numWalkers);
+		    float ratio_grad[], int numWalkers, bool use_fast_image);
 
 void
 two_body_ratio_grad(double *R[], int first, int last,
@@ -51,7 +51,8 @@ two_body_ratio_grad(double *R[], int first, int last,
 void
 two_body_NLratios(NLjobGPU<float> jobs[], int first, int last,
 		  float* spline_coefs[], int numCoefs[], float rMax[], 
-		  float lattice[], float latticeInv[], int numjobs);
+		  float lattice[], float latticeInv[], float sim_cell_radius,
+		  int numjobs);
 
 void
 two_body_NLratios(NLjobGPU<double> jobs[], int first, int last,
@@ -69,7 +70,7 @@ two_body_update(double *R[], int N, int iat, int numWalkers);
 void
 two_body_grad_lapl(float *R[], int e1_first, int e1_last, int e2_first, int e2_last,
 		   float spline_coefs[], int numCoefs, float rMax,  
-		   float lattice[], float latticeInv[], 
+		   float lattice[], float latticeInv[], float sim_cell_radius,
 		   float gradLapl[], int row_stride, int numWalkers);
 
 void
@@ -122,7 +123,7 @@ one_body_ratio_grad (float C[], float *R[], int first, int last,
 		     float Rnew[], int inew,
 		     float spline_coefs[], int numCoefs, float rMax,  
 		     float lattice[], float latticeInv[], bool zero,
-		     float ratio_grad[], int numWalkers);
+		     float ratio_grad[], int numWalkers, bool use_fast_image);
 void
 one_body_ratio_grad (double C[], double *R[], int first, int last,
 		     double Rnew[], int inew,
@@ -134,6 +135,13 @@ void
 one_body_NLratios(NLjobGPU<float> jobs[], float C[], int first, int last,
 		  float spline_coefs[], int numCoefs, float rMax, 
 		  float lattice[], float latticeInv[], int numjobs);
+
+void
+one_body_NLratios(NLjobGPU<float> jobs[], float C[], int first, int last,
+		  float spline_coefs[], int numCoefs, float rMax, 
+		  float lattice[], float latticeInv[], float sim_cell_radius,
+		  int numjobs);
+
 
 void
 one_body_NLratios(NLjobGPU<double> jobs[], double C[], int first, int last,

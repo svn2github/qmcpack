@@ -161,6 +161,7 @@ namespace qmcplusplus {
     int newGroup = PtclRef.GroupID[iat];
 
     bool zero = true;
+
     for (int group=0; group<PtclRef.groups(); group++) {
       int first = PtclRef.first(group);
       int last  = PtclRef.last(group) -1;
@@ -171,12 +172,12 @@ namespace qmcplusplus {
       // 		      spline.coefs.data(), spline.coefs.size(),
       // 		      spline.rMax, L.data(), Linv.data(),
       // 		      SumGPU.data(), walkers.size());
-
+      bool use_fast_image = W.Lattice.SimulationCellRadius >= spline.rMax;
       two_body_ratio_grad (W.RList_GPU.data(), first, last, 
 			   (CudaReal*)W.Rnew_GPU.data(), iat, 
 			   spline.coefs.data(), spline.coefs.size(),
 			   spline.rMax, L.data(), Linv.data(), zero,
-			   SumGPU.data(), walkers.size());
+			   SumGPU.data(), walkers.size(), use_fast_image);
       zero = false;
     }
     // Copy data back to CPU memory
@@ -197,6 +198,7 @@ namespace qmcplusplus {
   (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
    vector<PosType> &quadPoints, vector<ValueType> &psi_ratios)
   {
+    CudaReal sim_cell_radius = W.Lattice.SimulationCellRadius;
     vector<Walker_t*> &walkers = W.WalkerList;
     int njobs = jobList.size();
     if (NL_JobListHost.size() < njobs) {
@@ -249,7 +251,8 @@ namespace qmcplusplus {
       NL_rMaxGPU            = NL_rMaxHost;
       two_body_NLratios(NL_JobListGPU.data(), first, last,
 			NL_SplineCoefsListGPU.data(), NL_NumCoefsGPU.data(),
-			NL_rMaxGPU.data(), L.data(), Linv.data(), njobs);
+			NL_rMaxGPU.data(), L.data(), Linv.data(), 
+			sim_cell_radius, njobs);
     }
     NL_RatiosHost = NL_RatiosGPU;
     for (int i=0; i < psi_ratios.size(); i++)
@@ -290,6 +293,7 @@ namespace qmcplusplus {
 					  GradMatrix_t &grad,
 					  ValueMatrix_t &lapl)
   {
+    CudaReal sim_cell_radius = W.Lattice.SimulationCellRadius;
     vector<Walker_t*> &walkers = W.WalkerList;
     int numGL = 4*N*walkers.size();
     if (GradLaplGPU.size()  < numGL) {
@@ -354,7 +358,7 @@ namespace qmcplusplus {
 	CudaSpline<CudaReal> &spline = *(GPUSplines[group1*NumGroups+group2]);
 	two_body_grad_lapl (W.RList_GPU.data(), first1, last1, first2, last2, 
 			    spline.coefs.data(), spline.coefs.size(),
-			    spline.rMax, L.data(), Linv.data(),
+			    spline.rMax, L.data(), Linv.data(), sim_cell_radius,
 			    GradLaplGPU.data(), 4*N, walkers.size());
       }
     }
