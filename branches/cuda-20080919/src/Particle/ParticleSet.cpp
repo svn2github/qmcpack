@@ -25,7 +25,7 @@
 namespace qmcplusplus {
 
 #ifdef QMC_CUDA
-  int  ParticleSet::Walker_t::cuda_DataSize = 0;
+  template<> int ParticleSet::Walker_t::cuda_DataSize = 0;
 #endif
 
   ///object counter 
