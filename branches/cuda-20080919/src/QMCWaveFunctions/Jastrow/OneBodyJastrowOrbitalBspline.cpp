@@ -14,7 +14,6 @@ namespace qmcplusplus {
   OneBodyJastrowOrbitalBspline::reserve 
   (PointerPool<cuda_vector<CudaRealType> > &pool)
   {
-    cerr << "In OneBodyJastrowOrbitalBspline\n";
   }
 
   void 

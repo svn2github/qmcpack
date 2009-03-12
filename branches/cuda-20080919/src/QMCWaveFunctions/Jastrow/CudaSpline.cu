@@ -930,14 +930,25 @@ two_body_NLratio_kernel(NLjobGPU<float> jobs[], int first, int last,
 
     float uOld = eval_1d_spline (dist, rMax, drInv, A, coefs);
 
-    for (int iq=0; iq<myJob.NumQuadPoints; iq++) {
-      dx = myRnew[iq][0] - r1[tid][0];
-      dy = myRnew[iq][1] - r1[tid][1];
-      dz = myRnew[iq][2] - r1[tid][2];
-      dist = min_dist_only(dx, dy, dz, L, Linv, images);
-      if (ptcl1 != myJob.Elec && (ptcl1 < (N+first)))
-	shared_sum[iq][tid] += eval_1d_spline (dist, rMax, drInv, A, coefs) - uOld;
+    if (use_fast)
+      for (int iq=0; iq<myJob.NumQuadPoints; iq++) {
+	dx = myRnew[iq][0] - r1[tid][0];
+	dy = myRnew[iq][1] - r1[tid][1];
+	dz = myRnew[iq][2] - r1[tid][2];
+	dist = min_dist_fast(dx, dy, dz, L, Linv);
+	if (ptcl1 != myJob.Elec && (ptcl1 < (N+first)))
+	  shared_sum[iq][tid] += eval_1d_spline (dist, rMax, drInv, A, coefs) - uOld;
+      }
+    else
+      for (int iq=0; iq<myJob.NumQuadPoints; iq++) {
+	dx = myRnew[iq][0] - r1[tid][0];
+	dy = myRnew[iq][1] - r1[tid][1];
+	dz = myRnew[iq][2] - r1[tid][2];
+	dist = min_dist_only(dx, dy, dz, L, Linv, images);
+	if (ptcl1 != myJob.Elec && (ptcl1 < (N+first)))
+	  shared_sum[iq][tid] += eval_1d_spline (dist, rMax, drInv, A, coefs) - uOld;
     }
+
     __syncthreads();
   }
   
