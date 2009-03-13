@@ -263,6 +263,8 @@ namespace qmcplusplus {
   void TwoBodyJastrowOrbitalBspline::addGradient(MCWalkerConfiguration &W, int iat, 
 						 vector<GradType> &grad)
   {
+    CudaReal sim_cell_radius = W.Lattice.SimulationCellRadius;
+
     vector<Walker_t*> &walkers = W.WalkerList;
     int newGroup = PtclRef.GroupID[iat];
 
@@ -277,8 +279,8 @@ namespace qmcplusplus {
       CudaSpline<CudaReal> &spline = *(GPUSplines[group*NumGroups+newGroup]);
       two_body_gradient (W.RList_GPU.data(), first, last, iat, 
 			 spline.coefs.data(), spline.coefs.size(),
-			 spline.rMax, L.data(), Linv.data(), group==0,
-			 OneGradGPU.data(), walkers.size());
+			 spline.rMax, L.data(), Linv.data(), sim_cell_radius,
+			 group==0, OneGradGPU.data(), walkers.size());
     }
     // Copy data back to CPU memory
     

@@ -83,8 +83,8 @@ two_body_grad_lapl(double *R[], int e1_first, int e1_last, int e2_first, int e2_
 void
 two_body_gradient (float *R[], int first, int last, int iat, 
 		   float spline_coefs[], int numCoefs, float rMax,
-		   float lattice[], float latticeInv[], bool zeroOut,
-		   float grad[], int numWalkers);
+		   float lattice[], float latticeInv[], float sim_cell_radius,
+		   bool zeroOut, float grad[], int numWalkers);
 
 void
 two_body_gradient (double *R[], int first, int last, int iat, 
@@ -170,8 +170,8 @@ one_body_grad_lapl(double C[], double *R[], int e1_first, int e1_last, int e2_fi
 void
 one_body_gradient (float *Rlist[], int iat, float C[], int first, int last,
 		   float spline_coefs[], int num_coefs, float rMax,
-		   float L[], float Linv[], bool zeroSum,
-		   float grad[], int numWalkers);
+		   float L[], float Linv[], float sim_cell_radius,
+		   bool zeroSum, float grad[], int numWalkers);
 
 void
 one_body_gradient (double *Rlist[], int iat, double C[], int first, int last,
