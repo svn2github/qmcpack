@@ -1027,7 +1027,7 @@ namespace qmcplusplus {
     	grads(iw,iat+FirstIndex) += g;
     	lapl(iw,iat+FirstIndex)  += gradLapl_host[4*(iw*NumPtcls + iat)+3] - dot(g,g);
 	if (std::isnan(lapl(iw,iat+FirstIndex))) {
-	  cuda_vector<CUDA_PRECISION> host_data;
+	  host_vector<CUDA_PRECISION> host_data;
 	  host_data = walkers[iw]->cuda_DataSet;
 	  for (int i=0; i<NumPtcls; i++)
 	    for (int j=0; j<NumPtcls; j++)
