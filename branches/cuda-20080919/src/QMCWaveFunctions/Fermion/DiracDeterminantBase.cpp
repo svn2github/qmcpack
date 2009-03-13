@@ -1033,9 +1033,18 @@ namespace qmcplusplus {
 	    for (int j=0; j<NumPtcls; j++)
 	      if (std::isnan(host_data[AinvOffset+i*RowStride+j]))
 		cerr << "NAN in inverse at (" << i << "," << j << ")\n";
+	  
 	  cerr << "NAN in walker " << iw << ", iat " << iat + FirstIndex 
 	       << "  grad = " << grads(iw,iat+FirstIndex) 
 	       << "  lapl = " << gradLapl_host[4*(iw*NumPtcls + iat)+3] << endl;
+	  fprintf (stderr, "grad-lapl row:\n");
+	  for (int orb=0; orb<NumPtcls; orb++)
+	    fprintf (stderr, "%1.10f %1.10f %1.10f %1.10f \n", 
+		     host_data[gradLaplOffset +(4*iat+0)*RowStride+orb],
+		     host_data[gradLaplOffset +(4*iat+1)*RowStride+orb],
+		     host_data[gradLaplOffset +(4*iat+2)*RowStride+orb],
+		     host_data[gradLaplOffset +(4*iat+3)*RowStride+orb]);
+
 	}
       }
     }
