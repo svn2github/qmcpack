@@ -105,7 +105,7 @@ namespace qmcplusplus {
     for (int iw=0; iw<walkers.size(); iw++) 
       logPsi[iw] -= SumHost[iw];
 //     fprintf (stderr, "host = %25.16f\n", host_sum);
-    fprintf (stderr, "cuda = %25.16f\n", logPsi[10]);
+    // fprintf (stderr, "cuda = %25.16f\n", logPsi[10]);
   }
   
   void

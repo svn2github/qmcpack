@@ -970,8 +970,10 @@ two_body_NLratio_kernel(NLjobGPU<float> jobs[], int first, int last,
 template<int BS>
 __global__ void
 two_body_NLratio_kernel(NLjobGPU<double> jobs[], int first, int last,
-			double* spline_coefs[], int numCoefs[], double rMaxList[], 
-			double lattice[], double latticeInv[])
+			double* spline_coefs[], int numCoefs[], 
+			double rMaxList[], 
+			double lattice[], double latticeInv[], 
+			double sim_cell_radius)
 {
   const int MAX_RATIOS = 18;
   int tid = threadIdx.x;
@@ -1072,11 +1074,20 @@ two_body_NLratios(NLjobGPU<float> jobs[], int first, int last,
   const int BS=32;
 
   dim3 dimBlock(BS);
-  dim3 dimGrid(numjobs);
 
+  while (numjobs > 65535) {
+    dim3 dimGrid(65535);
+    two_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
+      (jobs, first, last, spline_coefs, numCoefs, rMax,
+       lattice, latticeInv, sim_cell_radius);
+    jobs += 65535;
+    numjobs -= 65535;
+  }
+  dim3 dimGrid(numjobs);
   two_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
     (jobs, first, last, spline_coefs, numCoefs, rMax,
      lattice, latticeInv, sim_cell_radius);
+  
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
@@ -1084,23 +1095,33 @@ two_body_NLratios(NLjobGPU<float> jobs[], int first, int last,
 	     cudaGetErrorString(err));
     abort();
   }
-
+  
 }
 
 
 void
 two_body_NLratios(NLjobGPU<double> jobs[], int first, int last,
-		 double* spline_coefs[], int numCoefs[], double rMax[], 
-		 double lattice[], double latticeInv[], int numjobs)
+		  double* spline_coefs[], int numCoefs[], double rMax[], 
+		  double lattice[], double latticeInv[], 
+		  double sim_cell_radius, int numjobs)
 {
   const int BS=32;
 
   dim3 dimBlock(BS);
-  dim3 dimGrid(numjobs);
 
+  while (numjobs > 65535) {
+    dim3 dimGrid(65535);
+    two_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
+      (jobs, first, last, spline_coefs, numCoefs, rMax,
+       lattice, latticeInv, sim_cell_radius);
+    jobs += 65535;
+    numjobs -= 65535;
+  }
+  dim3 dimGrid(numjobs);
   two_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
     (jobs, first, last, spline_coefs, numCoefs, rMax,
-     lattice, latticeInv);
+     lattice, latticeInv, sim_cell_radius);
+
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
@@ -2684,16 +2705,31 @@ one_body_NLratios(NLjobGPU<float> jobs[], float C[], int first, int last,
   const int BS=32;
 
   dim3 dimBlock(BS);
-  dim3 dimGrid(numjobs);
 
+  while (numjobs > 65535) {
+    dim3 dimGrid(65535);
+    if (rMax <= sim_cell_radius)
+      one_body_NLratio_kernel_fast<BS><<<dimGrid,dimBlock>>>
+	(jobs, C, first, last, spline_coefs, numCoefs, rMax,
+	 lattice, latticeInv);
+    else
+      one_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
+	(jobs, C, first, last, spline_coefs, numCoefs, rMax,
+	 lattice, latticeInv);
+    numjobs -= 65535;
+    jobs += 65535;
+  }
+
+  dim3 dimGrid(numjobs);
   if (rMax <= sim_cell_radius)
     one_body_NLratio_kernel_fast<BS><<<dimGrid,dimBlock>>>
       (jobs, C, first, last, spline_coefs, numCoefs, rMax,
        lattice, latticeInv);
   else
-  one_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
-    (jobs, C, first, last, spline_coefs, numCoefs, rMax,
-     lattice, latticeInv);
+    one_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
+      (jobs, C, first, last, spline_coefs, numCoefs, rMax,
+       lattice, latticeInv);
+  
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
@@ -2712,7 +2748,9 @@ one_body_NLratios(NLjobGPU<double> jobs[], double C[], int first, int last,
   const int BS=32;
 
   dim3 dimBlock(BS);
-  dim3 dimGrid(numjobs);
+  int blockx = numjobs % 65535;
+  int blocky = numjobs / 65535 + 1;
+  dim3 dimGrid(blockx, blocky);
 
   one_body_NLratio_kernel<BS><<<dimGrid,dimBlock>>>
     (jobs, C, first, last, spline_coefs, numCoefs, rMax,

@@ -57,7 +57,8 @@ two_body_NLratios(NLjobGPU<float> jobs[], int first, int last,
 void
 two_body_NLratios(NLjobGPU<double> jobs[], int first, int last,
 		  double* spline_coefs[], int numCoefs[], double rMax[], 
-		  double lattice[], double latticeInv[], int numjobs);
+		  double lattice[], double latticeInv[], 
+		  double sim_cell_radius, int numjobs);
 
 
 void
