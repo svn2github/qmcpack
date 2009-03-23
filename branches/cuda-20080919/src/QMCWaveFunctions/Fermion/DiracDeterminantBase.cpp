@@ -19,6 +19,7 @@
 #include "Numerics/DeterminantOperators.h"
 #include "Numerics/OhmmsBlas.h"
 #include "Numerics/CUDA/cuda_inverse.h"
+#include <unistd.h>
 
 namespace qmcplusplus {
 
@@ -1027,19 +1028,42 @@ namespace qmcplusplus {
     	grads(iw,iat+FirstIndex) += g;
     	lapl(iw,iat+FirstIndex)  += gradLapl_host[4*(iw*NumPtcls + iat)+3] - dot(g,g);
 	if (std::isnan(lapl(iw,iat+FirstIndex))) {
+	  char name[1000];
+	  gethostname(name, 1000);
+	  fprintf (stderr, "Offending hostname = %s\n", name);
+	  int dev;
+	  cudaGetDevice(&dev);
+	  fprintf (stderr, "Offending device = %d\n", dev);
 	  host_vector<CUDA_PRECISION> host_data;
 	  host_data = walkers[iw]->cuda_DataSet;
-	  for (int i=0; i<NumPtcls; i++)
-	    for (int j=0; j<NumPtcls; j++)
-	      if (std::isnan(host_data[AinvOffset+i*RowStride+j]))
-		cerr << "NAN in inverse at (" << i << "," << j << ")\n";
+	  FILE *Amat = fopen ("Amat.dat", "w");
+	  FILE *Ainv = fopen ("Ainv.dat", "w");
+	  for (int i=0; i<NumPtcls; i++) {
+	    for (int j=0; j<NumPtcls; j++) {
+	      fprintf (Amat, "%14.8e ", host_data[AOffset+i*RowStride+j]);
+	      fprintf (Ainv, "%14.8e ", host_data[AinvOffset+i*RowStride+j]);
+	    }
+	    fprintf (Amat, "\n");
+	    fprintf (Ainv, "\n");
+	  }
+	  fclose (Amat);
+	  fclose (Ainv);
+	  abort();
+	
+	      
+// 	  if (std::isnan(host_data[AinvOffset+i*RowStride+j]))
+// 	    cerr << "NAN in inverse at (" << i << "," << j << ")\n";
 	  
 	  cerr << "NAN in walker " << iw << ", iat " << iat + FirstIndex 
 	       << "  grad = " << grads(iw,iat+FirstIndex) 
 	       << "  lapl = " << gradLapl_host[4*(iw*NumPtcls + iat)+3] << endl;
 	  fprintf (stderr, "grad-lapl row:\n");
+	  fprintf (stderr, "r = %1.8f %1.8f %1.8f\n",
+		   walkers[iw]->R[iat+FirstIndex][0],
+		   walkers[iw]->R[iat+FirstIndex][1],
+		   walkers[iw]->R[iat+FirstIndex][2]);
 	  for (int orb=0; orb<NumPtcls; orb++)
-	    fprintf (stderr, "%1.10f %1.10f %1.10f %1.10f \n", 
+	    fprintf (stderr, "%1.10e %1.10e %1.10e %1.10e \n", 
 		     host_data[gradLaplOffset +(4*iat+0)*RowStride+orb],
 		     host_data[gradLaplOffset +(4*iat+1)*RowStride+orb],
 		     host_data[gradLaplOffset +(4*iat+2)*RowStride+orb],
