@@ -189,7 +189,7 @@ void phase_factor_kernel (T kPoints[], int makeTwoCopies[],
       __syncthreads();
       if (outIndex == BS) {
 	// Write back to global memory
-	my_phi_out[outBlock*BS+tid] = out_shared[0][tid];
+	my_phi_out[             outBlock*BS+tid] = out_shared[0][tid];
 	my_GL_out[0*row_stride +outBlock*BS+tid] = out_shared[1][tid];
 	my_GL_out[1*row_stride +outBlock*BS+tid] = out_shared[2][tid];
 	my_GL_out[2*row_stride +outBlock*BS+tid] = out_shared[3][tid];
@@ -204,7 +204,7 @@ void phase_factor_kernel (T kPoints[], int makeTwoCopies[],
 	__syncthreads();
 	if (outIndex == BS) {
 	  // Write back to global memory
-	  my_phi_out[outBlock*BS+tid] = out_shared[0][tid];
+	  my_phi_out[             outBlock*BS+tid] = out_shared[0][tid];
 	  my_GL_out[0*row_stride +outBlock*BS+tid] = out_shared[1][tid];
 	  my_GL_out[1*row_stride +outBlock*BS+tid] = out_shared[2][tid];
 	  my_GL_out[2*row_stride +outBlock*BS+tid] = out_shared[3][tid];
@@ -219,7 +219,7 @@ void phase_factor_kernel (T kPoints[], int makeTwoCopies[],
   }
 
   if (tid < outIndex) {
-    my_phi_out[outBlock*BS+tid] = out_shared[0][tid];
+    my_phi_out[             outBlock*BS+tid] = out_shared[0][tid];
     my_GL_out[0*row_stride +outBlock*BS+tid] = out_shared[1][tid];
     my_GL_out[1*row_stride +outBlock*BS+tid] = out_shared[2][tid];
     my_GL_out[2*row_stride +outBlock*BS+tid] = out_shared[3][tid];
