@@ -183,6 +183,8 @@ namespace qmcplusplus {
     host_vector<CudaRealType> ratio_host;
     cuda_vector<CudaRealType> gradLapl_d;
     host_vector<CudaRealType> gradLapl_host;
+    cuda_vector<int> iatList_d;
+    host_vector<int> iatList;
     
     // Data members for nonlocal psuedopotential ratio evaluation
     static const int NLrowBufferRows = 4800;
@@ -218,6 +220,7 @@ namespace qmcplusplus {
       GLList.resize(numWalkers);           GLList_d.resize(numWalkers);
       newGradLaplList.resize(numWalkers);  newGradLaplList_d.resize(numWalkers);
       workList.resize(numWalkers);         workList_d.resize(numWalkers);
+      iatList.resize(numWalkers);          iatList_d.resize(numWalkers);
 
       // HACK HACK HACK
       // gradLapl_d.resize   (numWalkers*NumOrbitals*4);
@@ -240,6 +243,7 @@ namespace qmcplusplus {
     }
 
     void update (vector<Walker_t*> &walkers, int iat);
+    void update (const vector<Walker_t*> &walkers, const vector<int> &iatList);
 
     void reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
     {
@@ -273,6 +277,10 @@ namespace qmcplusplus {
     void ratio (MCWalkerConfiguration &W, int iat,
 		vector<ValueType> &psi_ratios,	vector<GradType>  &grad,
 		vector<ValueType> &lapl);
+
+    void ratio (vector<Walker_t*> &walkers, vector<int> &iatList,
+		vector<PosType> &rNew, vector<ValueType> &psi_ratios,	
+		vector<GradType>  &grad, vector<ValueType> &lapl);
 
     void gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,
 		   ValueMatrix_t &lapl);

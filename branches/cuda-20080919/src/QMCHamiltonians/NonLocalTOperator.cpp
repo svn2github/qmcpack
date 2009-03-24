@@ -22,7 +22,7 @@
 
 namespace qmcplusplus {
 
-  NonLocalTOperator::NonLocalTOperator():Tau(0.01),Alpha(0.0),Gamma(0.0) {
+  NonLocalTOperator::NonLocalTOperator():Tau(0.02),Alpha(0.0),Gamma(0.0) {
   }
 
   bool NonLocalTOperator::put(xmlNodePtr cur) {
@@ -68,6 +68,36 @@ namespace qmcplusplus {
     }
     return ibar;
   }
+
+  int NonLocalTOperator::selectMove(RealType prob,
+				    vector<NonLocalData> &txy) {
+
+    RealType wgt_t=1.0;
+//     cerr << "plusFactor = " << plusFactor << endl;
+//     cerr << "minusFactor = " << minusFactor << endl;
+
+    for(int i=1; i<txy.size(); i++) {
+      if(txy[i].Weight>0) {
+        wgt_t += txy[i].Weight *=plusFactor;
+      }
+      else {
+        wgt_t += txy[i].Weight *=minusFactor;
+      }
+    }
+
+    prob *= wgt_t;
+    //    cerr << "prob = " << prob << endl;
+    RealType wsum=txy[0].Weight;
+    // cerr << "Start wsum = " << wsum << endl;
+    int ibar=0;;
+    while(wsum<prob) {
+      ibar++;
+      wsum += txy[ibar].Weight;
+      //      cerr << "wsum = " << wsum << endl;
+    }
+    return ibar;
+  }
+
 
 }
 

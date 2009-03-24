@@ -152,6 +152,11 @@ namespace qmcplusplus {
 		vector<ValueType> &psi_ratios,
 		vector<GradType> &newG,
 		vector<ValueType> &newL);
+    void ratio (vector<Walker_t*> &walkers, vector<int> &iatList,
+		vector<PosType> &rNew,
+		vector<ValueType> &psi_ratios,
+		vector<GradType> &newG,
+		vector<ValueType> &newL);
     void NLratios (MCWalkerConfiguration &W,
 		   cuda_vector<CUDA_PRECISION*> &Rlist,
 		   cuda_vector<int*>            &ElecList,
@@ -163,6 +168,8 @@ namespace qmcplusplus {
 		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
 
     void update (vector<Walker_t*> &walkers, int iat);
+    void update (const vector<Walker_t*> &walkers, 
+		 const vector<int> &iatList);
 
     void gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,
 	           ValueMatrix_t &lapl);

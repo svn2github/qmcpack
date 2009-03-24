@@ -101,6 +101,8 @@ namespace qmcplusplus {
     void setupCuda(ParticleSet &elecs);
     void resizeCuda(int nw);
     void addEnergy(MCWalkerConfiguration &W, vector<RealType> &LocalEnergy);
+    void addEnergy(MCWalkerConfiguration &W, vector<RealType> &LocalEnergy,
+		   vector<vector<NonLocalData> > &Txy);
 
   };
 }

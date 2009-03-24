@@ -114,6 +114,14 @@ namespace qmcplusplus {
 		  << "::addEnergy(MCWalkerConfiguration &W).\n";
     }
 
+    virtual void addEnergy(MCWalkerConfiguration &W, 
+			   vector<RealType> &LocalEnergy,
+			   vector<vector<NonLocalData> > &Txy) {
+      addEnergy (W, LocalEnergy);
+    }
+      
+
+
 
     /*@{
      * @brief Functions to handle particle-by-particle move

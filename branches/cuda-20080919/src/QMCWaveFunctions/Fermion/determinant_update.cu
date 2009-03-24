@@ -10,9 +10,10 @@
 template<typename T, int BS>
 __global__ void
 update_inverse_cuda1 (updateJob updateList[],
-		      int N, int rowstride, int k)
+		      int N, int rowstride)
 {
   __shared__ T *A, *Ainv, *u, *Ainv_delta, *Ainv_colk;
+  __shared__ int k;
   if (threadIdx.x==0) {
     updateJob job = updateList[blockIdx.y];
     A           = (T*)job.A;
@@ -20,6 +21,7 @@ update_inverse_cuda1 (updateJob updateList[],
     u           = (T*)job.newRow;
     Ainv_delta  = (T*)job.AinvDelta;
     Ainv_colk   = (T*)job.AinvColk;
+    k           = job.iat;
   }
   __syncthreads();
 
@@ -66,10 +68,11 @@ update_inverse_cuda1 (updateJob updateList[],
 template<typename T, int BS>
 __global__ void
 update_inverse_cuda2 (updateJob updateList[],
-		      int N, int rowstride, int k)
+		      int N, int rowstride)
 {
   __shared__ T *A, *u, *Ainv, *Ainv_delta, *Ainv_colk;
   int tid = threadIdx.x;
+  __shared__ int k;
   if (threadIdx.x==0) {
     updateJob job = updateList[blockIdx.y];
     A          = (T*)job.A;
@@ -77,6 +80,7 @@ update_inverse_cuda2 (updateJob updateList[],
     Ainv       = (T*)job.Ainv;
     Ainv_delta = (T*)job.AinvDelta;
     Ainv_colk  = (T*)job.AinvColk;
+    k          = job.iat;
   }
   __syncthreads();
   
@@ -112,7 +116,7 @@ update_inverse_cuda2 (updateJob updateList[],
 
 void
 update_inverse_cuda(updateJob updateList[], float dummy,
-		    int N, int rowstride, int iat, int numWalkers)
+		    int N, int rowstride, int numWalkers)
 {
   const int BS1 = 32;
   const int BS2 = 32;
@@ -125,9 +129,9 @@ update_inverse_cuda(updateJob updateList[], float dummy,
   dim3 dimGrid2(NB2, numWalkers);
 
   update_inverse_cuda1<float,BS1><<<dimGrid1,dimBlock1>>>
-    (updateList, N, rowstride, iat);
+    (updateList, N, rowstride);
   update_inverse_cuda2<float,BS2><<<dimGrid2,dimBlock2>>>
-    (updateList, N, rowstride, iat);
+    (updateList, N, rowstride);
 
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
@@ -140,7 +144,7 @@ update_inverse_cuda(updateJob updateList[], float dummy,
 
 void
 update_inverse_cuda(updateJob updateList[], double dummy,
-		    int N, int rowstride, int iat, int numWalkers)
+		    int N, int rowstride, int numWalkers)
 {
   const int BS1 = 32;
   const int BS2 = 32;
@@ -154,9 +158,9 @@ update_inverse_cuda(updateJob updateList[], double dummy,
   dim3 dimGrid2(NB2, numWalkers);
 
   update_inverse_cuda1<double,BS1><<<dimGrid1,dimBlock1>>>
-    (updateList, N, rowstride, iat);
+    (updateList, N, rowstride);
   update_inverse_cuda2<double,BS2><<<dimGrid2,dimBlock2>>>
-    (updateList, N, rowstride, iat);
+    (updateList, N, rowstride);
 
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
@@ -698,6 +702,78 @@ calc_ratio_grad_lapl (T *Ainv_list[], T *new_row_list[], T *grad_lapl_list[],
 }
 
 
+template<typename T, int BS>
+__global__ void
+calc_ratio_grad_lapl (T *Ainv_list[], T *new_row_list[], T *grad_lapl_list[],
+		      T ratio_grad_lapl[], int N, int row_stride, int elec_list[])
+{
+  int tid = threadIdx.x;
+  int NB = N/BS + ((N % BS) ? 1 : 0);
+
+  __shared__ T *Ainv, *new_row, *grad_lapl;
+  __shared__ int elec;
+
+  if (tid == 0) {
+    Ainv = Ainv_list[blockIdx.x];
+    new_row = new_row_list[blockIdx.x];
+    grad_lapl = grad_lapl_list[blockIdx.x];
+    elec = elec_list[blockIdx.x];
+  }
+  __syncthreads();
+    
+  __shared__ T Ainv_colk_shared[BS];
+  __shared__ T ratio_prod[5][BS+1];
+  ratio_prod[0][tid] = 0.0f;
+  ratio_prod[1][tid] = 0.0f;
+  ratio_prod[2][tid] = 0.0f;
+  ratio_prod[3][tid] = 0.0f;
+  ratio_prod[4][tid] = 0.0f;
+  // This is *highly* uncoallesced, but we just have to eat it to allow
+  // other kernels to operate quickly.
+  __syncthreads();
+  for (int block=0; block<NB; block++) {
+    int col = block*BS + tid;
+    if (col < N)
+      Ainv_colk_shared[tid] = Ainv[col*row_stride + elec];
+    __syncthreads();
+    if (col < N) {
+      ratio_prod[0][tid] += Ainv_colk_shared[tid] * new_row[col];
+      ratio_prod[1][tid] += Ainv_colk_shared[tid] * grad_lapl[0*row_stride+col];
+      ratio_prod[2][tid] += Ainv_colk_shared[tid] * grad_lapl[1*row_stride+col];
+      ratio_prod[3][tid] += Ainv_colk_shared[tid] * grad_lapl[2*row_stride+col];
+      ratio_prod[4][tid] += Ainv_colk_shared[tid] * grad_lapl[3*row_stride+col];
+    }
+    __syncthreads();
+  }
+  // Now, we have to sum
+  for (unsigned int s=BS/2; s>0; s>>=1) {
+    if (tid < s) {
+      ratio_prod[0][tid] += ratio_prod[0][tid + s]; // Value
+      ratio_prod[1][tid] += ratio_prod[1][tid + s]; // grad_x
+      ratio_prod[2][tid] += ratio_prod[2][tid + s]; // grad_y
+      ratio_prod[3][tid] += ratio_prod[3][tid + s]; // grad_z
+      ratio_prod[4][tid] += ratio_prod[4][tid + s]; // lapl
+    }
+    __syncthreads();
+  }
+  // Subtract off gradient^2 from laplacian
+  if (tid == 0) 
+    ratio_prod[4][0] -= (ratio_prod[1][0]*ratio_prod[1][0] +
+			 ratio_prod[1][0]*ratio_prod[1][0] +
+			 ratio_prod[1][0]*ratio_prod[1][0]);
+  __syncthreads();
+  // Present gradient and laplacian are w.r.t old position.  Divide by 
+  // ratio to make it w.r.t. new position
+  if (tid < 4)
+    ratio_prod[tid+1][0] /= ratio_prod[0][0];
+
+  if (tid < 5) 
+    ratio_grad_lapl[5*blockIdx.x+tid] = ratio_prod[tid][0];
+
+}
+
+
+
 
 void
 determinant_ratios_grad_lapl_cuda (float *Ainv_list[], float *new_row_list[],
@@ -726,6 +802,37 @@ determinant_ratios_grad_lapl_cuda (double *Ainv_list[], double *new_row_list[],
   calc_ratio_grad_lapl<double,BS><<<dimGrid,dimBlock>>>
     (Ainv_list, new_row_list, grad_lapl_list, ratios_grad_lapl, N, row_stride, iat);
 }
+
+
+
+void
+determinant_ratios_grad_lapl_cuda (float *Ainv_list[], float *new_row_list[],
+				   float *grad_lapl_list[], float ratios_grad_lapl[], 
+				   int N, int row_stride, int iat_list[], int numWalkers)
+{
+  const int BS = 32;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+  
+  calc_ratio_grad_lapl<float,BS><<<dimGrid,dimBlock>>>
+    (Ainv_list, new_row_list, grad_lapl_list, ratios_grad_lapl, N, row_stride, iat_list);
+}
+
+
+
+void
+determinant_ratios_grad_lapl_cuda (double *Ainv_list[], double *new_row_list[],
+				   double *grad_lapl_list[], double ratios_grad_lapl[], 
+				   int N, int row_stride, int iat_list[], int numWalkers)
+{
+  const int BS = 32;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+  
+  calc_ratio_grad_lapl<double,BS><<<dimGrid,dimBlock>>>
+    (Ainv_list, new_row_list, grad_lapl_list, ratios_grad_lapl, N, row_stride, iat_list);
+}
+
 
 
 

@@ -17,6 +17,7 @@
 #ifndef QMCPLUSPLUS_DMC_CUDA_H
 #define QMCPLUSPLUS_DMC_CUDA_H
 #include "QMCDrivers/QMCDriver.h" 
+#include "QMCHamiltonians/NonLocalTOperator.h"
 namespace qmcplusplus {
 
   class QMCUpdateBase;
@@ -29,10 +30,13 @@ namespace qmcplusplus {
     /// Constructor.
     DMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h);
     bool run();
+    bool runWithNonlocal();
     bool put(xmlNodePtr cur);
     void resetUpdateEngine();
 
   private:
+    ///input string to determine to use nonlocal move
+    string NonLocalMove;
     /// tau/mass
     RealType m_tauovermass;
     ///number of warmup steps
@@ -47,6 +51,7 @@ namespace qmcplusplus {
     DMCcuda& operator=(const DMCcuda&) { return *this;}
     ///hide initialization from the main function
     void resetRun();
+    NonLocalTOperator NLop;
   };
 }
 

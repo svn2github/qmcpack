@@ -194,6 +194,47 @@ QMCHamiltonian::evaluate(MCWalkerConfiguration &W,
 }
 
 
+
+void
+QMCHamiltonian::evaluate(MCWalkerConfiguration &W,
+			 vector<RealType> &energyVector,
+			 vector<vector<NonLocalData> > &Txy)
+{
+  vector<Walker_t*> &walkers = W.WalkerList;
+  int nw = walkers.size();
+  if (LocalEnergyVector.size() != nw) {
+    LocalEnergyVector.resize(nw);
+    KineticEnergyVector.resize(nw);
+  }
+
+  if (energyVector.size() != nw)
+    energyVector.resize(nw);
+    
+  for (int i=0; i<LocalEnergyVector.size(); i++)
+    LocalEnergyVector[i] = 0.0;
+
+  for(int i=0; i<H.size(); ++i)  {
+    myTimers[i]->start();
+    H[i]->addEnergy(W, LocalEnergyVector, Txy);
+    myTimers[i]->stop();
+  }
+  KineticEnergyVector=H[0]->ValueVector;
+
+  for (int iw=0; iw<walkers.size(); iw++) {
+    walkers[iw]->getPropertyBase()[LOCALENERGY] = LocalEnergyVector[iw];
+    walkers[iw]->getPropertyBase()[LOCALPOTENTIAL] =
+      LocalEnergyVector[iw] - walkers[iw]->getPropertyBase()[NUMPROPERTIES];
+  }
+
+  energyVector = LocalEnergyVector;
+
+  for(int i=0; i<auxH.size(); ++i)
+    auxH[i]->evaluate(W);
+}
+
+
+
+
 QMCHamiltonian::Return_t 
 QMCHamiltonian::evaluate(ParticleSet& P, vector<NonLocalData>& Txy) 
 {

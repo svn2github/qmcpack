@@ -365,6 +365,112 @@ namespace qmcplusplus {
 
 
 }
+
+
+
+
+  void NonLocalECPotential::addEnergy(MCWalkerConfiguration &W, 
+				      vector<RealType> &LocalEnergy,
+				      vector<vector<NonLocalData> > &Txy)
+  {
+    vector<Walker_t*> &walkers = W.WalkerList;
+    int nw = walkers.size();
+    if (CurrentNumWalkers < nw)
+      resizeCuda(nw);
+
+    // Loop over the ionic species
+    vector<RealType> esum(walkers.size(), 0.0);
+    for (int sp=0; sp<NumIonGroups; sp++) 
+      if (PPset[sp]) {
+	NonLocalECPComponent &pp = *PPset[sp];
+	PPset[sp]->randomize_grid(QuadPoints_host[sp]);
+	QuadPoints_GPU[sp] = QuadPoints_host[sp];
+
+	// First, we need to determine which ratios need to be updated
+	find_core_electrons 
+	  (W.RList_GPU.data(), NumElecs, 
+	   Ions_GPU.data(), IonFirst[sp], IonLast[sp],
+	   (CUDA_PRECISION)PPset[sp]->Rmax, L.data(), Linv.data(), 
+	   QuadPoints_GPU[sp].data(), PPset[sp]->nknot,
+	   Eleclist_GPU.data(), RatioPoslist_GPU.data(),
+	   Distlist_GPU.data(), CosThetalist_GPU.data(),
+	   NumPairs_GPU.data(), walkers.size());
+
+	// Concatenate work into job list
+	RatioPos_host = RatioPos_GPU;
+	NumPairs_host = NumPairs_GPU;
+	Elecs_host    = Elecs_GPU;
+	CosTheta_host = CosTheta_GPU;
+	Dist_host      = Dist_GPU;
+	int numQuad = PPset[sp]->nknot;
+
+	JobList.clear();
+	QuadPosList.clear();
+	for (int iw=0; iw<nw; iw++) {
+	  CUDA_PRECISION *pos_host = &(RatioPos_host[OHMMS_DIM*RatiosPerWalker*iw]);
+	  int *elecs = &(Elecs_host[iw*MaxPairs]);
+	  for (int ie=0; ie<NumPairs_host[iw]; ie++) {
+	    int elec = *(elecs++);
+	    JobList.push_back(NLjob(iw,elec,numQuad));
+	    PosType rOld = walkers[iw]->R[elec];
+	    for (int iq=0; iq<numQuad; iq++) {
+	      PosType r; 
+	      for (int dim=0; dim<OHMMS_DIM; dim++)
+		r[dim] = *(pos_host++);
+	      QuadPosList.push_back(r);
+	      Txy[iw].push_back(NonLocalData(elec, 1.0, r-rOld));
+	    }
+	  }
+	}
+  
+	RatioList.resize(QuadPosList.size());
+
+	RealType vrad[pp.nchannel];
+	RealType lpol[pp.lmax+1];
+
+	Psi.NLratios(W, JobList, QuadPosList, RatioList);
+	int ratioIndex=0;
+	for (int iw=0; iw<nw; iw++) {
+	  CUDA_PRECISION *cos_ptr = &(CosTheta_host[RatiosPerWalker*iw]);
+	  CUDA_PRECISION *dist_ptr = &(Dist_host[MaxPairs*iw]);
+	  int iTxy = 1;
+	  for (int ie=0; ie<NumPairs_host[iw]; ie++) {
+	    RealType dist = *(dist_ptr++);
+
+	    for (int ip=0; ip<pp.nchannel; ip++) 
+	      vrad[ip] = pp.nlpp_m[ip]->splint(dist) * pp.wgt_angpp_m[ip];
+	      
+	    for (int iq=0; iq<numQuad; iq++) {
+	      RealType costheta = *(cos_ptr++);
+	      RealType ratio  = RatioList[ratioIndex++] * pp.sgridweight_m[iq];
+	      RealType lpolprev=0.0;
+	      lpol[0] = 1.0;
+
+	      for (int l=0 ; l< pp.lmax ; l++){
+		//Not a big difference
+		lpol[l+1]  = pp.Lfactor1[l]*costheta*lpol[l]-l*lpolprev; 
+		lpol[l+1] *= pp.Lfactor2[l]; 
+		lpolprev=lpol[l];
+	      }
+	      
+	      RealType lsum = 0.0;
+	      for (int ip=0 ; ip<pp.nchannel ; ip++) 
+		lsum += vrad[ip] * lpol[pp.angpp_m[ip]];
+	      esum[iw] += lsum * ratio;
+	      Txy[iw][iTxy++].Weight = lsum*ratio;
+	    }
+	  }
+	}
+      }
+    for (int iw=0; iw<walkers.size(); iw++){
+      walkers[iw]->getPropertyBase()[NUMPROPERTIES+myIndex] = esum[iw];
+      LocalEnergy[iw] += esum[iw];
+    }
+}
+
+
+
+
 // 	for (int i=0; i<NumPairs_host[0]*PPset[sp]->nknot; i++) {
 // 	  fprintf (stderr, "%d %12.6f %12.6f %12.6f\n", i,
 // 		   RatioPos_host[3*i+0],

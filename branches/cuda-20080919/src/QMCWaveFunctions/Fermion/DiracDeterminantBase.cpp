@@ -540,6 +540,7 @@ namespace qmcplusplus {
       job.AinvColk     = &(data[AinvColkOffset]);	    
       job.gradLapl     = &(data[gradLaplOffset+gradoff]);
       job.newGradLapl  = &(data[newGradLaplOffset]); 
+      job.iat          = iat-FirstIndex;
       CheckAlign (job.A, "A"); 
       CheckAlign (job.Ainv, "Ainv"); 
       CheckAlign (job.newRow, "newRow"); 
@@ -558,7 +559,7 @@ namespace qmcplusplus {
     // Call kernel wrapper function
     CudaRealType dummy;
     update_inverse_cuda(UpdateJobList_d.data(), dummy,
-			NumPtcls, RowStride, iat-FirstIndex, walkers.size());
+			NumPtcls, RowStride, walkers.size());
     // Copy temporary gradients and laplacians into matrix
     multi_copy (destList_d.data(), srcList_d.data(),
 		4*RowStride, walkers.size());
@@ -612,6 +613,108 @@ namespace qmcplusplus {
     }
 #endif
   }
+
+
+  void 
+  DiracDeterminantBase::update (const vector<Walker_t*> &walkers, 
+				const vector<int> &iatList)
+  {
+    if (AList.size() < walkers.size())
+      resizeLists(walkers.size());
+    if (UpdateJobList.size() != walkers.size()) {
+      UpdateJobList.resize(walkers.size());
+      srcList.resize(walkers.size());
+      destList.resize(walkers.size());
+      UpdateJobList_d.resize(walkers.size());
+      srcList_d.resize(walkers.size());
+      destList_d.resize(walkers.size());
+    }
+    for (int iw=0; iw<walkers.size(); iw++) {
+      int gradoff = 4*(iatList[iw]-FirstIndex)*RowStride;
+      Walker_t::cuda_Buffer_t &data = walkers[iw]->cuda_DataSet;
+      updateJob &job = UpdateJobList[iw];
+      job.A            = &(data[AOffset]);		      
+      job.Ainv         = &(data[AinvOffset]);	    
+      job.newRow       = &(data[newRowOffset]);	    
+      job.AinvDelta    = &(data[AinvDeltaOffset]);	    
+      job.AinvColk     = &(data[AinvColkOffset]);	    
+      job.gradLapl     = &(data[gradLaplOffset+gradoff]);
+      job.newGradLapl  = &(data[newGradLaplOffset]); 
+      job.iat          = iatList[iw] - FirstIndex;
+      CheckAlign (job.A, "A"); 
+      CheckAlign (job.Ainv, "Ainv"); 
+      CheckAlign (job.newRow, "newRow"); 
+      CheckAlign (job.AinvDelta, "AinvDelta"); 
+      CheckAlign (job.AinvColk,  "AinvColk"); 
+      CheckAlign (job.gradLapl,  "gradLapl"); 
+      CheckAlign (job.newGradLapl, "newGradLapl"); 
+      
+      destList[iw]    = &(data[gradLaplOffset+gradoff]);
+      srcList[iw]     = &(data[newGradLaplOffset]);     
+    }
+    // Copy pointers to the GPU
+    UpdateJobList_d = UpdateJobList;
+    srcList_d  = srcList;
+    destList_d = destList;
+    // Call kernel wrapper function
+    CudaRealType dummy;
+    update_inverse_cuda(UpdateJobList_d.data(), dummy,
+			NumPtcls, RowStride, walkers.size());
+    // Copy temporary gradients and laplacians into matrix
+    multi_copy (destList_d.data(), srcList_d.data(),
+		4*RowStride, walkers.size());
+
+    
+#ifdef DEBUG_CUDA
+    
+    float Ainv[NumPtcls][NumPtcls], A[NumPtcls][NumPtcls];
+    float new_row[NumPtcls], Ainv_delta[NumPtcls];
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t::cuda_Buffer_t &data = walkers[iw]->cuda_DataSet;
+      cudaMemcpy (A, &(data[AOffset]),
+		  NumPtcls*NumPtcls*sizeof(CudaValueType), cudaMemcpyDeviceToHost);
+      cudaMemcpy (Ainv, &(data[AinvOffset]),
+		  NumPtcls*NumPtcls*sizeof(CudaValueType), cudaMemcpyDeviceToHost);
+      cudaMemcpy (new_row, &(data[newRowOffset]),
+		  NumPtcls*sizeof(CudaValueType), cudaMemcpyDeviceToHost);
+
+      // for (int i=0; i<NumPtcls; i++) 
+      //  	cerr << "new_row(" << i << ") = " << new_row[i] 
+      // 	     << "  old_row = " << A[iat-FirstIndex][i] << endl;
+
+      // float Ainv_k[NumPtcls];
+      // for (int i=0; i<NumPtcls; i++) {
+      // 	Ainv_delta[i] = 0.0f;
+      // 	Ainv_k[i] = Ainv[i][iat-FirstIndex];
+      // 	for (int j=0; j<NumPtcls; j++)
+      // 	  Ainv_delta[i] += Ainv[j][i] * (new_row[j] - A[(iat-FirstIndex)][j]);
+      // }
+      // double prefact = 1.0/(1.0+Ainv_delta[iat-FirstIndex]);
+      // for (int i=0; i<NumPtcls; i++)
+      // 	for (int j=0; j<NumPtcls; j++)
+      // 	  Ainv[i][j] += prefact * Ainv_delta[j]*Ainv_k[i];
+      // for (int j=0; j<NumPtcls; j++)
+      // 	A[iat-FirstIndex][j] = new_row[j];
+
+      for (int i=0; i<NumPtcls; i++) 
+	for (int j=0; j<NumPtcls; j++) {
+	  float val = 0.0;
+	  for (int k=0; k<NumPtcls; k++)
+	    val += Ainv[i][k]*A[k][j];
+	  if (i==j && (std::fabs(val-1.0) > 1.0e-2))
+	    cerr << "Error in inverse at (i,j) = (" << i << ", " << j 
+		 << ")  val = " << val << "  walker = " << iw 
+		 << " of " << walkers.size() << endl;
+	  else if ((i!=j) && (std::fabs(val) > 1.0e-2))
+	    cerr << "Error in inverse at (i,j) = (" << i << ", " << j 
+		 << ")  val = " << val << "  walker = " << iw 
+		 << " of " << walkers.size() << endl;
+	}
+    }
+#endif
+  }
+
+
   
   void
   DiracDeterminantBase::recompute(MCWalkerConfiguration &W, bool firstTime)
@@ -992,6 +1095,54 @@ namespace qmcplusplus {
     }
 #endif
   }
+
+
+  // The gradient is (\nabla psi(Rnew))/psi(Rnew)
+  // The laplaican is (\nabla^2 psi(Rnew))/psi(Rew)
+  void DiracDeterminantBase::ratio (vector<Walker_t*> &walkers, vector<int> &iat_list, 
+				    vector<PosType> &rNew,
+				    vector<ValueType> &psi_ratios, 
+				    vector<GradType>  &grad,
+				    vector<ValueType> &lapl)
+  {
+    if (AList.size() < walkers.size())
+      resizeLists(walkers.size());
+
+    for (int iw=0; iw<walkers.size(); iw++) {
+      Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
+      AinvList[iw]        =  &(data[AinvOffset]);
+      newRowList[iw]      =  &(data[newRowOffset]);
+      newGradLaplList[iw] =  &(data[newGradLaplOffset]);
+      if (((unsigned long)AinvList[iw] %64) || 
+	  ((unsigned long)newRowList[iw] % 64) ||
+	  ((unsigned long)newGradLaplList[iw] %64))
+	app_log() << "**** CUDA misalignment!!!! ***\n";
+      iatList[iw] = iat_list[iw] - FirstIndex;
+    }
+    newRowList_d = newRowList;
+    newGradLaplList_d = newGradLaplList; 
+    AinvList_d   = AinvList;
+    iatList_d    = iatList;
+    Phi->evaluate (walkers, rNew, newRowList_d, newGradLaplList_d, RowStride);
+
+    determinant_ratios_grad_lapl_cuda 
+      (AinvList_d.data(), newRowList_d.data(), newGradLaplList_d.data(),
+       ratio_d.data(), NumPtcls, RowStride, iatList_d.data(), walkers.size());
+    // Copy back to host
+    ratio_host = ratio_d;
+
+    // Calculate ratio, gradient and laplacian
+    for (int iw=0; iw<walkers.size(); iw++) {
+      psi_ratios[iw] *= ratio_host[5*iw+0];
+      GradType g(ratio_host[5*iw+1],
+		 ratio_host[5*iw+2],
+		 ratio_host[5*iw+3]);
+      grad[iw] += g;
+      lapl[iw] += ratio_host[5*iw+0];
+    }
+  }
+
+
 
   void 
   DiracDeterminantBase::gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,

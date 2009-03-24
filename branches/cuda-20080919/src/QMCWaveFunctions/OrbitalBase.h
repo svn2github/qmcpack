@@ -348,6 +348,17 @@ namespace qmcplusplus {
       abort();
     }
 
+
+    virtual void 
+    ratio (vector<Walker_t*> &walkers, vector<int> &iatList,
+	   vector<PosType> &rNew,  vector<ValueType> &psi_ratios,	
+	   vector<GradType>  &grad,  vector<ValueType> &lapl)
+    {
+      app_error() << "Need specialization of OrbitalBase::ratio.\n";
+      abort();
+    }
+
+
     virtual void 
     addGradient(MCWalkerConfiguration &W, int iat,
 		vector<GradType> &grad) 
@@ -373,6 +384,15 @@ namespace qmcplusplus {
       app_error() << "Need specialization of OrbitalBase::update.\n";
       abort();
     }
+
+    virtual void 
+    update (const vector<Walker_t*> &walkers, 
+	    const vector<int> &iatList)
+    {
+      app_error() << "Need specialization of OrbitalBase::update.\n";
+      abort();
+    }
+
 
     virtual void 
     NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
