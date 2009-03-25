@@ -406,7 +406,7 @@ namespace qmcplusplus {
 
 	JobList.clear();
 	QuadPosList.clear();
-	vector<int> iTxy[nw];
+	vector<int> iTxy(nw);
 	for (int iw=0; iw<nw; iw++) {
 	  iTxy[iw] = Txy[iw].size();
 	  CUDA_PRECISION *pos_host = 
