@@ -406,8 +406,11 @@ namespace qmcplusplus {
 
 	JobList.clear();
 	QuadPosList.clear();
+	vector<int> iTxy[nw];
 	for (int iw=0; iw<nw; iw++) {
-	  CUDA_PRECISION *pos_host = &(RatioPos_host[OHMMS_DIM*RatiosPerWalker*iw]);
+	  iTxy[iw] = Txy[iw].size();
+	  CUDA_PRECISION *pos_host = 
+	    &(RatioPos_host[OHMMS_DIM*RatiosPerWalker*iw]);
 	  int *elecs = &(Elecs_host[iw*MaxPairs]);
 	  for (int ie=0; ie<NumPairs_host[iw]; ie++) {
 	    int elec = *(elecs++);
@@ -423,6 +426,7 @@ namespace qmcplusplus {
 	  }
 	}
   
+
 	RatioList.resize(QuadPosList.size());
 
 	RealType vrad[pp.nchannel];
@@ -433,7 +437,6 @@ namespace qmcplusplus {
 	for (int iw=0; iw<nw; iw++) {
 	  CUDA_PRECISION *cos_ptr = &(CosTheta_host[RatiosPerWalker*iw]);
 	  CUDA_PRECISION *dist_ptr = &(Dist_host[MaxPairs*iw]);
-	  int iTxy = 1;
 	  for (int ie=0; ie<NumPairs_host[iw]; ie++) {
 	    RealType dist = *(dist_ptr++);
 
@@ -457,7 +460,7 @@ namespace qmcplusplus {
 	      for (int ip=0 ; ip<pp.nchannel ; ip++) 
 		lsum += vrad[ip] * lpol[pp.angpp_m[ip]];
 	      esum[iw] += lsum * ratio;
-	      Txy[iw][iTxy++].Weight = lsum*ratio;
+	      Txy[iw][iTxy[iw]++].Weight = lsum*ratio;
 	    }
 	  }
 	}
