@@ -157,6 +157,10 @@ namespace qmcplusplus {
 	Psi.gradLapl(W, grad, lapl);
 	if (NLmove)	  H.evaluate (W, LocalEnergy, Txy);
 	else    	  H.evaluate (W, LocalEnergy);
+
+	for (int iw=0; iw<nw; iw++)
+	  branchEngine->clampEnergy(LocalEnergy[iw]);
+
 	if (CurrentStep == 1)
 	  LocalEnergyOld = LocalEnergy;
 	
@@ -191,6 +195,8 @@ namespace qmcplusplus {
 	  // fprintf (stderr, "iw = %d  scNew = %1.8f  scOld = %1.8f\n", iw, scNew, scOld);
 	  W[iw]->Weight *= branchEngine->branchWeight(LocalEnergy[iw], LocalEnergyOld[iw],
 						      scNew, scOld);
+	  //W[iw]->Weight *= branchEngine->branchWeight(LocalEnergy[iw], LocalEnergyOld[iw]);
+
 	  W[iw]->getPropertyBase()[R2ACCEPTED] = R2acc[iw];
 	  W[iw]->getPropertyBase()[R2PROPOSED] = R2prop[iw];
 	}

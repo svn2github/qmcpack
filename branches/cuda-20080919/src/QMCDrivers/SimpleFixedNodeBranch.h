@@ -210,6 +210,14 @@ namespace qmcplusplus {
      */
     void checkParameters(MCWalkerConfiguration& w);
 
+    /** clamps the given within 10 sigmas of the reference energy */
+    inline void clampEnergy (RealType &e) 
+  {
+    e = std::max (e, vParam[B_EREF] - 10.0*vParam[B_SIGMA]);
+    e = std::min (e, vParam[B_EREF] + 10.0*vParam[B_SIGMA]);
+  }
+
+
     /** return the bare branch weight
      *
      * This is equivalent to calling branchWeight(enew,eold,1.0,1.0)
@@ -246,6 +254,8 @@ namespace qmcplusplus {
     {
       RealType s1=(vParam[B_ETRIAL]-vParam[B_EREF])+(vParam[B_EREF]-enew)*scnew;
       RealType s0=(vParam[B_ETRIAL]-vParam[B_EREF])+(vParam[B_EREF]-eold)*scold;
+      // RealType s1=(vParam[B_ETRIAL]-enew)*scnew;
+      // RealType s0=(vParam[B_ETRIAL]-eold)*scold;
       return std::exp(vParam[B_TAUEFF]*0.5*(s1+s0));
     }
 
