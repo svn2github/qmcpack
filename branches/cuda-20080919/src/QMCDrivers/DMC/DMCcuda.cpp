@@ -132,10 +132,6 @@ namespace qmcplusplus {
 	    RealType logGb =  -m_oneover2tau * dot(drNew, drNew);
 	    RealType x = logGb - logGf;
 	    RealType prob = ratios[iw]*ratios[iw]*std::exp(x);
-
-	    V2[iw]    += m_tauovermass * m_tauovermass * dot(oldG[iw],oldG[iw]);
-	    V2bar[iw] +=  newScale[iw] *  newScale[iw] * dot(oldG[iw],oldG[iw]);
-
 	    
             if(Random() < prob && ratios[iw] > 0.0) {
               accepted.push_back(W[iw]);
@@ -144,9 +140,14 @@ namespace qmcplusplus {
 	      W[iw]->Age = 0;
 	      acc[iw] = true;
 	      R2acc[iw] += dot(delpos[iw], delpos[iw]);
+	      V2[iw]    += m_tauovermass * m_tauovermass * dot(newG[iw],newG[iw]);
+	      V2bar[iw] +=  newScale[iw] *  newScale[iw] * dot(newG[iw],newG[iw]);
 	    }
-	    else 
+	    else {
 	      nReject++;
+	      V2[iw]    += m_tauovermass * m_tauovermass * dot(oldG[iw],oldG[iw]);
+	      V2bar[iw] +=  oldScale[iw] *  oldScale[iw] * dot(oldG[iw],oldG[iw]);
+	    }	      
 	  }
 	  W.acceptMove_GPU(acc);
 	  if (accepted.size())
