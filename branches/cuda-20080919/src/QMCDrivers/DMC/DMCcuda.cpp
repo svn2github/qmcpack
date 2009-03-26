@@ -41,10 +41,9 @@ namespace qmcplusplus {
 
   bool DMCcuda::run() 
   { 
-    if (NonLocalMove == "yes") {
+    bool NLmove = NonLocalMove == "yes";
+    if (NLmove) 
       app_log() << "  Using Casula nonlocal moves in DMCcuda.\n";
-      return runWithNonlocal();
-    }
       
     resetRun();
     Mover->MaxAge = 2;
@@ -65,6 +64,9 @@ namespace qmcplusplus {
     vector<Walker_t*> accepted(nw);
     Matrix<ValueType> lapl(nw, nat);
     Matrix<GradType>  grad(nw, nat);
+    vector<ValueType> V2(nw), V2bar(nw);
+    vector<vector<NonLocalData> > Txy(nw);
+
     for (int iw=0; iw<nw; iw++)
       W[iw]->Weight = 1.0;
     do {
@@ -73,29 +75,31 @@ namespace qmcplusplus {
       Estimators->startBlock(nSteps);
       
       do {
-	//	cerr << "Step = " << step << endl;
         step++;
 	CurrentStep++;
 	nw = W.getActiveWalkers();
-	LocalEnergy.resize(nw);
-	oldScale.resize(nw);
-	newScale.resize(nw);
-	delpos.resize(nw);
-	dr.resize(nw);
-	newpos.resize(nw);
-	ratios.resize(nw);
-	rplus.resize(nw);
-	rminus.resize(nw);
-	oldG.resize(nw);
-	newG.resize(nw);
-	oldL.resize(nw);
-	newL.resize(nw);
-	accepted.resize(nw);
-	lapl.resize(nw, nat);
-	grad.resize(nw, nat);
-	R2prop.resize(nw,0.0); R2acc.resize(nw,0.0);
+	LocalEnergy.resize(nw);       oldScale.resize(nw);
+	newScale.resize(nw);          delpos.resize(nw);
+	dr.resize(nw);                newpos.resize(nw);
+	ratios.resize(nw);            rplus.resize(nw);
+	rminus.resize(nw);            oldG.resize(nw);
+	newG.resize(nw);              oldL.resize(nw);
+	newL.resize(nw);              accepted.resize(nw);
+	lapl.resize(nw, nat);         grad.resize(nw, nat);
+	R2prop.resize(nw,0.0);        R2acc.resize(nw,0.0);
+	V2.resize(nw,0.0);            V2bar.resize(nw,0.0);
 
 	W.updateLists_GPU();
+
+	if (NLmove) {
+	  Txy.resize(nw);
+	  for (int iw=0; iw<nw; iw++) {
+	    Txy[iw].clear();
+	    Txy[iw].push_back(NonLocalData(-1, 1.0, PosType()));
+	  }
+	}
+
+
 	for (int iw=0; iw<nw; iw++)
 	  W[iw]->Age++;
 	
@@ -128,6 +132,10 @@ namespace qmcplusplus {
 	    RealType logGb =  -m_oneover2tau * dot(drNew, drNew);
 	    RealType x = logGb - logGf;
 	    RealType prob = ratios[iw]*ratios[iw]*std::exp(x);
+
+	    V2[iw]    += m_tauovermass * m_tauovermass * dot(oldG[iw],oldG[iw]);
+	    V2bar[iw] +=  newScale[iw] *  newScale[iw] * dot(oldG[iw],oldG[iw]);
+
 	    
             if(Random() < prob && ratios[iw] > 0.0) {
               accepted.push_back(W[iw]);
@@ -146,27 +154,51 @@ namespace qmcplusplus {
 	}
 	//	Psi.recompute(W, false);
 	Psi.gradLapl(W, grad, lapl);
-	H.evaluate (W, LocalEnergy);
+	if (NLmove)	  H.evaluate (W, LocalEnergy, Txy);
+	else    	  H.evaluate (W, LocalEnergy);
 	if (CurrentStep == 1)
 	  LocalEnergyOld = LocalEnergy;
+	
+	if (NLmove) {
+	  // Now, attempt nonlocal move
+	  accepted.clear();
+	  vector<int> iatList;
+	  vector<PosType> accPos;
+	  for (int iw=0; iw<nw; iw++) {
+	    int ibar = NLop.selectMove(Random(), Txy[iw]);
+	    if (ibar) {
+	      accepted.push_back(W[iw]);
+	      int iat = Txy[iw][ibar].PID;
+	      iatList.push_back(iat);
+	      accPos.push_back(W[iw]->R[iat] + Txy[iw][ibar].Delta);
+	    }
+	  }
+	  if (accepted.size()) {
+	    Psi.ratio(accepted,iatList, accPos, ratios, newG, newL);
+	    Psi.update(accepted,iatList);
+	    for (int i=0; i<accepted.size(); i++)
+	      accepted[i]->R[iatList[i]] = accPos[i];
+	    W.copyWalkersToGPU();
+	  }
+	}
+
 	// Now branch
 	for (int iw=0; iw<nw; iw++) {
-	  W[iw]->Weight *= branchEngine->branchWeight(LocalEnergy[iw], LocalEnergyOld[iw]);
+	  RealType scNew = std::sqrt(V2bar[iw] / V2[iw]);
+	  RealType scOld = (CurrentStep == 1) ? scNew : W[iw]->getPropertyBase()[DRIFTSCALE];
+	  W[iw]->getPropertyBase()[DRIFTSCALE] = scNew;
+	  // fprintf (stderr, "iw = %d  scNew = %1.8f  scOld = %1.8f\n", iw, scNew, scOld);
+	  W[iw]->Weight *= branchEngine->branchWeight(LocalEnergy[iw], LocalEnergyOld[iw],
+						      scNew, scOld);
 	  W[iw]->getPropertyBase()[R2ACCEPTED] = R2acc[iw];
 	  W[iw]->getPropertyBase()[R2PROPOSED] = R2prop[iw];
 	}
 	Mover->setMultiplicity(W.begin(), W.end());
-	// HACK HACK HACK
-	// 	for (int iw=0; iw<nw; iw++)
-	// 	  W[iw]->Multiplicity = 1.0;
 	branchEngine->branch(CurrentStep,W);
 	nw = W.getActiveWalkers();
 	LocalEnergyOld.resize(nw);
-	// End HACK HACK HACK
 	for (int iw=0; iw<nw; iw++)
 	  LocalEnergyOld[iw] = W[iw]->getPropertyBase()[LOCALENERGY];
-	// This is done during the branchEngine->branch call in DMC
-	//Estimators->accumulate(W);
       } while(step<nSteps);
       Psi.recompute(W, true);
 
@@ -227,10 +259,11 @@ namespace qmcplusplus {
 	newG.resize(nw);                oldL.resize(nw);
 	newL.resize(nw);                accepted.resize(nw);
 	lapl.resize(nw, nat);           grad.resize(nw, nat);
-	Txy.resize(nw);
-	R2prop.resize(nw,0.0); R2acc.resize(nw,0.0);
+	R2prop.resize(nw,0.0);          R2acc.resize(nw,0.0);
 
 	W.updateLists_GPU();
+
+	Txy.resize(nw);
 	for (int iw=0; iw<nw; iw++) {
 	  Txy[iw].clear();
 	  Txy[iw].push_back(NonLocalData(-1, 1.0, PosType()));
