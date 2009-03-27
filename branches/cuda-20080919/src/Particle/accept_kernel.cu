@@ -79,4 +79,49 @@ accept_move_GPU_cuda (double* Rlist[], double new_pos[],
 }
 
 
+template<typename T, int BS>
+__global__ void NL_move_kernel (T* Rlist[], T Rnew[], int N) 
+{
+  __shared__ T Rnew_shared[BS][3];
+  __shared__ T* Rlist_shared[BS];
+  for (int i=0; i<3; i++) {
+    int off = (3*blockIdx.x+i)*BS+threadIdx.x;
+    if (off < 3*N)
+      Rnew_shared[0][i*BS+threadIdx.x] = Rnew[off];
+  }
+  int off = blockIdx.x * BS + threadIdx.x;
+  if (off < N)
+    Rlist_shared[threadIdx.x] = Rlist[off];
+  __syncthreads();
 
+  int end = min (BS, N-blockIdx.x*BS);
+  for (int i=0; i<end; i++)
+    if (threadIdx.x < 3)
+      Rlist_shared[i][threadIdx.x] = Rnew_shared[i][threadIdx.x];
+}
+
+void
+NL_move_cuda (float *Rlist[], float new_pos[], int N)
+{
+  const int BS=32;
+  
+  int NB = (N+BS-1)/BS;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(NB);
+
+  NL_move_kernel<float,BS><<<dimGrid,dimBlock>>>
+    (Rlist, new_pos, N);
+}
+
+void
+NL_move_cuda (double *Rlist[], double new_pos[], int N)
+{
+  const int BS=32;
+  
+  int NB = (N+BS-1)/BS;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(NB);
+
+  NL_move_kernel<double,BS><<<dimGrid,dimBlock>>>
+    (Rlist, new_pos, N);
+}

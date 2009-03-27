@@ -158,9 +158,10 @@ namespace qmcplusplus {
 	if (NLmove)	  H.evaluate (W, LocalEnergy, Txy);
 	else    	  H.evaluate (W, LocalEnergy);
 
-	for (int iw=0; iw<nw; iw++)
+	for (int iw=0; iw<nw; iw++) {
 	  branchEngine->clampEnergy(LocalEnergy[iw]);
-
+	  W[iw]->getPropertyBase()[LOCALENERGY] = LocalEnergy[iw];
+	}
 	if (CurrentStep == 1)
 	  LocalEnergyOld = LocalEnergy;
 	
@@ -183,7 +184,8 @@ namespace qmcplusplus {
 	    Psi.update(accepted,iatList);
 	    for (int i=0; i<accepted.size(); i++)
 	      accepted[i]->R[iatList[i]] = accPos[i];
-	    W.copyWalkersToGPU();
+	    W.NLMove_GPU (accepted, accPos, iatList);
+	    //W.copyWalkersToGPU();
 	  }
 	}
 

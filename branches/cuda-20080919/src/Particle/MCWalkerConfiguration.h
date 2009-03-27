@@ -79,6 +79,10 @@ namespace qmcplusplus {
     cuda_vector<CUDA_PRECISION*> RList_GPU, GradList_GPU, LapList_GPU;
     cuda_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > Rnew_GPU;
     host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > Rnew_host;    
+    cuda_vector<int> iatList_GPU;
+    host_vector<int> iatList_host;
+    cuda_vector<CUDA_PRECISION*> NLlist_GPU;
+    host_vector<CUDA_PRECISION*> NLlist_host;
     vector<PosType>                                    Rnew;
     cuda_vector<int> AcceptList_GPU;
     host_vector<int> AcceptList_host;
@@ -88,6 +92,9 @@ namespace qmcplusplus {
     void proposeMove_GPU 
     (vector<PosType> &newPos, int iat);
     void acceptMove_GPU(vector<bool> &toAccept);
+    void NLMove_GPU (vector<Walker_t*> &walkers, 
+		     vector<PosType> &Rnew,
+		     vector<int> &iat);
 #endif
 
     ///default constructor

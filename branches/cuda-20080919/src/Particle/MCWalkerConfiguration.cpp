@@ -406,6 +406,33 @@ void MCWalkerConfiguration::acceptMove_GPU(vector<bool> &toAccept)
 
 
 
+void MCWalkerConfiguration::NLMove_GPU(vector<Walker_t*> &walkers,
+				       vector<PosType> &newpos,
+				       vector<int> &iat)
+{
+  int N = walkers.size();
+  if (NLlist_GPU.size() < N) {
+    NLlist_GPU.resize(N);
+    NLlist_host.resize(N);
+  }
+  if (Rnew_GPU.size() < N) {
+    Rnew_host.resize(N);
+    Rnew_GPU.resize(N);
+  }
+
+  for (int iw=0; iw<N; iw++) {
+    Rnew_host[iw]  = newpos[iw];
+    NLlist_host[iw] = (CUDA_PRECISION*)(walkers[iw]->R_GPU.data()) + OHMMS_DIM*iat[iw];
+  }
+
+  Rnew_GPU   = Rnew_host;
+  NLlist_GPU = NLlist_host;
+
+  NL_move_cuda (NLlist_GPU.data(), (CUDA_PRECISION*)Rnew_GPU.data(), N);
+}
+
+
+
 
 
 #endif
