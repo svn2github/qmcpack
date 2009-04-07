@@ -1984,13 +1984,13 @@ one_body_ratio_grad_kernel(T C[], T *R[], int cfirst, int clast,
     dx = myRold[0] - c[tid][0];
     dy = myRold[1] - c[tid][1];
     dz = myRold[2] - c[tid][2];
-    dist = min_dist_fast(dx, dy, dz, L, Linv);
+    dist = min_dist(dx, dy, dz, L, Linv);
     delta =- eval_1d_spline (dist, rMax, drInv, A, coefs);
 
     dx = myRnew[0] - c[tid][0];
     dy = myRnew[1] - c[tid][1];
     dz = myRnew[2] - c[tid][2];
-    dist = min_dist_fast(dx, dy, dz, L, Linv);
+    dist = min_dist(dx, dy, dz, L, Linv);
     eval_1d_spline_vgl (dist, rMax, drInv, A, coefs, u, du, d2u);
     delta += u;
 
