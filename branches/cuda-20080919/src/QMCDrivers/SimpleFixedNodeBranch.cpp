@@ -35,7 +35,8 @@ namespace qmcplusplus
 
   SimpleFixedNodeBranch::SimpleFixedNodeBranch(RealType tau, int nideal): 
     vParam(1.0), WalkerController(0), BackupWalkerController(0),
-    MyEstimator(0), PopHist(5), DMCEnergyHist(5)
+    MyEstimator(0), PopHist(5), DMCEnergyHist(5),
+    ScaleSum(0.0), ScaleNum(0)
   {
 
     BranchMode.set(B_DMCSTAGE,0); //warmup stage
@@ -244,7 +245,7 @@ namespace qmcplusplus
       if(ToDoSteps==0)  //warmup is done
       {
 
-        RealType sigma_eq=std::sqrt(/*iParam[B_TARGETWALKERS]**/EnergyHist.variance());
+        RealType sigma_eq=std::sqrt(iParam[B_TARGETWALKERS]*EnergyHist.variance());
         RealType sigma=std::max(sigma_eq*WalkerController->targetSigma,10.0);
         vParam[B_BRANCHCUTOFF]=std::min(sigma,5.0/vParam[B_TAU]);
         vParam[B_BRANCHMAX]=vParam[B_BRANCHCUTOFF]*1.5;
@@ -344,7 +345,7 @@ namespace qmcplusplus
       RealType e, sigma2;
       MyEstimator->getCurrentStatistics(w,e,sigma2);
       vParam[B_ETRIAL]=vParam[B_EREF]=e;
-      vParam[B_SIGMA]=std::sqrt(/*iParam[B_TARGETWALKERS]**/sigma2);
+      vParam[B_SIGMA]=std::sqrt(iParam[B_TARGETWALKERS]*sigma2);
 
       EnergyHist.clear();
       DMCEnergyHist.clear();
@@ -367,7 +368,7 @@ namespace qmcplusplus
       //MyEstimator->getEnergyAndWeight(e,w,sigma2);
       MyEstimator->getCurrentStatistics(w,e,sigma2);
       vParam[B_ETRIAL]=vParam[B_EREF]=e;
-      vParam[B_SIGMA]=std::sqrt(/*iParam[B_TARGETWALKERS]**/sigma2);
+      vParam[B_SIGMA]=std::sqrt(iParam[B_TARGETWALKERS]*sigma2);
       
       app_log() << "SimpleFixedNodeBranch::finalize " << endl;
       app_log() << "  Average Energy of a population  = " << e << endl;

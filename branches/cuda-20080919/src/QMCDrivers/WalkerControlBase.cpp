@@ -94,6 +94,8 @@ namespace qmcplusplus {
     //taking average over the walkers
     RealType wgtInv(1.0/curData[WEIGHT_INDEX]);
     RealType eavg=curData[ENERGY_INDEX]*wgtInv;
+    //    RealType ecum=curData[EREF_INDEX]/curData[WALKERSIZE_INDEX];
+
     EnsembleProperty.Energy=eavg;
     EnsembleProperty.Weight=curData[WEIGHT_INDEX];
     EnsembleProperty.Variance=(curData[ENERGY_SQ_INDEX]*wgtInv-eavg*eavg);
@@ -230,7 +232,9 @@ namespace qmcplusplus {
       r2_proposed+=(*it)->Properties(R2PROPOSED);
       RealType e((*it)->Properties(LOCALENERGY));
       int nc= std::min(static_cast<int>((*it)->Multiplicity),MaxCopy);
-      RealType wgt((*it)->Weight);
+      /// HACK HACK HACK
+      //RealType wgt((*it)->Weight);
+      RealType wgt = (RealType)nc;
 
       esum += wgt*e;
       e2sum += wgt*e*e;

@@ -105,8 +105,7 @@ namespace qmcplusplus {
     {
       B_TAU, B_TAUEFF, B_ETRIAL, B_EREF, B_ENOW,
       B_BRANCHMAX, B_BRANCHCUTOFF, B_BRANCHFILTER, B_SIGMA, 
-      B_ACC_ENERGY, B_ACC_SAMPLES, 
-      B_VPARAM_MAX
+      B_ACC_ENERGY, B_ACC_SAMPLES, B_VPARAM_MAX
     };
 
     /** controlling parameters of real type
@@ -157,6 +156,10 @@ namespace qmcplusplus {
     ParameterSet m_param;
     ///string parameters
     vector<string> sParam;
+
+    // Used for the average scaling
+    RealType ScaleSum;
+    unsigned long ScaleNum;
 
     public:
 
@@ -250,14 +253,40 @@ namespace qmcplusplus {
      * @param scnew  \f$ V_{sc}(R_{new})/V(R_{new}) \f$
      * @param scold  \f$ V_{sc}(R_{old})/V(R_{old}) \f$
      */
-    inline RealType branchWeight(RealType enew, RealType eold, RealType scnew, RealType scold) const
+    inline RealType branchWeight(RealType enew, RealType eold, RealType scnew, RealType scold) 
     {
-      RealType s1=(vParam[B_ETRIAL]-vParam[B_EREF])+(vParam[B_EREF]-enew)*scnew;
-      RealType s0=(vParam[B_ETRIAL]-vParam[B_EREF])+(vParam[B_EREF]-eold)*scold;
+      ScaleSum += scnew + scold;
+      ScaleNum +=2;
+
+      RealType scavg = (ScaleNum > 10000) ? ScaleSum/(RealType)ScaleNum : 1.0;
+
+      RealType s1=(vParam[B_ETRIAL]-vParam[B_EREF])+(vParam[B_EREF]-enew)*scnew/scavg;
+      RealType s0=(vParam[B_ETRIAL]-vParam[B_EREF])+(vParam[B_EREF]-eold)*scold/scavg;
       // RealType s1=(vParam[B_ETRIAL]-enew)*scnew;
       // RealType s0=(vParam[B_ETRIAL]-eold)*scold;
       return std::exp(vParam[B_TAUEFF]*0.5*(s1+s0));
     }
+
+
+    /** return the branch weight according to JCP1993 Umrigar et al. Appendix A p=1, q=0
+     * @param enew new energy
+     * @param eold old energy
+     * @param scnew  \f$ V_{sc}(R_{new})/V(R_{new}) \f$
+     * @param scold  \f$ V_{sc}(R_{old})/V(R_{old}) \f$
+     */
+    inline RealType branchWeightTau(RealType enew, RealType eold, RealType scnew, RealType scold,
+				    RealType taueff) 
+    {
+      ScaleSum += scnew + scold;
+      ScaleNum +=2;
+
+      RealType scavg = (ScaleNum > 10000) ? ScaleSum/(RealType)ScaleNum : 1.0;
+
+      RealType s1=(vParam[B_ETRIAL]-vParam[B_EREF])+(vParam[B_EREF]-enew)*scnew/scavg;
+      RealType s0=(vParam[B_ETRIAL]-vParam[B_EREF])+(vParam[B_EREF]-eold)*scold/scavg;
+      return std::exp(taueff*0.5*(s1+s0));
+    }
+
 
     /** return the branch weight according to JCP1993 Umrigar et al. Appendix A
      * @param enew new energy

@@ -18,6 +18,8 @@
 #define QMCPLUSPLUS_DMC_CUDA_H
 #include "QMCDrivers/QMCDriver.h" 
 #include "QMCHamiltonians/NonLocalTOperator.h"
+#include "Utilities/NewTimer.h"
+
 namespace qmcplusplus {
 
   class QMCUpdateBase;
@@ -37,6 +39,7 @@ namespace qmcplusplus {
   private:
     ///input string to determine to use nonlocal move
     string NonLocalMove;
+    string ScaleWeight;
     /// tau/mass
     RealType m_tauovermass;
     ///number of warmup steps
@@ -46,12 +49,20 @@ namespace qmcplusplus {
     ///update engine
     QMCUpdateBase* Mover;
     /// Copy Constructor (disabled)
-    DMCcuda(const DMCcuda& a): QMCDriver(a) { }
+    DMCcuda(const DMCcuda& a): QMCDriver(a),
+			       ResizeTimer("DMCcuda::resize"),
+			       DriftDiffuseTimer("DMCcuda::Drift/Diffuse"),
+			       BranchTimer("DMCcuda::Branch"),
+			       HTimer("DMCcuda::Hamiltonian")
+
+    { }
     /// Copy operator (disabled).
     DMCcuda& operator=(const DMCcuda&) { return *this;}
     ///hide initialization from the main function
     void resetRun();
     NonLocalTOperator NLop;
+
+    NewTimer ResizeTimer, DriftDiffuseTimer, BranchTimer, HTimer;
   };
 }
 

@@ -22,11 +22,17 @@
 #include "ParticleBase/RandomSeqGenerator.h"
 #include "QMCDrivers/DriftOperators.h"
 
+
 namespace qmcplusplus { 
 
   /// Constructor.
-  DMCcuda::DMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h):
-    QMCDriver(w,psi,h), myWarmupSteps(0), Mover(0)
+  DMCcuda::DMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, 
+		   QMCHamiltonian& h):
+    QMCDriver(w,psi,h), myWarmupSteps(0), Mover(0),
+    ResizeTimer("DMCcuda::resize"),
+    DriftDiffuseTimer("DMCcuda::Drift/Diffuse"),
+    BranchTimer("DMCcuda::Branch"),
+    HTimer("DMCcuda::Hamiltonian")
   { 
     RootName = "dmc";
     QMCType ="DMCcuda";
@@ -36,14 +42,23 @@ namespace qmcplusplus {
     m_param.add(nTargetSamples,"targetWalkers","int");
     m_param.add(NonLocalMove,"nonlocalmove","string");
     m_param.add(NonLocalMove,"nonlocalmoves","string");
+    m_param.add(ScaleWeight, "scaleweight", "string");
+
+    TimerManager.addTimer (&ResizeTimer);
+    TimerManager.addTimer (&DriftDiffuseTimer);
+    TimerManager.addTimer (&BranchTimer);
+    TimerManager.addTimer (&HTimer);
   }
   
 
   bool DMCcuda::run() 
   { 
     bool NLmove = NonLocalMove == "yes";
+    bool scaleweight = ScaleWeight == "yes";
     if (NLmove) 
       app_log() << "  Using Casula nonlocal moves in DMCcuda.\n";
+    if (scaleweight)
+      app_log() << "  Scaling weight per Umrigar/Nightengale.\n";
       
     resetRun();
     Mover->MaxAge = 2;
@@ -78,6 +93,7 @@ namespace qmcplusplus {
         step++;
 	CurrentStep++;
 	nw = W.getActiveWalkers();
+	ResizeTimer.start();
 	LocalEnergy.resize(nw);       oldScale.resize(nw);
 	newScale.resize(nw);          delpos.resize(nw);
 	dr.resize(nw);                newpos.resize(nw);
@@ -90,6 +106,7 @@ namespace qmcplusplus {
 	V2.resize(nw,0.0);            V2bar.resize(nw,0.0);
 
 	W.updateLists_GPU();
+	ResizeTimer.stop();
 
 	if (NLmove) {
 	  Txy.resize(nw);
@@ -103,6 +120,7 @@ namespace qmcplusplus {
 	for (int iw=0; iw<nw; iw++)
 	  W[iw]->Age++;
 	
+	DriftDiffuseTimer.start();
         for(int iat=0; iat<nat; iat++) {
 	  Psi.getGradient (W, iat, oldG);
 	  
@@ -153,15 +171,17 @@ namespace qmcplusplus {
 	  if (accepted.size())
 	    Psi.update(accepted,iat);
 	}
+	DriftDiffuseTimer.stop();
 	//	Psi.recompute(W, false);
 	Psi.gradLapl(W, grad, lapl);
+	HTimer.start();
 	if (NLmove)	  H.evaluate (W, LocalEnergy, Txy);
 	else    	  H.evaluate (W, LocalEnergy);
-
-	for (int iw=0; iw<nw; iw++) {
-	  branchEngine->clampEnergy(LocalEnergy[iw]);
-	  W[iw]->getPropertyBase()[LOCALENERGY] = LocalEnergy[iw];
-	}
+	HTimer.stop();
+// 	for (int iw=0; iw<nw; iw++) {
+// 	  branchEngine->clampEnergy(LocalEnergy[iw]);
+// 	  W[iw]->getPropertyBase()[LOCALENERGY] = LocalEnergy[iw];
+// 	}
 	if (CurrentStep == 1)
 	  LocalEnergyOld = LocalEnergy;
 	
@@ -190,17 +210,26 @@ namespace qmcplusplus {
 	}
 
 	// Now branch
+	BranchTimer.start();
 	for (int iw=0; iw<nw; iw++) {
 	  RealType scNew = std::sqrt(V2bar[iw] / V2[iw]);
 	  RealType scOld = (CurrentStep == 1) ? scNew : W[iw]->getPropertyBase()[DRIFTSCALE];
 	  W[iw]->getPropertyBase()[DRIFTSCALE] = scNew;
 	  // fprintf (stderr, "iw = %d  scNew = %1.8f  scOld = %1.8f\n", iw, scNew, scOld);
-	  W[iw]->Weight *= branchEngine->branchWeight(LocalEnergy[iw], LocalEnergyOld[iw],
-						      scNew, scOld);
-	  //W[iw]->Weight *= branchEngine->branchWeight(LocalEnergy[iw], LocalEnergyOld[iw]);
+	  RealType tauRatio = R2acc[iw] / R2prop[iw];
+	  if (tauRatio < 0.5) 
+	    cerr << "  tauRatio = " << tauRatio << endl;
+	  RealType taueff = m_tauovermass * tauRatio;
+	  if (scaleweight) 
+	    W[iw]->Weight *= branchEngine->branchWeightTau
+	      (LocalEnergy[iw], LocalEnergyOld[iw], scNew, scOld, taueff);
+	  else
+	    W[iw]->Weight *= branchEngine->branchWeight
+	      (LocalEnergy[iw], LocalEnergyOld[iw]);
 
 	  W[iw]->getPropertyBase()[R2ACCEPTED] = R2acc[iw];
 	  W[iw]->getPropertyBase()[R2PROPOSED] = R2prop[iw];
+	  
 	}
 	Mover->setMultiplicity(W.begin(), W.end());
 	branchEngine->branch(CurrentStep,W);
@@ -208,6 +237,7 @@ namespace qmcplusplus {
 	LocalEnergyOld.resize(nw);
 	for (int iw=0; iw<nw; iw++)
 	  LocalEnergyOld[iw] = W[iw]->getPropertyBase()[LOCALENERGY];
+	BranchTimer.stop();
       } while(step<nSteps);
       Psi.recompute(W, true);
 
