@@ -1,4 +1,10 @@
-template<typename T, int LMAX, int BS> __global__
+#include <cstdio>
+#include <vector>
+#include <complex>
+
+using namespace std;
+
+template<typename T, int LMAX, int BS> __global__ void
 CalcYlmComplex (T rhats[], 
 		T *Ylm_ptr[], T *dYlm_dtheta_ptr[], T *dYlm_dphi_ptr[], int N)
 {
@@ -6,7 +12,7 @@ CalcYlmComplex (T rhats[],
   int tid = threadIdx.x;
   const int numlm = (LMAX+1)*(LMAX+1);
 
-  __shared__ T* Ylm[BS], dtheta[BS], dphi[BS];
+  __shared__ T* Ylm[BS], *dtheta[BS], *dphi[BS];
   if (blockIdx.x*BS+tid < N) {
     Ylm[tid]    = Ylm_ptr[blockIdx.x*BS+tid];
     dtheta[tid] = dYlm_dtheta_ptr[blockIdx.x*BS+tid];
@@ -19,7 +25,7 @@ CalcYlmComplex (T rhats[],
     if (off < 3*N)
       rhat[0][i*BS+tid] = rhats[off];
   }
-  __synchthreads();
+  __syncthreads();
 
   T costheta = rhat[tid][2];
   T sintheta = sqrt(1.0-costheta*costheta);
@@ -33,7 +39,7 @@ CalcYlmComplex (T rhats[],
 
   T lsign = 1.0;
   T dl = 0.0;
-  __shared__ XlmVec[BS][(LMAX*(LMAX+1))>>1], 
+  __shared__ T XlmVec[BS][(LMAX*(LMAX+1))>>1], 
     dXlmVec[BS][(LMAX*(LMAX+1))>>1];
 
   // Create a map from lm linear index to l and m
@@ -112,15 +118,15 @@ CalcYlmComplex (T rhats[],
       // Now write back to global mem with coallesced writes
       int off = 2*block*BS + tid;
       if (off < 2*numlm) {
-	Ylm[off]    = outbuff[0][0][off];
-	dtheta[off] = outbuff[1][0][off];
-	dphi[off]   = outbuff[2][0][off];
+	Ylm[i][off]    = outbuff[0][0][off];
+	dtheta[i][off] = outbuff[1][0][off];
+	dphi[i][off]   = outbuff[2][0][off];
       }
       off += BS;
       if (off < 2*numlm) {
-	Ylm[off]    = outbuff[0][0][off];
-	dtheta[off] = outbuff[1][0][off];
-	dphi[off]   = outbuff[2][0][off];
+	Ylm[i][off]    = outbuff[0][0][off];
+	dtheta[i][off] = outbuff[1][0][off];
+	dphi[i][off]   = outbuff[2][0][off];
       }
     }
   }
@@ -142,4 +148,186 @@ CalcYlmComplex (T rhats[],
   // dl += 1.0;
   // lsign *= -1.0;
   // YlmTimer.stop();
+}
+
+
+class Vec3
+{
+private:
+  double r[3];
+public:
+  inline double  operator[](int i) const { return r[i]; }
+  inline double& operator[](int i) { return r[i];}
+  Vec3(double x, double y, double z) 
+  { r[0]=x; r[1]=y; r[2]=z; }
+  Vec3() { }
+};
+  
+
+  // Fast implementation
+  // See Geophys. J. Int. (1998) 135,pp.307-309
+void
+CalcYlm (Vec3 rhat,
+	 vector<complex<double> > &Ylm,
+	 vector<complex<double> > &dYlm_dtheta,
+	 vector<complex<double> > &dYlm_dphi)
+{
+  int lMax = 5;
+  const double fourPiInv = 0.0795774715459477;
+  
+  double costheta = rhat[2];
+  double sintheta = std::sqrt(1.0-costheta*costheta);
+  double cottheta = costheta/sintheta;
+  
+  double cosphi, sinphi;
+  cosphi=rhat[0]/sintheta;
+  sinphi=rhat[1]/sintheta;
+  
+  complex<double> e2iphi(cosphi, sinphi);
+  
+  
+  double lsign = 1.0;
+  double dl = 0.0;
+  double XlmVec[2*lMax+1], dXlmVec[2*lMax+1];
+  for (int l=0; l<=lMax; l++) {
+    XlmVec[2*l]  = lsign;  
+    dXlmVec[2*l] = dl * cottheta * XlmVec[2*l];
+    XlmVec[0]    = lsign*XlmVec[2*l];
+    dXlmVec[0]   = lsign*dXlmVec[2*l];
+    double dm = dl;
+    double msign = lsign;
+    for (int m=l; m>0; m--) {
+      double tmp = std::sqrt((dl+dm)*(dl-dm+1.0));
+      XlmVec[l+m-1]  = -(dXlmVec[l+m] + dm*cottheta*XlmVec[l+m])/ tmp;
+      dXlmVec[l+m-1] = (dm-1.0)*cottheta*XlmVec[l+m-1] + XlmVec[l+m]*tmp;
+      // Copy to negative m
+      XlmVec[l-(m-1)]  = -msign* XlmVec[l+m-1];
+      dXlmVec[l-(m-1)] = -msign*dXlmVec[l+m-1];
+      msign *= -1.0;
+      dm -= 1.0;
+    }
+    double sum = 0.0;
+    for (int m=-l; m<=l; m++) 
+      sum += XlmVec[l+m]*XlmVec[l+m];
+    // Now, renormalize the Ylms for this l
+    double norm = std::sqrt((2.0*dl+1.0)*fourPiInv / sum);
+    for (int m=-l; m<=l; m++) {
+      XlmVec[l+m]  *= norm;
+      dXlmVec[l+m] *= norm;
+    }
+    
+    // Multiply by azimuthal phase and store in Ylm
+    complex<double> e2imphi (1.0, 0.0);
+    complex<double> eye(0.0, 1.0);
+    for (int m=0; m<=l; m++) {
+      Ylm[l*(l+1)+m]  =  XlmVec[l+m]*e2imphi;
+      Ylm[l*(l+1)-m]  =  XlmVec[l-m]*conj(e2imphi);
+      dYlm_dphi[l*(l+1)+m ]  =  (double)m * eye *XlmVec[l+m]*e2imphi;
+      dYlm_dphi[l*(l+1)-m ]  = -(double)m * eye *XlmVec[l-m]*conj(e2imphi);
+      dYlm_dtheta[l*(l+1)+m] = dXlmVec[l+m]*e2imphi;
+      dYlm_dtheta[l*(l+1)-m] = dXlmVec[l-m]*conj(e2imphi);
+      e2imphi *= e2iphi;
+    } 
+    
+    dl += 1.0;
+    lsign *= -1.0;
+  }
+}
+
+
+
+void TestYlm()
+{
+  int numr = 1000;
+  const int BS=32;
+
+  float *rhat_device, *Ylm_device, *dtheta_device, *dphi_device;
+  float **Ylm_ptr, **dtheta_ptr, **dphi_ptr;
+  const int lmax = 5;
+  const int numlm = (lmax+1)*(lmax+1);
+
+  cudaMalloc ((void**)&rhat_device, 3*sizeof(float)*numr);
+  cudaMalloc ((void**)&Ylm_device, 2*numlm*sizeof(float)*numr);
+  cudaMalloc ((void**)&dtheta_device, 2*numlm*sizeof(float)*numr);
+  cudaMalloc ((void**)&dphi_device, 2*numlm*sizeof(float)*numr);
+  cudaMalloc ((void**)&Ylm_ptr,    numr*sizeof(float*));
+  cudaMalloc ((void**)&dtheta_ptr, numr*sizeof(float*));
+  cudaMalloc ((void**)&dphi_ptr,   numr*sizeof(float*));
+  
+  float *Ylm_host[numr], *dtheta_host[numr], *dphi_host[numr];
+  float rhost[3*numr];
+  vector<Vec3> rlist;
+  for (int i=0; i<numr; i++) {
+    Vec3 r;
+    r[0] = 2.0*drand48()-1.0;
+    r[1] = 2.0*drand48()-1.0;
+    r[2] = 2.0*drand48()-1.0;
+    double nrm = 1.0/std::sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
+    r[0] *= nrm;        r[1] *= nrm;        r[2] *= nrm;
+    rlist.push_back(r);
+    rhost[3*i+0]=r[0];  rhost[3*i+1]=r[1];  rhost[3*i+2]=r[2];
+    
+    Ylm_host[i] = Ylm_device+2*i*numlm;    
+    dtheta_host[i] = dtheta_device+2*i*numlm;
+    dphi_host[i]   = dphi_device + 2*i*numlm;
+  }
+  
+  cudaMemcpy(rhat_device, rhost, 3*numr*sizeof(float),  cudaMemcpyHostToDevice);
+  cudaMemcpy(Ylm_ptr, Ylm_host, numr*sizeof(float*),    cudaMemcpyHostToDevice);
+  cudaMemcpy(dtheta_ptr, dtheta_host, numr*sizeof(float*), 
+	     cudaMemcpyHostToDevice);
+  cudaMemcpy(dphi_ptr,  dphi_host, numr*sizeof(float*), cudaMemcpyHostToDevice);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in cudaMemcpy:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
+
+  dim3 dimBlock(BS);
+  dim3 dimGrid((numr+BS-1)/BS);
+  
+  CalcYlmComplex<float,5,BS><<<dimGrid,dimBlock>>>
+    (rhat_device, Ylm_ptr, dtheta_ptr, dphi_ptr, numr);
+
+  cudaThreadSynchronize();
+  err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in CalcYlmComplex:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+  complex<float> Ylm[numr*numlm];
+  cudaMemcpy(Ylm, Ylm_device, 2*numr*numlm*sizeof(float), 
+	     cudaMemcpyDeviceToHost);
+  cudaThreadSynchronize();
+  err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in cudaMemcpy:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+
+  vector<complex<double> > Ylm_cpu(numlm), dtheta_cpu(numlm), dphi_cpu(numlm);
+  CalcYlm (rlist[0], Ylm_cpu, dtheta_cpu, dphi_cpu);
+  for (int lm=0; lm<numlm; lm++) {
+    fprintf(stderr, "%12.6f %12.6f   %12.6f %12.6f\n",
+	    Ylm_cpu[lm].real(), Ylm_cpu[lm].imag(), 
+	    Ylm[lm].real(), Ylm[lm].imag());
+  }
+
+
+
+}
+
+
+
+main()
+{
+  TestYlm();
+
+
 }
