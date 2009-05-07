@@ -37,11 +37,9 @@ CalcYlmComplex (T rhats[],
   __shared__ T phi[BS];
   phi[tid] = atan2f(sinphi, cosphi);
 
-  T lsign = 1.0;
-  T dl = 0.0;
-  __shared__ T XlmVec[BS][(LMAX*(LMAX+1))>>1], 
-    dXlmVec[BS][(LMAX*(LMAX+1))>>1];
-
+  __shared__ T XlmVec[BS][(LMAX+1)*(LMAX+2)/2], 
+    dXlmVec[BS][(LMAX+1)*(LMAX+1)/2];
+  
   // Create a map from lm linear index to l and m
   __shared__ int l_lm[numlm];
   __shared__ int m_lm[numlm];
@@ -51,11 +49,13 @@ CalcYlmComplex (T rhats[],
     if (tid < 2*l+1) {
       l_lm[off+tid] = l;
       m_lm[off+tid] = tid-l;
-      floatm_lm[off+tid] = (T)tid-l;
+      floatm_lm[off+tid] = (T)(tid-l);
     }
     off += 2*l+1;
   }
 
+  T lsign = 1.0;
+  T dl = 0.0;
   for (int l=0; l<=LMAX; l++) {
     int index=l*(l+3)/2;
     XlmVec[tid][index]  = lsign;  
@@ -75,11 +75,12 @@ CalcYlmComplex (T rhats[],
       sum += 2.0f*XlmVec[tid][index+m]*XlmVec[tid][index+m];
     // Now, renormalize the Ylms for this l
     T norm = sqrt((2.0*dl+1.0)*fourPiInv / sum);
-    index = l*(l+1)/2;
     for (int m=0; m<=l; m++) {
       XlmVec[tid][index+m]  *= norm;
       dXlmVec[tid][index+m] *= norm;
     }
+    lsign *= -1.0;
+    dl += 1.0;
   }
   __syncthreads();
 
@@ -97,14 +98,16 @@ CalcYlmComplex (T rhats[],
 	T re, im;
 	sincosf(fm*phi[i], &im, &re);
 	// (-1)^m term
-	if (m&1) {
+	// if (m&1) {
+	//   re *= -1.0;
+	//   im *= -1.0;
+	// }
+	// Conjugate for m < 0
+	if (m<0 && (m&1)) {
 	  re *= -1.0;
 	  im *= -1.0;
 	}
-	// Conjugate for m < 0
-	if (m<0)
-	  im *= -1.0;
-	int off = (l*(l+1))>>1 + m;
+	int off = ((l*(l+1))>>1) + abs(m);
 	// Ylm
 	outbuff[0][tid][0] =     re *  XlmVec[i][off];
 	outbuff[0][tid][1] =     im *  XlmVec[i][off];
@@ -115,18 +118,19 @@ CalcYlmComplex (T rhats[],
 	outbuff[2][tid][0] = -fm*im *  XlmVec[i][off];
 	outbuff[2][tid][1] =  fm*re *  XlmVec[i][off];
       }
+      __syncthreads();
       // Now write back to global mem with coallesced writes
       int off = 2*block*BS + tid;
       if (off < 2*numlm) {
-	Ylm[i][off]    = outbuff[0][0][off];
-	dtheta[i][off] = outbuff[1][0][off];
-	dphi[i][off]   = outbuff[2][0][off];
+	Ylm[i][off]    = outbuff[0][0][tid];
+	dtheta[i][off] = outbuff[1][0][tid];
+	dphi[i][off]   = outbuff[2][0][tid];
       }
       off += BS;
       if (off < 2*numlm) {
-	Ylm[i][off]    = outbuff[0][0][off];
-	dtheta[i][off] = outbuff[1][0][off];
-	dphi[i][off]   = outbuff[2][0][off];
+	Ylm[i][off]    = outbuff[0][0][tid+BS];
+	dtheta[i][off] = outbuff[1][0][tid+BS];
+	dphi[i][off]   = outbuff[2][0][tid+BS];
       }
     }
   }
@@ -314,9 +318,11 @@ void TestYlm()
   vector<complex<double> > Ylm_cpu(numlm), dtheta_cpu(numlm), dphi_cpu(numlm);
   CalcYlm (rlist[0], Ylm_cpu, dtheta_cpu, dphi_cpu);
   for (int lm=0; lm<numlm; lm++) {
-    fprintf(stderr, "%12.6f %12.6f   %12.6f %12.6f\n",
+    fprintf(stderr, "%12.6f %12.6f   %12.6f %12.6f  %3.0f %3.0f\n",
 	    Ylm_cpu[lm].real(), Ylm_cpu[lm].imag(), 
-	    Ylm[lm].real(), Ylm[lm].imag());
+	    Ylm[lm].real(), Ylm[lm].imag(),
+	    Ylm_cpu[lm].real()/Ylm[lm].real(),
+	    Ylm_cpu[lm].imag()/Ylm[lm].imag());
   }
 
 
