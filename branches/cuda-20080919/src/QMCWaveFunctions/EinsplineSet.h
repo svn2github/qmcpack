@@ -352,6 +352,59 @@ namespace qmcplusplus {
   };
 
   template<typename StorageType>
+  class EinsplineSetHybrid : public EinsplineSetExtended<StorageType>
+  {
+    friend class EinsplineSetBuilder;
+  protected:
+    int a;
+    //////////////////////
+    // Type definitions //
+    //////////////////////
+    typedef typename EinsplineSetExtended<StorageType>::Walker_t     Walker_t;
+    typedef typename EinsplineSetExtended<StorageType>::PosType      PosType;
+    typedef typename EinsplineSetExtended<StorageType>::CudaRealType CudaRealType;
+    typedef typename EinsplineSetExtended<StorageType>::CudaComplexType CudaComplexType;
+    //////////////////////////////
+    /// Orbital storage objects //
+    //////////////////////////////
+
+    ////////////
+    // Timers //
+    ////////////
+    // Data for vectorized evaluations
+
+  public:
+    void registerTimers();
+
+    // Vectorized evaluation functions
+    void evaluate (vector<Walker_t*> &walkers, int iat,
+		   cuda_vector<CudaRealType*> &phi);
+    void evaluate (vector<Walker_t*> &walkers, int iat,
+		   cuda_vector<CudaComplexType*> &phi);
+    void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+		   cuda_vector<CudaRealType*> &phi);
+    void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,
+		   cuda_vector<CudaComplexType*> &phi);
+    void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+		   cuda_vector<CudaRealType*> &phi,
+		   cuda_vector<CudaRealType*> &grad_lapl,
+		   int row_stride);
+    void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+		   cuda_vector<CudaComplexType*> &phi,
+		   cuda_vector<CudaComplexType*> &grad_lapl,
+		   int row_stride);
+    void evaluate (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi);
+    void evaluate (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi);
+    
+    string Type();
+    
+    SPOSetBase* makeClone() const;
+    
+    EinsplineSetHybrid();
+  };
+
+
+  template<typename StorageType>
   inline void EinsplineSetExtended<StorageType>::computePhaseFactors(TinyVector<RealType,OHMMS_DIM> r)
   {
     for (int i=0; i<kPoints.size(); i++) phase[i] = -dot(r, kPoints[i]);

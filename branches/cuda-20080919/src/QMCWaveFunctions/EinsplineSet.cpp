@@ -1479,7 +1479,7 @@ namespace qmcplusplus {
 	sign += HalfG[i] * image[i];
       
       NLhostSign[iw] = plus_minus[sign&1];
-      //      cerr << "sign = " << sign << "  hostsign[iw] = " << hostSign[iw] << endl;
+
       NLhostPos[iw] = ru;
     }
 
@@ -1600,4 +1600,192 @@ namespace qmcplusplus {
 
   template class EinsplineSetExtended<complex<double> >;
   template class EinsplineSetExtended<        double  >;
+
+
+  
+  ////////////////////////////////
+  // Hybrid evaluation routines //
+  ////////////////////////////////
+
+  ///////////////////////////////
+  // Real StorageType versions //
+  ///////////////////////////////
+
+  // Vectorized evaluation functions
+  template<> void
+  EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, int iat,
+					cuda_vector<CudaRealType*> &phi)
+  {
+  }
+
+  
+  template<> void
+  EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, int iat,
+				cuda_vector<CudaComplexType*> &phi)
+  {
+  }
+
+  
+  template<> void
+  EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+  		 cuda_vector<CudaRealType*> &phi)
+  { 
+  }
+
+  template<> void
+  EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,
+  		 cuda_vector<CudaComplexType*> &phi)
+  {
+  }
+
+  template<> void
+  EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+  		 cuda_vector<CudaRealType*> &phi,
+  		 cuda_vector<CudaRealType*> &grad_lapl,
+  		 int row_stride)
+  { 
+  }
+
+  template<> void
+  EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+  		 cuda_vector<CudaComplexType*> &phi,
+  		 cuda_vector<CudaComplexType*> &grad_lapl,
+  		 int row_stride)
+  {
+  }
+
+  template<> void
+  EinsplineSetHybrid<double>::evaluate (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
+  {
+  }
+
+  template<> void
+  EinsplineSetHybrid<double>::evaluate (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
+  {
+  }
+  
+  template<> string
+  EinsplineSetHybrid<double>::Type()
+  {
+  }
+  
+  
+  template<> SPOSetBase*
+  EinsplineSetHybrid<double>::makeClone() const
+  {
+
+  }
+  
+
+  //////////////////////////////////
+  // Complex StorageType versions //
+  //////////////////////////////////
+
+  template<> void
+  EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, int iat,
+					cuda_vector<CudaRealType*> &phi)
+  {
+  }
+
+  
+  template<> void
+  EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, int iat,
+				cuda_vector<CudaComplexType*> &phi)
+  {
+  }
+
+  
+  template<> void
+  EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+  		 cuda_vector<CudaRealType*> &phi)
+  { 
+  }
+
+  template<> void
+  EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,
+  		 cuda_vector<CudaComplexType*> &phi)
+  {
+  }
+
+  template<> void
+  EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+  		 cuda_vector<CudaRealType*> &phi,
+  		 cuda_vector<CudaRealType*> &grad_lapl,
+  		 int row_stride)
+  { 
+  }
+
+  template<> void
+  EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+  		 cuda_vector<CudaComplexType*> &phi,
+  		 cuda_vector<CudaComplexType*> &grad_lapl,
+  		 int row_stride)
+  {
+  }
+
+  template<> void
+  EinsplineSetHybrid<complex<double> >::evaluate (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
+  {
+  }
+
+  template<> void
+  EinsplineSetHybrid<complex<double> >::evaluate (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
+  {
+  }
+  
+  template<> string
+  EinsplineSetHybrid<complex<double> >::Type()
+  {
+  }
+  
+  
+  template<> SPOSetBase*
+  EinsplineSetHybrid<complex<double> >::makeClone() const
+  {
+
+  }
+
+
+
+
+
+
+
+  template<>
+  EinsplineSetHybrid<double>::EinsplineSetHybrid()
+  {
+    ValueTimer.set_name ("EinsplineSetHybrid::ValueOnly");
+    VGLTimer.set_name ("EinsplineSetHybrid::VGL");
+    ValueTimer.set_name ("EinsplineSetHybrid::VGLMat");
+    EinsplineTimer.set_name ("EinsplineSetHybrid::Einspline");
+    className = "EinsplineSeHybrid";
+    TimerManager.addTimer (&ValueTimer);
+    TimerManager.addTimer (&VGLTimer);
+    TimerManager.addTimer (&VGLMatTimer);
+    TimerManager.addTimer (&EinsplineTimer);
+    for (int i=0; i<OHMMS_DIM; i++)
+      HalfG[i] = 0;
+  }
+
+  template<>
+  EinsplineSetHybrid<complex<double > >::EinsplineSetHybrid()
+  {
+    ValueTimer.set_name ("EinsplineSetHybrid::ValueOnly");
+    VGLTimer.set_name ("EinsplineSetHybrid::VGL");
+    ValueTimer.set_name ("EinsplineSetHybrid::VGLMat");
+    EinsplineTimer.set_name ("EinsplineSetHybrid::Einspline");
+    className = "EinsplineSeHybrid";
+    TimerManager.addTimer (&ValueTimer);
+    TimerManager.addTimer (&VGLTimer);
+    TimerManager.addTimer (&VGLMatTimer);
+    TimerManager.addTimer (&EinsplineTimer);
+    for (int i=0; i<OHMMS_DIM; i++)
+      HalfG[i] = 0;
+  }
+
+
+  template class EinsplineSetHybrid<complex<double> >;
+  template class EinsplineSetHybrid<        double  >;
+  
+
 }

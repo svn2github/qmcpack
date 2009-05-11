@@ -616,7 +616,7 @@ void TestYlmReal()
 
   start = clock();
   for (int i=0; i<10000; i++) {
-    CalcYlmReal<float,5,BS><<<dimGrid,dimBlock>>>
+    CalcYlmReal<float,lmax,BS><<<dimGrid,dimBlock>>>
       (rhat_device, Ylm_ptr, dtheta_ptr, dphi_ptr, numr);
   }
   cudaThreadSynchronize();
