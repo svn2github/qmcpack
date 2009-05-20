@@ -82,10 +82,10 @@ T min_dist (T &x, T &y, T &z, T L[3][3], T Linv[3][3])
 
 template<typename T, int BS>
 __global__ void
-find_core_electrons_kernel(T *R[], int numElec,
-			   T I[], int firstIon, int lastIon,
-			   T rcut, T L_global[], T Linv_global[],
-			   int2 *pairs[], T *dist[], int numPairs[])
+find_core_electrons_kernel(T **R, int numElec,
+			   T *I, int firstIon, int lastIon,
+			   T rcut, T *L_global, T *Linv_global,
+			   int2 **pairs, T **dist, int *numPairs)
 {
   int tid = threadIdx.x;
   __shared__ T *myR, *mydist;
@@ -205,12 +205,12 @@ find_core_electrons (double *R[], int numElec,
 
 template<typename T, int BS>
 __global__ void
-find_core_electrons_kernel(T *R[], int numElec,
-			   T I[], int firstIon, int lastIon,
-			   T rcut, T L_global[], T Linv_global[],
-			   T quadPoints[], int numQuadPoints,
-			   int *elecs[], T *ratioPos[], 
-			   T *dist_list[], T *cosTheta_list[], int numPairs[])
+find_core_electrons_kernel(T **R, int numElec,
+			   T *I, int firstIon, int lastIon,
+			   T rcut, T *L_global, T *Linv_global,
+			   T *quadPoints, int numQuadPoints,
+			   int **elecs, T **ratioPos, 
+			   T **dist_list, T **cosTheta_list, int *numPairs)
 {
   int tid = threadIdx.x;
   __shared__ T *myR, *myRatioPos, *myDist, *myCosTheta;
@@ -422,9 +422,9 @@ find_core_electrons (double *R[], int numElec,
 // number
 template<typename T, int BS>
 __global__ void
-make_work_list_kernel (int2 *pairs[], T *dist[], int numPairs[],
-		       T I[], int numIons, T quadPoints[], int numQuadPoints,
-		       T *ratio_pos[])
+make_work_list_kernel (int2 **pairs, T **dist, int *numPairs,
+		       T *I, int numIons, T *quadPoints, int numQuadPoints,
+		       T **ratio_pos)
 {
   __shared__ T qp[BS][3];
   __shared__ T *myPairs, *myDist, *myRatioPos;

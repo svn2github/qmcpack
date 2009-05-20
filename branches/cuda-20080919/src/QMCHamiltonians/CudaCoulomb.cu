@@ -192,8 +192,8 @@ T min_dist (T& x, T& y, T& z,
 
 template<typename T, int BS>
 __global__ void
-coulomb_AA_kernel(T *R[], int N, T rMax, int Ntex,
-		  int textureNum, T lattice[], T latticeInv[], T sum[])
+coulomb_AA_kernel(T **R, int N, T rMax, int Ntex,
+		  int textureNum, T *lattice, T *latticeInv, T *sum)
 {
   int tid = threadIdx.x;
   __shared__ T *myR;
@@ -315,9 +315,9 @@ CoulombAA_SR_Sum(double *R[], int N, double rMax, int Ntex,
 
 template<typename T, int BS>
 __global__ void
-coulomb_AB_kernel(T *R[], int Nelec, T I[], int Ifirst, int Ilast, 
+coulomb_AB_kernel(T **R, int Nelec, T *I, int Ifirst, int Ilast, 
 		  T rMax, int Ntex, int textureNum, 
-		  T lattice[], T latticeInv[], T sum[])
+		  T *lattice, T *latticeInv, T *sum)
 {
   int tid = threadIdx.x;
   __shared__ T *myR;
@@ -420,8 +420,8 @@ CoulombAB_SR_Sum(double *R[], int Nelec, double I[],  int Ifirst, int Ilast,
 
 template<typename T, int BS>
 __global__ void
-eval_rhok_kernel (T *R[], int numr,
-		  T kpoints[], int numk, T* rhok[])
+eval_rhok_kernel (T **R, int numr,
+		  T *kpoints, int numk, T **rhok)
 {
   int tid = threadIdx.x;
   __shared__ T r[BS][3], k[BS][3], *myR, *myrhok;
@@ -469,8 +469,8 @@ eval_rhok_kernel (T *R[], int numr,
 
 template<typename T, int BS>
 __global__ void
-eval_rhok_kernel (T *R[], int first, int last,
-		  T kpoints[], int numk, T* rhok[])
+eval_rhok_kernel (T **R, int first, int last,
+		  T *kpoints, int numk, T **rhok)
 {
   int tid = threadIdx.x;
   int numr = last-first+1;
@@ -575,8 +575,8 @@ eval_rhok_cuda(double *R[], int first, int last, double kpoints[],
 
 template<typename T, int BS>
 __global__ void
-vk_sum_kernel(T *rhok[], T vk[], int numk,
-	      T sum[])
+vk_sum_kernel(T **rhok, T *vk, int numk,
+	      T *sum)
 {
   int tid = threadIdx.x;
   __shared__ T *myrhok;
@@ -619,8 +619,8 @@ vk_sum_kernel(T *rhok[], T vk[], int numk,
 
 template<typename T, int BS>
 __global__ void
-vk_sum_kernel2(T *rhok1[], T *rhok2[], T vk[], int numk,
-	      T sum[])
+vk_sum_kernel2(T **rhok1, T **rhok2, T *vk, int numk,
+	      T *sum)
 {
   int tid = threadIdx.x;
   __shared__ T *myrhok1, *myrhok2;
@@ -729,8 +729,8 @@ eval_vk_sum_cuda (double *rhok1[], double *rhok2[],
 
 template<typename T, int BS>
 __global__ void
-vk_sum_kernel2(T *rhok1[], T rhok2[], T vk[], int numk,
-	       T sum[])
+vk_sum_kernel2(T **rhok1, T *rhok2, T *vk, int numk,
+	       T *sum)
 {
   int tid = threadIdx.x;
   __shared__ T *myrhok1;

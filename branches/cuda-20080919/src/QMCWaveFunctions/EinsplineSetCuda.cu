@@ -1,6 +1,6 @@
 template<typename T, int BS> __global__
-void phase_factor_kernel (T kPoints[], int makeTwoCopies[], 
-			  T pos[], T *phi_in[], T *phi_out[], 
+void phase_factor_kernel (T *kPoints, int *makeTwoCopies, 
+			  T *pos, T **phi_in, T **phi_out, 
 			  int num_splines, int num_walkers)
 {
   __shared__ T in_shared[BS][2*BS+1], out_shared[BS][BS+1], kPoints_s[BS][3],
@@ -92,9 +92,9 @@ void phase_factor_kernel (T kPoints[], int makeTwoCopies[],
 
 
 template<typename T, int BS> __global__
-void phase_factor_kernel (T kPoints[], int makeTwoCopies[], 
-			  T pos[], T *phi_in[], T *phi_out[], 
-			  T *grad_lapl_in[], T* grad_lapl_out[],
+void phase_factor_kernel (T *kPoints, int *makeTwoCopies, 
+			  T *pos, T **phi_in, T **phi_out, 
+			  T **grad_lapl_in, T **grad_lapl_out,
 			  int num_splines, int num_walkers,
 			  int row_stride)
 {

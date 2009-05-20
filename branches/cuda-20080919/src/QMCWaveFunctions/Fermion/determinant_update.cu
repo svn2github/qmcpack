@@ -9,7 +9,7 @@
 
 template<typename T, int BS>
 __global__ void
-update_inverse_cuda1 (updateJob updateList[],
+update_inverse_cuda1 (updateJob *updateList,
 		      int N, int rowstride)
 {
   __shared__ T *A, *Ainv, *u, *Ainv_delta, *Ainv_colk;
@@ -67,7 +67,7 @@ update_inverse_cuda1 (updateJob updateList[],
 
 template<typename T, int BS>
 __global__ void
-update_inverse_cuda2 (updateJob updateList[],
+update_inverse_cuda2 (updateJob *updateList,
 		      int N, int rowstride)
 {
   __shared__ T *A, *u, *Ainv, *Ainv_delta, *Ainv_colk;
@@ -177,8 +177,8 @@ update_inverse_cuda(updateJob updateList[], double dummy,
 // col of Ainv in global memory
 template<typename T, int BS>
 __global__ void
-update_inverse_cuda1 (T *A_g[], T *Ainv_g[], T *u_g[], 
-		      T *Ainv_delta_g[], T *Ainv_colk_g[], 
+update_inverse_cuda1 (T **A_g, T **Ainv_g, T **u_g, 
+		      T **Ainv_delta_g, T **Ainv_colk_g, 
 		      int N, int rowstride, int k)
 {
   __shared__ T *A, *Ainv, *u, *Ainv_delta, *Ainv_colk;
@@ -231,8 +231,8 @@ update_inverse_cuda1 (T *A_g[], T *Ainv_g[], T *u_g[],
 
 template<typename T, int BS>
 __global__ void
-update_inverse_cuda2 (T *A_g[], T *Ainv_g[], T *u_g[],
-		      T *Ainv_delta_g[], T *Ainv_colk_g[], 
+update_inverse_cuda2 (T **A_g, T **Ainv_g, T **u_g,
+		      T **Ainv_delta_g, T **Ainv_colk_g, 
 		      int N, int rowstride, int k)
 {
   __shared__ T *A, *u, *Ainv, *Ainv_delta, *Ainv_colk;
@@ -337,7 +337,7 @@ update_inverse_cuda(double *A_g[], double *Ainv_g[], double *u_g[],
 
 template<typename T, int BS, int MAXN> 
 __global__ void
-update_inverse_transpose_cuda(T *A_g[], T *AinvT_g[], T *u_g[], 
+update_inverse_transpose_cuda(T **A_g, T **AinvT_g, T **u_g, 
 			      int N, int row_stride, int elec)
 {
   __shared__ float AinvT_row[MAXN], Ainv_colk[MAXN], delta[MAXN];
@@ -405,7 +405,7 @@ update_inverse_transpose_cuda(T *A_g[], T *AinvT_g[], T *u_g[],
 
 template<typename T, int BS, int MAXN> 
 __global__ void
-update_inverse_transpose_cuda_2pass(T *A_g[], T *AinvT_g[], T *u_g[], 
+update_inverse_transpose_cuda_2pass(T **A_g, T **AinvT_g, T **u_g, 
 				   int N, int row_stride, int elec)
 {
   __shared__ float Ainv_colk[MAXN], delta[MAXN];
@@ -479,7 +479,7 @@ update_inverse_transpose_cuda_2pass(T *A_g[], T *AinvT_g[], T *u_g[],
 
 template<typename T, int BS>
 __global__ void
-calc_ratios_transpose (T *AinvT_list[], T *new_row_list[], 
+calc_ratios_transpose (T **AinvT_list, T **new_row_list, 
 		       T *ratio_out, int N, int row_stride, int elec,
 		       int numMats)
 {  
@@ -518,7 +518,7 @@ calc_ratios_transpose (T *AinvT_list[], T *new_row_list[],
 
 template<typename T, int BS>
 __global__ void
-calc_ratios (T *Ainv_list[], T *new_row_list[], 
+calc_ratios (T **Ainv_list, T **new_row_list, 
 	     T *ratio, int N, int row_stride, int elec)
 {
   int tid = threadIdx.x;
@@ -635,8 +635,8 @@ determinant_ratios_cuda (double *Ainv_list[], double *new_row_list[],
 
 template<typename T, int BS>
 __global__ void
-calc_ratio_grad_lapl (T *Ainv_list[], T *new_row_list[], T *grad_lapl_list[],
-		      T ratio_grad_lapl[], int N, int row_stride, int elec)
+calc_ratio_grad_lapl (T **Ainv_list, T **new_row_list, T **grad_lapl_list,
+		      T *ratio_grad_lapl, int N, int row_stride, int elec)
 {
   int tid = threadIdx.x;
   int NB = N/BS + ((N % BS) ? 1 : 0);
@@ -704,8 +704,8 @@ calc_ratio_grad_lapl (T *Ainv_list[], T *new_row_list[], T *grad_lapl_list[],
 
 template<typename T, int BS>
 __global__ void
-calc_ratio_grad_lapl (T *Ainv_list[], T *new_row_list[], T *grad_lapl_list[],
-		      T ratio_grad_lapl[], int N, int row_stride, int elec_list[])
+calc_ratio_grad_lapl (T **Ainv_list, T **new_row_list, T **grad_lapl_list,
+		      T *ratio_grad_lapl, int N, int row_stride, int *elec_list)
 {
   int tid = threadIdx.x;
   int NB = N/BS + ((N % BS) ? 1 : 0);
@@ -838,8 +838,8 @@ determinant_ratios_grad_lapl_cuda (double *Ainv_list[], double *new_row_list[],
 
 template<typename T, int BS>
 __global__ void
-calc_grad_kernel (T *Ainv_list[], T *grad_lapl_list[],
-		  T grad[], int N, int row_stride, int elec)
+calc_grad_kernel (T **Ainv_list, T **grad_lapl_list,
+		  T *grad, int N, int row_stride, int elec)
 {
   int tid = threadIdx.x;
   int NB = N/BS + ((N % BS) ? 1 : 0);
@@ -917,8 +917,8 @@ calc_gradient (double *Ainv_list[], double *grad_lapl_list[],
 
 template<typename T>
 __global__ void
-all_ratios_kernel (T *Ainv_list[], T *new_mat_list[], 
-		   T *ratio_list[], int N, int row_stride)
+all_ratios_kernel (T **Ainv_list, T **new_mat_list, 
+		   T **ratio_list, int N, int row_stride)
 {
   __shared__ T *Ainv, *new_mat, *ratio;
   
@@ -1003,9 +1003,9 @@ const int MAX_RATIO_ROWS = 20;
 
 template<typename T, int BS>
 __global__ void
-calc_many_ratios_kernel (T *Ainv_list[], T *new_row_list[],
-			 T* ratio_list[], int num_ratio_list[],
-			 int N, int row_stride, int elec_list[])
+calc_many_ratios_kernel (T **Ainv_list, T **new_row_list,
+			 T **ratio_list, int *num_ratio_list,
+			 int N, int row_stride, int *elec_list)
 {
   int tid = threadIdx.x;
 
@@ -1103,8 +1103,8 @@ __constant__ float GGt[3][3];
 
 template<typename T>
 __global__ void
-scale_grad_lapl_kernel (T *grad_list[], T *hess_list[],
-			T *grad_lapl_list[], T Linv[], int N)
+scale_grad_lapl_kernel (T **grad_list, T **hess_list,
+			T **grad_lapl_list, T *Linv, int N)
 {
   __shared__ float gradBlock[3][SCALE_BS];
   __shared__ float hessBlock[6][SCALE_BS];
@@ -1214,8 +1214,8 @@ scale_grad_lapl(float *grad_list[], float *hess_list[],
 
 template<typename T>
 __global__ void
-all_ratios_grad_lapl_kernel (T *Ainv_list[], T *grad_lapl_list[], 
-			     T *out_list[], int N, int row_stride)
+all_ratios_grad_lapl_kernel (T **Ainv_list, T **grad_lapl_list, 
+			     T **out_list, int N, int row_stride)
 {
   __shared__ T *Ainv, *gl_array, *out;
   
@@ -1374,7 +1374,7 @@ calc_grad_lapl (double *Ainv_list[], double *grad_lapl_list[],
 
 template<typename T>
 __global__ void
-multi_copy (T* dest[], T* src[], int len)
+multi_copy (T **dest, T **src, int len)
 {
   __shared__ T *mysrc, *mydest;
   if (threadIdx.x ==0) {

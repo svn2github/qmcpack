@@ -272,10 +272,10 @@ eval_1d_spline_vgl(T dist, T rmax, T drInv, T A[12][4], T coefs[],
 #define MAX_COEFS 32
 template<typename T, int BS >
 __global__ void
-two_body_sum_kernel(T *R[], int e1_first, int e1_last, 
+two_body_sum_kernel(T **R, int e1_first, int e1_last, 
 		    int e2_first, int e2_last,
-		    T spline_coefs[], int numCoefs, T rMax,  
-		    T lattice[], T latticeInv[], T sum[])
+		    T *spline_coefs, int numCoefs, T rMax,  
+		    T *lattice, T* latticeInv, T* sum)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -410,10 +410,10 @@ two_body_sum (double *R[], int e1_first, int e1_last, int e2_first, int e2_last,
 
 template<typename T, int BS>
 __global__ void
-two_body_ratio_kernel(T *R[], int first, int last,
-		      T  Rnew[], int inew,
-		      T spline_coefs[], int numCoefs, T rMax,  
-		      T lattice[], T latticeInv[], T sum[])
+two_body_ratio_kernel(T **R, int first, int last,
+		      T *Rnew, int inew,
+		      T *spline_coefs, int numCoefs, T rMax,  
+		      T *lattice, T* latticeInv, T* sum)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -548,11 +548,11 @@ two_body_ratio (double *R[], int first, int last,
 
 template<typename T, int BS>
 __global__ void
-two_body_ratio_grad_kernel(T *R[], int first, int last,
-			   T  Rnew[], int inew,
-			   T spline_coefs[], int numCoefs, T rMax,  
-			   T lattice[], T latticeInv[], 
-			   bool zero, T ratio_grad[])
+two_body_ratio_grad_kernel(T **R, int first, int last,
+			   T *Rnew, int inew,
+			   T *spline_coefs, int numCoefs, T rMax,  
+			   T *lattice, T* latticeInv, 
+			   bool zero, T *ratio_grad)
 {
   int tid = threadIdx.x;
   T dr = rMax/(T)(numCoefs-3);
@@ -671,11 +671,11 @@ two_body_ratio_grad_kernel(T *R[], int first, int last,
 
 template<typename T, int BS>
 __global__ void
-two_body_ratio_grad_kernel_fast (T *R[], int first, int last,
-				 T  Rnew[], int inew,
-				 T spline_coefs[], int numCoefs, T rMax,  
-				 T lattice[], T latticeInv[], 
-				 bool zero, T ratio_grad[])
+two_body_ratio_grad_kernel_fast (T **R, int first, int last,
+				 T *Rnew, int inew,
+				 T *spline_coefs, int numCoefs, T rMax,  
+				 T *lattice, T* latticeInv, 
+				 bool zero, T* ratio_grad)
 {
   int tid = threadIdx.x;
   T dr = rMax/(T)(numCoefs-3);
@@ -843,9 +843,10 @@ two_body_ratio_grad(double *R[], int first, int last,
 
 template<int BS>
 __global__ void
-two_body_NLratio_kernel(NLjobGPU<float> jobs[], int first, int last,
-			float* spline_coefs[], int numCoefs[], float rMaxList[], 
-			float lattice[], float latticeInv[], float sim_cell_radius)
+two_body_NLratio_kernel(NLjobGPU<float> *jobs, int first, int last,
+			float** spline_coefs, int *numCoefs, float *rMaxList, 
+			float* lattice, float* latticeInv, 
+			float sim_cell_radius)
 {
   const int MAX_RATIOS = 18;
   int tid = threadIdx.x;
@@ -969,10 +970,10 @@ two_body_NLratio_kernel(NLjobGPU<float> jobs[], int first, int last,
 
 template<int BS>
 __global__ void
-two_body_NLratio_kernel(NLjobGPU<double> jobs[], int first, int last,
-			double* spline_coefs[], int numCoefs[], 
-			double rMaxList[], 
-			double lattice[], double latticeInv[], 
+two_body_NLratio_kernel(NLjobGPU<double> *jobs, int first, int last,
+			double **spline_coefs, int *numCoefs, 
+			double *rMaxList, 
+			double *lattice, double *latticeInv, 
 			double sim_cell_radius)
 {
   const int MAX_RATIOS = 18;
@@ -1136,7 +1137,7 @@ two_body_NLratios(NLjobGPU<double> jobs[], int first, int last,
 
 template<typename T>
 __global__ void
-two_body_update_kernel (T *R[], int N, int iat)
+two_body_update_kernel (T **R, int N, int iat)
 {
   __shared__ T* myR;
   if (threadIdx.x == 0)
@@ -1189,11 +1190,11 @@ two_body_update(double *R[], int N, int iat, int numWalkers)
 
 template<typename T, int BS>
 __global__ void
-two_body_grad_lapl_kernel(T *R[], int e1_first, int e1_last, 
+two_body_grad_lapl_kernel(T **R, int e1_first, int e1_last, 
 			  int e2_first, int e2_last,
-			  T spline_coefs[], int numCoefs, T rMax,  
-			  T lattice[], T latticeInv[], 
-			  T gradLapl[], int row_stride)
+			  T *spline_coefs, int numCoefs, T rMax,  
+			  T *lattice, T *latticeInv, 
+			  T *gradLapl, int row_stride)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -1275,11 +1276,11 @@ two_body_grad_lapl_kernel(T *R[], int e1_first, int e1_last,
 
 template<typename T, int BS>
 __global__ void
-two_body_grad_lapl_kernel_fast(T *R[], int e1_first, int e1_last, 
+two_body_grad_lapl_kernel_fast(T **R, int e1_first, int e1_last, 
 			       int e2_first, int e2_last,
-			       T spline_coefs[], int numCoefs, T rMax,  
-			       T lattice[], T latticeInv[], 
-			       T gradLapl[], int row_stride)
+			       T *spline_coefs, int numCoefs, T rMax,  
+			       T *lattice, T *latticeInv, 
+			       T *gradLapl, int row_stride)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -1418,9 +1419,9 @@ two_body_grad_lapl(double *R[], int e1_first, int e1_last,
 
 template<typename T, int BS>
 __global__ void
-two_body_grad_kernel(T *R[], int first, int last, int iat,
-		     T spline_coefs[], int numCoefs, T rMax,  
-		     T lattice[], T latticeInv[], bool zeroOut, T grad[])
+two_body_grad_kernel(T **R, int first, int last, int iat,
+		     T *spline_coefs, int numCoefs, T rMax,  
+		     T *lattice, T *latticeInv, bool zeroOut, T *grad)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -1510,9 +1511,9 @@ two_body_grad_kernel(T *R[], int first, int last, int iat,
 
 template<typename T, int BS>
 __global__ void
-two_body_grad_kernel_fast(T *R[], int first, int last, int iat,
-			  T spline_coefs[], int numCoefs, T rMax,  
-			  T lattice[], T latticeInv[], bool zeroOut, T grad[])
+two_body_grad_kernel_fast(T **R, int first, int last, int iat,
+			  T *spline_coefs, int numCoefs, T rMax,  
+			  T *lattice, T *latticeInv, bool zeroOut, T *grad)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -1653,10 +1654,10 @@ two_body_gradient (double *R[], int first, int last, int iat,
 
 template<typename T, int BS >
 __global__ void
-one_body_sum_kernel(T C[], T *R[], int cfirst, int clast, 
+one_body_sum_kernel(T *C, T **R, int cfirst, int clast, 
 		    int efirst, int elast,
-		    T spline_coefs[], int numCoefs, T rMax,  
-		    T lattice[], T latticeInv[], T sum[])
+		    T *spline_coefs, int numCoefs, T rMax,  
+		    T *lattice, T *latticeInv, T *sum)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -1786,10 +1787,10 @@ one_body_sum (double C[], double *R[], int cfirst, int clast, int efirst, int el
 
 template<typename T, int BS>
 __global__ void
-one_body_ratio_kernel(T C[], T *R[], int cfirst, int clast,
-		      T  Rnew[], int inew,
-		      T spline_coefs[], int numCoefs, T rMax,  
-		      T lattice[], T latticeInv[], T sum[])
+one_body_ratio_kernel(T *C, T **R, int cfirst, int clast,
+		      T *Rnew, int inew,
+		      T *spline_coefs, int numCoefs, T rMax,  
+		      T *lattice, T *latticeInv, T *sum)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -1923,11 +1924,11 @@ one_body_ratio (double C[], double *R[], int first, int last,
 
 template<typename T, int BS>
 __global__ void
-one_body_ratio_grad_kernel(T C[], T *R[], int cfirst, int clast,
-			   T  Rnew[], int inew,
-			   T spline_coefs[], int numCoefs, T rMax,  
-			   T lattice[], T latticeInv[], bool zero,
-			   T ratio_grad[])
+one_body_ratio_grad_kernel(T *C, T **R, int cfirst, int clast,
+			   T *Rnew, int inew,
+			   T *spline_coefs, int numCoefs, T rMax,  
+			   T *lattice, T* latticeInv, bool zero,
+			   T *ratio_grad)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -2034,11 +2035,11 @@ one_body_ratio_grad_kernel(T C[], T *R[], int cfirst, int clast,
 
 template<typename T, int BS>
 __global__ void
-one_body_ratio_grad_kernel_fast(T C[], T *R[], int cfirst, int clast,
-				T  Rnew[], int inew,
-				T spline_coefs[], int numCoefs, T rMax,  
-				T lattice[], T latticeInv[], bool zero,
-				T ratio_grad[])
+one_body_ratio_grad_kernel_fast(T *C, T **R, int cfirst, int clast,
+				T *Rnew, int inew,
+				T *spline_coefs, int numCoefs, T rMax,  
+				T *lattice, T *latticeInv, bool zero,
+				T *ratio_grad)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -2215,7 +2216,7 @@ one_body_ratio_grad (double C[], double *R[], int first, int last,
 
 template<typename T>
 __global__ void
-one_body_update_kernel (T *R[], int N, int iat)
+one_body_update_kernel (T **R, int N, int iat)
 {
   __shared__ T* myR;
   if (threadIdx.x == 0)
@@ -2267,11 +2268,11 @@ one_body_update(double *R[], int N, int iat, int numWalkers)
 
 template<typename T, int BS>
 __global__ void
-one_body_grad_lapl_kernel(T C[], T *R[], int cfirst, int clast, 
+one_body_grad_lapl_kernel(T *C, T **R, int cfirst, int clast, 
 			  int efirst, int elast,
-			  T spline_coefs[], int numCoefs, T rMax,  
-			  T lattice[], T latticeInv[], 
-			  T gradLapl[], int row_stride)
+			  T *spline_coefs, int numCoefs, T rMax,  
+			  T *lattice, T* latticeInv, 
+			  T *gradLapl, int row_stride)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -2416,9 +2417,9 @@ one_body_grad_lapl(double C[], double *R[], int e1_first, int e1_last,
 
 template<int BS>
 __global__ void
-one_body_NLratio_kernel(NLjobGPU<float> jobs[], float C[], int first, int last,
-			float spline_coefs[], int numCoefs, float rMax, 
-			float lattice[], float latticeInv[])
+one_body_NLratio_kernel(NLjobGPU<float> *jobs, float *C, int first, int last,
+			float *spline_coefs, int numCoefs, float rMax, 
+			float *lattice, float *latticeInv)
 {
   const int MAX_RATIOS = 18;
   int tid = threadIdx.x;
@@ -2517,9 +2518,9 @@ one_body_NLratio_kernel(NLjobGPU<float> jobs[], float C[], int first, int last,
 
 template<int BS>
 __global__ void
-one_body_NLratio_kernel_fast(NLjobGPU<float> jobs[], float C[], int first, int last,
-			     float spline_coefs[], int numCoefs, float rMax, 
-			     float lattice[], float latticeInv[])
+one_body_NLratio_kernel_fast(NLjobGPU<float> *jobs, float *C, int first, int last,
+			     float *spline_coefs, int numCoefs, float rMax, 
+			     float *lattice, float *latticeInv)
 {
   const int MAX_RATIOS = 18;
   int tid = threadIdx.x;
@@ -2608,9 +2609,9 @@ one_body_NLratio_kernel_fast(NLjobGPU<float> jobs[], float C[], int first, int l
 
 template<int BS>
 __global__ void
-one_body_NLratio_kernel(NLjobGPU<double> jobs[], double C[], int first, int last,
-			double spline_coefs[], int numCoefs, double rMax, 
-			double lattice[], double latticeInv[])
+one_body_NLratio_kernel(NLjobGPU<double> *jobs, double *C, int first, int last,
+			double *spline_coefs, int numCoefs, double rMax, 
+			double *lattice, double *latticeInv)
 {
   const int MAX_RATIOS = 18;
   int tid = threadIdx.x;
@@ -2768,9 +2769,9 @@ one_body_NLratios(NLjobGPU<double> jobs[], double C[], int first, int last,
 
 template<typename T, int BS>
 __global__ void
-one_body_grad_kernel(T *R[], int iat, T C[], int first, int last,
-		     T spline_coefs[], int numCoefs, T rMax,  
-		     T lattice[], T latticeInv[], bool zeroOut, T grad[])
+one_body_grad_kernel(T **R, int iat, T *C, int first, int last,
+		     T *spline_coefs, int numCoefs, T rMax,  
+		     T *lattice, T *latticeInv, bool zeroOut, T* grad)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
@@ -2858,9 +2859,9 @@ one_body_grad_kernel(T *R[], int iat, T C[], int first, int last,
 
 template<typename T, int BS>
 __global__ void
-one_body_grad_kernel_fast(T *R[], int iat, T C[], int first, int last,
-			  T spline_coefs[], int numCoefs, T rMax,  
-			  T lattice[], T latticeInv[], bool zeroOut, T grad[])
+one_body_grad_kernel_fast(T **R, int iat, T *C, int first, int last,
+			  T *spline_coefs, int numCoefs, T rMax,  
+			  T *lattice, T *latticeInv, bool zeroOut, T *grad)
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;

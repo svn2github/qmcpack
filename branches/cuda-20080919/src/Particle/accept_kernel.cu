@@ -1,6 +1,6 @@
 template<typename T, int BS>
-__global__ void accept_kernel (T* Rlist[], T Rnew[], 
-			       int toAccept[], int iat, int N)
+__global__ void accept_kernel (T** Rlist, T* Rnew, 
+			       int* toAccept, int iat, int N)
 {
   int tid = threadIdx.x;
   __shared__ T* myR[BS];
@@ -39,7 +39,7 @@ __global__ void accept_kernel (T* Rlist[], T Rnew[],
 #include <cstdio>
 
 void
-accept_move_GPU_cuda (float* Rlist[], float new_pos[], 
+accept_move_GPU_cuda (float** Rlist, float new_pos[], 
 		      int toAccept[], int iat, int N)
 {
   const int BS=32;
@@ -64,8 +64,8 @@ accept_move_GPU_cuda (float* Rlist[], float new_pos[],
 
 
 void
-accept_move_GPU_cuda (double* Rlist[], double new_pos[], 
-		      int toAccept[], int iat, int N)
+accept_move_GPU_cuda (double** Rlist, double* new_pos, 
+		      int* toAccept, int iat, int N)
 {
   const int BS=32;
   
@@ -80,7 +80,7 @@ accept_move_GPU_cuda (double* Rlist[], double new_pos[],
 
 
 template<typename T, int BS>
-__global__ void NL_move_kernel (T* Rlist[], T Rnew[], int N) 
+__global__ void NL_move_kernel (T** Rlist, T* Rnew, int N) 
 {
   __shared__ T Rnew_shared[BS][3];
   __shared__ T* Rlist_shared[BS];
@@ -101,7 +101,7 @@ __global__ void NL_move_kernel (T* Rlist[], T Rnew[], int N)
 }
 
 void
-NL_move_cuda (float *Rlist[], float new_pos[], int N)
+NL_move_cuda (float **Rlist, float* new_pos, int N)
 {
   const int BS=32;
   
@@ -114,7 +114,7 @@ NL_move_cuda (float *Rlist[], float new_pos[], int N)
 }
 
 void
-NL_move_cuda (double *Rlist[], double new_pos[], int N)
+NL_move_cuda (double **Rlist, double new_pos[], int N)
 {
   const int BS=32;
   

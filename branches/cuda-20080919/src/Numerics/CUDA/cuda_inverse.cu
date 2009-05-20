@@ -2,7 +2,7 @@
 
 template<typename T, int BS>
 __global__ void
-block_inverse (float A[], int N, int stride)
+block_inverse (float* A, int N, int stride)
 {
   __shared__ unsigned int ipiv[BS];
   __shared__ unsigned int kb;
@@ -237,7 +237,7 @@ __device__ void block_mul_set (T A[BS][BS+1],
 
 template<typename T, int BS>
 __global__ void
-inverse (T A[], T work[], int N, int stride)
+inverse (T* A, T* work, int N, int stride)
 {
   T *Atmp = work;
   T *pivot_tmp = work+N*stride;
@@ -328,7 +328,7 @@ inverse (T A[], T work[], int N, int stride)
 
 template<typename T, int BS>
 __global__ void
-inverse_many (T *A_list[], T *work_list[], int N, int stride)
+inverse_many (T **A_list, T **work_list, int N, int stride)
 {
   int tid = threadIdx.x;
   __shared__ T *A, *work;
@@ -435,7 +435,7 @@ inverse_many (T *A_list[], T *work_list[], int N, int stride)
 
 template<typename T, int BS>
 __global__ void
-inverse_many_pivot (T *A_list[], T *work_list[], int N, int stride)
+inverse_many_pivot (T **A_list, T **work_list, int N, int stride)
 {
   int tid = threadIdx.x;
   __shared__ T *A, *work;
@@ -583,7 +583,7 @@ inverse_many_pivot (T *A_list[], T *work_list[], int N, int stride)
 
 template<typename Tdest, typename Tsrc>
 __global__ void
-convert (Tdest *dest_list[], Tsrc *src_list[], int len)
+convert (Tdest **dest_list, Tsrc **src_list, int len)
 {
   __shared__ Tsrc *mysrc;
   __shared__ Tdest *mydest;
@@ -601,7 +601,7 @@ convert (Tdest *dest_list[], Tsrc *src_list[], int len)
 
 template<typename Tdest, typename Tsrc>
 __global__ void
-convert (Tdest *dest_list[], Tsrc *src_list[], 
+convert (Tdest **dest_list, Tsrc **src_list, 
 	 int dest_rows, int dest_cols, int dest_rowstride,
 	 int src_rows,  int src_cols,  int src_rowstride)
 {
@@ -630,7 +630,7 @@ convert (Tdest *dest_list[], Tsrc *src_list[],
 #define INVERSE_BS 16
 
 void
-cuda_inverse_many (float *Alist_d[], float *worklist_d[],
+cuda_inverse_many (float **Alist_d, float **worklist_d,
 		   int N, int num_mats)
 {
   dim3 dimBlock(INVERSE_BS,2);
