@@ -107,6 +107,12 @@ namespace qmcplusplus {
 
     if(rmax<0) rmax=1.8;
 
+    if(angList.size()==1) 
+    {
+      Llocal=Lmax;
+      app_log() << "    Only one vps is found. Set the local component=" << Lmax << endl;
+    }
+
     int npts=grid_global->size();
 
     Matrix<RealType> vnn(angList.size(),npts);
@@ -265,14 +271,36 @@ namespace qmcplusplus {
     {
       app_log() << "   Creating a Linear Grid Rmax=" << rmax << endl;
       //this is a new grid
-      const RealType d=1e-3;
+      RealType d=1e-3;
       LinearGrid<RealType>* agrid = new LinearGrid<RealType>;
-      int ng=static_cast<int>(rmax/d)+1;
-      agrid->set(0,rmax,ng);
+
+      // If the global grid is already linear, do not interpolate the data
+      int ng;
+      if (grid_global->getGridTag() == LINEAR_1DGRID) {
+      	ng = (int)std::ceil(rmax/grid_global->Delta) + 1;
+       	app_log() << "  Using global grid with delta = " << grid_global->Delta << endl;
+       	rmax = grid_global->Delta * (ng-1);
+       	agrid->set(0.0,rmax,ng);
+       	// fprintf (stderr, " grid_global delta = %1.10e  agrid delta = %1.12e\n",
+       	// 	 grid_global->Delta, agrid->Delta);
+      }
+      else {
+	ng=static_cast<int>(rmax/d)+1;
+	agrid->set(0,rmax,ng);
+      }
+	
+      // This is critical!!!
+      // If d is not reset, we generate an error in the interpolated PP!
+      d = agrid->Delta;
 
       int ngIn=vnn.cols()-2;
 
-      if (Llocal == -1) Llocal = Lmax;
+      if (Llocal == -1 && Lmax > 0) {
+	app_error() << "The local channel is not specified in the pseudopotential file.\n"
+		    << "Please add \'l-local=\"n\"\' attribute the semilocal section of the fsatom XML file.\n";
+	APP_ABORT("ECPComponentBuilder::doBreakUp");
+	// Llocal = Lmax;
+      }
       //find the index of local 
       int iLlocal=-1;
       for(int l=0; l<angList.size(); l++)
@@ -341,6 +369,8 @@ namespace qmcplusplus {
 
         pp_loc = new RadialPotentialType(agrid,newP);
         pp_loc->spline();
+	// for (double r=0.0; r<3.50001; r+=0.001) 
+	//   fprintf (stderr, "%10.5f %10.5f\n", r, pp_loc->splint(r));
       }
   }
 
