@@ -137,7 +137,7 @@ namespace qmcplusplus {
     for (int i=0; i<OHMMS_DIM; i++)
       for (int j=0; j<OHMMS_DIM; j++) {
 	LHost[OHMMS_DIM*i+j]    = (CUDA_PRECISION)elecs.Lattice.a(i)[j];
-	LinvHost[OHMMS_DIM*i+j] = (CUDA_PRECISION)elecs.Lattice.b(i)[j];
+	LinvHost[OHMMS_DIM*i+j] = (CUDA_PRECISION)elecs.Lattice.b(j)[i];
       }
     L = LHost;
     Linv = LinvHost;

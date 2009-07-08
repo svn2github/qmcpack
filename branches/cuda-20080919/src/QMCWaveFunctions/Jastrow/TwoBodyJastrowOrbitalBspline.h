@@ -77,8 +77,22 @@ namespace qmcplusplus {
       for (int i=0; i<OHMMS_DIM; i++)
 	for (int j=0; j<OHMMS_DIM; j++) {
 	  LHost[OHMMS_DIM*i+j]    = (CudaReal)pset.Lattice.a(i)[j];
-	  LinvHost[OHMMS_DIM*i+j] = (CudaReal)pset.Lattice.b(i)[j];
+	  LinvHost[OHMMS_DIM*i+j] = (CudaReal)pset.Lattice.b(j)[i];
 	}
+      // for (int i=0; i<OHMMS_DIM; i++)
+      // 	for (int j=0; j<OHMMS_DIM; j++) {
+      // 	  double sum = 0.0;
+      // 	  for (int k=0; k<OHMMS_DIM; k++)
+      // 	    sum += LHost[OHMMS_DIM*i+k]*LinvHost[OHMMS_DIM*k+j];
+	  
+      // 	  if (i == j) sum -= 1.0;
+      // 	  if (std::fabs(sum) > 1.0e-5) {
+      // 	    app_error() << "sum = " << sum << endl;
+      // 	    app_error() << "Linv * L != identity.\n";
+      // 	    abort();
+      // 	  }
+      // 	}
+
 //       fprintf (stderr, "Identity should follow:\n");
 //       for (int i=0; i<3; i++){
 // 	for (int j=0; j<3; j++) {

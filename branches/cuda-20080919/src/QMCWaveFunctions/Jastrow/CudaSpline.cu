@@ -712,7 +712,7 @@ two_body_ratio_grad_kernel_fast (T **R, int first, int last,
   __syncthreads();
 
   int N = last - first + 1;
-  int NB = N/BS + ((N % BS) ? 1 : 0);
+  int NB = (N+BS-1)/BS;
 
   __shared__ T shared_sum[BS];
   __shared__ T shared_grad[BS][3];
@@ -791,10 +791,17 @@ two_body_ratio_grad(float *R[], int first, int last,
 		    float ratio_grad[], int numWalkers,
 		    bool use_fast_image)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
+
   const int BS=32;
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
 
+  // fprintf(stderr, "first = %d\n", first);
+  // fprintf(stderr, "last  = %d\n", last);
+  // fprintf(stderr, "inew  = %d\n", inew);
+  // fprintf(stderr, "rMax = %1.3f\n", rMax);
   if (use_fast_image) 
     two_body_ratio_grad_kernel_fast<float,BS><<<dimGrid,dimBlock>>>
       (R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax,
@@ -821,6 +828,9 @@ two_body_ratio_grad(double *R[], int first, int last,
 		    double lattice[], double latticeInv[], bool zero,
 		    double ratio_grad[], int numWalkers)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
+
   const int BS=32;
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
@@ -1072,6 +1082,8 @@ two_body_NLratios(NLjobGPU<float> jobs[], int first, int last,
 		  float lattice[], float latticeInv[], float sim_cell_radius,
 		  int numjobs)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
   const int BS=32;
 
   dim3 dimBlock(BS);
@@ -1106,6 +1118,9 @@ two_body_NLratios(NLjobGPU<double> jobs[], int first, int last,
 		  double lattice[], double latticeInv[], 
 		  double sim_cell_radius, int numjobs)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
+
   const int BS=32;
 
   dim3 dimBlock(BS);
@@ -1398,6 +1413,8 @@ two_body_grad_lapl(double *R[], int e1_first, int e1_last,
 		   double lattice[], double latticeInv[], 
 		   double gradLapl[], int row_stride, int numWalkers)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
   const int BS=32;
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
@@ -1628,6 +1645,9 @@ two_body_gradient (double *R[], int first, int last, int iat,
 		   double lattice[], double latticeInv[], bool zeroOut,
 		   double grad[], int numWalkers)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
+
   const int BS = 32;
 
   dim3 dimBlock(BS);
@@ -2232,6 +2252,9 @@ one_body_update_kernel (T **R, int N, int iat)
 void
 one_body_update(float *R[], int N, int iat, int numWalkers)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
+
   dim3 dimBlock(32);
   dim3 dimGrid(numWalkers);
 
@@ -2249,6 +2272,9 @@ one_body_update(float *R[], int N, int iat, int numWalkers)
 void
 one_body_update(double *R[], int N, int iat, int numWalkers)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
+
   dim3 dimBlock(3);
   dim3 dimGrid(numWalkers);
 
@@ -2397,6 +2423,9 @@ one_body_grad_lapl(double C[], double *R[], int e1_first, int e1_last,
 		   double lattice[], double latticeInv[], 
 		   double gradLapl[], int row_stride, int numWalkers)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
+
   const int BS=32;
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
@@ -2703,6 +2732,9 @@ one_body_NLratios(NLjobGPU<float> jobs[], float C[], int first, int last,
 		  float lattice[], float latticeInv[], float sim_cell_radius,
 		  int numjobs)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
+
   const int BS=32;
 
   dim3 dimBlock(BS);
@@ -2746,6 +2778,8 @@ one_body_NLratios(NLjobGPU<double> jobs[], double C[], int first, int last,
 		 double spline_coefs[], int numCoefs, double rMax, 
 		 double lattice[], double latticeInv[], int numjobs)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
   const int BS=32;
 
   dim3 dimBlock(BS);
@@ -2943,6 +2977,9 @@ one_body_gradient (float *Rlist[], int iat, float C[], int first, int last,
 		   float L[], float Linv[], float sim_cell_radius,
 		   bool zeroSum, float grad[], int numWalkers)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
+
   const int BS=32;
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
@@ -2973,6 +3010,9 @@ one_body_gradient (double *Rlist[], int iat, double C[], int first, int last,
 		   double L[], double Linv[], bool zeroSum,
 		   double grad[], int numWalkers)
 {
+  if (!AisInitialized)
+    cuda_spline_init();
+
   const int BS=32;
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);

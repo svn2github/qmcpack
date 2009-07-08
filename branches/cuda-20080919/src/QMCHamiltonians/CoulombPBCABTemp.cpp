@@ -45,7 +45,7 @@ namespace qmcplusplus {
       for (int i=0; i<3; i++)
 	for (int j=0; j<3; j++) {
 	  LHost[3*i+j]    = elns.Lattice.a(i)[j];
-	  LinvHost[3*i+j] = elns.Lattice.b(i)[j];
+	  LinvHost[3*i+j] = elns.Lattice.b(j)[i];
 	}
       L    = LHost;
       Linv = LinvHost;
