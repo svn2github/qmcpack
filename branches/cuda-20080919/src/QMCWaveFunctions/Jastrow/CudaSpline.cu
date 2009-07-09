@@ -32,17 +32,17 @@ __device__
 T min_dist (T& x, T& y, T& z, 
 	    T L[3][3], T Linv[3][3])
 {
-  T u0 = Linv[0][0]*x + Linv[0][1]*y + Linv[0][2]*z;  
-  T u1 = Linv[1][0]*x + Linv[1][1]*y + Linv[1][2]*z;
-  T u2 = Linv[2][0]*x + Linv[2][1]*y + Linv[2][2]*z;
+  T u0 = Linv[0][0]*x + Linv[1][0]*y + Linv[2][0]*z;  
+  T u1 = Linv[0][1]*x + Linv[1][1]*y + Linv[2][1]*z;
+  T u2 = Linv[0][2]*x + Linv[1][2]*y + Linv[2][2]*z;
 
   u0 -= rintf(u0);
   u1 -= rintf(u1);
   u2 -= rintf(u2);
 
-  x = L[0][0]*u0 + L[0][1]*u1 + L[0][2]*u2;
-  y = L[1][0]*u0 + L[1][1]*u1 + L[1][2]*u2;
-  z = L[2][0]*u0 + L[2][1]*u1 + L[2][2]*u2;
+  x = L[0][0]*u0 + L[1][0]*u1 + L[2][0]*u2;
+  y = L[0][1]*u0 + L[1][1]*u1 + L[2][1]*u2;
+  z = L[0][2]*u0 + L[1][2]*u1 + L[2][2]*u2;
 
 //   T u0 = Linv[0][0]*x; u0 -= rintf(u0); x = L[0][0]*u0;
 //   T u1 = Linv[1][1]*y; u1 -= rintf(u1); y = L[1][1]*u1;
@@ -53,9 +53,9 @@ T min_dist (T& x, T& y, T& z,
   for (T i=-1.0f; i<=1.001; i+=1.0f)
     for (T j=-1.0f; j<=1.001; j+=1.0f)
       for (T k=-1.0f; k<=1.001; k+=1.0f) {
-	T xnew = L[0][0]*(u0+i) + L[0][1]*(u1+j) + L[0][2]*(u2+k);
-	T ynew = L[1][0]*(u0+i) + L[1][1]*(u1+j) + L[1][2]*(u2+k);
-	T znew = L[2][0]*(u0+i) + L[2][1]*(u1+j) + L[2][2]*(u2+k);
+	T xnew = L[0][0]*(u0+i) + L[1][0]*(u1+j) + L[2][0]*(u2+k);
+	T ynew = L[0][1]*(u0+i) + L[1][1]*(u1+j) + L[2][1]*(u2+k);
+	T znew = L[0][2]*(u0+i) + L[1][2]*(u1+j) + L[2][2]*(u2+k);
 	
 	T d2 = xnew*xnew + ynew*ynew + znew*znew;
 	//	d2min = min (d2, d2min);
@@ -75,17 +75,17 @@ __device__
 T min_dist_fast (T& x, T& y, T& z, 
 		 T L[3][3], T Linv[3][3])
 {
-  T u0 = Linv[0][0]*x + Linv[0][1]*y + Linv[0][2]*z;  
-  T u1 = Linv[1][0]*x + Linv[1][1]*y + Linv[1][2]*z;
-  T u2 = Linv[2][0]*x + Linv[2][1]*y + Linv[2][2]*z;
+  T u0 = Linv[0][0]*x + Linv[1][0]*y + Linv[2][0]*z;  
+  T u1 = Linv[0][1]*x + Linv[1][1]*y + Linv[2][1]*z;
+  T u2 = Linv[0][2]*x + Linv[1][2]*y + Linv[2][2]*z;
 
   u0 -= rintf(u0);
   u1 -= rintf(u1);
   u2 -= rintf(u2);
 
-  x = L[0][0]*u0 + L[0][1]*u1 + L[0][2]*u2;
-  y = L[1][0]*u0 + L[1][1]*u1 + L[1][2]*u2;
-  z = L[2][0]*u0 + L[2][1]*u1 + L[2][2]*u2;
+  x = L[0][0]*u0 + L[1][0]*u1 + L[2][0]*u2;
+  y = L[0][1]*u0 + L[1][1]*u1 + L[2][1]*u2;
+  z = L[0][2]*u0 + L[1][2]*u1 + L[2][2]*u2;
 
   return sqrtf(x*x + y*y + z*z);
 }
@@ -99,17 +99,17 @@ T min_dist (T& x, T& y, T& z,
 	    T L[3][3], T Linv[3][3],
 	    T images[27][3])
 {
-  T u0 = Linv[0][0]*x + Linv[0][1]*y + Linv[0][2]*z;  
-  T u1 = Linv[1][0]*x + Linv[1][1]*y + Linv[1][2]*z;
-  T u2 = Linv[2][0]*x + Linv[2][1]*y + Linv[2][2]*z;
+  T u0 = Linv[0][0]*x + Linv[1][0]*y + Linv[2][0]*z;  
+  T u1 = Linv[0][1]*x + Linv[1][1]*y + Linv[2][1]*z;
+  T u2 = Linv[0][2]*x + Linv[1][2]*y + Linv[2][2]*z;
 
   u0 -= rintf(u0);
   u1 -= rintf(u1);
   u2 -= rintf(u2);
 
-  x = L[0][0]*u0 + L[0][1]*u1 + L[0][2]*u2;
-  y = L[1][0]*u0 + L[1][1]*u1 + L[1][2]*u2;
-  z = L[2][0]*u0 + L[2][1]*u1 + L[2][2]*u2;
+  x = L[0][0]*u0 + L[1][0]*u1 + L[2][0]*u2;
+  y = L[0][1]*u0 + L[1][1]*u1 + L[2][1]*u2;
+  z = L[0][2]*u0 + L[1][2]*u1 + L[2][2]*u2;
 
 //   T u0 = Linv[0][0]*x; u0 -= rintf(u0); x = L[0][0]*u0;
 //   T u1 = Linv[1][1]*y; u1 -= rintf(u1); y = L[1][1]*u1;
@@ -124,9 +124,9 @@ T min_dist (T& x, T& y, T& z,
     T znew = z + images[i][2];
     T d2 = xnew*xnew + ynew*ynew + znew*znew;
     if (d2 < d2min) {
-      xnew = x;
-      ynew = y;
-      znew = z;
+      x = xnew;
+      y = ynew;
+      z = znew;
       d2min = d2;
     }
     __syncthreads();
@@ -141,17 +141,17 @@ T min_dist_only (T x, T y, T z,
 		 T L[3][3], T Linv[3][3],
 		 T images[27][3])
 {
-  T u0 = Linv[0][0]*x + Linv[0][1]*y + Linv[0][2]*z;  
-  T u1 = Linv[1][0]*x + Linv[1][1]*y + Linv[1][2]*z;
-  T u2 = Linv[2][0]*x + Linv[2][1]*y + Linv[2][2]*z;
+  T u0 = Linv[0][0]*x + Linv[1][0]*y + Linv[2][0]*z;  
+  T u1 = Linv[0][1]*x + Linv[1][1]*y + Linv[2][1]*z;
+  T u2 = Linv[0][2]*x + Linv[1][2]*y + Linv[2][2]*z;
 
   u0 -= rintf(u0);
   u1 -= rintf(u1);
   u2 -= rintf(u2);
 
-  x = L[0][0]*u0 + L[0][1]*u1 + L[0][2]*u2;
-  y = L[1][0]*u0 + L[1][1]*u1 + L[1][2]*u2;
-  z = L[2][0]*u0 + L[2][1]*u1 + L[2][2]*u2;
+  x = L[0][0]*u0 + L[1][0]*u1 + L[2][0]*u2;
+  y = L[0][1]*u0 + L[1][1]*u1 + L[2][1]*u2;
+  z = L[0][2]*u0 + L[1][2]*u1 + L[2][2]*u2;
 
   T d2min = x*x + y*y + z*z;
 
@@ -1975,6 +1975,17 @@ one_body_ratio_grad_kernel(T *C, T **R, int cfirst, int clast,
     L[0][tid] = lattice[tid];
     Linv[0][tid] = latticeInv[tid];
   }
+
+  int index=0;
+  __shared__ T images[27][3];
+  if (tid < 3)
+    for (T i=-1.0; i<=1.001; i+=1.0)
+      for (T j=-1.0; j<=1.001; j+=1.0)
+	for (T k=-1.0; k<=1.001; k+=1.0) {
+	  images[index][tid] = 
+	    i*L[0][tid] + j*L[1][tid] + k*L[2][tid];
+	    index++;
+	}
   
   __shared__ T A[12][4];
   if (tid < 16) {
@@ -2005,13 +2016,13 @@ one_body_ratio_grad_kernel(T *C, T **R, int cfirst, int clast,
     dx = myRold[0] - c[tid][0];
     dy = myRold[1] - c[tid][1];
     dz = myRold[2] - c[tid][2];
-    dist = min_dist(dx, dy, dz, L, Linv);
+    dist = min_dist(dx, dy, dz, L, Linv, images);
     delta =- eval_1d_spline (dist, rMax, drInv, A, coefs);
 
     dx = myRnew[0] - c[tid][0];
     dy = myRnew[1] - c[tid][1];
     dz = myRnew[2] - c[tid][2];
-    dist = min_dist(dx, dy, dz, L, Linv);
+    dist = min_dist(dx, dy, dz, L, Linv, images);
     eval_1d_spline_vgl (dist, rMax, drInv, A, coefs, u, du, d2u);
     delta += u;
 
@@ -2180,11 +2191,11 @@ one_body_ratio_grad (float C[], float *R[], int first, int last,
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
 
-  if (use_fast_image)
-    one_body_ratio_grad_kernel_fast<float,BS><<<dimGrid,dimBlock>>>
-      (C, R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax, 
-       lattice, latticeInv, zero, ratio_grad);
-  else
+  // if (use_fast_image)
+  //   one_body_ratio_grad_kernel_fast<float,BS><<<dimGrid,dimBlock>>>
+  //     (C, R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax, 
+  //      lattice, latticeInv, zero, ratio_grad);
+  // else
     one_body_ratio_grad_kernel<float,BS><<<dimGrid,dimBlock>>>
       (C, R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax, 
        lattice, latticeInv, zero, ratio_grad);
@@ -2213,11 +2224,11 @@ one_body_ratio_grad (double C[], double *R[], int first, int last,
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
   
-  if (use_fast_image)
-    one_body_ratio_grad_kernel_fast<double,BS><<<dimGrid,dimBlock>>>
-      (C, R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax, 
-       lattice, latticeInv, zero, ratio_grad);
-  else
+  // if (use_fast_image)
+  //   one_body_ratio_grad_kernel_fast<double,BS><<<dimGrid,dimBlock>>>
+  //     (C, R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax, 
+  //      lattice, latticeInv, zero, ratio_grad);
+  // else
     one_body_ratio_grad_kernel<double,BS><<<dimGrid,dimBlock>>>
       (C, R, first, last, Rnew, inew, spline_coefs, numCoefs, rMax, 
        lattice, latticeInv, zero, ratio_grad);
@@ -2480,6 +2491,8 @@ one_body_NLratio_kernel(NLjobGPU<float> *jobs, float *C, int first, int last,
     Linv[0][tid] = latticeInv[tid];
   }
 
+  __syncthreads();
+
   int index=0;
   __shared__ float images[27][3];
   if (tid < 3)
@@ -2671,6 +2684,18 @@ one_body_NLratio_kernel(NLjobGPU<double> *jobs, double *C, int first, int last,
     L[0][tid] = lattice[tid];
     Linv[0][tid] = latticeInv[tid];
   }
+
+  __shared__ double images[27][3];
+  int index=0;
+  if (tid < 3)
+    for (float i=-1.0; i<=1.001; i+=1.0)
+      for (float j=-1.0; j<=1.001; j+=1.0)
+	for (float k=-1.0; k<=1.001; k+=1.0) {
+	  images[index][tid] = 
+	    i*L[0][tid] + j*L[1][tid] + k*L[2][tid];
+	    index++;
+	}
+  __syncthreads();
   
   __shared__ double A[4][4];
   if (tid < 16) 
@@ -2698,14 +2723,14 @@ one_body_NLratio_kernel(NLjobGPU<double> *jobs, double *C, int first, int last,
     dx = myRold[0] - c[tid][0];
     dy = myRold[1] - c[tid][1];
     dz = myRold[2] - c[tid][2];
-    double dist = min_dist(dx, dy, dz, L, Linv);
+    double dist = min_dist(dx, dy, dz, L, Linv, images);
     double uOld = eval_1d_spline (dist, rMax, drInv, A, coefs);
 
     for (int iq=0; iq<myJob.NumQuadPoints; iq++) {
       dx = myRnew[iq][0] - c[tid][0];
       dy = myRnew[iq][1] - c[tid][1];
       dz = myRnew[iq][2] - c[tid][2];
-      dist = min_dist(dx, dy, dz, L, Linv);
+      dist = min_dist(dx, dy, dz, L, Linv, images);
       if (ptcl1 != myJob.Elec && (ptcl1 < (N+first)))
 	shared_sum[iq][tid] += eval_1d_spline (dist, rMax, drInv, A, coefs) - uOld;
     }
@@ -2984,11 +3009,11 @@ one_body_gradient (float *Rlist[], int iat, float C[], int first, int last,
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
 
-  if (sim_cell_radius >= rMax)
-    one_body_grad_kernel_fast<float,BS><<<dimGrid,dimBlock>>>
-      (Rlist, iat, C, first, last, spline_coefs, num_coefs, rMax,
-       L, Linv, zeroSum, grad);
-  else
+  // if (sim_cell_radius >= rMax)
+  //   one_body_grad_kernel_fast<float,BS><<<dimGrid,dimBlock>>>
+  //     (Rlist, iat, C, first, last, spline_coefs, num_coefs, rMax,
+  //      L, Linv, zeroSum, grad);
+  // else
     one_body_grad_kernel<float,BS><<<dimGrid,dimBlock>>>
       (Rlist, iat, C, first, last, spline_coefs, num_coefs, rMax,
        L, Linv, zeroSum, grad);
