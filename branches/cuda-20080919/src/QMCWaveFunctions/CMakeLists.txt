@@ -61,6 +61,7 @@ IF(QMC_CUDA)
    IF(HAVE_EINSPLINE)
       SET(FERMION_SRCS ${FERMION_SRCS}
          EinsplineSetCuda.cu
+         AtomicOrbitalCuda.cu
          )
    ENDIF(HAVE_EINSPLINE)
 ENDIF(QMC_CUDA)
@@ -88,6 +89,7 @@ IF(OHMMS_DIM MATCHES 3)
       EinsplineSetBuilder.cpp
       EinsplineWrapper.cpp
       MuffinTin.cpp
+      AtomicOrbital.cpp
      )
   ENDIF(HAVE_EINSPLINE)
     

@@ -1685,34 +1685,90 @@ namespace qmcplusplus {
   EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, int iat,
 					cuda_vector<CudaRealType*> &phi)
   {
+    app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, int iat,\n"
+		<< "			                            cuda_vector<CudaRealType*> &phi)\n"
+		<< "not yet implemented.\n";
   }
 
   
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, int iat,
-				cuda_vector<CudaComplexType*> &phi)
+						  cuda_vector<CudaComplexType*> &phi)
   {
+   app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, int iat,\n"
+		<< "			                            cuda_vector<CudaComplexType*> &phi)\n"
+	       << "not yet implemented.\n";
   }
 
   
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-  		 cuda_vector<CudaRealType*> &phi)
+						  cuda_vector<CudaRealType*> &phi)
   { 
+   app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,\n"
+		<< "			                            cuda_vector<CudaRealType*> &phi)\n"
+		<< "not yet implemented.\n";
   }
 
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,
-  		 cuda_vector<CudaComplexType*> &phi)
+						  cuda_vector<CudaComplexType*> &phi)
   {
+   app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> ,\n"
+		<< "			                            cuda_vector<CudaComplexType*> &phi)\n"
+		<< "not yet implemented.\n";
   }
 
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-  		 cuda_vector<CudaRealType*> &phi,
-  		 cuda_vector<CudaRealType*> &grad_lapl,
-  		 int row_stride)
+						  cuda_vector<CudaRealType*> &phi,
+						  cuda_vector<CudaRealType*> &grad_lapl,
+						  int row_stride)
   { 
+    AtomicPolyJobs_CPU.clear();
+    AtomicSplineJobs_CPU.clear();
+    for (int i=0; i<newpos.size(); i++) {
+      PosType r = newpos[i];
+      // Note: this assumes that the atomic radii are smaller than the simulation cell radius.
+      for (int j=0; j<AtomicOrbitals.size(); j++) {
+	AtomicOrbital<complex<double> > &orb = AtomicOrbitals[j];
+	PosType dr = r - orb.Pos;
+	PosType u = PrimLattice.toUnit(dr);
+	for (int k=0; k<OHMMS_DIM; k++) 
+	  u[k] -= round(u[k]);
+	dr = PrimLattice.toCart(u);
+	RealType dist2 = dot (dr,dr);
+	if (dist2 < orb.PolyRadius * orb.PolyRadius) {
+	  AtomicPolyJob<CudaRealType> job;
+	  RealType dist = std::sqrt(dist2);
+	  job.dist = dist;
+	  RealType distInv = 1.0/dist;
+	  for (int k=0; k<OHMMS_DIM; k++)
+	    job.rhat[k] = distInv * dr[k];
+	  job.lMax = orb.lMax;
+	  job.PolyOrder = orb.PolyOrder;
+	  //job.PolyCoefs = orb.PolyCoefs;
+	  AtomicPolyJobs_CPU.push_back(job);
+	}
+	else if (dist2 < orb.CutoffRadius*orb.CutoffRadius) {
+	  AtomicSplineJob<CudaRealType> job;
+	   RealType dist = std::sqrt(dist2);
+	  job.dist = dist;
+	  RealType distInv = 1.0/dist;
+	  for (int k=0; k<OHMMS_DIM; k++)
+	    job.rhat[k] = distInv * dr[k];
+	  job.lMax      = orb.lMax;
+	  job.phi       = phi[i];
+	  job.grad_lapl = grad_lapl[i];
+	  //job.PolyCoefs = orb.PolyCoefs;
+	  AtomicSplineJobs_CPU.push_back(job);
+	}
+	else { // Regular 3D B-spline job
+
+	}
+      }
+    }
+
   }
 
   template<> void
@@ -1721,6 +1777,11 @@ namespace qmcplusplus {
   		 cuda_vector<CudaComplexType*> &grad_lapl,
   		 int row_stride)
   {
+    app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, \n"
+		<< "			   	                    cuda_vector<CudaComplexType*> &phi,\n"
+		<< "				                    cuda_vector<CudaComplexType*> &grad_lapl,\n"
+		<< "				                    int row_stride)\n"
+		<< "not yet implemented.\n";
   }
 
   template<> void
@@ -1731,6 +1792,8 @@ namespace qmcplusplus {
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
   {
+    app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)\n"
+		<< "not yet implemented.\n";
   }
   
   template<> string
@@ -1742,7 +1805,8 @@ namespace qmcplusplus {
   template<> SPOSetBase*
   EinsplineSetHybrid<complex<double> >::makeClone() const
   {
-
+    app_error() << "EinsplineSetHybrid<complex<double> >::makeClone() const\n"
+      		<< "not yet implemented.\n";
   }
 
 

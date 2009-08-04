@@ -65,6 +65,7 @@ namespace qmcplusplus {
     ///define a Walker_t
     typedef Walker<RealType,ParticlePos_t,ParticleLaplacian_t> Walker_t;
     typedef Walker_t::PropertyContainer_t  PropertyContainer_t;
+    typedef Walker_t::Buffer_t             Buffer_t;
 
     ///property of an ensemble represented by this ParticleSet
     MCDataType<RealType> EnsembleProperty;
@@ -104,6 +105,10 @@ namespace qmcplusplus {
     vector<std::complex<double> >   Density_G;
     Array<RealType,OHMMS_DIM> Density_r;
 
+    /// DFT potential
+    vector<TinyVector<int,OHMMS_DIM> > VHXCReducedGvecs;
+    vector<ComplexType>   VHXC_G[2];
+    Array<RealType,OHMMS_DIM> VHXC_r[2];
      /** name-value map of Walker Properties
      *
      * PropertyMap is used to keep the name-value mapping of

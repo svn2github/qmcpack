@@ -4,6 +4,15 @@
 
 using namespace std;
 
+
+template<typename T, int LMAX, int BS> __global__ void
+MakeAtomicOrbList (T* elec_list, int num_elecs, T* ion_list, T* radii,
+		   int num_ions, T** out_list, T *L, T *Linv)
+{
+
+
+}
+
 template<typename T, int LMAX, int BS> __global__ void
 CalcYlmComplex (T *rhats, 
 		T **Ylm_ptr, T **dYlm_dtheta_ptr, T **dYlm_dphi_ptr, int N)
@@ -278,7 +287,50 @@ CalcYlmReal (T *rhats,
   }
 }
 
+template<typename T>
+void CalcYlmRealCuda (T *rhats, 
+		      T **Ylm_ptr, T **dYlm_dtheta_ptr, T **dYlm_dphi_ptr, 
+		      int lMax, int N)
+{
+  const int BS=32;
+  int Nblocks = (N+BS-1)/BS;
+  dim3 dimGrid(Nblocks);
+  dim3 dimBlock(BS);
+  
+  if (lMax == 0)
+    return;
+  else if (lMax == 1)
+    CalcYlmReal<T,1,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+  else if (lMax == 2)
+    CalcYlmReal<T,2,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+  else if (lMax == 3)
+    CalcYlmReal<T,3,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+  else if (lMax == 4)
+    CalcYlmReal<T,4,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+  else if (lMax == 5)
+    CalcYlmReal<T,5,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+  else if (lMax == 6)
+    CalcYlmReal<T,6,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+  else if (lMax == 7)
+    CalcYlmReal<T,7,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+  else if (lMax == 8)
+    CalcYlmReal<T,8,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+  else if (lMax == 9)
+    CalcYlmReal<T,9,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+  else if (lMax == 10)
+    CalcYlmReal<T,10,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
 
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in CalcYlmRealCuda:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+}
+
+
+#ifdef TEST_GPU_YLM
 
 class Vec3
 {
@@ -681,3 +733,4 @@ main()
   TestYlmComplex();
   TestYlmReal();
 }
+#endif

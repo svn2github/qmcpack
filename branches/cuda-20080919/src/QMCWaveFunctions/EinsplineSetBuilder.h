@@ -112,13 +112,21 @@ namespace qmcplusplus {
     
   protected:
     // Type definitions
-    typedef CrystalLattice<RealType,OHMMS_DIM> UnitCellType;
+    //typedef CrystalLattice<RealType,OHMMS_DIM> UnitCellType;
+    typedef ParticleSet::ParticleLayout_t UnitCellType;
 
     // Helper vector for sorting bands
     std::vector<BandInfo> SortBands;
 
     // The actual orbital set we're building
     EinsplineSet *OrbitalSet, *LastOrbitalSet;
+    // This is true if we have the orbital derivatives w.r.t. the ion
+    // positions 
+    bool HaveOrbDerivs;
+
+    // The name of the ion particleset
+    void CreateIonParticleSet(string sourceName);
+
     typedef EinsplineOrb<complex<double>,OHMMS_DIM> OrbType;
     // The map key is (spin, twist, band, center)
     static std::map<TinyVector<int,4>,OrbType*,Int4less> OrbitalMap;
@@ -137,10 +145,13 @@ namespace qmcplusplus {
     hid_t H5FileID;
     string H5FileName;
     // HDF5 orbital file version
+    typedef enum {QMCPACK, ESHDF} FormatType;
+    FormatType Format;
     TinyVector<int,2> Version;
     string parameterGroup, ionsGroup, eigenstatesGroup;
     bool HaveLocalizedOrbs;
     bool ReadOrbitalInfo ();
+    bool ReadOrbitalInfo_ESHDF ();
     void BroadcastOrbitalInfo();
 
 
@@ -176,9 +187,13 @@ namespace qmcplusplus {
     void AnalyzeTwists2();
     void TileIons();
     void OccupyBands(int spin, bool sortBands);
-    void ReadBands(int spin, EinsplineSetLocal* orbitalSet);
-    void ReadBands(int spin, EinsplineSetExtended<complex<double> >* orbitalSet);
-    void ReadBands(int spin, EinsplineSetExtended<        double  >* orbitalSet);
+    void OccupyBands_ESHDF(int spin, bool sortBands);
+    void ReadBands      (int spin, EinsplineSetLocal* orbitalSet);
+    void ReadBands_ESHDF(int spin, EinsplineSetLocal* orbitalSet);
+    void ReadBands      (int spin, EinsplineSetExtended<complex<double> >* orbitalSet);
+    void ReadBands_ESHDF(int spin, EinsplineSetExtended<complex<double> >* orbitalSet);
+    void ReadBands      (int spin, EinsplineSetExtended<        double  >* orbitalSet);
+    void ReadBands_ESHDF(int spin, EinsplineSetExtended<        double  >* orbitalSet);
     void CopyBands(int numOrbs);
     
     /////////////////////////////
@@ -190,6 +205,11 @@ namespace qmcplusplus {
     std::vector<int> MT_APW_lmax;
     std::vector<int> MT_APW_num_radial_points;
     std::vector<PosType> MT_centers;
+    ////////////////////////////////
+    // Atomic orbital information //
+    ////////////////////////////////
+    std::vector<AtomicOrbital<complex<double> > > AtomicOrbitals;
+
 
     // This returns the path in the HDF5 file to the group for orbital
     // with twist ti and band bi

@@ -160,6 +160,7 @@ namespace qmcplusplus {
     PoolType::iterator it(myPool.begin()), it_end(myPool.end());
     while(it != it_end) {
       ParticleSet* pt((*it).second);
+      cerr << "Name = " << it->first << endl;
       pt->update();
       ++it;
     }

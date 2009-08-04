@@ -18,10 +18,12 @@
 #define QMCPLUSPLUS_EINSPLINE_SET_H
 
 //#include <einspline/bspline.h>
+#include "Configuration.h"
 #include "QMCWaveFunctions/BasisSetBase.h"
 #include "QMCWaveFunctions/SPOSetBase.h"
 #include "Optimize/VarList.h"
 #include "QMCWaveFunctions/EinsplineOrb.h"
+#include "QMCWaveFunctions/AtomicOrbital.h"
 #include "QMCWaveFunctions/MuffinTin.h"
 #include "Utilities/NewTimer.h"
 #include <einspline/multi_bspline_structs.h>
@@ -222,6 +224,8 @@ namespace qmcplusplus {
     typedef Vector<TinyVector<complex<RealType>,OHMMS_DIM> >        ComplexGradVector_t;
     typedef Vector<Tensor<RealType,OHMMS_DIM> >                     RealHessVector_t;
     typedef Vector<Tensor<complex<RealType>,OHMMS_DIM> >            ComplexHessVector_t;
+    typedef Matrix<Tensor<RealType,OHMMS_DIM> >                     RealHessMatrix_t;
+    typedef Matrix<Tensor<complex<RealType>,OHMMS_DIM> >            ComplexHessMatrix_t;
     typedef Matrix<RealType>                                        RealValueMatrix_t;
     typedef Matrix<complex<RealType> >                              ComplexValueMatrix_t;
     typedef Matrix<TinyVector<RealType,OHMMS_DIM> >                 RealGradMatrix_t;
@@ -238,6 +242,15 @@ namespace qmcplusplus {
     /// Orbital storage objects //
     //////////////////////////////
     SplineType *MultiSpline;
+
+    //////////////////////////////////////
+    // Radial/Ylm orbitals around atoms //
+    //////////////////////////////////////
+    vector<AtomicOrbital<StorageType> > AtomicOrbitals;
+
+    // First-order derivative w.r.t. the ion positions
+    vector<TinyVector<SplineType*,OHMMS_DIM> > FirstOrderSplines;
+
     CudaSplineType *CudaMultiSpline;
     // Temporary storage for Eispline calls
     StorageValueVector_t StorageValueVector, StorageLaplVector;
@@ -298,6 +311,22 @@ namespace qmcplusplus {
 		  RealValueMatrix_t& psi, RealGradMatrix_t& dpsi, 
 		  RealValueMatrix_t& d2psi);
     void evaluate (const ParticleSet& P, PosType r, vector<RealType> &psi);
+#if !defined(QMC_COMPLEX)
+    // This is the gradient of the orbitals w.r.t. the ion iat
+    void evaluateGradSource (const ParticleSet &P, int first, int last, 
+			 const ParticleSet &source, int iat_src, 
+			 RealGradMatrix_t &gradphi);
+    // Evaluate the gradient w.r.t. to ion iat of the gradient and
+    // laplacian of the orbitals w.r.t. the electrons
+    void evaluateGradSource (const ParticleSet &P, int first, int last, 
+			     const ParticleSet &source, int iat_src,
+			     RealGradMatrix_t &dphi,
+			     RealHessMatrix_t  &dgrad_phi,
+			     RealGradMatrix_t &dlaplphi);
+    void evaluateGradSource (const ParticleSet &P, int first, int last,
+			     const ParticleSet &source, int iat_src, 
+			     ComplexGradMatrix_t &gradphi);
+#endif
 
     // Complex return values
     void evaluate(const ParticleSet& P, int iat, ComplexValueVector_t& psi);
@@ -351,6 +380,31 @@ namespace qmcplusplus {
     }
   };
 
+  template<typename T>
+  struct AtomicSplineJob
+  {
+    T dist, SplineDelta;
+    T rhat[OHMMS_DIM];
+    int lMax;
+    T* SplineCoefs;
+    T *phi, *grad_lapl;
+    T PAD[4];
+    //T PAD[(64 - (2*OHMMS_DIM*sizeof(T) + 2*sizeof(int) + 2*sizeof(T*)))/sizeof(T)];
+  };
+
+  template<typename T>
+  struct AtomicPolyJob
+  {
+    T dist, SplineDelta;
+    T rhat[OHMMS_DIM];
+    int lMax, PolyOrder;
+    T* PolyCoefs;
+    T *phi, *grad_lapl;
+    T PAD[3];
+    //T PAD[(64 - (2*OHMMS_DIM*sizeof(T) + 2*sizeof(int) + 2*sizeof(T*)))/sizeof(T)];
+  };
+
+
   template<typename StorageType>
   class EinsplineSetHybrid : public EinsplineSetExtended<StorageType>
   {
@@ -364,6 +418,12 @@ namespace qmcplusplus {
     typedef typename EinsplineSetExtended<StorageType>::PosType      PosType;
     typedef typename EinsplineSetExtended<StorageType>::CudaRealType CudaRealType;
     typedef typename EinsplineSetExtended<StorageType>::CudaComplexType CudaComplexType;
+
+    host_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_CPU;
+    cuda_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_GPU;
+    host_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_CPU;
+    cuda_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_GPU;
+    cuda_vector<CudaRealType> YlmData;
     //////////////////////////////
     /// Orbital storage objects //
     //////////////////////////////
