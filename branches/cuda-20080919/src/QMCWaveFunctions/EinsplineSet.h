@@ -423,6 +423,19 @@ namespace qmcplusplus {
     cuda_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_GPU;
     host_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_CPU;
     cuda_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_GPU;
+
+    cuda_vector<CudaRealType> Ylm_GPU;
+    cuda_vector<CudaRealType*> Ylm_ptr, dYlm_dtheta_ptr, dYlm_dphi_ptr;
+    cuda_vector<CudaRealType*> rhats_GPU;
+    host_vector<CudaRealType*> rhats_CPU;
+    
+    // The maximum lMax across all atomic orbitals
+    int lMax;
+    int numlm;
+    // Stores the maximum number of walkers that can be handled by currently
+    // allocated GPU memory.  Must resize if we have more walkers than this.
+    int CurrentWalkers;
+
     cuda_vector<CudaRealType> YlmData;
     //////////////////////////////
     /// Orbital storage objects //

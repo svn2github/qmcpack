@@ -300,25 +300,21 @@ void CalcYlmRealCuda (T *rhats,
   if (lMax == 0)
     return;
   else if (lMax == 1)
-    CalcYlmReal<T,1,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+    CalcYlmReal<T,1,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 2)
-    CalcYlmReal<T,2,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+    CalcYlmReal<T,2,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 3)
-    CalcYlmReal<T,3,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+    CalcYlmReal<T,3,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 4)
-    CalcYlmReal<T,4,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+    CalcYlmReal<T,4,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 5)
-    CalcYlmReal<T,5,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+    CalcYlmReal<T,5,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 6)
-    CalcYlmReal<T,6,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+    CalcYlmReal<T,6,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 7)
-    CalcYlmReal<T,7,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+    CalcYlmReal<T,7,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 8)
-    CalcYlmReal<T,8,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
-  else if (lMax == 9)
-    CalcYlmReal<T,9,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
-  else if (lMax == 10)
-    CalcYlmReal<T,10,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,N);
+    CalcYlmReal<T,8,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
 
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
@@ -327,6 +323,52 @@ void CalcYlmRealCuda (T *rhats,
 	     cudaGetErrorString(err));
     abort();
   }
+}
+
+template<typename T>
+void CalcYlmComplexCuda (T *rhats, 
+			 T **Ylm_ptr, T **dYlm_dtheta_ptr, T **dYlm_dphi_ptr, 
+			 int lMax, int N)
+{
+  const int BS=32;
+  int Nblocks = (N+BS-1)/BS;
+  dim3 dimGrid(Nblocks);
+  dim3 dimBlock(BS);
+  
+  if (lMax == 0)
+    return;
+  else if (lMax == 1)
+    CalcYlmComplex<T,1,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+  else if (lMax == 2)
+    CalcYlmComplex<T,2,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+  else if (lMax == 3)
+    CalcYlmComplex<T,3,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+  else if (lMax == 4)
+    CalcYlmComplex<T,4,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+  else if (lMax == 5)
+    CalcYlmComplex<T,5,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+  else if (lMax == 6)
+    CalcYlmComplex<T,6,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+  else if (lMax == 7)
+    CalcYlmComplex<T,7,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+  else if (lMax == 8)
+    CalcYlmComplex<T,8,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in CalcYlmComplexCuda:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+}
+
+
+void dummy()
+{
+  float *rhats(0), **Ylm_ptr(0), **dYlm_dtheta_ptr(0), **dYlm_dphi_ptr(0);
+  CalcYlmRealCuda(rhats, Ylm_ptr, dYlm_dtheta_ptr, dYlm_dphi_ptr, 1, 1);
+  CalcYlmComplexCuda(rhats, Ylm_ptr, dYlm_dtheta_ptr, dYlm_dphi_ptr, 1, 1);
 }
 
 
@@ -620,10 +662,12 @@ void TestYlmReal()
   const int lmax = 5;
   const int numlm = (lmax+1)*(lmax+1);
 
+  int block_size = ((numlm+15)/16)*16;
+
   cudaMalloc ((void**)&rhat_device,   3*sizeof(float)*numr);
-  cudaMalloc ((void**)&Ylm_device,    numlm*sizeof(float)*numr);
-  cudaMalloc ((void**)&dtheta_device, numlm*sizeof(float)*numr);
-  cudaMalloc ((void**)&dphi_device,   numlm*sizeof(float)*numr);
+  cudaMalloc ((void**)&Ylm_device,    block_size*sizeof(float)*numr);
+  cudaMalloc ((void**)&dtheta_device, block_size*sizeof(float)*numr);
+  cudaMalloc ((void**)&dphi_device,   block_size*sizeof(float)*numr);
   cudaMalloc ((void**)&Ylm_ptr,       numr*sizeof(float*));
   cudaMalloc ((void**)&dtheta_ptr,    numr*sizeof(float*));
   cudaMalloc ((void**)&dphi_ptr,      numr*sizeof(float*));
@@ -641,9 +685,9 @@ void TestYlmReal()
     rlist.push_back(r);
     rhost[3*i+0]=r[0];  rhost[3*i+1]=r[1];  rhost[3*i+2]=r[2];
     
-    Ylm_host[i]    = Ylm_device    + i*numlm;    
-    dtheta_host[i] = dtheta_device + i*numlm;
-    dphi_host[i]   = dphi_device   + i*numlm;
+    Ylm_host[i]    = Ylm_device    + i*block_size;    
+    dtheta_host[i] = dtheta_device + i*block_size;
+    dphi_host[i]   = dphi_device   + i*block_size;
   }
   
   cudaMemcpy(rhat_device, rhost, 3*numr*sizeof(float),  cudaMemcpyHostToDevice);
@@ -682,12 +726,12 @@ void TestYlmReal()
 	     cudaGetErrorString(err));
     abort();
   }
-  float Ylm[numr*numlm], dtheta[numr*numlm], dphi[numr*numlm];
-  cudaMemcpy(Ylm, Ylm_device, numr*numlm*sizeof(float), 
+  float Ylm[numr*block_size], dtheta[numr*block_size], dphi[numr*block_size];
+  cudaMemcpy(Ylm, Ylm_device, numr*block_size*sizeof(float), 
 	     cudaMemcpyDeviceToHost);
-  cudaMemcpy(dtheta, dtheta_device, numr*numlm*sizeof(float), 
+  cudaMemcpy(dtheta, dtheta_device, numr*block_size*sizeof(float), 
 	     cudaMemcpyDeviceToHost);
-  cudaMemcpy(dphi, dphi_device, numr*numlm*sizeof(float), 
+  cudaMemcpy(dphi, dphi_device, numr*block_size*sizeof(float), 
 	     cudaMemcpyDeviceToHost);
   cudaThreadSynchronize();
   err = cudaGetLastError();
@@ -704,24 +748,24 @@ void TestYlmReal()
   for (int lm=0; lm<numlm; lm++) {
     fprintf(stderr, "%12.7f %12.7f %3.0f\n",
 	    Ylm_cpu[lm], 
-	    Ylm[lm+n*numlm], 
-	    Ylm_cpu[lm]/Ylm[lm+n*numlm]);
+	    Ylm[lm+n*block_size], 
+	    Ylm_cpu[lm]/Ylm[lm+n*block_size]);
   }
 
   fprintf (stderr, "dtheta:\n");
   for (int lm=0; lm<numlm; lm++) {
     fprintf(stderr, "%12.6f %12.6f %3.0f \n",
 	    dtheta_cpu[lm], 
-	    dtheta[lm+n*numlm], 
-	    dtheta_cpu[lm]/dtheta[lm+n*numlm]);
+	    dtheta[lm+n*block_size], 
+	    dtheta_cpu[lm]/dtheta[lm+n*block_size]);
   }
 
   fprintf (stderr, "dphi:\n");
   for (int lm=0; lm<numlm; lm++) {
     fprintf(stderr, "%12.6f %12.6f %3.0f\n",
 	    dphi_cpu[lm], 
-	    dphi[lm+n*numlm], 
-	    dphi_cpu[lm]/dphi[lm+n*numlm]);
+	    dphi[lm+n*block_size], 
+	    dphi_cpu[lm]/dphi[lm+n*block_size]);
   }
 }
 

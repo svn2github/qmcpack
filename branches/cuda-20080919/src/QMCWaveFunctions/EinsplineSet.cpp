@@ -1727,6 +1727,7 @@ namespace qmcplusplus {
   { 
     AtomicPolyJobs_CPU.clear();
     AtomicSplineJobs_CPU.clear();
+    rhats_CPU.clear();
     for (int i=0; i<newpos.size(); i++) {
       PosType r = newpos[i];
       // Note: this assumes that the atomic radii are smaller than the simulation cell radius.
@@ -1749,6 +1750,7 @@ namespace qmcplusplus {
 	  job.PolyOrder = orb.PolyOrder;
 	  //job.PolyCoefs = orb.PolyCoefs;
 	  AtomicPolyJobs_CPU.push_back(job);
+	  rhats_CPU.push_back(rhat);
 	}
 	else if (dist2 < orb.CutoffRadius*orb.CutoffRadius) {
 	  AtomicSplineJob<CudaRealType> job;
@@ -1762,6 +1764,7 @@ namespace qmcplusplus {
 	  job.grad_lapl = grad_lapl[i];
 	  //job.PolyCoefs = orb.PolyCoefs;
 	  AtomicSplineJobs_CPU.push_back(job);
+	  rhats_CPU.push_back(rhat);
 	}
 	else { // Regular 3D B-spline job
 
@@ -1816,7 +1819,8 @@ namespace qmcplusplus {
 
 
   template<>
-  EinsplineSetHybrid<double>::EinsplineSetHybrid()
+  EinsplineSetHybrid<double>::EinsplineSetHybrid() :
+    CurrentWalkers(0)
   {
     ValueTimer.set_name ("EinsplineSetHybrid::ValueOnly");
     VGLTimer.set_name ("EinsplineSetHybrid::VGL");
@@ -1832,7 +1836,8 @@ namespace qmcplusplus {
   }
 
   template<>
-  EinsplineSetHybrid<complex<double > >::EinsplineSetHybrid()
+  EinsplineSetHybrid<complex<double > >::EinsplineSetHybrid() :
+    CurrentWalkers(0)
   {
     ValueTimer.set_name ("EinsplineSetHybrid::ValueOnly");
     VGLTimer.set_name ("EinsplineSetHybrid::VGL");
