@@ -1611,6 +1611,80 @@ namespace qmcplusplus {
   // Real StorageType versions //
   ///////////////////////////////
 
+  template<> void
+  EinsplineSetHybrid<double>::resize_cuda(int numwalkers)
+  {
+    CurrentWalkers = numwalkers;
+
+    // Resize Ylm temporaries
+    // Find lMax;
+    lMax=-1;
+    for (int i=0; i<AtomicOrbitals.size(); i++) 
+      lMax = max(AtomicOrbitals[i].lMax, lMax);
+    
+    numlm = (lMax+1)*(lMax+1);
+    Ylm_BS = ((numlm+15)/16) * 16;
+    
+    YlmData.resize(numwalkers*Ylm_BS*3);
+    Ylm_ptr_GPU.resize        (numwalkers);   Ylm_ptr_CPU.resize       (numwalkers);
+    dYlm_dtheta_ptr_GPU.resize(numwalkers);  dYlm_dtheta_ptr_CPU.resize(numwalkers);
+    dYlm_dphi_ptr_GPU.resize  (numwalkers);  dYlm_dphi_ptr_CPU.resize  (numwalkers);
+    rhats_CPU.resize(numwalkers);
+    rhats_GPU.resize(numwalkers);
+
+    for (int iw=0; iw<numwalkers; iw++) {
+      Ylm_ptr_CPU[iw]         = &(YlmData[0]) + (3*iw+0)*Ylm_BS;
+      dYlm_dtheta_ptr_CPU[iw] = &(YlmData[0]) + (3*iw+1)*Ylm_BS;
+      dYlm_dphi_ptr_CPU[iw]   = &(YlmData[0]) + (3*iw+2)*Ylm_BS;
+    }
+    
+    Ylm_ptr_GPU         = Ylm_ptr_CPU;
+    dYlm_dtheta_ptr_GPU = dYlm_dtheta_ptr_CPU;
+    dYlm_dphi_ptr_GPU   = dYlm_dphi_ptr_CPU;
+
+    // Resize AtomicJob temporaries
+    AtomicPolyJobs_GPU.resize(numwalkers);
+    AtomicSplineJobs_GPU.resize(numwalkers);
+  }
+
+
+  template<> void
+  EinsplineSetHybrid<complex<double> >::resize_cuda(int numwalkers)
+  {
+    CurrentWalkers = numwalkers;
+
+    // Resize Ylm temporaries
+    // Find lMax;
+    lMax=-1;
+    for (int i=0; i<AtomicOrbitals.size(); i++) 
+      lMax = max(AtomicOrbitals[i].lMax, lMax);
+    
+    numlm = (lMax+1)*(lMax+1);
+    Ylm_BS = ((numlm+15)/16) * 16;
+    
+    YlmData.resize(numwalkers*Ylm_BS*3);
+    Ylm_ptr_GPU.resize        (numwalkers);   Ylm_ptr_CPU.resize       (numwalkers);
+    dYlm_dtheta_ptr_GPU.resize(numwalkers);  dYlm_dtheta_ptr_CPU.resize(numwalkers);
+    dYlm_dphi_ptr_GPU.resize  (numwalkers);  dYlm_dphi_ptr_CPU.resize  (numwalkers);
+    rhats_CPU.resize(numwalkers);
+    rhats_GPU.resize(numwalkers);
+
+    for (int iw=0; iw<numwalkers; iw++) {
+      Ylm_ptr_CPU[iw]         = &(YlmData[0]) + (3*iw+0)*Ylm_BS;
+      dYlm_dtheta_ptr_CPU[iw] = &(YlmData[0]) + (3*iw+1)*Ylm_BS;
+      dYlm_dphi_ptr_CPU[iw]   = &(YlmData[0]) + (3*iw+2)*Ylm_BS;
+    }
+    
+    Ylm_ptr_GPU         = Ylm_ptr_CPU;
+    dYlm_dtheta_ptr_GPU = dYlm_dtheta_ptr_CPU;
+    dYlm_dphi_ptr_GPU   = dYlm_dphi_ptr_CPU;
+
+    // Resize AtomicJob temporaries
+    AtomicPolyJobs_GPU.resize(numwalkers);
+    AtomicSplineJobs_GPU.resize(numwalkers);
+  }
+
+
   // Vectorized evaluation functions
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, int iat,
@@ -1725,6 +1799,10 @@ namespace qmcplusplus {
 						  cuda_vector<CudaRealType*> &grad_lapl,
 						  int row_stride)
   { 
+    int nw = newpos.size();
+    if (nw > CurrentWalkers)
+      resize_cuda(nw);
+
     AtomicPolyJobs_CPU.clear();
     AtomicSplineJobs_CPU.clear();
     rhats_CPU.clear();
@@ -1744,27 +1822,31 @@ namespace qmcplusplus {
 	  RealType dist = std::sqrt(dist2);
 	  job.dist = dist;
 	  RealType distInv = 1.0/dist;
-	  for (int k=0; k<OHMMS_DIM; k++)
+	  for (int k=0; k<OHMMS_DIM; k++) {
+	    CudaRealType x = distInv*dr[k];
 	    job.rhat[k] = distInv * dr[k];
+	    rhats_CPU.push_back(x);
+	  }
 	  job.lMax = orb.lMax;
 	  job.PolyOrder = orb.PolyOrder;
 	  //job.PolyCoefs = orb.PolyCoefs;
 	  AtomicPolyJobs_CPU.push_back(job);
-	  rhats_CPU.push_back(job.rhat);
 	}
 	else if (dist2 < orb.CutoffRadius*orb.CutoffRadius) {
 	  AtomicSplineJob<CudaRealType> job;
 	   RealType dist = std::sqrt(dist2);
 	  job.dist = dist;
 	  RealType distInv = 1.0/dist;
-	  for (int k=0; k<OHMMS_DIM; k++)
+	  for (int k=0; k<OHMMS_DIM; k++) {
+	    CudaRealType x = distInv*dr[k];
 	    job.rhat[k] = distInv * dr[k];
+	    rhats_CPU.push_back(x);
+	  }
 	  job.lMax      = orb.lMax;
 	  job.phi       = phi[i];
 	  job.grad_lapl = grad_lapl[i];
 	  //job.PolyCoefs = orb.PolyCoefs;
 	  AtomicSplineJobs_CPU.push_back(job);
-	  rhats_CPU.push_back(job.rhat);
 	}
 	else { // Regular 3D B-spline job
 

@@ -425,13 +425,14 @@ namespace qmcplusplus {
     cuda_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_GPU;
 
     cuda_vector<CudaRealType> Ylm_GPU;
-    cuda_vector<CudaRealType*> Ylm_ptr, dYlm_dtheta_ptr, dYlm_dphi_ptr;
-    cuda_vector<CudaRealType*> rhats_GPU;
-    host_vector<CudaRealType*> rhats_CPU;
+    cuda_vector<CudaRealType*> Ylm_ptr_GPU, dYlm_dtheta_ptr_GPU, dYlm_dphi_ptr_GPU;
+    host_vector<CudaRealType*> Ylm_ptr_CPU, dYlm_dtheta_ptr_CPU, dYlm_dphi_ptr_CPU;
+    cuda_vector<CudaRealType> rhats_GPU;
+    host_vector<CudaRealType> rhats_CPU;
     
     // The maximum lMax across all atomic orbitals
     int lMax;
-    int numlm;
+    int numlm, Ylm_BS;
     // Stores the maximum number of walkers that can be handled by currently
     // allocated GPU memory.  Must resize if we have more walkers than this.
     int CurrentWalkers;
@@ -448,6 +449,9 @@ namespace qmcplusplus {
 
   public:
     void registerTimers();
+
+    // Resize cuda objects
+    void resize_cuda(int numwalkers);
 
     // Vectorized evaluation functions
     void evaluate (vector<Walker_t*> &walkers, int iat,
