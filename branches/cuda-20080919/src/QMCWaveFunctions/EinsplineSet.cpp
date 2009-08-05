@@ -1750,7 +1750,7 @@ namespace qmcplusplus {
 	  job.PolyOrder = orb.PolyOrder;
 	  //job.PolyCoefs = orb.PolyCoefs;
 	  AtomicPolyJobs_CPU.push_back(job);
-	  rhats_CPU.push_back(rhat);
+	  rhats_CPU.push_back(job.rhat);
 	}
 	else if (dist2 < orb.CutoffRadius*orb.CutoffRadius) {
 	  AtomicSplineJob<CudaRealType> job;
@@ -1764,7 +1764,7 @@ namespace qmcplusplus {
 	  job.grad_lapl = grad_lapl[i];
 	  //job.PolyCoefs = orb.PolyCoefs;
 	  AtomicSplineJobs_CPU.push_back(job);
-	  rhats_CPU.push_back(rhat);
+	  rhats_CPU.push_back(job.rhat);
 	}
 	else { // Regular 3D B-spline job
 
