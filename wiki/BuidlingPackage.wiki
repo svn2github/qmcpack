@@ -36,24 +36,24 @@ For cmake documentation and guides, consult
 [http://www.cmake.org/Wiki/CMake cmake wiki]
 
 <div style="padding-left:2em">
-# get source tree from the subversion repository
-# change to ''qmcpack'' the top directory (name can be different):
+ # get source tree from the subversion repository
+ # change to ''qmcpack'' the top directory (name can be different):
 <code>cd qmcpack</code>
-# Change to the build directory:
+ # Change to the build directory:
 <code>cd build</code>
-# run cmake to create Makefiles (Don't forget '''..'''):
+ # run cmake to create Makefiles (Don't forget '''..'''):
 <code>cmake ..</code>
-# make everything:
+ # make everything:
 <code>make</code>
 </div>
 
 If everything goes well, then you should see '''topdir/build/bin/qmcapp'''.
 
 qmcpack directory tree
-* qmcpack topdir
-** CMakeLists.txt : main cmake build file
-** src  : source directory
-** CMake : cmake directory for external package and compiler
+ * qmcpack topdir
+  ** CMakeLists.txt : main cmake build file
+  ** src  : source directory
+  ** CMake : cmake directory for external package and compiler
 
 '''Out-of-source compilation''' is recommend. The procedure above, creating ''build'' directory and running camke in a new directory, is an example. We can further separate the source (development) and build.
 Let's assume that the QMCPACK ''topdir'' is /home/foo/src/qmcpack. Then, one can build multiple executables in different locations by creating new directories and build QMCPACK in each directory.
