@@ -34,16 +34,14 @@ Theoretically speaking, QMCPACK can be used on any *nix machine with recent GNU 
 
 For cmake documentation and guides, consult
 [http://www.cmake.org/Wiki/CMake cmake wiki]
+{{{
+cd qmcpack/build
+cmake ..
+make
+}}}
 
 
- # get source tree from the subversion repository
- # change to ''qmcpack'' the top directory (name can be different):{{{cd qmcpack}}}
- # Change to the build directory: {{{cd build}}}
- # run cmake to create Makefiles (Don't forget '''..'''): {{{cmake ..}}}
- # make everything: {{{make}}}
-
-
-If everything goes well, then you should see *`topdir/build/bin/qmcapp`*.
+If everything goes well, then you should see *`qmcpack/build/bin/qmcapp`*.
 
 qmcpack directory tree
  * qmcpack topdir
@@ -51,7 +49,7 @@ qmcpack directory tree
   ** src  : source directory
   ** CMake : cmake directory for external package and compiler
 
-*Out-of-source compilation* is recommend. The procedure above, creating _build_ directory and running `camke` in a new directory, is an example. We can further separate the source (development) and build.
+*Out-of-source compilation* is recommend. The procedure above, using _build_ directory (empty) and running `camke` in _build_, is an example. We can further separate the source (development) and build.
 Let's assume that the QMCPACK _topdir_ is `/home/foo/src/qmcpack`. Then, one can build multiple executables in different locations by creating new directories and build QMCPACK in each directory.
 {{{
 /home/foo/build/gcc-real
