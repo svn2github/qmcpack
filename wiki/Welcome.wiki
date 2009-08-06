@@ -1,7 +1,6 @@
-#summary Welcome
+#summary Discussion on design issues, requirements for the developers, subversion update.
 
 = Introduction =
 
-This wiki is to discuss topics related to the development of qmcpack and other related projects: design issues, requirements for the developers, subversion update.
 
 = Getting started =
