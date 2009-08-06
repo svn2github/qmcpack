@@ -6,12 +6,12 @@ With few exceptions, the build utility cmake will look for XYZ_HOME/include for 
 
 
 ||Name	||Category	||Environment variables 	||Comments||
-||cmake	||utility||source and binary distribution on multiple platforms||
+||cmake	||utility|| || source and binary distribution on multiple platforms||
 ||blas/lapack	||Numerical library||MKL_HOME, LAPACK, ATLAS||Alternatives: vendor-provided blas, e.g., ESSL||
 ||hdf5 	||I/O	||HDF5_HOME, HDF_HOME	||source and binary distribution on multiple platforms ||
 ||libxml2	||I/O	||LIBXML2_HOME	||Standard library for Linux distributions||
 ||boost 	||C++ standard libraries|| BOOST_HOME	||Using only the header files. No need to compile anything. Simply download and unpack the package.||
-||einspline||c library for 3D bspline||see [HowToEinsplineLib Using Einspline library]||
+||einspline||c library for 3D bspline||EINSPLINE_HOME||see [HowToEinsplineLib Using Einspline library]||
 ||fftw||c library for FFT||FFTW_HOME||http://www.fftw.org/||
 
 On many HPC centers, these packages are managed by utilities like '''module''' and '''softenv'''. Consult the documentations on each site.
@@ -36,17 +36,14 @@ For cmake documentation and guides, consult
 [http://www.cmake.org/Wiki/CMake cmake wiki]
 
 <div style="padding-left:2em">
-;get source tree from the subversion repository:
-<code>svn co http://cms.mcc.uiuc.edu/svn/qmcpack-dev/trunk qmcpack</code>
-;change to ''qmcpack'' the top directory (name can be different):
+# get source tree from the subversion repository
+# change to ''qmcpack'' the top directory (name can be different):
 <code>cd qmcpack</code>
-;Create a directory to build the library and binaries, e.g., build:
-<code>mkdir build</code>
-;Change to the build directory:
+# Change to the build directory:
 <code>cd build</code>
-;run cmake to create Makefiles (Don't forget '''..'''):
+# run cmake to create Makefiles (Don't forget '''..'''):
 <code>cmake ..</code>
-;make everything:
+# make everything:
 <code>make</code>
 </div>
 
