@@ -2,5 +2,6 @@
 #labels uuserguides
 
 = Getting started =
-* Download the source: follow the instructions on *Downloads* tap
-* [BuidlingQMCPACK]
+
+  * Download the source: follow the instructions on *Downloads* tap
+  * [BuidlingQMCPACK]
