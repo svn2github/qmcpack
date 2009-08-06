@@ -1,4 +1,4 @@
-#summary Instructions on how to build the package
+﻿#summary Instructions on how to build the package
 #labels Phase-Deploy
 == Prerequisite ==
 In order to install QMCPACK, users have to install several required packages. These packages are included in standard Linux/cygwin distributions or can be downloaded by following the links. If these libraries are installed in standard directories, /usr /usr/local and /sw (Mac), no action is necessary. Alternatively, environment variables XYZ_HOME should be set. Here, XYZ stands for the name of package; the build utility can locate the libraries and use them.
@@ -70,26 +70,26 @@ MPI is automatically enabled if
  * CXX is set to parallel compilers
  ** mpicxx, mpic++, cmpic++ (tungsten at NCSA)
  ** mpCC/mpCC_r on AIX
- * mpi.h is found in ''standard'' paths, e.g., /usr/include or /usr/local/include
+ * mpi.h is found in *standard* paths, e.g., `/usr/include or /usr/local/include`
  ** SGI Altix
 
 One of these actions will disable MPI
  * Set QMC_MPI environment to 0, e.g., for bash <pre>export QMC_MPI=0</pre>
- * Modify ''topdir/CMakeLists.txt'' <pre>SET(QMC_MPI 0)</pre>
+ * Modify `topdir/CMakeLists.txt` <pre>SET(QMC_MPI 0)</pre>
 
 === OpenMP ===
-OpenMP is '''disabled by default''' in CMakeLists.txt. 
-
-But, OpenMP is automatically enabled if cmake detects that these compilers are being used:
+OpenMP is *enabled by default* in CMakeLists.txt.
  * Intel compilers
+ * GNU/OpenMP compilers > 4.2.x on Linux 2.6.x kernels, Mac OS X
  * IBM VisualAge compilers
- * GNU/OpenMP compilers &gt; 4.2.x on Linux 2.6.x kernels, Mac OS X
 
-To enable OpenMP for other compilers, need to do one of these
- * Set QMC_OMP to 1 e.g., for bash <code>export QMC_OMP=1</code>
- *  Modify ''topdir/CMakeLists.txt'' <code>SET(QMC_OMP 1)</code>
+One of these actions will disable OpenMP
+ * Set QMC_OMP environment to 0, e.g., for bash <pre>export QMC_OMP=0</pre>
+ * Modify `topdir/CMakeLists.txt` <pre>SET(QMC_OMP 0)
+ SET(ENABLE_OPENMP 0)</pre>
 
-If your machine has multiple cores, there is no need to disable OpenMP. However, make sure to set the environment variables which control OpenMP runs. Especially with MKL, set 
+If your machine has multiple cores, there is no need to disable OpenMP. 
+However, make sure to set the environment variables which control OpenMP runs. Especially with MKL, set 
 <code>
 MKL_NUM_THREADS=1
 MKL_SERIAL=YES
@@ -119,12 +119,5 @@ Each build should use identical variables. If the working shell has different va
 
 Note that separate executables have to be built for real and complex wavefunctions. One can use real wavefunction for the complex-enabled build but it will be extremely inefficient (4-8 times slower). However, complex wavefunctions cannot be used with real-enabled build.
 
-[http://cms.mcc.uiuc.edu/cmstools/index.php/Using_cmake  CMake Q&A]
+[UsingCmake  CMake Q&A]
 
-== Dealing with various platforms ==
-===[[How to on Linux Clusters]]===
-
-===[[How to on Intel Mac OS X|Intel Mac OS X]]===
-===[[QmcDev:Jaguar_installation_and_testing|How to on Cray XT]]===
-
-===[[How to on Cygwin|Cygwin]] ===
