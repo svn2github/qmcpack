@@ -19,16 +19,15 @@ On many HPC centers, these packages are managed by utilities like '''module''' a
 Notes on Numerical Libraries: If lapack/blas or atlas is not in your standard paths, do one of the followings. location is where the libraries are located.
 
 For bash users,
-<code>
+{{{
   export LAPACK="-L/location -llapack -lblas"
   export ATLAS="-L/location -llapack -lf77blas -lcblas -latlas" 
-<code>
-
+}}}
 For tcsh users,
-<code>
+{{{
   setenv LAPACK "-L/location -llapack -lblas"
   setenv ATLAS "-L/location -llapack -lf77blas -lcblas -latlas"
-<code>
+}}}
 == Build QMCPACK with cmake ==
 Require [http://www.cmake.org cmake] to compile qmcpack package 
 Theoretically speaking, QMCPACK can be used on any *nix machine with recent GNU C/C++ compilers.
