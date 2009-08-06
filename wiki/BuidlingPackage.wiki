@@ -85,39 +85,22 @@ OpenMP is *enabled by default* in CMakeLists.txt.
 
 One of these actions will disable OpenMP
  * Set QMC_OMP environment to 0, e.g., for bash <pre>export QMC_OMP=0</pre>
- * Modify `topdir/CMakeLists.txt` <pre>SET(QMC_OMP 0)
- SET(ENABLE_OPENMP 0)</pre>
+ * Modify `topdir/CMakeLists.txt` 
+ {{{
+ SET(QMC_OMP 0)
+ SET(ENABLE_OPENMP 0)
+ }}}
 
 If your machine has multiple cores, there is no need to disable OpenMP. 
 However, make sure to set the environment variables which control OpenMP runs. Especially with MKL, set 
-<code>
+{{{
 MKL_NUM_THREADS=1
 MKL_SERIAL=YES
-</code>
+}}}
 so that the blas/lapack calls DO NOT USE threaded version.
 
 Note that the default number of threads on your machine may be set to the number of cores (or CPU units). It is always safe to set the number of threads yourself as 
-<code>
+{{{
 export OMP_NUM_THREADS=1
-</code>
-
-== More on cmake ==
-=== cmake environment variables ===
-QMCPACK/cmake uses environment variables to determine compiler-time options.
-
-These are most critical environment variables with default values
-;QMC_MPI=1:
-1/0 to enable/disable MPI
-;QMC_OMP=0:
-1/0 to enable/disable OpenMP
-;QMC_COMPLEX=0:
-1/0 to use complex/real for the wavefunctions
-;QMC_BITS=32:
-32/64 for the OS
-
-Each build should use identical variables. If the working shell has different variables from the previous build environments, cmake/make will rebuild everything which can take time. Out-of-source compilation becomes very useful to build different combinations.
-
-Note that separate executables have to be built for real and complex wavefunctions. One can use real wavefunction for the complex-enabled build but it will be extremely inefficient (4-8 times slower). However, complex wavefunctions cannot be used with real-enabled build.
-
-[UsingCmake  CMake Q&A]
+}}}
 
