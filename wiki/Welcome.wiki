@@ -1,5 +1,5 @@
 #summary Home to QMCPACK wiki
-#labels userguides
+#labels Featured
 
 = Getting started =
 
