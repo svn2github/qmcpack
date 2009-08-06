@@ -1,15 +1,88 @@
 #include <cstdio>
 #include <vector>
 #include <complex>
+#include "AtomicOrbitalCuda.h"
 
 using namespace std;
 
 
-template<typename T, int LMAX, int BS> __global__ void
-MakeAtomicOrbList (T* elec_list, int num_elecs, T* ion_list, T* radii,
-		   int num_ions, T** out_list, T *L, T *Linv)
+template<typename T, int BS> __global__ void
+MakeAtomicJobList (T* elec_list, int num_elecs, T* ion_list, 
+		   T* poly_radii, T* spline_radii,
+		   int num_ions, T *L, T *Linv,
+		   AtomicJobType *job_list, T *rhat_list)
 {
+  __shared__ T epos[BS][3], ipos[BS][3], dr[BS][3], L_s[3][3], Linv_s[3][3];
+  __shared__ T rhat[BS][3];
+  __shared__ T r_spline[BS], r_poly[BS];
+  __shared__ AtomicJobType jobs_shared[BS];
+  int tid = threadIdx.x;
+  
+  if (tid < 9) {
+    L_s[0][tid]    = L[tid];
+    Linv_s[0][tid] = Linv[tid];
+  }
 
+  // Load electron positions
+  for (int i=0; i<3; i++)
+    if ((3*blockIdx.x+i)*BS + tid < 3*num_elecs)
+      epos[0][i*BS+tid] = elec_list[(3*blockIdx.x+i)*BS + tid];
+  
+  int iBlocks = (num_ions+BS-1)/BS;
+  jobs_shared[tid] = BSPLINE_3D_JOB;
+  for (int ib=0; ib<iBlocks; ib++) {
+    // Fetch ion positions into shared memory
+    for (int j=0; j<3; j++) {
+      int off = (3*ib+j)*BS+tid;
+      if (off < 3*num_ions)
+	ipos[j*BS+tid] = ion_list[off];
+    }
+    // Fetch radii into shared memory
+    if (ib*BS+tid < num_ions) {
+      r_spline[tid] = spline_radii[ib*BS+tid];
+      r_poly[tid]   = poly_radii  [ib*BS+tid];
+    }
+    __syncthreads();
+    // Find mininum image displacement
+    T dr0, dr1, dr2, u0, u1, u2;
+    dr0 = epos[tid][0] - ipos[tid][0];
+    dr1 = epos[tid][1] - ipos[tid][1];
+    dr2 = epos[tid][2] - ipos[tid][2];
+    u0 = Linv[0][0]*dr0 + Linv[0][1]*dr1 + Linv[0][2]*dr2;
+    u1 = Linv[1][0]*dr0 + Linv[1][1]*dr1 + Linv[1][2]*dr2;
+    u2 = Linv[2][0]*dr0 + Linv[2][1]*dr1 + Linv[2][2]*dr2;
+    u0 -= rintf(u0);
+    u1 -= rintf(u1);
+    u2 -= rintf(u2);
+    dr0 = L[0][0]*u0 + L[0][1]*u1 + L[0][2]*u2;
+    dr1 = L[1][0]*u0 + L[1][1]*u1 + L[1][2]*u2;
+    dr2 = L[2][0]*u0 + L[2][1]*u1 + L[2][2]*u2;
+
+    T dist2 = dr0*dr0 + dr1*dr1 + dr2*dr2;
+    T dist = sqrtf(dist2);
+
+    // Compare with radii
+    if (dist2 < r_poly[tid]) 
+      jobs_shared[tid] =  ATOMIC_POLY_JOB;
+    else if (dist2 < r_spline[tid]) 
+      jobs_shared[tid] =  ATOMIC_SPLINE_JOB;
+    
+    // Compute rhat
+    if (dist < r_spline[tid]) {
+      dist = 1.0/dist;
+      rhat[tid][0] = dr0 * dist;
+      rhat[tid][1] = dr1 * dist;
+      rhat[tid][2] = dr2 * dist;
+    }
+  }
+  // Now write rhats and job types to global memory
+  for (int i=0; i<3; i++) {
+    int off = (3*blockIdx.x+i)*BS + tid;
+    if (off < 3*num_elecs)
+      rhat_list[off] = i*BS + tid;
+  }
+  if (blockIdx.x*BS+tid < num_elecs)
+    job_list[tid] = jobs_shared[tid];
 
 }
 
@@ -325,9 +398,8 @@ void CalcYlmRealCuda (T *rhats,
   }
 }
 
-template<typename T>
-void CalcYlmComplexCuda (T *rhats, 
-			 T **Ylm_ptr, T **dYlm_dtheta_ptr, T **dYlm_dphi_ptr, 
+void CalcYlmComplexCuda (float *rhats, 
+			 float **Ylm_ptr, float **dYlm_dtheta_ptr, float **dYlm_dphi_ptr, 
 			 int lMax, int N)
 {
   const int BS=32;
@@ -338,21 +410,21 @@ void CalcYlmComplexCuda (T *rhats,
   if (lMax == 0)
     return;
   else if (lMax == 1)
-    CalcYlmComplex<T,1,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+    CalcYlmComplex<float,1,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 2)
-    CalcYlmComplex<T,2,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+    CalcYlmComplex<float,2,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 3)
-    CalcYlmComplex<T,3,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+    CalcYlmComplex<float,3,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 4)
-    CalcYlmComplex<T,4,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+    CalcYlmComplex<float,4,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 5)
-    CalcYlmComplex<T,5,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+    CalcYlmComplex<float,5,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 6)
-    CalcYlmComplex<T,6,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+    CalcYlmComplex<float,6,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 7)
-    CalcYlmComplex<T,7,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+    CalcYlmComplex<float,7,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 8)
-    CalcYlmComplex<T,8,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
+    CalcYlmComplex<float,8,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
 
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
@@ -601,8 +673,7 @@ CalcYlmReal (T *rhats, T **Ylm_ptr, int N)
   }
 }
 
-template<typename T>
-void CalcYlmRealCuda (T *rhats, T **Ylm_ptr, int lMax, int N)
+void CalcYlmRealCuda (float *rhats, float **Ylm_ptr, int lMax, int N)
 {
   const int BS=32;
   int Nblocks = (N+BS-1)/BS;
@@ -612,21 +683,21 @@ void CalcYlmRealCuda (T *rhats, T **Ylm_ptr, int lMax, int N)
   if (lMax == 0)
     return;
   else if (lMax == 1)
-    CalcYlmReal<T,1,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmReal<float,1,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 2)
-    CalcYlmReal<T,2,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmReal<float,2,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 3)
-    CalcYlmReal<T,3,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmReal<float,3,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 4)
-    CalcYlmReal<T,4,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmReal<float,4,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 5)
-    CalcYlmReal<T,5,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmReal<float,5,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 6)
-    CalcYlmReal<T,6,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmReal<float,6,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 7)
-    CalcYlmReal<T,7,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmReal<float,7,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 8)
-    CalcYlmReal<T,8,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmReal<float,8,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
 
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
@@ -637,8 +708,7 @@ void CalcYlmRealCuda (T *rhats, T **Ylm_ptr, int lMax, int N)
   }
 }
 
-template<typename T>
-void CalcYlmComplexCuda (T *rhats, T **Ylm_ptr, int lMax, int N)
+void CalcYlmComplexCuda (float *rhats, float **Ylm_ptr, int lMax, int N)
 {
   const int BS=32;
   int Nblocks = (N+BS-1)/BS;
@@ -648,21 +718,21 @@ void CalcYlmComplexCuda (T *rhats, T **Ylm_ptr, int lMax, int N)
   if (lMax == 0)
     return;
   else if (lMax == 1)
-    CalcYlmComplex<T,1,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmComplex<float,1,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 2)
-    CalcYlmComplex<T,2,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmComplex<float,2,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 3)
-    CalcYlmComplex<T,3,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmComplex<float,3,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 4)
-    CalcYlmComplex<T,4,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmComplex<float,4,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 5)
-    CalcYlmComplex<T,5,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmComplex<float,5,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 6)
-    CalcYlmComplex<T,6,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmComplex<float,6,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 7)
-    CalcYlmComplex<T,7,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmComplex<float,7,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
   else if (lMax == 8)
-    CalcYlmComplex<T,8,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
+    CalcYlmComplex<float,8,BS><<<dimGrid,dimBlock>>>(rhats,Ylm_ptr,N);
 
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
@@ -680,12 +750,23 @@ void CalcYlmComplexCuda (T *rhats, T **Ylm_ptr, int lMax, int N)
 
 
 
-void dummy()
+void dummy_float()
 {
   float *rhats(0), **Ylm_ptr(0), **dYlm_dtheta_ptr(0), **dYlm_dphi_ptr(0);
   CalcYlmRealCuda(rhats, Ylm_ptr, dYlm_dtheta_ptr, dYlm_dphi_ptr, 1, 1);
   CalcYlmComplexCuda(rhats, Ylm_ptr, dYlm_dtheta_ptr, dYlm_dphi_ptr, 1, 1);
+  CalcYlmRealCuda(rhats, Ylm_ptr, 1, 1);
+  CalcYlmComplexCuda(rhats, Ylm_ptr, 1, 1);
 }
+
+// void dummy_double()
+// {
+//   double *rhats(0), **Ylm_ptr(0), **dYlm_dtheta_ptr(0), **dYlm_dphi_ptr(0);
+//   CalcYlmRealCuda(rhats, Ylm_ptr, dYlm_dtheta_ptr, dYlm_dphi_ptr, 1, 1);
+//   CalcYlmComplexCuda(rhats, Ylm_ptr, dYlm_dtheta_ptr, dYlm_dphi_ptr, 1, 1);
+//   CalcYlmRealCuda(rhats, Ylm_ptr, 1, 1);
+//   CalcYlmComplexCuda(rhats, Ylm_ptr, 1, 1);
+// }
 
 
 #ifdef TEST_GPU_YLM

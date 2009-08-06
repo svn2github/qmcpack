@@ -249,7 +249,7 @@ INCLUDE(${PROJECT_CMAKE}/FindLapack.cmake)
 INCLUDE(${PROJECT_CMAKE}/FindHDF5.cmake)
 INCLUDE(${PROJECT_CMAKE}/FindBoost.cmake)
 INCLUDE(${PROJECT_CMAKE}/FindPkgConfig.cmake)
-INCLUDE(${PROJECT_CMAKE}/cuda/FindCuda.cmake)
+INCLUDE(${PROJECT_CMAKE}/cuda/FindCUDA.cmake)
 #INCLUDE(${PROJECT_CMAKE}/FindFFTW.cmake)
 
 IF(QMC_MPI)

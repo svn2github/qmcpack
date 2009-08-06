@@ -385,10 +385,10 @@ namespace qmcplusplus {
   {
     T dist, SplineDelta;
     T rhat[OHMMS_DIM];
-    int lMax;
+    int lMax, YlmIndex;
     T* SplineCoefs;
     T *phi, *grad_lapl;
-    T PAD[4];
+    T PAD[3];
     //T PAD[(64 - (2*OHMMS_DIM*sizeof(T) + 2*sizeof(int) + 2*sizeof(T*)))/sizeof(T)];
   };
 
@@ -397,10 +397,10 @@ namespace qmcplusplus {
   {
     T dist, SplineDelta;
     T rhat[OHMMS_DIM];
-    int lMax, PolyOrder;
+    int lMax, PolyOrder, YlmIndex;
     T* PolyCoefs;
     T *phi, *grad_lapl;
-    T PAD[3];
+    T PAD[2];
     //T PAD[(64 - (2*OHMMS_DIM*sizeof(T) + 2*sizeof(int) + 2*sizeof(T*)))/sizeof(T)];
   };
 
@@ -418,6 +418,7 @@ namespace qmcplusplus {
     typedef typename EinsplineSetExtended<StorageType>::PosType      PosType;
     typedef typename EinsplineSetExtended<StorageType>::CudaRealType CudaRealType;
     typedef typename EinsplineSetExtended<StorageType>::CudaComplexType CudaComplexType;
+    typedef typename EinsplineSetExtended<StorageType>::CudaStorageType CudaStorageType;
 
     host_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_CPU;
     cuda_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_GPU;
@@ -427,9 +428,16 @@ namespace qmcplusplus {
     cuda_vector<CudaRealType> Ylm_GPU;
     cuda_vector<CudaRealType*> Ylm_ptr_GPU, dYlm_dtheta_ptr_GPU, dYlm_dphi_ptr_GPU;
     host_vector<CudaRealType*> Ylm_ptr_CPU, dYlm_dtheta_ptr_CPU, dYlm_dphi_ptr_CPU;
-    cuda_vector<CudaRealType> rhats_GPU;
-    host_vector<CudaRealType> rhats_CPU;
+    cuda_vector<CudaRealType> rhats_GPU, ion_pos_GPU;
+    host_vector<CudaRealType> rhats_CPU, ion_pos_CPU;
+    cuda_vector<int> JobType;
     
+    // Vectors for 3D Bspline evaluation
+    cuda_vector<CudaRealType> BsplinePos_GPU;
+    host_vector<CudaRealType> BsplinePos_CPU;
+    cuda_vector<CudaStorageType*> BsplineVals_GPU, BsplineGradLapl_GPU;
+    host_vector<CudaStorageType*> BsplineVals_CPU, BsplineGradLapl_CPU;
+
     // The maximum lMax across all atomic orbitals
     int lMax;
     int numlm, Ylm_BS;
@@ -447,8 +455,10 @@ namespace qmcplusplus {
     ////////////
     // Data for vectorized evaluations
 
+    void sort_electrons(vector<PosType> &pos);
+    
   public:
-    void registerTimers();
+    //    void registerTimers();
 
     // Resize cuda objects
     void resize_cuda(int numwalkers);

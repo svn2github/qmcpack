@@ -17,6 +17,7 @@
 #include <einspline/multi_bspline.h>
 #include <einspline/multi_bspline_eval_cuda.h>
 #include "Configuration.h"
+#include "AtomicOrbitalCuda.h"
 #ifdef HAVE_MKL
   #include <mkl_vml.h>
 #endif
@@ -1606,6 +1607,79 @@ namespace qmcplusplus {
   ////////////////////////////////
   // Hybrid evaluation routines //
   ////////////////////////////////
+  // template<typename StorageType> void
+  // EinsplineSetHybrid<StorageType>::sort_electrons(vector<PosType> &pos)
+  // {
+  //   int nw = pos.size();
+  //   if (nw > CurrentWalkers)
+  //     resize_cuda(nw);
+
+  //   AtomicPolyJobs_CPU.clear();
+  //   AtomicSplineJobs_CPU.clear();
+  //   rhats_CPU.clear();
+  //   int numAtomic = 0;
+
+  //   // First, sort electrons into three categories:
+  //   // 1) Interstitial region with 3D-Bsplines
+  //   // 2) Atomic region near origin:      polynomial  radial functions
+  //   // 3) Atomic region not near origin:  1D B-spline radial functions
+
+  //   for (int i=0; i<newpos.size(); i++) {
+  //     PosType r = newpos[i];
+  //     // Note: this assumes that the atomic radii are smaller than the simulation cell radius.
+  //     for (int j=0; j<AtomicOrbitals.size(); j++) {
+  // 	AtomicOrbital<complex<double> > &orb = AtomicOrbitals[j];
+  // 	PosType dr = r - orb.Pos;
+  // 	PosType u = PrimLattice.toUnit(dr);
+  // 	for (int k=0; k<OHMMS_DIM; k++) 
+  // 	  u[k] -= round(u[k]);
+  // 	dr = PrimLattice.toCart(u);
+  // 	RealType dist2 = dot (dr,dr);
+  // 	if (dist2 < orb.PolyRadius * orb.PolyRadius) {
+  // 	  AtomicPolyJob<CudaRealType> job;
+  // 	  RealType dist = std::sqrt(dist2);
+  // 	  job.dist = dist;
+  // 	  RealType distInv = 1.0/dist;
+  // 	  for (int k=0; k<OHMMS_DIM; k++) {
+  // 	    CudaRealType x = distInv*dr[k];
+  // 	    job.rhat[k] = distInv * dr[k];
+  // 	    rhats_CPU.push_back(x);
+  // 	  }
+  // 	  job.lMax = orb.lMax;
+  // 	  job.YlmIndex  = i;
+  // 	  job.PolyOrder = orb.PolyOrder;
+  // 	  //job.PolyCoefs = orb.PolyCoefs;
+  // 	  AtomicPolyJobs_CPU.push_back(job);
+  // 	  numAtomic++;
+  // 	}
+  // 	else if (dist2 < orb.CutoffRadius*orb.CutoffRadius) {
+  // 	  AtomicSplineJob<CudaRealType> job;
+  // 	   RealType dist = std::sqrt(dist2);
+  // 	  job.dist = dist;
+  // 	  RealType distInv = 1.0/dist;
+  // 	  for (int k=0; k<OHMMS_DIM; k++) {
+  // 	    CudaRealType x = distInv*dr[k];
+  // 	    job.rhat[k] = distInv * dr[k];
+  // 	    rhats_CPU.push_back(x);
+  // 	  }
+  // 	  job.lMax      = orb.lMax;
+  // 	  job.YlmIndex  = i;
+  // 	  job.phi       = phi[i];
+  // 	  job.grad_lapl = grad_lapl[i];
+  // 	  //job.PolyCoefs = orb.PolyCoefs;
+  // 	  AtomicSplineJobs_CPU.push_back(job);
+  // 	  numAtomic++;
+  // 	}
+  // 	else { // Regular 3D B-spline job
+  // 	  BsplinePos_CPU.push_back (r);
+	  
+  // 	}
+  //     }
+  //   }
+    
+
+  // }
+
 
   ///////////////////////////////
   // Real StorageType versions //
@@ -1712,12 +1786,147 @@ namespace qmcplusplus {
   {
   }
 
+  
+
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-  		 cuda_vector<CudaRealType*> &phi,
-  		 cuda_vector<CudaRealType*> &grad_lapl,
-  		 int row_stride)
+					cuda_vector<CudaRealType*> &phi,
+					cuda_vector<CudaRealType*> &grad_lapl,
+					int row_stride)
   { 
+    // int N = newpos.size();
+    // if (N > CurrentWalkers)
+    //   resize_cuda(N);
+
+    // AtomicPolyJobs_CPU.clear();
+    // AtomicSplineJobs_CPU.clear();
+    // rhats_CPU.clear();
+    // BsplinePos_CPU.clear();
+    // BsplineVals_CPU.clear();
+    // BsplineGradLapl_CPU.clear();
+    // int numAtomic = 0;
+
+    // // First, sort electrons into three categories:
+    // // 1) Interstitial region with 3D B-splines
+    // // 2) Atomic region near origin:      polynomial  radial functions
+    // // 3) Atomic region not near origin:  1D B-spline radial functions
+
+    // for (int i=0; i<newpos.size(); i++) {
+    //   PosType r = newpos[i];
+    //   // Note: this assumes that the atomic radii are smaller than the simulation cell radius.
+    //   for (int j=0; j<AtomicOrbitals.size(); j++) {
+    // 	AtomicOrbital<complex<double> > &orb = AtomicOrbitals[j];
+    // 	PosType dr = r - orb.Pos;
+    // 	PosType u = PrimLattice.toUnit(dr);
+    // 	for (int k=0; k<OHMMS_DIM; k++) 
+    // 	  u[k] -= round(u[k]);
+    // 	dr = PrimLattice.toCart(u);
+    // 	RealType dist2 = dot (dr,dr);
+    // 	if (dist2 < orb.PolyRadius * orb.PolyRadius) {
+    // 	  AtomicPolyJob<CudaRealType> job;
+    // 	  RealType dist = std::sqrt(dist2);
+    // 	  job.dist = dist;
+    // 	  RealType distInv = 1.0/dist;
+    // 	  for (int k=0; k<OHMMS_DIM; k++) {
+    // 	    CudaRealType x = distInv*dr[k];
+    // 	    job.rhat[k] = distInv * dr[k];
+    // 	    rhats_CPU.push_back(x);
+    // 	  }
+    // 	  job.lMax = orb.lMax;
+    // 	  job.YlmIndex  = i;
+    // 	  job.PolyOrder = orb.PolyOrder;
+    // 	  //job.PolyCoefs = orb.PolyCoefs;
+    // 	  AtomicPolyJobs_CPU.push_back(job);
+    // 	  numAtomic++;
+    // 	}
+    // 	else if (dist2 < orb.CutoffRadius*orb.CutoffRadius) {
+    // 	  AtomicSplineJob<CudaRealType> job;
+    // 	   RealType dist = std::sqrt(dist2);
+    // 	  job.dist = dist;
+    // 	  RealType distInv = 1.0/dist;
+    // 	  for (int k=0; k<OHMMS_DIM; k++) {
+    // 	    CudaRealType x = distInv*dr[k];
+    // 	    job.rhat[k] = distInv * dr[k];
+    // 	    rhats_CPU.push_back(x);
+    // 	  }
+    // 	  job.lMax      = orb.lMax;
+    // 	  job.YlmIndex  = i;
+    // 	  job.phi       = phi[i];
+    // 	  job.grad_lapl = grad_lapl[i];
+    // 	  //job.PolyCoefs = orb.PolyCoefs;
+    // 	  AtomicSplineJobs_CPU.push_back(job);
+    // 	  numAtomic++;
+    // 	}
+    // 	else { // Regular 3D B-spline job
+    // 	  BsplinePos_CPU
+    // 	}
+    //   }
+    // }
+
+    // //////////////////////////////////
+    // // First, evaluate 3D B-splines //
+    // //////////////////////////////////
+    // int N = newpos.size();
+    // CudaRealType plus_minus[2] = {1.0, -1.0};
+    
+    // if (cudaPos.size() < N) {
+    //   hostPos.resize(N);
+    //   cudaPos.resize(N);
+    //   hostSign.resize(N);
+    //   cudaSign.resize(N);
+    // }
+
+    // for (int iw=0; iw < N; iw++) {
+    //   PosType r = newpos[iw];
+    //   PosType ru(PrimLattice.toUnit(r));
+    //   int image[OHMMS_DIM];
+    //   for (int i=0; i<OHMMS_DIM; i++) {
+    // 	RealType img = std::floor(ru[i]);
+    // 	ru[i] -= img;
+    // 	image[i] = (int) img;
+    //   }
+    //   int sign = 0;
+    //   for (int i=0; i<OHMMS_DIM; i++) 
+    // 	sign += HalfG[i] * image[i];
+      
+    //   hostSign[iw] = plus_minus[sign&1];
+    //   hostPos[iw] = ru;
+    // }
+
+    // cudaPos = hostPos;
+    // cudaSign = hostSign;
+    // eval_multi_multi_UBspline_3d_cuda 
+    //   (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), cudaSign.data(), 
+    //    phi.data(), N);
+
+    // ////////////////////////////////////////////////////////////
+    // // Next, evaluate spherical harmonics for atomic orbitals //
+    // ////////////////////////////////////////////////////////////
+
+    // // Evaluate Ylms
+    // if (rhats_CPU.size()) {
+    //   rhats_GPU = rhats_CPU;
+    //   CalcYlmComplexCuda(rhats_GPU.data(), Ylm_ptr_GPU.data(), dYlm_dtheta_ptr_GPU.data(),
+    // 			 dYlm_dphi_ptr_GPU.data(), lMax, numAtomic);
+    //   cerr << "Calculated Ylms.\n";
+    // }
+
+    // ///////////////////////////////////////
+    // // Next, evaluate 1D spline orbitals //
+    // ///////////////////////////////////////
+    // if (AtomicSplineJobs_CPU.size()) {
+    //   AtomicSplineJobs_GPU = AtomicSplineJobs_CPU;
+
+    // }
+    // ///////////////////////////////////////////
+    // // Next, evaluate 1D polynomial orbitals //
+    // ///////////////////////////////////////////
+    // if (AtomicSplineJobs_CPU.size()) {
+    //   AtomicPolyJobs_GPU = AtomicPolyJobs_CPU;
+    // }
+
+
+
   }
 
   template<> void
@@ -1744,10 +1953,13 @@ namespace qmcplusplus {
   }
   
   
-  template<> SPOSetBase*
-  EinsplineSetHybrid<double>::makeClone() const
+  template<typename StorageType> SPOSetBase*
+  EinsplineSetHybrid<StorageType>::makeClone() const
   {
-
+    EinsplineSetHybrid<StorageType> *clone = 
+      new EinsplineSetHybrid<StorageType> (*this);
+    clone->registerTimers();
+    return clone;
   }
   
 
@@ -1799,60 +2011,139 @@ namespace qmcplusplus {
 						  cuda_vector<CudaRealType*> &grad_lapl,
 						  int row_stride)
   { 
-    int nw = newpos.size();
-    if (nw > CurrentWalkers)
-      resize_cuda(nw);
+    // int N = newpos.size();
+    // if (N > CurrentWalkers)
+    //   resize_cuda(N);
 
-    AtomicPolyJobs_CPU.clear();
-    AtomicSplineJobs_CPU.clear();
-    rhats_CPU.clear();
-    for (int i=0; i<newpos.size(); i++) {
-      PosType r = newpos[i];
-      // Note: this assumes that the atomic radii are smaller than the simulation cell radius.
-      for (int j=0; j<AtomicOrbitals.size(); j++) {
-	AtomicOrbital<complex<double> > &orb = AtomicOrbitals[j];
-	PosType dr = r - orb.Pos;
-	PosType u = PrimLattice.toUnit(dr);
-	for (int k=0; k<OHMMS_DIM; k++) 
-	  u[k] -= round(u[k]);
-	dr = PrimLattice.toCart(u);
-	RealType dist2 = dot (dr,dr);
-	if (dist2 < orb.PolyRadius * orb.PolyRadius) {
-	  AtomicPolyJob<CudaRealType> job;
-	  RealType dist = std::sqrt(dist2);
-	  job.dist = dist;
-	  RealType distInv = 1.0/dist;
-	  for (int k=0; k<OHMMS_DIM; k++) {
-	    CudaRealType x = distInv*dr[k];
-	    job.rhat[k] = distInv * dr[k];
-	    rhats_CPU.push_back(x);
-	  }
-	  job.lMax = orb.lMax;
-	  job.PolyOrder = orb.PolyOrder;
-	  //job.PolyCoefs = orb.PolyCoefs;
-	  AtomicPolyJobs_CPU.push_back(job);
-	}
-	else if (dist2 < orb.CutoffRadius*orb.CutoffRadius) {
-	  AtomicSplineJob<CudaRealType> job;
-	   RealType dist = std::sqrt(dist2);
-	  job.dist = dist;
-	  RealType distInv = 1.0/dist;
-	  for (int k=0; k<OHMMS_DIM; k++) {
-	    CudaRealType x = distInv*dr[k];
-	    job.rhat[k] = distInv * dr[k];
-	    rhats_CPU.push_back(x);
-	  }
-	  job.lMax      = orb.lMax;
-	  job.phi       = phi[i];
-	  job.grad_lapl = grad_lapl[i];
-	  //job.PolyCoefs = orb.PolyCoefs;
-	  AtomicSplineJobs_CPU.push_back(job);
-	}
-	else { // Regular 3D B-spline job
+    // AtomicPolyJobs_CPU.clear();
+    // AtomicSplineJobs_CPU.clear();
+    // rhats_CPU.clear();
+    // int numAtomic = 0;
 
-	}
-      }
-    }
+    // // First, sort electrons into three categories:
+    // // 1) Interstitial region with 3D-Bsplines
+    // // 2) Atomic region near origin:      polynomial  radial functions
+    // // 3) Atomic region not near origin:  1D B-spline radial functions
+
+    // for (int i=0; i<newpos.size(); i++) {
+    //   PosType r = newpos[i];
+    //   // Note: this assumes that the atomic radii are smaller than the simulation cell radius.
+    //   for (int j=0; j<AtomicOrbitals.size(); j++) {
+    // 	AtomicOrbital<complex<double> > &orb = AtomicOrbitals[j];
+    // 	PosType dr = r - orb.Pos;
+    // 	PosType u = PrimLattice.toUnit(dr);
+    // 	for (int k=0; k<OHMMS_DIM; k++) 
+    // 	  u[k] -= round(u[k]);
+    // 	dr = PrimLattice.toCart(u);
+    // 	RealType dist2 = dot (dr,dr);
+    // 	if (dist2 < orb.PolyRadius * orb.PolyRadius) {
+    // 	  AtomicPolyJob<CudaRealType> job;
+    // 	  RealType dist = std::sqrt(dist2);
+    // 	  job.dist = dist;
+    // 	  RealType distInv = 1.0/dist;
+    // 	  for (int k=0; k<OHMMS_DIM; k++) {
+    // 	    CudaRealType x = distInv*dr[k];
+    // 	    job.rhat[k] = distInv * dr[k];
+    // 	    rhats_CPU.push_back(x);
+    // 	  }
+    // 	  job.lMax = orb.lMax;
+    // 	  job.YlmIndex  = i;
+    // 	  job.PolyOrder = orb.PolyOrder;
+    // 	  //job.PolyCoefs = orb.PolyCoefs;
+    // 	  AtomicPolyJobs_CPU.push_back(job);
+    // 	  numAtomic++;
+    // 	}
+    // 	else if (dist2 < orb.CutoffRadius*orb.CutoffRadius) {
+    // 	  AtomicSplineJob<CudaRealType> job;
+    // 	   RealType dist = std::sqrt(dist2);
+    // 	  job.dist = dist;
+    // 	  RealType distInv = 1.0/dist;
+    // 	  for (int k=0; k<OHMMS_DIM; k++) {
+    // 	    CudaRealType x = distInv*dr[k];
+    // 	    job.rhat[k] = distInv * dr[k];
+    // 	    rhats_CPU.push_back(x);
+    // 	  }
+    // 	  job.lMax      = orb.lMax;
+    // 	  job.YlmIndex  = i;
+    // 	  job.phi       = phi[i];
+    // 	  job.grad_lapl = grad_lapl[i];
+    // 	  //job.PolyCoefs = orb.PolyCoefs;
+    // 	  AtomicSplineJobs_CPU.push_back(job);
+    // 	  numAtomic++;
+    // 	}
+    // 	else { // Regular 3D B-spline job
+
+    // 	}
+    //   }
+    // }
+
+    // //////////////////////////////////
+    // // First, evaluate 3D B-splines //
+    // //////////////////////////////////
+
+    // int N = walkers.size();
+    // int M = CudaMultiSpline->num_splines;
+
+    // if (CudaValuePointers.size() < N)
+    //   resizeCuda(N);
+
+    // if (cudaPos.size() < N) {
+    //   hostPos.resize(N);
+    //   cudaPos.resize(N);
+    // }
+    // for (int iw=0; iw < N; iw++) {
+    //   PosType r = newpos[iw];
+    //   PosType ru(PrimLattice.toUnit(r));
+    //   ru[0] -= std::floor (ru[0]);
+    //   ru[1] -= std::floor (ru[1]);
+    //   ru[2] -= std::floor (ru[2]);
+    //   hostPos[iw] = ru;
+    // }
+
+    // cudaPos = hostPos;
+
+    // eval_multi_multi_UBspline_3d_c_vgl_cuda
+    //   (CudaMultiSpline, (float*)cudaPos.data(),  Linv_cuda.data(), CudaValuePointers.data(), 
+    //    CudaGradLaplPointers.data(), N, CudaMultiSpline->num_splines);
+
+    // // Now, add on phases
+    // for (int iw=0; iw < N; iw++) 
+    //   hostPos[iw] = newpos[iw];
+    // cudaPos = hostPos;
+    
+    // apply_phase_factors ((CUDA_PRECISION*) CudakPoints.data(),
+    // 			 CudaMakeTwoCopies.data(),
+    // 			 (CUDA_PRECISION*)cudaPos.data(),
+    // 			 (CUDA_PRECISION**)CudaValuePointers.data(), phi.data(), 
+    // 			 (CUDA_PRECISION**)CudaGradLaplPointers.data(), grad_lapl.data(),
+    // 			 CudaMultiSpline->num_splines,  walkers.size(), row_stride);
+
+
+    // ////////////////////////////////////////////////////////////
+    // // Next, evaluate spherical harmonics for atomic orbitals //
+    // ////////////////////////////////////////////////////////////
+
+    // // Evaluate Ylms
+    // if (rhats_CPU.size()) {
+    //   rhats_GPU = rhats_CPU;
+    //   CalcYlmComplexCuda(rhats_GPU.data(), Ylm_ptr_GPU.data(), dYlm_dtheta_ptr_GPU.data(),
+    // 			 dYlm_dphi_ptr_GPU.data(), lMax, numAtomic);
+    //   cerr << "Calculated Ylms.\n";
+    // }
+
+    // ///////////////////////////////////////
+    // // Next, evaluate 1D spline orbitals //
+    // ///////////////////////////////////////
+    // if (AtomicSplineJobs_CPU.size()) {
+    //   AtomicSplineJobs_GPU = AtomicSplineJobs_CPU;
+
+    // }
+    // ///////////////////////////////////////////
+    // // Next, evaluate 1D polynomial orbitals //
+    // ///////////////////////////////////////////
+    // if (AtomicSplineJobs_CPU.size()) {
+    //   AtomicPolyJobs_GPU = AtomicPolyJobs_CPU;
+    // }
 
   }
 
@@ -1886,14 +2177,6 @@ namespace qmcplusplus {
   {
   }
   
-  
-  template<> SPOSetBase*
-  EinsplineSetHybrid<complex<double> >::makeClone() const
-  {
-    app_error() << "EinsplineSetHybrid<complex<double> >::makeClone() const\n"
-      		<< "not yet implemented.\n";
-  }
-
 
 
 
