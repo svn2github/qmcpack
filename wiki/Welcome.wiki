@@ -1,6 +1,6 @@
-#summary Discussion on design issues, requirements for the developers, subversion update.
-
-= Introduction =
-
+#summary Home to QMCPACK wiki
+#labels uuserguides
 
 = Getting started =
+* Download the source: follow the instructions on *Downloads* tap
+* [BuidlingQMCPACK]
