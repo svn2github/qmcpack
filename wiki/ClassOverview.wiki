@@ -21,9 +21,9 @@ UML diagrams for QMCPACK can be found at [PackageDiagrams Package Diagrams of QM
 
 == Global definitions ==
 === Namespaces ===
- * qmcplusplus : main QMC namespace
- * OHMMS : imported from OHMMS package
- * APPNAMESPACE : identical to qmcplusplus namespace when used by QMCPACK. Base packages are guarded by `namespace APPNAMESPACE { }` to enable other applications to use PETE-based and common packages, e.g., Lattice, without importing QMC packages.
+||*qmcplusplus`* || main QMC namespace ||
+||*OHMMS`* ||: imported from OHMMS package ||
+||*`APPNAMESPACE`* ||: identical to qmcplusplus namespace when used by QMCPACK. Base packages are guarded by `namespace APPNAMESPACE { }` to enable other applications to use PETE-based and common packages, e.g., Lattice, without importing QMC packages.||
 
 === Configuration files ===
 An executable is built for a fixed dimensional problem using a given precision.
@@ -37,7 +37,9 @@ Any class or function can use the traits defined in `src/Configuration.h` with
 At the compile time, most of the computationally critical classes are instantiated for the physical dimension, precision and the value type.
 
 Many classes are inherited from QMCTraits so that consistent data types are used within an application instead of explicit names. For example, use
+{{{
  QMCTraits::PosType pos;
+}}}
 to create a variable `pos` of a D-dimensional fixed vector.
 
 == Base packages ==
@@ -52,7 +54,7 @@ Two directories contain classes based on PETE (Portable Expression Template Engi
  * `Tensor<T,D>` : D-dimensional tensor. Used extensively with `TinyVector<T,D>` to handle basic tensor-vector operators
 
 === Convenience classes ===
-These classes are '''temporary replacements''' for equivalent classes of standard libraries like blitz and boost. 
+These classes are *temporary replacements* for equivalent classes of standard libraries like blitz and boost. 
  * `Vector<T>` : one-dimensional array of type T. 
  * `Matrix<T>` : two-dimensional array of type T.
  * `Array<T,N>` : N-dimensional array of type T.
