@@ -1,0 +1,183 @@
+#summary Instructions on how to build the package
+== Prerequisite ==
+In order to install QMCPACK, users have to install several required packages. These packages are included in standard Linux/cygwin distributions or can be downloaded by following the links. If these libraries are installed in standard directories, /usr /usr/local and /sw (Mac), no action is necessary. Alternatively, environment variables XYZ_HOME should be set. Here, XYZ stands for the name of package; the build utility can locate the libraries and use them.
+
+With few exceptions, the build utility cmake will look for XYZ_HOME/include for the header files and XYZ_HOME/lib for the library files. When multiple environment variables apply to a library, e.g., blas/lapack, the library is searched according to the listed order.
+
+{|border="1"
+|-
+|Name	
+|Category	
+|Environment variables 	
+|Comments
+|-
+|cmake	
+|utility
+|
+|source and binary distribution on multiple platforms
+|-
+|blas/lapack	
+|Numerical library
+|MKL_HOME, LAPACK, ATLAS
+|Alternatives: vendor-provided blas, e.g., ESSL
+|-
+|hdf5 	
+|I/O	
+|HDF5_HOME, HDF_HOME	
+|source and binary distribution on multiple platforms
+|-
+|libxml2	
+|I/O	
+|LIBXML2_HOME	
+|Standard library for Linux distributions
+|-
+|boost 	
+|C++ standard libraries
+|BOOST_HOME	
+|Using only the header files. No need to compile anything. Simply download and unpack the package.
+|-
+|einspline
+|c library for 3D bspline
+|see [[Using Einspline library]]
+|
+|-
+|fftw
+|c library for FFT
+|FFTW_HOME
+|http://www.fftw.org/
+|-
+|pygtkglext
+|OpenGl extensions for Python GTK bindings
+|
+|For the GUI interface. This package has some dependencies.
+|}
+On many HPC centers, these packages are managed by utilities like '''module''' and '''softenv'''. Consult the documentations on each site.
+
+Notes on Numerical Libraries: If lapack/blas or atlas is not in your standard paths, do one of the followings. location is where the libraries are located.
+
+For bash users,
+
+  export LAPACK="-L/location -llapack -lblas"
+  export ATLAS="-L/location -llapack -lf77blas -lcblas -latlas" 
+
+For tcsh users,
+
+  setenv LAPACK "-L/location -llapack -lblas"
+  setenv ATLAS "-L/location -llapack -lf77blas -lcblas -latlas"
+
+== Build QMCPACK with cmake ==
+Require [http://www.cmake.org cmake] to compile qmcpack package 
+Theoretically speaking, QMCPACK can be used on any *nix machine with recent GNU C/C++ compilers.
+
+For cmake documentation and guides, consult
+[http://www.cmake.org/Wiki/CMake cmake wiki]
+
+<div style="padding-left:2em">
+
+<!--
+;unpack the tar-gziped file (skip this with subversion):
+<code>tar -zxvf qmcpack-vx.y-YYYYMMDD.tgz</code>
+-->
+;get source tree from the subversion repository:
+<code>svn co http://cms.mcc.uiuc.edu/svn/qmcpack-dev/trunk qmcpack</code>
+;change to ''qmcpack'' the top directory (name can be different):
+<code>cd qmcpack</code>
+;Create a directory to build the library and binaries, e.g., build:
+<code>mkdir build</code>
+;Change to the build directory:
+<code>cd build</code>
+;run cmake to create Makefiles (Don't forget '''..'''):
+<code>cmake ..</code>
+;make everything:
+<code>make</code>
+</div>
+
+If everything goes well, then you should see '''topdir/build/bin/qmcapp'''.
+
+qmcpack directory tree
+* qmcpack topdir
+** CMakeLists.txt : main cmake build file
+** src  : source directory
+** CMake : cmake directory for external package and compiler
+
+'''Out-of-source compilation''' is recommend. The procedure above, creating ''build'' directory and running camke in a new directory, is an example. We can further separate the source (development) and build.
+Let's assume that the QMCPACK ''topdir'' is /home/foo/src/qmcpack. Then, one can build multiple executables in different locations by creating new directories and build QMCPACK in each directory.
+<pre>
+/home/foo/build/gcc-real
+/home/foo/build/gcc-complex
+/home/foo/build/mpi-real
+....
+</pre>
+In each directory, e.g., /home/foo/build/gcc-real (after setting the environments properly), execute
+<pre>
+$cmake /home/foo/src/qmcpack
+$make 
+</pre>
+There is no need to change sources or cmake files. '''cmake ..''' in the main procedure uses '''..''' because the source tree resides in the parent directory.
+
+If something did not work, simply remove the directory (e.g., <code>rm -rf gcc-real</code>) and start again.
+
+== Enabling MPI and/or OpenMP ==
+=== MPI ===
+MPI is automatically enabled if
+* CXX is set to parallel compilers
+** mpicxx, mpic++, cmpic++ (tungsten at NCSA)
+** mpCC/mpCC_r on AIX
+* mpi.h is found in ''standard'' paths, e.g., /usr/include or /usr/local/include
+** SGI Altix
+
+One of these actions will disable MPI
+* Set QMC_MPI environment to 0, e.g., for bash <pre>export QMC_MPI=0</pre>
+* Modify ''topdir/CMakeLists.txt'' <pre>SET(QMC_MPI 0)</pre>
+
+=== OpenMP ===
+OpenMP is '''disabled by default''' in CMakeLists.txt. 
+
+But, OpenMP is automatically enabled if cmake detects that these compilers are being used:
+* Intel compilers
+* IBM VisualAge compilers
+* GNU/OpenMP compilers &gt; 4.2.x on Linux 2.6.x kernels, Mac OS X
+
+To enable OpenMP for other compilers, need to do one of these
+* Set QMC_OMP to 1 e.g., for bash <pre>export QMC_OMP=1</pre>
+*  Modify ''topdir/CMakeLists.txt'' <pre>SET(QMC_OMP 1)</pre>
+
+If your machine has multiple cores, there is no need to disable OpenMP. However, make sure to set the environment variables which control OpenMP runs. Especially with MKL, set 
+<pre>
+MKL_NUM_THREADS=1
+MKL_SERIAL=YES
+</pre>
+so that the blas/lapack calls DO NOT USE threaded version.
+
+Note that the default number of threads on your machine may be set to the number of cores (or CPU units). It is always safe to set the number of threads yourself as 
+<pre>
+export OMP_NUM_THREADS=1
+</pre>
+
+== More on cmake ==
+=== cmake environment variables ===
+QMCPACK/cmake uses environment variables to determine compiler-time options.
+
+These are most critical environment variables with default values
+;QMC_MPI=1:
+1/0 to enable/disable MPI
+;QMC_OMP=0:
+1/0 to enable/disable OpenMP
+;QMC_COMPLEX=0:
+1/0 to use complex/real for the wavefunctions
+;QMC_BITS=32:
+32/64 for the OS
+
+Each build should use identical variables. If the working shell has different variables from the previous build environments, cmake/make will rebuild everything which can take time. Out-of-source compilation becomes very useful to build different combinations.
+
+Note that separate executables have to be built for real and complex wavefunctions. One can use real wavefunction for the complex-enabled build but it will be extremely inefficient (4-8 times slower). However, complex wavefunctions cannot be used with real-enabled build.
+
+[http://cms.mcc.uiuc.edu/cmstools/index.php/Using_cmake  CMake Q&A]
+
+== Dealing with various platforms ==
+===[[How to on Linux Clusters]]===
+
+===[[How to on Intel Mac OS X|Intel Mac OS X]]===
+===[[QmcDev:Jaguar_installation_and_testing|How to on Cray XT]]===
+
+===[[How to on Cygwin|Cygwin]] ===
