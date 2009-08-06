@@ -4,4 +4,4 @@
 = Getting started =
 
   * Download the source: follow the instructions on *Downloads* tap
-  * [BuidlingPackage Building QMCPACK]
+  * [BuildingPackage Building QMCPACK]
