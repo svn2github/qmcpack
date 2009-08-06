@@ -1,5 +1,5 @@
 #summary Home to QMCPACK wiki
-#labels uuserguides
+#labels userguides
 
 = Getting started =
 
