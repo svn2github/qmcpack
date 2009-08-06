@@ -4,53 +4,16 @@ In order to install QMCPACK, users have to install several required packages. Th
 
 With few exceptions, the build utility cmake will look for XYZ_HOME/include for the header files and XYZ_HOME/lib for the library files. When multiple environment variables apply to a library, e.g., blas/lapack, the library is searched according to the listed order.
 
-{|border="1"
-|-
-|Name	
-|Category	
-|Environment variables 	
-|Comments
-|-
-|cmake	
-|utility
-|
-|source and binary distribution on multiple platforms
-|-
-|blas/lapack	
-|Numerical library
-|MKL_HOME, LAPACK, ATLAS
-|Alternatives: vendor-provided blas, e.g., ESSL
-|-
-|hdf5 	
-|I/O	
-|HDF5_HOME, HDF_HOME	
-|source and binary distribution on multiple platforms
-|-
-|libxml2	
-|I/O	
-|LIBXML2_HOME	
-|Standard library for Linux distributions
-|-
-|boost 	
-|C++ standard libraries
-|BOOST_HOME	
-|Using only the header files. No need to compile anything. Simply download and unpack the package.
-|-
-|einspline
-|c library for 3D bspline
-|see [[Using Einspline library]]
-|
-|-
-|fftw
-|c library for FFT
-|FFTW_HOME
-|http://www.fftw.org/
-|-
-|pygtkglext
-|OpenGl extensions for Python GTK bindings
-|
-|For the GUI interface. This package has some dependencies.
-|}
+
+||Name	||Category	||Environment variables 	||Comments||
+||cmake	||utility||source and binary distribution on multiple platforms||
+||blas/lapack	||Numerical library||MKL_HOME, LAPACK, ATLAS||Alternatives: vendor-provided blas, e.g., ESSL||
+||hdf5 	||I/O	||HDF5_HOME, HDF_HOME	||source and binary distribution on multiple platforms ||
+||libxml2	||I/O	||LIBXML2_HOME	||Standard library for Linux distributions||
+||boost 	||C++ standard libraries|| BOOST_HOME	||Using only the header files. No need to compile anything. Simply download and unpack the package.||
+||einspline||c library for 3D bspline||see [HowToEinsplineLib Using Einspline library]||
+||fftw||c library for FFT||FFTW_HOME||http://www.fftw.org/||
+
 On many HPC centers, these packages are managed by utilities like '''module''' and '''softenv'''. Consult the documentations on each site.
 
 Notes on Numerical Libraries: If lapack/blas or atlas is not in your standard paths, do one of the followings. location is where the libraries are located.
@@ -73,11 +36,6 @@ For cmake documentation and guides, consult
 [http://www.cmake.org/Wiki/CMake cmake wiki]
 
 <div style="padding-left:2em">
-
-<!--
-;unpack the tar-gziped file (skip this with subversion):
-<code>tar -zxvf qmcpack-vx.y-YYYYMMDD.tgz</code>
--->
 ;get source tree from the subversion repository:
 <code>svn co http://cms.mcc.uiuc.edu/svn/qmcpack-dev/trunk qmcpack</code>
 ;change to ''qmcpack'' the top directory (name can be different):
