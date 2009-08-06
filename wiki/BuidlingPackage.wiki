@@ -31,7 +31,7 @@ For tcsh users,
 }}}
 == Build QMCPACK with cmake ==
 Require [http://www.cmake.org cmake] to compile qmcpack package 
-Theoretically speaking, QMCPACK can be used on any *nix machine with recent GNU C/C++ compilers. For cmake documentation and guides, consult [http://www.cmake.org/Wiki/CMake cmake wiki]. Once the code is downloaded to _qmcpack_ directory, simply type
+Theoretically speaking, QMCPACK can be used on any UNIX/LINUX machine with recent GNU C/C++ compilers. For cmake documentation and guides, consult [http://www.cmake.org/Wiki/CMake cmake wiki]. Once the code is downloaded to _qmcpack_ directory, simply type
 
 {{{
 cd qmcpack/build
