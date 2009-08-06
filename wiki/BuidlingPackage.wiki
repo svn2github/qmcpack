@@ -56,12 +56,13 @@ Let's assume that the QMCPACK _topdir_ is `/home/foo/src/qmcpack`. Then, one can
 }}}
 In each directory, e.g., /home/foo/build/gcc-real (after setting the environments properly), execute
 {{{
+$cd /home/foo/build/gcc-real
 $cmake /home/foo/src/qmcpack
 $make 
 }}}
 There is no need to change sources or cmake files. *`cmake ..`* in the main procedure uses *..* because the source tree resides in the parent directory.
 
-If something did not work, simply remove the directory (e.g., <code>rm -rf gcc-real</code>) and start again.
+If something did not work, simply remove the directory (e.g., `rm -rf gcc-real`) and start again.
 
 == Enabling MPI and/or OpenMP ==
 === MPI ===
