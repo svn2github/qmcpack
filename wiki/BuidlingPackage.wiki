@@ -19,15 +19,16 @@ On many HPC centers, these packages are managed by utilities like '''module''' a
 Notes on Numerical Libraries: If lapack/blas or atlas is not in your standard paths, do one of the followings. location is where the libraries are located.
 
 For bash users,
-
+<code>
   export LAPACK="-L/location -llapack -lblas"
   export ATLAS="-L/location -llapack -lf77blas -lcblas -latlas" 
+<code>
 
 For tcsh users,
-
+<code>
   setenv LAPACK "-L/location -llapack -lblas"
   setenv ATLAS "-L/location -llapack -lf77blas -lcblas -latlas"
-
+<code>
 == Build QMCPACK with cmake ==
 Require [http://www.cmake.org cmake] to compile qmcpack package 
 Theoretically speaking, QMCPACK can be used on any *nix machine with recent GNU C/C++ compilers.
@@ -57,17 +58,16 @@ qmcpack directory tree
 
 '''Out-of-source compilation''' is recommend. The procedure above, creating ''build'' directory and running camke in a new directory, is an example. We can further separate the source (development) and build.
 Let's assume that the QMCPACK ''topdir'' is /home/foo/src/qmcpack. Then, one can build multiple executables in different locations by creating new directories and build QMCPACK in each directory.
-<pre>
+<code>
 /home/foo/build/gcc-real
 /home/foo/build/gcc-complex
 /home/foo/build/mpi-real
-....
-</pre>
+</code>
 In each directory, e.g., /home/foo/build/gcc-real (after setting the environments properly), execute
-<pre>
+<code>
 $cmake /home/foo/src/qmcpack
 $make 
-</pre>
+</code>
 There is no need to change sources or cmake files. '''cmake ..''' in the main procedure uses '''..''' because the source tree resides in the parent directory.
 
 If something did not work, simply remove the directory (e.g., <code>rm -rf gcc-real</code>) and start again.
@@ -75,39 +75,39 @@ If something did not work, simply remove the directory (e.g., <code>rm -rf gcc-r
 == Enabling MPI and/or OpenMP ==
 === MPI ===
 MPI is automatically enabled if
-* CXX is set to parallel compilers
-** mpicxx, mpic++, cmpic++ (tungsten at NCSA)
-** mpCC/mpCC_r on AIX
-* mpi.h is found in ''standard'' paths, e.g., /usr/include or /usr/local/include
-** SGI Altix
+ * CXX is set to parallel compilers
+ ** mpicxx, mpic++, cmpic++ (tungsten at NCSA)
+ ** mpCC/mpCC_r on AIX
+ * mpi.h is found in ''standard'' paths, e.g., /usr/include or /usr/local/include
+ ** SGI Altix
 
 One of these actions will disable MPI
-* Set QMC_MPI environment to 0, e.g., for bash <pre>export QMC_MPI=0</pre>
-* Modify ''topdir/CMakeLists.txt'' <pre>SET(QMC_MPI 0)</pre>
+ * Set QMC_MPI environment to 0, e.g., for bash <pre>export QMC_MPI=0</pre>
+ * Modify ''topdir/CMakeLists.txt'' <pre>SET(QMC_MPI 0)</pre>
 
 === OpenMP ===
 OpenMP is '''disabled by default''' in CMakeLists.txt. 
 
 But, OpenMP is automatically enabled if cmake detects that these compilers are being used:
-* Intel compilers
-* IBM VisualAge compilers
-* GNU/OpenMP compilers &gt; 4.2.x on Linux 2.6.x kernels, Mac OS X
+ * Intel compilers
+ * IBM VisualAge compilers
+ * GNU/OpenMP compilers &gt; 4.2.x on Linux 2.6.x kernels, Mac OS X
 
 To enable OpenMP for other compilers, need to do one of these
-* Set QMC_OMP to 1 e.g., for bash <pre>export QMC_OMP=1</pre>
-*  Modify ''topdir/CMakeLists.txt'' <pre>SET(QMC_OMP 1)</pre>
+ * Set QMC_OMP to 1 e.g., for bash <code>export QMC_OMP=1</code>
+ *  Modify ''topdir/CMakeLists.txt'' <code>SET(QMC_OMP 1)</code>
 
 If your machine has multiple cores, there is no need to disable OpenMP. However, make sure to set the environment variables which control OpenMP runs. Especially with MKL, set 
-<pre>
+<code>
 MKL_NUM_THREADS=1
 MKL_SERIAL=YES
-</pre>
+</code>
 so that the blas/lapack calls DO NOT USE threaded version.
 
 Note that the default number of threads on your machine may be set to the number of cores (or CPU units). It is always safe to set the number of threads yourself as 
-<pre>
+<code>
 export OMP_NUM_THREADS=1
-</pre>
+</code>
 
 == More on cmake ==
 === cmake environment variables ===
