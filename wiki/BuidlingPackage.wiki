@@ -1,4 +1,5 @@
 #summary Instructions on how to build the package
+#labels Phase-Deploy
 == Prerequisite ==
 In order to install QMCPACK, users have to install several required packages. These packages are included in standard Linux/cygwin distributions or can be downloaded by following the links. If these libraries are installed in standard directories, /usr /usr/local and /sw (Mac), no action is necessary. Alternatively, environment variables XYZ_HOME should be set. Here, XYZ stands for the name of package; the build utility can locate the libraries and use them.
 
@@ -30,21 +31,18 @@ For tcsh users,
 }}}
 == Build QMCPACK with cmake ==
 Require [http://www.cmake.org cmake] to compile qmcpack package 
-Theoretically speaking, QMCPACK can be used on any *nix machine with recent GNU C/C++ compilers.
+Theoretically speaking, QMCPACK can be used on any *nix machine with recent GNU C/C++ compilers. For cmake documentation and guides, consult [http://www.cmake.org/Wiki/CMake cmake wiki]. Once the code is downloaded to _qmcpack_ directory, simply type
 
-For cmake documentation and guides, consult
-[http://www.cmake.org/Wiki/CMake cmake wiki]
 {{{
 cd qmcpack/build
 cmake ..
 make
 }}}
 
+If everything goes well, then you should see *`qmcpack/build/bin/qmcapp`*. 
 
-If everything goes well, then you should see *`qmcpack/build/bin/qmcapp`*.
-
-qmcpack directory tree
- * qmcpack topdir
+== QMCPACK main directory tree ==
+ * qmcpack: topdir
   ** CMakeLists.txt : main cmake build file
   ** src  : source directory
   ** CMake : cmake directory for external package and compiler
