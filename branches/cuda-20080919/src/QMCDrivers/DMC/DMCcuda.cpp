@@ -205,6 +205,10 @@ namespace qmcplusplus {
 	    for (int i=0; i<accepted.size(); i++)
 	      accepted[i]->R[iatList[i]] = accPos[i];
 	    W.NLMove_GPU (accepted, accPos, iatList);
+	    // HACK HACK HACK
+	    // Recompute the kinetic energy
+	    // Psi.gradLapl(W, grad, lapl);
+	    // H.evaluate (W, LocalEnergy);
 	    //W.copyWalkersToGPU();
 	  }
 	}
@@ -212,8 +216,17 @@ namespace qmcplusplus {
 	// Now branch
 	BranchTimer.start();
 	for (int iw=0; iw<nw; iw++) {
-	  RealType scNew = std::sqrt(V2bar[iw] / V2[iw]);
+	  RealType v2=0.0, v2bar=0.0;
+	  for(int iat=0; iat<nat; iat++) {
+	    v2 += dot(W.G[iat],W.G[iat]);
+	    RealType newscale = getDriftScale(m_tauovermass,newG[iw]);
+	    v2 += m_tauovermass * m_tauovermass * dot(newG[iw],newG[iw]);
+	    v2bar +=  newscale * newscale * dot(newG[iw],newG[iw]);
+	  }
+	  //RealType scNew = std::sqrt(V2bar[iw] / V2[iw]);
+	  RealType scNew = std::sqrt(v2bar/v2);
 	  RealType scOld = (CurrentStep == 1) ? scNew : W[iw]->getPropertyBase()[DRIFTSCALE];
+
 	  W[iw]->getPropertyBase()[DRIFTSCALE] = scNew;
 	  // fprintf (stderr, "iw = %d  scNew = %1.8f  scOld = %1.8f\n", iw, scNew, scOld);
 	  RealType tauRatio = R2acc[iw] / R2prop[iw];
