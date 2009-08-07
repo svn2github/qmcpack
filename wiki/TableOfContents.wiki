@@ -3,4 +3,4 @@
  * [BuildingPackage Building]
  * [SampleRuns Sample Runs]
  * Design Notes
-  ** [ClassOverview Class Overview]
+  * [ClassOverview Class Overview]
