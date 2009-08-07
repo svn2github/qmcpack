@@ -7,14 +7,7 @@
 [http://www.cmake.org According to cmake homepage]
  the cross-platform, open-source build system
 
-= Directory tree =
-{{{
- qmcpack: topdir
-   - CMakeLists.txt : main cmake build file
-   - src  : source directory
-   - CMake : cmake directory for external package and compiler
-}}}
-
+= Build QMCPACK with cmake =
 To build the package, move to `build` directory, run `cmake` and `make`:
  {{{
   cd build

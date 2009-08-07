@@ -26,21 +26,20 @@ searched according to the listed order.
 ||einspline||c library for 3D bspline||EINSPLINE_HOME||see [HowToEinsplineLib Using Einspline library]||
 ||fftw||c library for FFT||FFTW_HOME||http://www.fftw.org/||
 
-On many HPC centers, these packages are managed by utilities like *module* and
-*softenv*. Consult the documentations on each site.
-
-Notes on Numerical Libraries: If lapack/blas or atlas is not in your standard
-paths, do one of the followings. location is where the libraries are located.
-
-For bash users,
+== Directory tree  ==
+Subversion checkout with
 {{{
-  export LAPACK="-L/location -llapack -lblas"
-  export ATLAS="-L/location -llapack -lf77blas -lcblas -latlas" 
+svn checkout http://qmcpack.googlecode.com/svn/trunk/ qmcpack
 }}}
-For tcsh users,
+command will create a directory `qmcpack` which contains
 {{{
-  setenv LAPACK "-L/location -llapack -lblas"
-  setenv ATLAS "-L/location -llapack -lf77blas -lcblas -latlas"
+ - qmcpack
+   - CMakeLists.txt : main cmake build file
+   - src  : source directory
+   - CMake : directory with cmake files for external package and compiler
+   - config : directory with toolchain files for tested systems
+   - docs : directory with doxygen files
+   - build : empty directory for a build
 }}}
 
 == Build QMCPACK with cmake ==
@@ -58,3 +57,26 @@ make
 
 If everything goes well, then you should see *`qmcpack/build/bin/qmcapp`*. 
 Consult [CMakeExplained cmake help page] for the cmake-related topics.
+
+= Advanced topics =
+
+== External libraries ==
+On many HPC centers, these packages are managed by utilities
+like *module* and *softenv*. Consult the documentations on each
+site.
+
+Notes on Numerical Libraries: If lapack/blas or atlas is not in
+your standard paths, do one of the followings. location is where
+the libraries are located.
+
+For bash users,
+{{{
+  export LAPACK="-L/location -llapack -lblas"
+  export ATLAS="-L/location -llapack -lf77blas -lcblas -latlas" 
+}}}
+For tcsh users,
+{{{
+  setenv LAPACK "-L/location -llapack -lblas"
+  setenv ATLAS "-L/location -llapack -lf77blas -lcblas -latlas"
+}}}
+
