@@ -19,6 +19,7 @@ topdir/CMakeLists.txt
  * Define how to build QMCPACK: dimensionality, precision, real/complex, mpi, openmp, .....
  * Select compilers
  * Enable/disable advanced or developing features
+
 === Default build  ===
 {{{
 SET(OHMMS_DIM 3 CACHE INTEGER "Select physical dimension"
@@ -32,25 +33,42 @@ SET(QMC_MPI 1 CACHE BOOL "Enable/disable MPI")
 SET(QMC_OMP 0 CACHE BOOL "Enable/disable OpenMP")
 SET(QMC_BITS 32 CACHE INTEGER "Select OS bit")
 }}}
+
  * OHMMS_xyz s are old macros and will be replaced by _APP_
   * APP stands for APPlication so that other application can use it without feeling constrained by the name OHMMS.
  * QMC_COMPLEX=1 is for complex wavefunctions and fixed-phase DMC/RMC methods.
  * The "cached" parameters can be modified by users manually during a build (see [[Modifying CMakeCache.txt during a build]])
 
+=== Building with environment variables ===
+
+This method works with GNU, Intel, and IBM XLC compilers. When the librariesare
+installed in standard locations, e.g., /usr, /usr/local, there is no need to
+set the XYZ_HOME for XYZ package.
+ * Set the environments (the examples below assume bash, Intel compilers and MKL library)
+ {{{
+ export CXX=icpc
+ export CC=icc
+ export MKL_HOME=/usr/local/intel/mkl/10.0.3.020
+ export LIBXML2_HOME=/usr/local
+ export HDF5_HOME=/usr/local
+ export BOOST_HOME=/usr/local/boost
+ export EINSPLINE_HOME=/usr/local/einspline
+ export FFTW_HOME=/usr/local/fftw
+ }}}
+ * Move to `build` directory, run `cmake` and `mak`e
+ {{{
+  cd build
+  cmake ..
+  make
+ }}}
+
 === How to overwrite the default build ===
- * Modify CMakeLists.txt file before running cmake
+ *CMakeLists.txt can be edited before running cmake
   * This is the only way to change OHMMS_PRECISION and OHMMS_INDEXTYPE
   * single-precision has not been debugged (probably compilers will give up).
   * There is NO NEED to use long for OHMMS_INDEXTYPE
- Other macros, 
  * Set environments to set QMC_xyz macros
   * e.g., to build serial version using complex wavefunctions on 64-bit LINUX, in bash
-{{{
-export QMC_BITS=64
-export QMC_OMP=1
-export QMC_MPI=0
-export QMC_COMPLEX=1
-}}}
  * Or, edit CMakeCache.txt file and run `cmake topdir` again.
 
 = Selecting compilers =
