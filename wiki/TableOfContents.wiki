@@ -1,8 +1,10 @@
 ﻿#summary Navigation
 
- * [BuildingPackage Building]
- * [SampleRuns Sample Runs]
+ * Userguides
+  * [BuildingPackage Building]
+  * [CMakeExplained cmake howto]
  * For developers
   * [DevHandbook Developers' Handbook]
   * [ClassOverview Class Overview]
   * [IntroXml QMC-XML]
+ * [SampleRuns Sample Runs]

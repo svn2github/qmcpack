@@ -30,8 +30,8 @@ SET(APP_PRECISION double)
 SET(PRINT_DEBUG 0 CACHE BOOL "Enable/disable debug printing")
 SET(QMC_COMPLEX 0 CACHE INTEGER "Build for complex binary")
 SET(QMC_MPI 1 CACHE BOOL "Enable/disable MPI")
-SET(QMC_OMP 0 CACHE BOOL "Enable/disable OpenMP")
-SET(QMC_BITS 32 CACHE INTEGER "Select OS bit")
+SET(QMC_OMP 1 CACHE BOOL "Enable/disable OpenMP")
+SET(QMC_BITS 64 CACHE INTEGER "Select OS bit")
 }}}
 
  * OHMMS_xyz s are old macros and will be replaced by _APP_
