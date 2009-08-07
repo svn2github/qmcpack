@@ -91,7 +91,7 @@ export FFTW_HOME=/usr/local/fftw
 }}}
 
 == How to overwrite the default build ==
-CMakeLists.txt can be edited before running cmake
+CMakeLists.txt can be edited before `cmake` step.
  * This is the only way to change OHMMS_PRECISION and OHMMS_INDEXTYPE
  * single-precision has not been debugged (probably compilers will give up).
  * There is NO NEED to use long for OHMMS_INDEXTYPE
@@ -147,17 +147,20 @@ MPI is automatically enabled if
  ** SGI Altix
 
 One of these actions will disable MPI
- * Set QMC_MPI environment to 0, e.g., for bash <pre>export QMC_MPI=0</pre>
- * Modify `topdir/CMakeLists.txt` <pre>SET(QMC_MPI 0)</pre>
+ * Set QMC_MPI environment to 0, e.g., for bash 
+ {{{export QMC_MPI=0}}}
+ * Modify `topdir/CMakeLists.txt` 
+ {{{SET(QMC_MPI 0)}}}
 
 == OpenMP ==
 OpenMP is *enabled by default* in CMakeLists.txt.
  * Intel compilers
  * GNU/OpenMP compilers > 4.2.x on Linux 2.6.x kernels, Mac OS X
- * IBM VisualAge compilers
+ * IBM XL compilers
 
 One of these actions will disable OpenMP
- * Set QMC_OMP environment to 0, e.g., for bash <pre>export QMC_OMP=0</pre>
+ * Set QMC_OMP environment to 0, e.g., for bash 
+ {{{export QMC_OMP=0}}}
  * Modify `topdir/CMakeLists.txt` 
  {{{
  SET(QMC_OMP 0)

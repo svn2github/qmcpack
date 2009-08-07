@@ -76,4 +76,4 @@ These classes are *temporary replacements* for equivalent classes of standard li
 Classes for atomistic simulations.
 || `CrystalLattice<T,D,bool ORTHO=false>`|| D-dimensional unit cell to represent a simulation box||
 || `ParticleSet`||N-particle system. The main object which interact with QMC classes, such as QMCWaveFunctions and QMCHamiltonians||
-|| `MCWalkerSet`|| derived from ParticleSet to handle a number of copies of an N-particle system. The main object for Monte Carlo Simulations.||
+|| `MCWalkerConfiguration`|| derived from ParticleSet to handle a number of copies of an N-particle system. The main object for Monte Carlo Simulations.||

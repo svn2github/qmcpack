@@ -22,13 +22,15 @@ command will create a directory `qmcpack` (`topdir`) which contains
    - CMake 
    - config 
    - docs 
-   - build 
    - utils
+   - build 
 }}}
 
+ * `src` : directory for the source
  * `CMake` : directory with cmake files for external package and compiler
  * `config` : directory with toolchain files for tested systems
  * `docs` : directory with doxygen files
+ * `utils` : directory with utility scripts
  * `build` : empty directory for a build
 
 == Prerequisites ==
@@ -99,4 +101,16 @@ For tcsh users,
   setenv LAPACK "-L/location -llapack -lblas"
   setenv ATLAS "-L/location -llapack -lf77blas -lcblas -latlas"
 }}}
+
+= Utilities included in QMCPACK distribution =
+These features are distributed with the source code but not enabled by default.
+Modify `src/CMakeList.txt` to build them.
+ * SQD: package to perform HF calculations in a spherical potential
+  {{{
+  SUBDIRS(SQD)
+  }}}
+ * Utilities to convert output files of the Gaussian-based code for QMCPACK in src/QMCTools
+ {{{
+ SET(BUILD_QMCTOOLS 1 CACHE BOOL "Build tools for QMCPACK")
+ }}}
 
