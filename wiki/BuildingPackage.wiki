@@ -1,5 +1,7 @@
 ﻿#summary Instructions on how to build the package
 #labels Phase-Deploy
+#sidebar TableOfContents
+
 == Prerequisite ==
 In order to install QMCPACK, users have to install several required packages. These packages are included in standard Linux/cygwin distributions or can be downloaded by following the links. If these libraries are installed in standard directories, /usr /usr/local and /sw (Mac), no action is necessary. Alternatively, environment variables XYZ_HOME should be set. Here, XYZ stands for the name of package; the build utility can locate the libraries and use them.
 
@@ -103,4 +105,3 @@ Note that the default number of threads on your machine may be set to the number
 {{{
 export OMP_NUM_THREADS=1
 }}}
-
