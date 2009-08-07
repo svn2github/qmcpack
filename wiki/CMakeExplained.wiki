@@ -125,6 +125,23 @@ set the XYZ_HOME for XYZ package.
   * Older compilers are OK but supports for OpenMP both compiler and run time may be not good.
   * We strongly encourage people to move on new compilers: they are usually getting better with few exceptions, which will be posted on this wiki whenever cases are encountered.
 
+= Building with a toolchain file =
+
+Several toolchain files used by the developers are available in config
+directory. They are used on large-scale parallel machines where setting up all
+the neccessary packages can be tricky.
+ * AbeMvapich2.cmake for Abe cluster at NCSA
+ * JaguarGNU.cmake for CrayXT systems at ORNL
+ * KrakenGNU.cmake for CrayXT5 system at NICS
+
+Once a sutiable toolchain file is found, follow these step (example on abe.ncsa.uiuc.edu):
+{{{
+cd build
+cmake -DCMAKE_TOOLCHAIN_FILE=../config/AbeMvapich2.cmake -DCMAKE_VERBOSE_MAKEFILE=TRUE ..
+cmake -DCMAKE_TOOLCHAIN_FILE=../config/AbeMvapich2.cmake -DCMAKE_VERBOSE_MAKEFILE=TRUE ..
+make
+}}}
+
 = Enabling MPI and/or OpenMP =
 == MPI ==
 MPI is automatically enabled if
