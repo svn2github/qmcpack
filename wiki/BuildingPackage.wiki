@@ -3,11 +3,12 @@
 #sidebar TableOfContents
 
 = Getting and building QMCPACK =
+
 Subversion checkout with
 {{{
 svn checkout http://qmcpack.googlecode.com/svn/trunk/ qmcpack
 }}}
-command will create a directory `qmcpack` (`topdir`)which contains
+command will create a directory `qmcpack` (`topdir`) which contains
 {{{
  - qmcpack
    - CMakeLists.txt 
@@ -30,6 +31,18 @@ command will create a directory `qmcpack` (`topdir`)which contains
  * `docs` : directory with doxygen files
  * `build` : empty directory for a build
 
+== Prerequisites ==
+ * C/C++ compilers
+ * cmake, build utility, http://www.cmake.org
+ * blas/lapack, numerical library, use platform-optimized libraries
+ * libxml2, XML parser, http://xmlsoft.org/
+ * hdf5, portable I/O library, http://www.hdfgroup.org/HDF5/
+ * boost, peer-reviewed portable C++ source libraries, http://www.boost.org
+
+Optional but required for a complete build
+ * einspline, 3D bspline library, http://einspline.sourceforge.net/
+ * fftw, FFT library, http://www.fftw.org/
+
 == Build QMCPACK with cmake ==
 Require [http://www.cmake.org cmake] to compile qmcpack package Theoretically
 speaking, QMCPACK can be used on any UNIX/LINUX machine with recent GNU C/C++
@@ -46,7 +59,8 @@ make
 If everything goes well, then you should see *`qmcpack/build/bin/qmcapp`*. 
 Consult [CMakeExplained cmake help page] for the cmake-related topics.
 
-== Prerequisite ==
+= External libraries =
+
 In order to install QMCPACK, users have to install several required packages.
 These packages are included in standard Linux/cygwin distributions or can be
 downloaded by following the links. If these libraries are installed in standard
@@ -69,10 +83,6 @@ searched according to the listed order.
 ||einspline||c library for 3D bspline||EINSPLINE_HOME||see [HowToEinsplineLib Using Einspline library]||
 ||fftw||c library for FFT||FFTW_HOME||http://www.fftw.org/||
 
-
-= Advanced topics =
-
-== External libraries ==
 On many HPC centers, these packages are managed by utilities
 like *module* and *softenv*. Consult the documentations on each
 site.
