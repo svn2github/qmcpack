@@ -1,0 +1,31 @@
+#summary Tips for the developers
+#sidebar TableOfContents
+== Requirements ==
+ * C++ 
+ * MPI
+ * OpenMP
+
+== Important external packages ==
+ * einspline 
+ * boost
+ * lapack/blas
+ * hdf5
+
+== Working with cmake ==
+ * Quick start: [BuildingPackage Building QMCPACK]
+ * More on [CMakeExplained  cmake use]
+
+== Guideline for the developers ==
+ * As the creator of C++ said, there is no coding standard everyone agrees on. Check out  http://www.research.att.com/~bs/bs_faq2.html#coding-standard
+ * Remember that the less you write, the better. There are well-designed classes available in STL and boost libraries and to a lesser degree in qmcpack for what you are trying to do. 
+ * Use generic and inline functions as much as  you can. 
+ * We have not enforced any coding standard but few are emerging. See [http://www.boost.org/development/header.html#SampleHeader a sample header file adopted by boost.org]
+  * indentations: 2 space, disable tabs
+  * brackets <br/><code>{<br/>//stuff here<br/>}</code>
+  * loops
+  * class names: choose the name that can mean something to other developers
+   * WhatIsThisClass
+   * what_is_this_class
+   * local variable names: hide them as much as you can within the current scope, all lower cases
+ * Learn how to use doxygen
+ * vimrc.txt customized for Mac OS Terminal
