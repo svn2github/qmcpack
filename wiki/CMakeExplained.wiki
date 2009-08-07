@@ -1,26 +1,38 @@
 ﻿#summary cmake help
 #labels Phase-Deploy
 #sidebar TableOfContents
+<wiki:toc max_depth="1" />
 
 = What is cmake =
 [http://www.cmake.org According to cmake homepage]
  the cross-platform, open-source build system
 
-= CMake files =
- * CMakeLists.txt files are recursively included: e.g., the last line of  topdir/CMakeLists.txt is <pre>SUBDIRS(src)</pre>
-  * cmake creates '''Makefile'''s when you issue <code>cmake  topdir</code>
+= Directory tree =
+ * qmcpack: topdir
+  ** CMakeLists.txt : main cmake build file
+  ** src  : source directory
+  ** CMake : cmake directory for external package and compiler
+
+To build the package, move to `build` directory, run `cmake` and `make`:
+ {{{
+  cd build
+  cmake ..
+  make
+ }}}
+
+== How it works ==
+ * CMakeLists.txt files are recursively included  during `cmake` step.
+  * cmake creates a directory tree which mirrors the distribution in the `build` directory
  * CMakeLists.txt  are similar to Makefile.am for autoconf
  * CMake directory contains customized "cmake files" by QMCPACK developers to locate libraries and tools that are not fully supported by cmake.
   * Consider them as m4 files for autoconf
- * They are  text files; you can read them, make sense out of them and modify them.
 
-== Main CMakeLists.txt ==
-topdir/CMakeLists.txt
- * Define how to build QMCPACK: dimensionality, precision, real/complex, mpi, openmp, .....
- * Select compilers
- * Enable/disable advanced or developing features
+`topdir/CMakeLists.txt` is the main file which
+ * defines how to build QMCPACK: dimensionality, precision, real/complex, mpi, openmp, .....
+ * selects compilers
+ * enables/disables advanced or developing features
 
-=== Default build  ===
+The current default build uses
 {{{
 SET(OHMMS_DIM 3 CACHE INTEGER "Select physical dimension"
 SET(OHMMS_INDEXTYPE int)
@@ -37,9 +49,35 @@ SET(QMC_BITS 64 CACHE INTEGER "Select OS bit")
  * OHMMS_xyz s are old macros and will be replaced by _APP_
   * APP stands for APPlication so that other application can use it without feeling constrained by the name OHMMS.
  * QMC_COMPLEX=1 is for complex wavefunctions and fixed-phase DMC/RMC methods.
- * The "cached" parameters can be modified by users manually during a build (see [[Modifying CMakeCache.txt during a build]])
+ * The "cached" parameters can be modified by users manually during a build by editing CMakeCache.txt.
 
-=== Building with environment variables ===
+cmake files (CMakeLists.txt, *.cmake, CMakeCache.txt)  are  text files; you can
+read them, make sense out of them and modify them.
+
+== Our-of-source compilation  ==
+Always use *out-of-source compilation* with cmake. The procedure above, using
+_build_ directory (empty) and running `camke` in _build_, is an example. We can
+further separate the source (development) and build.  Let's assume that the
+QMCPACK _topdir_ is `/home/foo/src/qmcpack`. Then, one can build multiple
+executables in different locations by creating new directories and build
+QMCPACK in each directory.  
+{{{
+/home/foo/build/gcc-real
+/home/foo/build/gcc-complex
+/home/foo/build/mpi-real
+}}}
+In each directory, e.g., /home/foo/build/gcc-real (after setting the environments properly), execute
+{{{
+$cd /home/foo/build/gcc-real
+$cmake /home/foo/src/qmcpack
+$make 
+}}}
+There is no need to change sources or cmake files. *`cmake ..`* in the main
+procedure uses *..* because the source tree resides in the parent directory.
+
+If something did not work, simply remove the directory (e.g., `rm -rf gcc-real`) and start again.
+
+= Building with environment variables =
 
 This method works with GNU, Intel, and IBM XLC compilers. When the librariesare
 installed in standard locations, e.g., /usr, /usr/local, there is no need to
@@ -55,14 +93,8 @@ set the XYZ_HOME for XYZ package.
  export EINSPLINE_HOME=/usr/local/einspline
  export FFTW_HOME=/usr/local/fftw
  }}}
- * Move to `build` directory, run `cmake` and `mak`e
- {{{
-  cd build
-  cmake ..
-  make
- }}}
 
-=== How to overwrite the default build ===
+== How to overwrite the default build ==
  * CMakeLists.txt can be edited before running cmake
   * This is the only way to change OHMMS_PRECISION and OHMMS_INDEXTYPE
   * single-precision has not been debugged (probably compilers will give up).
@@ -90,34 +122,6 @@ set the XYZ_HOME for XYZ package.
   * Recent compilers: GNU 4.2 or higher, Intel 10.x or higher
   * Older compilers are OK but supports for OpenMP both compiler and run time may be not good.
   * We strongly encourage people to move on new compilers: they are usually getting better with few exceptions, which will be posted on this wiki whenever cases are encountered.
-
-== QMCPACK main directory tree ==
- * qmcpack: topdir
-  ** CMakeLists.txt : main cmake build file
-  ** src  : source directory
-  ** CMake : cmake directory for external package and compiler
-
-*Out-of-source compilation* is recommend. The procedure above, using _build_
-directory (empty) and running `camke` in _build_, is an example. We can further
-separate the source (development) and build.  Let's assume that the QMCPACK
-_topdir_ is `/home/foo/src/qmcpack`. Then, one can build multiple executables
-in different locations by creating new directories and build QMCPACK in each
-directory.  
-{{{
-/home/foo/build/gcc-real
-/home/foo/build/gcc-complex
-/home/foo/build/mpi-real
-}}}
-In each directory, e.g., /home/foo/build/gcc-real (after setting the environments properly), execute
-{{{
-$cd /home/foo/build/gcc-real
-$cmake /home/foo/src/qmcpack
-$make 
-}}}
-There is no need to change sources or cmake files. *`cmake ..`* in the main
-procedure uses *..* because the source tree resides in the parent directory.
-
-If something did not work, simply remove the directory (e.g., `rm -rf gcc-real`) and start again.
 
 == Enabling MPI and/or OpenMP ==
 === MPI ===
