@@ -21,7 +21,7 @@
  * Use generic and inline functions as much as  you can. 
  * We have not enforced any coding standard but few are emerging. See [http://www.boost.org/development/header.html#SampleHeader a sample header file adopted by boost.org]
   * indentations: 2 space, disable tabs
-  * brackets <br/><code>{<br/>//stuff here<br/>}</code>
+  * brackets: `{ //stuff here }`
   * loops
   * class names: choose the name that can mean something to other developers
    * WhatIsThisClass
