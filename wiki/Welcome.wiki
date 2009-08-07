@@ -1,5 +1,6 @@
 #summary Home to QMCPACK wiki
 #labels Featured
+#sidebar TableOfContents
 
 = Getting started =
 
