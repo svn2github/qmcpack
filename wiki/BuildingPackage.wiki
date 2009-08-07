@@ -3,30 +3,6 @@
 #sidebar TableOfContents
 
 = Getting and building QMCPACK =
-== Prerequisite ==
-In order to install QMCPACK, users have to install several required packages.
-These packages are included in standard Linux/cygwin distributions or can be
-downloaded by following the links. If these libraries are installed in standard
-directories, /usr /usr/local and /sw (Mac), no action is necessary.
-Alternatively, environment variables XYZ_HOME should be set. Here, XYZ stands
-for the name of package; the build utility can locate the libraries and use
-them.
-
-With few exceptions, the build utility cmake will look for XYZ_HOME/include for
-the header files and XYZ_HOME/lib for the library files. When multiple
-environment variables apply to a library, e.g., blas/lapack, the library is
-searched according to the listed order.
-
-||Name	||Category	||Environment variables 	||Comments||
-||cmake	||utility|| || source and binary distribution on multiple platforms||
-||blas/lapack	||Numerical library||MKL_HOME, LAPACK, ATLAS||Alternatives: vendor-provided blas, e.g., ESSL||
-||hdf5 	||I/O	||HDF5_HOME, HDF_HOME	||source and binary distribution on multiple platforms ||
-||libxml2	||I/O	||LIBXML2_HOME	||Standard library for Linux distributions||
-||boost 	||C++ standard libraries|| BOOST_HOME	||Using only the header files. No need to compile anything. Simply download and unpack the package.||
-||einspline||c library for 3D bspline||EINSPLINE_HOME||see [HowToEinsplineLib Using Einspline library]||
-||fftw||c library for FFT||FFTW_HOME||http://www.fftw.org/||
-
-== Directory tree  ==
 Subversion checkout with
 {{{
 svn checkout http://qmcpack.googlecode.com/svn/trunk/ qmcpack
@@ -69,6 +45,30 @@ make
 
 If everything goes well, then you should see *`qmcpack/build/bin/qmcapp`*. 
 Consult [CMakeExplained cmake help page] for the cmake-related topics.
+
+== Prerequisite ==
+In order to install QMCPACK, users have to install several required packages.
+These packages are included in standard Linux/cygwin distributions or can be
+downloaded by following the links. If these libraries are installed in standard
+directories, /usr /usr/local and /sw (Mac), no action is necessary.
+Alternatively, environment variables XYZ_HOME should be set. Here, XYZ stands
+for the name of package; the build utility can locate the libraries and use
+them.
+
+With few exceptions, the build utility cmake will look for XYZ_HOME/include for
+the header files and XYZ_HOME/lib for the library files. When multiple
+environment variables apply to a library, e.g., blas/lapack, the library is
+searched according to the listed order.
+
+||Name	||Category	||Environment variables 	||Comments||
+||cmake	||utility|| || source and binary distribution on multiple platforms||
+||blas/lapack	||Numerical library||MKL_HOME, LAPACK, ATLAS||Alternatives: vendor-provided blas, e.g., ESSL||
+||hdf5 	||I/O	||HDF5_HOME, HDF_HOME	||source and binary distribution on multiple platforms ||
+||libxml2	||I/O	||LIBXML2_HOME	||Standard library for Linux distributions||
+||boost 	||C++ standard libraries|| BOOST_HOME	||Using only the header files. No need to compile anything. Simply download and unpack the package.||
+||einspline||c library for 3D bspline||EINSPLINE_HOME||see [HowToEinsplineLib Using Einspline library]||
+||fftw||c library for FFT||FFTW_HOME||http://www.fftw.org/||
+
 
 = Advanced topics =
 
