@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 
 template<typename T, int BS>
 __global__ void
@@ -758,18 +759,22 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
   
   // This appears to cause NANs for certain matrix sizes on occasion.
   // Check the pivoting algorithm.
-  // inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
-  //   ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-  inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+  inverse_many<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
     ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+//   inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+//     ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
 
 
 
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
+    char buff[500];
+    gethostname(buff, 500);
     fprintf (stderr, "CUDA error in inverse_many<double,%d>:\n  %s\n",
 	     INVERSE_BS, cudaGetErrorString(err));
+    fprintf (stderr, "Hostname = %s\n", buff);
+
     abort();
   }
 
@@ -1039,8 +1044,8 @@ test_inverse_many_double_conv()
   srand48((long) 12394);
   int numMats = 100;
 
-  int N = 168;
-  int row_stride = 176;
+  int N = 352;
+  int row_stride = 352;
 
   int lwork = cuda_inverse_many_double_worksize(N);
   fprintf (stderr, "lwork = %d\n", lwork);
