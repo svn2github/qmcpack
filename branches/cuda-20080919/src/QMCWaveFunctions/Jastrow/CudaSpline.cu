@@ -110,9 +110,6 @@ T min_dist (T& x, T& y, T& z,
   T xtmp = L[0][0]*u0 + L[1][0]*u1 + L[2][0]*u2;
   T ytmp = L[0][1]*u0 + L[1][1]*u1 + L[2][1]*u2;
   T ztmp = L[0][2]*u0 + L[1][2]*u1 + L[2][2]*u2;
-  x = xtmp;
-  y = ytmp;
-  z = ztmp;
 
 //   T u0 = Linv[0][0]*x; u0 -= rintf(u0); x = L[0][0]*u0;
 //   T u1 = Linv[1][1]*y; u1 -= rintf(u1); y = L[1][1]*u1;
