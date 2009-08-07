@@ -63,7 +63,7 @@ set the XYZ_HOME for XYZ package.
  }}}
 
 === How to overwrite the default build ===
- *CMakeLists.txt can be edited before running cmake
+ * CMakeLists.txt can be edited before running cmake
   * This is the only way to change OHMMS_PRECISION and OHMMS_INDEXTYPE
   * single-precision has not been debugged (probably compilers will give up).
   * There is NO NEED to use long for OHMMS_INDEXTYPE

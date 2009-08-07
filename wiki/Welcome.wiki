@@ -1,8 +1,12 @@
-#summary Home to QMCPACK wiki
+﻿#summary Home to QMCPACK wiki
 #labels Featured
 #sidebar TableOfContents
 
-= Getting started =
+QMCPACK, framework for Quantum Monte Carlo simulations, implements advanced QMC
+algorithms.  The code development is led by J. Kim and the main contributors
+are the members of the electron structure group of Profs. Martin and Ceperley
+at University of Illinois at Urbana-Champaign.
 
-  * Download the source: follow the instructions on *Downloads* tap
-  * [BuildingPackage Building QMCPACK]
+ * Active developers: J. Kim, K. Esler, J. McMinis, B. Clark, J. Gergely, C. Yang
+ * Past contributors: S. Chiesa, K. Delaney, J. Vincent
+

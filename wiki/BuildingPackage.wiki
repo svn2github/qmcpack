@@ -2,11 +2,20 @@
 #labels Phase-Deploy
 #sidebar TableOfContents
 
+= Getting and building QMCPACK =
 == Prerequisite ==
-In order to install QMCPACK, users have to install several required packages. These packages are included in standard Linux/cygwin distributions or can be downloaded by following the links. If these libraries are installed in standard directories, /usr /usr/local and /sw (Mac), no action is necessary. Alternatively, environment variables XYZ_HOME should be set. Here, XYZ stands for the name of package; the build utility can locate the libraries and use them.
+In order to install QMCPACK, users have to install several required packages.
+These packages are included in standard Linux/cygwin distributions or can be
+downloaded by following the links. If these libraries are installed in standard
+directories, /usr /usr/local and /sw (Mac), no action is necessary.
+Alternatively, environment variables XYZ_HOME should be set. Here, XYZ stands
+for the name of package; the build utility can locate the libraries and use
+them.
 
-With few exceptions, the build utility cmake will look for XYZ_HOME/include for the header files and XYZ_HOME/lib for the library files. When multiple environment variables apply to a library, e.g., blas/lapack, the library is searched according to the listed order.
-
+With few exceptions, the build utility cmake will look for XYZ_HOME/include for
+the header files and XYZ_HOME/lib for the library files. When multiple
+environment variables apply to a library, e.g., blas/lapack, the library is
+searched according to the listed order.
 
 ||Name	||Category	||Environment variables 	||Comments||
 ||cmake	||utility|| || source and binary distribution on multiple platforms||
@@ -17,9 +26,11 @@ With few exceptions, the build utility cmake will look for XYZ_HOME/include for 
 ||einspline||c library for 3D bspline||EINSPLINE_HOME||see [HowToEinsplineLib Using Einspline library]||
 ||fftw||c library for FFT||FFTW_HOME||http://www.fftw.org/||
 
-On many HPC centers, these packages are managed by utilities like '''module''' and '''softenv'''. Consult the documentations on each site.
+On many HPC centers, these packages are managed by utilities like *module* and
+*softenv*. Consult the documentations on each site.
 
-Notes on Numerical Libraries: If lapack/blas or atlas is not in your standard paths, do one of the followings. location is where the libraries are located.
+Notes on Numerical Libraries: If lapack/blas or atlas is not in your standard
+paths, do one of the followings. location is where the libraries are located.
 
 For bash users,
 {{{
@@ -31,9 +42,13 @@ For tcsh users,
   setenv LAPACK "-L/location -llapack -lblas"
   setenv ATLAS "-L/location -llapack -lf77blas -lcblas -latlas"
 }}}
+
 == Build QMCPACK with cmake ==
-Require [http://www.cmake.org cmake] to compile qmcpack package 
-Theoretically speaking, QMCPACK can be used on any UNIX/LINUX machine with recent GNU C/C++ compilers. For cmake documentation and guides, consult [http://www.cmake.org/Wiki/CMake cmake wiki]. Once the code is downloaded to _qmcpack_ directory, simply type
+Require [http://www.cmake.org cmake] to compile qmcpack package Theoretically
+speaking, QMCPACK can be used on any UNIX/LINUX machine with recent GNU C/C++
+compilers. For cmake documentation and guides, consult
+[http://www.cmake.org/Wiki/CMake cmake wiki]. Once the code is downloaded to
+_qmcpack_ directory, simply type
 
 {{{
 cd qmcpack/build
@@ -42,66 +57,4 @@ make
 }}}
 
 If everything goes well, then you should see *`qmcpack/build/bin/qmcapp`*. 
-
-== QMCPACK main directory tree ==
- * qmcpack: topdir
-  ** CMakeLists.txt : main cmake build file
-  ** src  : source directory
-  ** CMake : cmake directory for external package and compiler
-
-*Out-of-source compilation* is recommend. The procedure above, using _build_ directory (empty) and running `camke` in _build_, is an example. We can further separate the source (development) and build.
-Let's assume that the QMCPACK _topdir_ is `/home/foo/src/qmcpack`. Then, one can build multiple executables in different locations by creating new directories and build QMCPACK in each directory.
-{{{
-/home/foo/build/gcc-real
-/home/foo/build/gcc-complex
-/home/foo/build/mpi-real
-}}}
-In each directory, e.g., /home/foo/build/gcc-real (after setting the environments properly), execute
-{{{
-$cd /home/foo/build/gcc-real
-$cmake /home/foo/src/qmcpack
-$make 
-}}}
-There is no need to change sources or cmake files. *`cmake ..`* in the main procedure uses *..* because the source tree resides in the parent directory.
-
-If something did not work, simply remove the directory (e.g., `rm -rf gcc-real`) and start again.
-
-== Enabling MPI and/or OpenMP ==
-=== MPI ===
-MPI is automatically enabled if
- * CXX is set to parallel compilers
- ** mpicxx, mpic++, cmpic++ (tungsten at NCSA)
- ** mpCC/mpCC_r on AIX
- * mpi.h is found in *standard* paths, e.g., `/usr/include or /usr/local/include`
- ** SGI Altix
-
-One of these actions will disable MPI
- * Set QMC_MPI environment to 0, e.g., for bash <pre>export QMC_MPI=0</pre>
- * Modify `topdir/CMakeLists.txt` <pre>SET(QMC_MPI 0)</pre>
-
-=== OpenMP ===
-OpenMP is *enabled by default* in CMakeLists.txt.
- * Intel compilers
- * GNU/OpenMP compilers > 4.2.x on Linux 2.6.x kernels, Mac OS X
- * IBM VisualAge compilers
-
-One of these actions will disable OpenMP
- * Set QMC_OMP environment to 0, e.g., for bash <pre>export QMC_OMP=0</pre>
- * Modify `topdir/CMakeLists.txt` 
- {{{
- SET(QMC_OMP 0)
- SET(ENABLE_OPENMP 0)
- }}}
-
-If your machine has multiple cores, there is no need to disable OpenMP. 
-However, make sure to set the environment variables which control OpenMP runs. Especially with MKL, set 
-{{{
-MKL_NUM_THREADS=1
-MKL_SERIAL=YES
-}}}
-so that the blas/lapack calls DO NOT USE threaded version.
-
-Note that the default number of threads on your machine may be set to the number of cores (or CPU units). It is always safe to set the number of threads yourself as 
-{{{
-export OMP_NUM_THREADS=1
-}}}
+Consult CMakeExplained for cmake-related topics.
