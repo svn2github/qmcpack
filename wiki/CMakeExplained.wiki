@@ -8,10 +8,12 @@
  the cross-platform, open-source build system
 
 = Directory tree =
- * qmcpack: topdir
-  ** CMakeLists.txt : main cmake build file
-  ** src  : source directory
-  ** CMake : cmake directory for external package and compiler
+{{{
+ qmcpack: topdir
+   - CMakeLists.txt : main cmake build file
+   - src  : source directory
+   - CMake : cmake directory for external package and compiler
+}}}
 
 To build the package, move to `build` directory, run `cmake` and `make`:
  {{{
@@ -123,8 +125,8 @@ set the XYZ_HOME for XYZ package.
   * Older compilers are OK but supports for OpenMP both compiler and run time may be not good.
   * We strongly encourage people to move on new compilers: they are usually getting better with few exceptions, which will be posted on this wiki whenever cases are encountered.
 
-== Enabling MPI and/or OpenMP ==
-=== MPI ===
+= Enabling MPI and/or OpenMP =
+== MPI ==
 MPI is automatically enabled if
  * CXX is set to parallel compilers
  ** mpicxx, mpic++, cmpic++ (tungsten at NCSA)
@@ -136,7 +138,7 @@ One of these actions will disable MPI
  * Set QMC_MPI environment to 0, e.g., for bash <pre>export QMC_MPI=0</pre>
  * Modify `topdir/CMakeLists.txt` <pre>SET(QMC_MPI 0)</pre>
 
-=== OpenMP ===
+== OpenMP ==
 OpenMP is *enabled by default* in CMakeLists.txt.
  * Intel compilers
  * GNU/OpenMP compilers > 4.2.x on Linux 2.6.x kernels, Mac OS X
