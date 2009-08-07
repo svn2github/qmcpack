@@ -107,21 +107,24 @@ T min_dist (T& x, T& y, T& z,
   u1 -= rintf(u1);
   u2 -= rintf(u2);
 
-  x = L[0][0]*u0 + L[1][0]*u1 + L[2][0]*u2;
-  y = L[0][1]*u0 + L[1][1]*u1 + L[2][1]*u2;
-  z = L[0][2]*u0 + L[1][2]*u1 + L[2][2]*u2;
+  T xtmp = L[0][0]*u0 + L[1][0]*u1 + L[2][0]*u2;
+  T ytmp = L[0][1]*u0 + L[1][1]*u1 + L[2][1]*u2;
+  T ztmp = L[0][2]*u0 + L[1][2]*u1 + L[2][2]*u2;
+  x = xtmp;
+  y = ytmp;
+  z = ztmp;
 
 //   T u0 = Linv[0][0]*x; u0 -= rintf(u0); x = L[0][0]*u0;
 //   T u1 = Linv[1][1]*y; u1 -= rintf(u1); y = L[1][1]*u1;
 //   T u2 = Linv[2][2]*z; u2 -= rintf(u2); z = L[2][2]*u2;
 //   return sqrtf(x*x + y*y + z*z);
 
-  T d2min = x*x + y*y + z*z;
+  T d2min = xtmp*xtmp + ytmp*ytmp + ztmp*ztmp;
 
   for (int i=0; i<27; i++) {
-    T xnew = x + images[i][0];
-    T ynew = y + images[i][1];
-    T znew = z + images[i][2];
+    T xnew = xtmp + images[i][0];
+    T ynew = ytmp + images[i][1];
+    T znew = ztmp + images[i][2];
     T d2 = xnew*xnew + ynew*ynew + znew*znew;
     if (d2 < d2min) {
       x = xnew;
