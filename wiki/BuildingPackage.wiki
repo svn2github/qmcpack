@@ -57,4 +57,4 @@ make
 }}}
 
 If everything goes well, then you should see *`qmcpack/build/bin/qmcapp`*. 
-Consult CMakeExplained for cmake-related topics.
+Consult [CMakeExplained cmake help page] for the cmake-related topics.
