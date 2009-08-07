@@ -53,7 +53,7 @@ SET(QMC_BITS 64 CACHE INTEGER "Select OS bit")
  * QMC_COMPLEX=1 is for complex wavefunctions and fixed-phase DMC/RMC methods.
  * The "cached" parameters can be modified by users manually during a build by editing CMakeCache.txt.
 
-cmake files (CMakeLists.txt, *.cmake, CMakeCache.txt)  are  text files; you can
+cmake files (CMakeLists.txt, CMakeCache.txt and those with cmake extension)  are  text files; you can
 read them, make sense out of them and modify them.
 
 == Our-of-source compilation  ==
