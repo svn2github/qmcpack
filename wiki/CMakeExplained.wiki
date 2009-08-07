@@ -77,26 +77,28 @@ If something did not work, simply remove the directory (e.g., `rm -rf gcc-real`)
 This method works with GNU, Intel, and IBM XLC compilers. When the librariesare
 installed in standard locations, e.g., /usr, /usr/local, there is no need to
 set the XYZ_HOME for XYZ package.
- * Set the environments (the examples below assume bash, Intel compilers and MKL library)
- {{{
- export CXX=icpc
- export CC=icc
- export MKL_HOME=/usr/local/intel/mkl/10.0.3.020
- export LIBXML2_HOME=/usr/local
- export HDF5_HOME=/usr/local
- export BOOST_HOME=/usr/local/boost
- export EINSPLINE_HOME=/usr/local/einspline
- export FFTW_HOME=/usr/local/fftw
- }}}
+
+Set the environments (the examples below assume bash, Intel compilers and MKL library)
+{{{
+export CXX=icpc
+export CC=icc
+export MKL_HOME=/usr/local/intel/mkl/10.0.3.020
+export LIBXML2_HOME=/usr/local
+export HDF5_HOME=/usr/local
+export BOOST_HOME=/usr/local/boost
+export EINSPLINE_HOME=/usr/local/einspline
+export FFTW_HOME=/usr/local/fftw
+}}}
 
 == How to overwrite the default build ==
- * CMakeLists.txt can be edited before running cmake
-  * This is the only way to change OHMMS_PRECISION and OHMMS_INDEXTYPE
-  * single-precision has not been debugged (probably compilers will give up).
-  * There is NO NEED to use long for OHMMS_INDEXTYPE
- * Set environments to set QMC_xyz macros
-  * e.g., to build serial version using complex wavefunctions on 64-bit LINUX, in bash
- * Or, edit CMakeCache.txt file and run `cmake topdir` again.
+CMakeLists.txt can be edited before running cmake
+ * This is the only way to change OHMMS_PRECISION and OHMMS_INDEXTYPE
+ * single-precision has not been debugged (probably compilers will give up).
+ * There is NO NEED to use long for OHMMS_INDEXTYPE
+
+During `cmake` step, CMakeCache.txt file is created in the `build` directory.
+As the name implies, it contains cached variables that are used during the
+build stage. This file can be edited to modify the build properties. 
 
 = Selecting compilers =
  * Use CXX and CC to set the compilers in your shell, e.g., 
@@ -122,7 +124,7 @@ set the XYZ_HOME for XYZ package.
 
 Several toolchain files used by the developers are available in config
 directory. They are used on large-scale parallel machines where setting up all
-the neccessary packages can be tricky.
+the neccessary packages can be tricky. 
  * AbeMvapich2.cmake for Abe cluster at NCSA
  * JaguarGNU.cmake for CrayXT systems at ORNL
  * KrakenGNU.cmake for CrayXT5 system at NICS
