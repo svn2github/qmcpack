@@ -2,3 +2,5 @@
 
  * [BuildingPackage Building]
  * [SampleRuns Sample Runs]
+ * Design Notes
+  ** [ClassDiagrams Class Diagrams]
