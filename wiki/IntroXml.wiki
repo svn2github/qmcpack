@@ -1,0 +1,41 @@
+﻿#summary Getting started with xml
+#sidebar TableOfContents
+
+= Really short introduction to xml =
+
+A typical xml element has several attributes and children elements, where the children elements themselves should be valid xml elements.  
+<code>
+  <particleset id="i" name="i" size="2">
+    <group name="H">
+      <parameter name="charge" value="1"/>
+    </group>
+    <attrib name="position" datatype="posArray">
+      0.000  0.000 -0.7005
+      0.000  0.000  0.7005
+    </attrib>
+  </particleset>
+</code>
+
+Throughout this document, several xml notations and xpath expressions are used
+to describe QMCPACK format. For example, `project/@title` denotes the
+`title` attribute of the `project` element. For `project`,
+an optional child node `application` is used to describe the "project".
+A xpath expression `project/[@title='Ne']` points to a `project`
+element whose `title` attribute is set to Ne.
+
+Adding a comment is done simply by putting a comment section within <nowiki><!-- whatever --></nowiki>.
+
+= XML editors =
+
+
+A xmlbuddy is a plugin xml editor for [http://www.eclipse.org eclipse] IDE and can be used to prepare an input xml file for QMCPACK. [http://www.eclipse.org eclipse] provides many other useful tools and plug-ins, e.g., visual editors for Java and C/C++ codes.
+
+= QMC-XML =
+== Disclaimers ==
+The schema for qmcpack is *experimental* and *transient*. qmcpack is the first qmc application which directly supports xml (as far as we are aware of). This forced us to design the "standard". However, qmc-xml is intended for general QMC simulations and we hope other QMC software shares the standards and the community establishes the standards. The development history of qmcpack is short and new capabilities are being implemented at a rapid pace. Not adopting other standards such as CML in the current qmc-xml is due to the limitation of the resources and the impatience of the developers in the process for a standard to be proposed, accepted and adopted by a community at the early stage of the application (qmcpack) development. However, we expect that qmc-xml and qmcpack will support more established standards in our community as qmcpack becomes mature and less experimental.
+
+== Design of qmc-xml ==
+The main goal of XML in qmcpack (qmc-xml) is to define the Quantum Monte Carlo (QMC) *simulations* of quantum particles. The schema is designed to efficiently support the *computations* of qmcpack on a wide range of problems. I emphasize the generic nature of QMC calculations: there is no molecule in a QMC simulation. Rather, we use ParticleSet (for example) to represent a molecule. While there is no concept of quantum electrons in Quantum Chemistry or Density Functional Theory (only their properties, such as total energies), the electrons are represented by a ParticleSet just like a molecule. We represent quantum dots as a ParticleSet.
+
+The design decision for QMC schema is driven by qmcpack design and other practical considerations. The object-oriented nature of XML is perfectly suited to our application in C++ . ComplexType or SimpleType in XML is literally represented by classes. Complex objects are built by recursively calling member functions of the objects instantiated upon the corresponding xml node is processed. Few generic classes (template in C++) are provided to map the xml elements to objects. Other considerations include the computational efficiency, memory use and run-time parameters on HPC systems. The tight integration of the execution of an application and the data representation within the schema may lead to unconventational usage or even misuse of xml.
+

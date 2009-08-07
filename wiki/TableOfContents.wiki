@@ -1,7 +1,8 @@
-#summary Navigation
+﻿#summary Navigation
 
  * [BuildingPackage Building]
  * [SampleRuns Sample Runs]
  * For developers
   * [DevHandbook Developers' Handbook]
   * [ClassOverview Class Overview]
+  * [IntroXml QMC-XML]
