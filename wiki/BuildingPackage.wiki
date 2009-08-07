@@ -31,16 +31,28 @@ Subversion checkout with
 {{{
 svn checkout http://qmcpack.googlecode.com/svn/trunk/ qmcpack
 }}}
-command will create a directory `qmcpack` which contains
+command will create a directory `qmcpack` (`topdir`)which contains
 {{{
  - qmcpack
-   - CMakeLists.txt : main cmake build file
-   - src  : source directory
-   - CMake : directory with cmake files for external package and compiler
-   - config : directory with toolchain files for tested systems
-   - docs : directory with doxygen files
-   - build : empty directory for a build
+   - CMakeLists.txt 
+   - src  
+     - CMakeLists.txt 
+	 - dir1
+	   - CMakeLists.txt
+	 - dir2
+	   - CMakeLists.txt
+	 ....
+   - CMake 
+   - config 
+   - docs 
+   - build 
+   - utils
 }}}
+
+ * `CMake` : directory with cmake files for external package and compiler
+ * `config` : directory with toolchain files for tested systems
+ * `docs` : directory with doxygen files
+ * `build` : empty directory for a build
 
 == Build QMCPACK with cmake ==
 Require [http://www.cmake.org cmake] to compile qmcpack package Theoretically
