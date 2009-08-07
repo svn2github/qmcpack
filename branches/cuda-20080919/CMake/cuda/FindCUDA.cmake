@@ -333,7 +333,7 @@ option(CUDA_64_BIT_DEVICE_CODE "Compile device code in 64 bit mode" ${CUDA_64_BI
 # Prints out extra information about the cuda file during compilation
 option(CUDA_BUILD_CUBIN "Generate and parse .cubin files in Device mode." OFF)
 # Extra user settable flags
-set(CUDA_NVCC_FLAGS "" CACHE STRING "Semi-colon delimit multiple arguments.")
+set(CUDA_NVCC_FLAGS "-arch;sm_13" CACHE STRING "Semi-colon delimit multiple arguments.")
 # Attach the build rule to the source file in VS.  This option
 option(CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE "Attach the build rule to the CUDA source file.  Enable only when the CUDA source file is added to at most one target." ON)
 # Specifies whether the commands used when compiling the .cu file will be printed out.
