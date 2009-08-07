@@ -2,5 +2,6 @@
 
  * [BuildingPackage Building]
  * [SampleRuns Sample Runs]
- * Design Notes
+ * For developers
+  * [DevHandbook Developers' Handbook]
   * [ClassOverview Class Overview]
