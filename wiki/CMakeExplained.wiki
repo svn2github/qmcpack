@@ -1,0 +1,136 @@
+﻿#summary cmake help
+#labels Phase-Deploy
+#sidebar TableOfContents
+
+= What is cmake and why =
+
+= CMake files =
+ * CMakeLists.txt files are recursively included: e.g., the last line of  topdir/CMakeLists.txt is <pre>SUBDIRS(src)</pre>
+  * cmake creates '''Makefile'''s when you issue <code>cmake  topdir</code>
+ * CMakeLists.txt  are similar to Makefile.am for autoconf
+ * CMake directory contains customized "cmake files" by QMCPACK developers to locate libraries and tools that are not fully supported by cmake.
+  * Consider them as m4 files for autoconf
+ * They are  text files; you can read them, make sense out of them and modify them.
+
+== Main CMakeLists.txt ==
+topdir/CMakeLists.txt
+ * Define how to build QMCPACK: dimensionality, precision, real/complex, mpi, openmp, .....
+ * Select compilers
+ * Enable/disable advanced or developing features
+=== Default build  ===
+{{{
+SET(OHMMS_DIM 3 CACHE INTEGER "Select physical dimension"
+SET(OHMMS_INDEXTYPE int)
+SET(OHMMS_PRECISION double)
+SET(APP_PRECISION double)
+
+SET(PRINT_DEBUG 0 CACHE BOOL "Enable/disable debug printing")
+SET(QMC_COMPLEX 0 CACHE INTEGER "Build for complex binary")
+SET(QMC_MPI 1 CACHE BOOL "Enable/disable MPI")
+SET(QMC_OMP 0 CACHE BOOL "Enable/disable OpenMP")
+SET(QMC_BITS 32 CACHE INTEGER "Select OS bit")
+}}}
+ * OHMMS_xyz s are old macros and will be replaced by APP_
+  * APP stands for APPlication so that other application can use it without feeling constrained by the name OHMMS.
+ * QMC_COMPLEX=1 is for complex wavefunctions and fixed-phase DMC/RMC methods.
+ * The "cached" parameters can be modified by users manually during a build (see [[Modifying CMakeCache.txt during a build]])
+
+=== How to overwrite the default build ===
+ * Modify CMakeLists.txt file before running cmake
+  * This is the only way to change OHMMS_PRECISION and OHMMS_INDEXTYPE
+  * single-precision has not been debugged (probably compilers will give up).
+  * There is NO NEED to use long for OHMMS_INDEXTYPE
+ Other macros, 
+ * Set environments to set QMC_xyz macros
+  * e.g., to build serial version using complex wavefunctions on 64-bit LINUX, in bash
+{{{
+export QMC_BITS=64
+export QMC_OMP=1
+export QMC_MPI=0
+export QMC_COMPLEX=1
+}}}
+ * Or, edit CMakeCache.txt file and run `cmake topdir` again.
+
+= Selecting compilers =
+ * '''Use CXX and CC to set the compilers in your shell.'''
+ * Without setting them, you are using  CXX=g++ and CC=gcc and the default properties of the GNU compilers you are using.
+ * cmake will use CMake/XYZCompilers.cmake, for XYZ=GNU, Intel, or IBM, if one of them is used.
+  * CXX=icpc for Intel compilers
+  * CXX=xlC for IBM compilers
+ * When you use MPI compilers or scripts, e.g., mpicxx, few problems can arise. Check [[How to enable MPI]].
+ * on jaguar at ORNL, CMake/CrayXT.cmake is automatically used. 
+ * You can create your own compiler cmake file for fine tuning (See [[Writing your own cmake files]])
+ Note that
+ * Development and testing are done mostly on linux systems using  Intel or GNU compilers. 
+ * Certain assumptions are made by the developers
+  * Recent compilers: GNU 4.2 or higher, Intel 10.x or higher
+  * Older compilers are OK but supports for OpenMP both compiler and run time may be not good.
+  * We strongly encourage people to move on new compilers: they are usually getting better with few exceptions, which will be posted on this wiki whenever cases are encountered.
+
+== QMCPACK main directory tree ==
+ * qmcpack: topdir
+  ** CMakeLists.txt : main cmake build file
+  ** src  : source directory
+  ** CMake : cmake directory for external package and compiler
+
+*Out-of-source compilation* is recommend. The procedure above, using _build_
+directory (empty) and running `camke` in _build_, is an example. We can further
+separate the source (development) and build.  Let's assume that the QMCPACK
+_topdir_ is `/home/foo/src/qmcpack`. Then, one can build multiple executables
+in different locations by creating new directories and build QMCPACK in each
+directory.  
+{{{
+/home/foo/build/gcc-real
+/home/foo/build/gcc-complex
+/home/foo/build/mpi-real
+}}}
+In each directory, e.g., /home/foo/build/gcc-real (after setting the environments properly), execute
+{{{
+$cd /home/foo/build/gcc-real
+$cmake /home/foo/src/qmcpack
+$make 
+}}}
+There is no need to change sources or cmake files. *`cmake ..`* in the main
+procedure uses *..* because the source tree resides in the parent directory.
+
+If something did not work, simply remove the directory (e.g., `rm -rf gcc-real`) and start again.
+
+== Enabling MPI and/or OpenMP ==
+=== MPI ===
+MPI is automatically enabled if
+ * CXX is set to parallel compilers
+ ** mpicxx, mpic++, cmpic++ (tungsten at NCSA)
+ ** mpCC/mpCC_r on AIX
+ * mpi.h is found in *standard* paths, e.g., `/usr/include or /usr/local/include`
+ ** SGI Altix
+
+One of these actions will disable MPI
+ * Set QMC_MPI environment to 0, e.g., for bash <pre>export QMC_MPI=0</pre>
+ * Modify `topdir/CMakeLists.txt` <pre>SET(QMC_MPI 0)</pre>
+
+=== OpenMP ===
+OpenMP is *enabled by default* in CMakeLists.txt.
+ * Intel compilers
+ * GNU/OpenMP compilers > 4.2.x on Linux 2.6.x kernels, Mac OS X
+ * IBM VisualAge compilers
+
+One of these actions will disable OpenMP
+ * Set QMC_OMP environment to 0, e.g., for bash <pre>export QMC_OMP=0</pre>
+ * Modify `topdir/CMakeLists.txt` 
+ {{{
+ SET(QMC_OMP 0)
+ SET(ENABLE_OPENMP 0)
+ }}}
+
+If your machine has multiple cores, there is no need to disable OpenMP. 
+However, make sure to set the environment variables which control OpenMP runs. Especially with MKL, set 
+{{{
+MKL_NUM_THREADS=1
+MKL_SERIAL=YES
+}}}
+so that the blas/lapack calls DO NOT USE threaded version.
+
+Note that the default number of threads on your machine may be set to the number of cores (or CPU units). It is always safe to set the number of threads yourself as 
+{{{
+export OMP_NUM_THREADS=1
+}}}
