@@ -1,0 +1,4 @@
+#summary Navigation
+
+ * [BuildingQMCPACK Building]
+ * [SampleRuns Sample Runs]
