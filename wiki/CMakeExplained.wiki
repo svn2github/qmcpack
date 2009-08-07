@@ -24,7 +24,7 @@ To build the package, move to `build` directory, run `cmake` and `make`:
 
 == How it works ==
  * CMakeLists.txt files are recursively included  during `cmake` step.
-  * cmake creates a directory tree which mirrors the distribution in the `build` directory
+  * cmake creates a directory tree which mirrors the `topdir` (e.g., `qmcpack`) in the `build` directory
  * CMakeLists.txt  are similar to Makefile.am for autoconf
  * CMake directory contains customized "cmake files" by QMCPACK developers to locate libraries and tools that are not fully supported by cmake.
   * Consider them as m4 files for autoconf
