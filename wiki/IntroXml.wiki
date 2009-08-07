@@ -24,7 +24,9 @@ A xpath expression `project/[@title='Ne']` points to a `project`
 element whose `title` attribute is set to Ne.
 
 Adding a comment is done simply by putting a comment section within 
-{{{<!-- whatever -->}}}
+{{{
+<!-- whatever -->
+}}}
 
 = XML editors =
 
