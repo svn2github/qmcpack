@@ -2,6 +2,7 @@
 
  * Getting started
   * [BuildingPackage Building]
+  * [RunningApp Running]
   * [CMakeExplained cmake howto]
  * For developers
   * [DevHandbook Developers' Handbook]

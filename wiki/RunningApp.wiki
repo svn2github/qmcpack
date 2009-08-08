@@ -1,0 +1,62 @@
+﻿#summary How to run QMCPACK
+#labels Phase-Deploy
+#sidebar TableOfContents
+
+= Running applications =
+ * Seiral/OpenMP applications 
+ {{{
+ export OMP_NUM_THREADS=4
+ build_path/bin/qmcapp input-xml
+ ]}}
+ * OpenMP is turned on automatically if the compiler supports it. These compilers
+ are extensively tested with OpenMP.
+   * GNU compilers 4.2 and higher
+   * Intel compilers 
+ * MPI applications 
+ {{{
+ mpirun -np 4 build_path/bin/qmcapp input-xml
+ ]}}
+ ** Note that the run-time environment for MPI codes depends on the system. Consult your system documentation.
+ ** If OpenMP is enabled, make sure to set `OMP_NUM_THREADS`. On many systems, the default 
+ `OMP_NUM_THREADS` is set to the maximum allowed number of threads per SMP node.
+
+= Before running QMCPACK =
+
+We can seldom write down the many-body trial wavefunction from scratch. The most general scenario follows
+ * run DFT/HF or beyond HF calculations to obtain single-particle orbitals (typical KS orbitals) or coefficients of multi determinants.  
+ * extract the Fermion wavefunctions run VMC/Optimization run DMC or RQMC
+
+= Preparing input files =
+The input XML for qmc sections are extremely simple. The major difficulties
+concern trial wavefunctions. The components of a trial wavefunction can be
+divided into 
+ * Jastrow functions: one, two, and three (no four body yet) 
+ * Fermion wavefunction: Slater determinant, Geminal
+
+Jastrow functions are rather simple but have to be defined by users.
+
+On the other hand, users seldom have to prepare Fermion wavefunctions. They are
+extracted from outputs of third-party packages by tools (See [QMCToolsHowTo]).
+Users may have to modify the name or id of the wavefunctions but again this can
+be achieved by command-line options for the tools.
+
+We have not implemented backflow wavefunctions but think we can use
+Jastrow/Fermion to represent them.
+
+= Electronic structure packages QMCPACK can utilize =
+ * Gaussian
+ * Gamess (XML version)
+ * Casino (only for Gaussian basis set)
+ * Quantum espresso 
+ * abinit
+ * qbox
+
+Potentially, these packages will be supported
+ * NWChem
+ * MondoSCF
+
+Often, we can use utilities for Casino package but a preferred way is to work
+with the packages directly if they are under open-source licenses. For example,
+a postprocessing code pw2qmcpack.F90 for Quauntum espresso is implemented using
+their libraries and HDF5 library.
+
