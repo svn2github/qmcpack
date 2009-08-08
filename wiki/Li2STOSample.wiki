@@ -1,6 +1,6 @@
 ﻿#summary How to run Li2 in STO 
 
-||[Welcome home]||[TutorialsList Tutorials]||
+||[Welcome Home]||[TutorialsList Tutorials]||
 
 = Objectives =
 This tutorial shows how to run QMCPACK to perform VMC-optimization and DMC with

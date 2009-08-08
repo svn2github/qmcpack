@@ -1,7 +1,7 @@
 ﻿#summary cmake help
 #labels Phase-Deploy
 
-||[Welcome home]||[TutorialsList Tutorials]|| 
+||[Welcome Home]||[TutorialsList Tutorials]|| 
 
 <wiki:toc max_depth="1" />
 = What is cmake =

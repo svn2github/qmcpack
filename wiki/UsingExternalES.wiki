@@ -1,6 +1,6 @@
 ﻿#summary How to use external electron-structure code
 
-||[Welcome home]||[TutorialsList Tutorials]||
+||[Welcome Home]||[TutorialsList Tutorials]||
 
 = Utility to prepare input files for QMCPACK =
  * Source distribution contains a directory src/QMCTools with few utility tools one can use to convert input/output of other packages for QMCPACK

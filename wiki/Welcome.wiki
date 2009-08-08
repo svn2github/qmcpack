@@ -10,3 +10,27 @@ at University of Illinois at Urbana-Champaign.
  * Active developers: J. Kim, K. Esler, J. McMinis, B. Clark, J. Gergely, C. Yang
  * Past contributors: S. Chiesa, K. Delaney, J. Vincent
 
+= How to contribute to QMCPACK =
+
+== Development ==
+You can get involved with the development by contacting any of the owners of
+this project. Substantial experience in C++ and parallel programming
+(MPI/OpenMP) and knowledge in the electronic structure and quantum Monte Carlo
+methods are required. 
+
+In many cases, QMC simulations start with the electronic structure calculations
+using DFT, HF and other many-body methods.  A few tools have been developed but
+any tools that can make QMCPACK useful and usable are always welcome.  The
+input/output uses XML and HDF5 and we will provide the schemas to assist
+developers of other electronic structure codes and tools.
+
+== Applications ==
+Anyone can download QMCPACK and use it for their research.  We ask the users to cite
+our work by including
+{{{
+QMCPACK, http://www.mcc.uiuc.edu/qmcpack
+}}}
+until technical papers on QMCPACK are published.
+
+== Documentation ==
+Use *issues* and this *wiki* to add tutorials, sample data etc.

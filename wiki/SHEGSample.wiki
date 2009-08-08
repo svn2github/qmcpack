@@ -1,6 +1,6 @@
 ﻿#summary how to run spherical homogeneous electron gas
 
-||[Welcome home]||[TutorialsList Tutorials]||
+||[Welcome Home]||[TutorialsList Tutorials]||
 
 = Objectives =
 Spherical Homegeneous Electron Gas (SHEG)
