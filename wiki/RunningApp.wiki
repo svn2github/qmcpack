@@ -3,11 +3,12 @@
 #sidebar TableOfContents
 
 = Running applications =
+
  * Seiral/OpenMP applications 
  {{{
  export OMP_NUM_THREADS=4
  build_path/bin/qmcapp input-xml
- ]}}
+ }}}
  * OpenMP is turned on automatically if the compiler supports it. These compilers
  are extensively tested with OpenMP.
    * GNU compilers 4.2 and higher
@@ -16,8 +17,8 @@
  {{{
  mpirun -np 4 build_path/bin/qmcapp input-xml
  ]}}
- ** Note that the run-time environment for MPI codes depends on the system. Consult your system documentation.
- ** If OpenMP is enabled, make sure to set `OMP_NUM_THREADS`. On many systems, the default 
+  * Note that the run-time environment for MPI codes depends on the system. Consult your system documentation.
+  * If OpenMP is enabled, make sure to set `OMP_NUM_THREADS`. On many systems, the default 
  `OMP_NUM_THREADS` is set to the maximum allowed number of threads per SMP node.
 
 = Before running QMCPACK =
