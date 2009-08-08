@@ -5,7 +5,7 @@
   * [RunningApp Running]
   * [CMakeExplained cmake howto]
   * [UsingExternalES Using external packages]
- * [TutorialList Tutorials]
+ * [TutorialsList Tutorials]
   * [Li2STOSample Li2]
   * [BulkSolidDFTSample Bulk Solid]
   * [SHEGSample SHEG]
