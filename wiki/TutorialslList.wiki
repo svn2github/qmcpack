@@ -1,0 +1,6 @@
+#summary Sample runs with input files
+#sidebar TableOfContents
+
+ * [Li2STOSample Li2 using Slater-type Molecular Orbitals]
+ * [SHEGSample Spherical Homogeneous Electron Gas]
+ * [BulkSolidDFTSample Bulk Solid with DFT oritals]
