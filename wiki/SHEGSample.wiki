@@ -5,9 +5,9 @@
 Spherical Homegeneous Electron Gas (SHEG)
 
 = Procedure =
- # HF calculation of SHEG using this input file
+ * HF calculation of SHEG using this input file
  {{{bin/sqd jellium.xml}}}
- # QMC calculation using the HF orbitals
+ * QMC calculation using the HF orbitals
  {{{bin/qmcapp jellium.qmc.xml}}}
 
 == jellium.xml ==
