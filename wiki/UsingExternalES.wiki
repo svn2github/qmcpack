@@ -1,0 +1,86 @@
+﻿#summary How to use external electron-structure code
+#sidebar TableOfContents
+
+= Utility to prepare input files for QMCPACK =
+ * Source distribution contains a directory src/QMCTools with few utility tools one can use to convert input/output of other packages for QMCPACK
+ * The tools are not automatically built but one can modify CMakeLists.txt file
+ {{{
+   SET(BUILD_QMCTOOLS 1)
+ }}}
+ * A useful tool is `convert4qmc` for localized-orbital basis set. It can process
+  * Gaussian03
+  * Gamess (version supporting xml)
+  * Casino
+  * TurboPair (very limited and need editing)
+ * `pw2qmcpack.x` for Quantum Espresso
+  * This is an add-on program to Quantum Espresso package. It is not officially included with the distribution but will be available to those who are interested.
+  * This code is released under GPL as Quantum Espresso
+
+= Example to generate wavefunctions in a plane-wave basis and on a grid =
+ * Prepare an input for quantum espresso
+ {{{
+   &control
+       calculation = 'scf'
+       restart_mode='from_scratch',
+       prefix='c',
+       tstress = .true.
+       tprnfor = .true.
+       pseudo_dir = '/u/ac/jnkim/data/qmcdb/pps/lda_opt/',
+       outdir='lda_gamma/'
+    /
+    &system
+       ibrav=  1, celldm(1) =6.74, nat=  8, ntyp= 1,
+       ecutwfc =50.0,
+    /
+    &electrons
+       diagonalization='cg'
+       mixing_mode = 'plain'
+       mixing_beta = 0.7
+       conv_thr =  1.0d-8
+    /
+   ATOMIC_SPECIES
+    C  12.0107 c.ncpp
+   ATOMIC_POSITIONS
+    C 0.00 0.00 0.00
+    C 0.25 0.25 0.25
+    C 0.50 0.50 0.00
+    C 0.75 0.75 0.25
+    C 0.50 0.00 0.50
+    C 0.75 0.25 0.75
+    C 0.00 0.50 0.50
+    C 0.25 0.75 0.75
+   K_POINTS {gamma}
+    4 4 4 1 1 1
+  }}}
+ * Execute `pw.x` 
+ {{{pw.x < C.inp}}}
+ * Execute pw2qmcpack 
+ {{{pw2qmcpack.x < pp.in}}}
+  * pp.in for post processing contains 
+  {{{
+  &inputPP
+     prefix = 'c',
+     outdir = 'lda_gamma/'
+   /
+   }}}
+ * If everything works well, two files
+  * `c.pwscf.h5` : binary data
+  * `c.pwscf.xml` : qmcsystem xml file to describe the physical systems and wavefunctions
+
+= Running Gaussians on ncsa machines =
+
+The input files for each command are given in italic.
+||*steps*|| *command *||
+||Run Gaussian 2003 || `/usr/apps/chemistry/queues/qg03 geh4` ||
+||Add Gaussian utility programs by ||`source /usr/apps/chemistry/gaussian/g03util`||
+||Convert binary file GeH4.chk 	||`formchk GeH4.chk` ||
+||Convert ascii GeH4.fchk for QMCPACK ||`convert4qmc -gaussian GeH4.fchk` ||
+
+Once these steps are executed, two input files are generated for qmcpack
+ * xml file containing 
+ {{{
+ <qmcsystem>
+ </qmcsystem>
+ }}}
+ * hdf5 file containing large datasets such as eigen vectors
+
