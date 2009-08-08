@@ -1,0 +1,122 @@
+﻿#summary How to run spherical homogeneous electron gas
+#sidebar TableOfContents
+
+= Objectives =
+Spherical Homegeneous Electron Gas (SHEG)
+
+= Procedure =
+ # {{{bin/sqd jellium.xml}}} - HF calculation of SHEG using this input file
+ # {{{bin/qmcapp jellium.qmc.xml}}} - QMC calculation using the HF orbitals
+
+== jellium.xml ==
+{{{
+<?xml version="1.0"?>
+<simulation>
+  <project id="heg.rs=4.n=8" series="0"/>
+  <atom name="sqd" num_closed_shells="2">
+    <grid type="log" ri="1e-6" rf="100" scale="1" npts="1001"/>
+    <!--
+    converge faster with a log grid see the wiki
+    <grid type="linear" ri="0.0" rf="80" npts="8001"/>
+    -->
+    <orbitalset condition="spin_space">
+      <!-- Commented out to use  atom/@num_closed_shells for the occupation
+      <orbital n="1" l="0" m="0" s="1" c="1.0"/>
+      <orbital n="1" l="0" m="0" s="-1" c="1.0"/>
+      -->
+    </orbitalset>
+    <hamiltonian type="heg">
+      <parameter name="rs">4.0 </parameter>
+      <parameter name="Z">2</parameter>
+    </hamiltonian>
+  </atom>
+  <eigensolve>
+    <parameter name="max_iter"> 1000 </parameter>
+    <parameter name="etot_tol"> 1e-7 </parameter>
+    <parameter name="eig_tol"> 1e-14 </parameter>
+    <parameter name="mix_ratio"> 0.7 </parameter>
+  </eigensolve>
+</simulation>
+}}}
+
+== jellium.qmc.xml ==
+{{{
+<?xml version="1.0"?>
+<simulation>
+  <project id="sheg.vmc" series="0"/>
+  <!-- include the output file by sqd -->
+  <include href="heg.rs=4.n=18.s000.qmc.xml"/>
+  <hamiltonian name="h0" type="generic" target="e">
+    <pairpot name="ElecElec" type="coulomb" source="e" target="e"/>
+    <pairpot name="Jellium" type="pseudo" source="atom" target="e" wavefunction="psi0" format="xml">
+      <pseudo elementType="sqd" href="heg.rs=4.n=18.s000.Vext.xml" format="xml"/>
+    </pairpot>
+  </hamiltonian>
+  <init source="atom" target="e"/>
+  <qmc method="vmc" move="pbyp">
+    <estimator name="LocalEnergy"/>
+    <parameter name="blocks">1000</parameter>
+    <parameter name="steps">10</parameter>
+    <parameter name="walkers">100</parameter>
+    <parameter name="samples">1000</parameter>
+    <parameter name="timestep">5.0</parameter>
+  </qmc>
+  <qmc method="dmc" move="pbyp">
+    <parameter name="blocks">1000</parameter>
+    <parameter name="steps">200</parameter>
+    <parameter name="pop_control">35</parameter>
+    <parameter name="timestep">1.0e-3</parameter>
+  </qmc>
+</simulation>
+}}}
+
+= SQD package for HF calculations with a spherically symmetric potential =
+
+SQD package implements Numerov method for HF-SCF of N-particle system in a
+spherical potential. To compile this package, simply edit the last line of
+`src/CMakeLists.txt`
+{{{
+SUBDIRS(SQD)
+}}}
+
+For a problem denoted as an `atom` of N quantum particles (electrons), Hamiltonian is a sum of
+ * Kinetic operator
+ * Hartree operator
+ * Exchange operator
+ * An external potential : input-dependent
+
+Spherical potentials can be found in `SQD/SphericalPotential` directory.
+Currently available external potentials are
+ * Coulomb: ZOverRPotential
+ * Spherical Jellium: SHEGPotential
+ * Harmonic : HarmonicPotential
+ * Step : StepPotential
+
+Once a new potential is implemented, edit `HartreeFock.IO.cpp` file to choose the new potential using an if-statement.
+
+Limitations
+ * Cannot combine two external potentials but this can be easily implemented.
+ * Grid scaling is not handled nicely except for the Coulomb potential.
+
+== SHEG potential ==
+The potential is implemented in
+{{{
+  SQD/SphericalPotential/SHEGPotential.h
+  SQD/SphericalPotential/SHEGPotential.cpp
+}}}
+
+The density is set by r,,s,, as shown below.
+{{{
+ <hamiltonian type="heg">
+   <parameter name="rs">4.0 </parameter>
+   <parameter name="Z">2</parameter>
+ </hamiltonian>
+}}}
+
+Based on r,,s,, and the total number of electrons (defined by atom and
+orbitalset), other variables are determined, such as the maximum radius of the
+background charge Z,,bg,,.
+
+One can consider a case with  Z,,bg,, > N,,el,, using `parameter@name="Z"` tag.
+If the input Z is less than the total number of electrons, it is overwritten by
+the number of electrons.

@@ -1,4 +1,4 @@
-﻿#summary How to use external electron-structure code
+﻿#summary How to run Li2 in STO 
 #sidebar TableOfContents
 
 = Objectives =
@@ -97,9 +97,7 @@ They optimized by Umrigar et al, see JCP 99, 2865 (1993).
     <parameter name="warmup_steps">1000</parameter>
     <parameter name="timestep">0.05</parameter>
     <parameter name="walkers">100</parameter>
-	<!-- 
-	samples is used to store the configurations during VMC.
-     -->
+	<!-- samples is used to store the configurations during VMC.  -->
     <parameter name="samples">1000</parameter> 
   </qmc>
   <!-- execute DMC 
