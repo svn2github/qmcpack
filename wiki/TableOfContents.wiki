@@ -5,7 +5,7 @@
   * [RunningApp Running]
   * [CMakeExplained cmake howto]
  * Tutorials
-  * [TutorialslList Sample Runs]
+  * [TutorialsList Sample Runs]
    * [Li2STOSample Li2]
    * [BulkSolidDFTSample Bulk Solid]
    * [SHEGSample SHEG]
