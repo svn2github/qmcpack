@@ -4,7 +4,7 @@
   * [BuildingPackage Building]
   * [RunningApp Running]
   * [CMakeExplained cmake howto]
-  * [UsingExternalES.wiki]
+  * [UsingExternalES Using external packages]
  * Tutorials
   * [TutorialsList Sample Runs]
    * [Li2STOSample Li2]
