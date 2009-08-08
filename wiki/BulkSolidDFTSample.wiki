@@ -1,5 +1,6 @@
 ﻿#summary Builk solid calculations using DFT orbitals
-#sidebar TableOfContents
+
+||[Welcome home]||[TutorialsList Tutorial]||
 
 = Introduction =
 Solids can be simulated in periodic boundary conditions using orbitals from a

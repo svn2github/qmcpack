@@ -6,8 +6,9 @@
   * [CMakeExplained cmake howto]
  * Tutorials
   * [TutorialslList Sample Runs]
-  * [Li2STOSample Li2]
-  * [SHEGSample SHEG]
+   * [Li2STOSample Li2]
+   * [BulkSolidDFTSample Bulk Solid]
+   * [SHEGSample SHEG]
  * For developers
   * [DevHandbook Developers' Handbook]
   * [ClassOverview Class Overview]
