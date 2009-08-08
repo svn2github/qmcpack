@@ -64,6 +64,12 @@ template<typename T> inline void Communicate::gather(T& sb, T& rb, int dest)
   APP_ABORT("Need specialization for gather(T&, T&, int)");
 }
 
+template<typename T> 
+inline void Communicate::allgather(T& sb, T& rb, int count)
+{ 
+  APP_ABORT("Need specialization for gatherv(T&, T&, int)");
+}
+
 template<typename T, typename IT> 
 inline void Communicate::gatherv(T& sb, T& rb, IT&, IT&, int dest)
 { 
@@ -542,6 +548,19 @@ Communicate::gather(std::vector<double>& l, std::vector<double>& g, int dest)
     int ierr = MPI_Gather(&l[0], l.size(), MPI_DOUBLE, 
         &g[0], l.size(), MPI_DOUBLE, dest, myMPI);
 }
+
+template<>
+inline void 
+Communicate::allgather(std::vector<char>& sb, 
+		       std::vector<char>& rb, int count) 
+{
+#if defined(_CRAYMPI)
+  const int cray_short_msg_size=128000;
+  if(sb.size()*sizeof(double)<cray_short_msg_size) this->barrier();
+#endif
+  MPI_Allgather(&sb[0], count, MPI_CHAR, &rb[0], count, MPI_CHAR, myMPI);
+}
+
 
 template<>
 inline void 
