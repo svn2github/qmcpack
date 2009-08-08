@@ -1,13 +1,13 @@
 ﻿#summary Navigation
 
- * Getting started
-  * [BuildingPackage Building]
-  * [RunningApp Running]
-  * [CMakeExplained cmake howto]
- * Tutorials
-  * [SampleRuns Sample Runs]
-  * [Li2STOSample Li2]
- * For developers
-  * [DevHandbook Developers' Handbook]
-  * [ClassOverview Class Overview]
-  * [IntroXml QMC-XML]
+Getting started
+ * [BuildingPackage Building]
+ * [RunningApp Running]
+ * [CMakeExplained cmake howto]
+Tutorials
+ * [SampleRuns Sample Runs]
+ * [Li2STOSample Li2]
+For developers
+ * [DevHandbook Developers' Handbook]
+ * [ClassOverview Class Overview]
+ * [IntroXml QMC-XML]
