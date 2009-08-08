@@ -1,15 +1,14 @@
 ﻿#summary Navigation
 
- * Getting started
+ * [Welcome Getting started]
   * [BuildingPackage Building]
   * [RunningApp Running]
   * [CMakeExplained cmake howto]
   * [UsingExternalES Using external packages]
- * Tutorials
-  * [TutorialsList Sample Runs]
-   * [Li2STOSample Li2]
-   * [BulkSolidDFTSample Bulk Solid]
-   * [SHEGSample SHEG]
+ * [TutorialList Tutorials]
+  * [Li2STOSample Li2]
+  * [BulkSolidDFTSample Bulk Solid]
+  * [SHEGSample SHEG]
  * For developers
   * [DevHandbook Developers' Handbook]
   * [ClassOverview Class Overview]

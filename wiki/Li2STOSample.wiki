@@ -8,7 +8,7 @@ a prepared input file for Li,,2,,
 
 = Main input xml =
 The molecular orbitals for a Li,,2,, molecule are represented by Slater-type atomic orbitals.
-They optimized by Umrigar et al, see JCP 99, 2865 (1993).  
+They are optimized by Umrigar et al, see JCP 99, 2865 (1993).  
 
 `Li2.STO.xml`
 {{{
