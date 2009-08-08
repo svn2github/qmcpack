@@ -1,12 +1,13 @@
 ﻿#summary Builk solid calculations using DFT orbitals
 
-||[Welcome home]||[TutorialsList Tutorial]||
+||[Welcome home]||[TutorialsList Tutorials]||
 
 = Introduction =
-Solids can be simulated in periodic boundary conditions using orbitals from a
-plane-wave DFT code such as ABINIT, PWscf (Quantum Espresso), or Qbox.  This
-page explains the process of generating orbitals, converting them to QMCPACK's
-HDF5 format, and setting up the input files.  As an example, we will use cubic
+Solids can be simulated in periodic boundary conditions using
+orbitals from a plane-wave DFT code such as ABINIT, PWscf
+(Quantum Espresso), or Qbox.  This page explains the process of
+generating orbitals, converting them to QMCPACK's HDF5 format,
+and setting up the input files.  As an example, we will use cubic
 boron nitride, an analog of diamond in the zincblende structure.
 
 = Tools for exercises =

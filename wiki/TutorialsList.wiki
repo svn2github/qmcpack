@@ -1,6 +1,19 @@
-#summary Sample runs with input files
+﻿#summary Sample runs with input files
 #sidebar TableOfContents
 
  * [Li2STOSample Li2 using Slater-type Molecular Orbitals]
  * [SHEGSample Spherical Homogeneous Electron Gas]
  * [BulkSolidDFTSample Bulk Solid with DFT oritals]
+
+= Adding a tutorial or a sample run =
+
+Prepare a wiki page starting with
+{{{
+#summary what this run does
+
+||[Welcome home]||[TutorialsList tutorials]||
+
+.. wiki content ...
+
+}}}
+  
