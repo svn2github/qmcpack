@@ -5,8 +5,10 @@
 Spherical Homegeneous Electron Gas (SHEG)
 
 = Procedure =
- # {{{bin/sqd jellium.xml}}} - HF calculation of SHEG using this input file
- # {{{bin/qmcapp jellium.qmc.xml}}} - QMC calculation using the HF orbitals
+ # HF calculation of SHEG using this input file
+ {{{bin/sqd jellium.xml}}}
+ # QMC calculation using the HF orbitals
+ {{{bin/qmcapp jellium.qmc.xml}}}
 
 == jellium.xml ==
 {{{
@@ -70,9 +72,9 @@ Spherical Homegeneous Electron Gas (SHEG)
 </simulation>
 }}}
 
-= SQD package for HF calculations with a spherically symmetric potential =
-
-SQD package implements Numerov method for HF-SCF of N-particle system in a
+= SQD package =
+The first step of this tutorial is a HF calculation using SQD package.  SQD
+package implements Numerov method for HF-SCF of N-particle system in a
 spherical potential. To compile this package, simply edit the last line of
 `src/CMakeLists.txt`
 {{{
