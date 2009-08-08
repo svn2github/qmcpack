@@ -5,7 +5,7 @@
   * [RunningApp Running]
   * [CMakeExplained cmake howto]
  * Tutorials
-  * [SampleRuns Sample Runs]
+  * [TutorialslList Sample Runs]
   * [Li2STOSample Li2]
   * [SHEGSample SHEG]
  * For developers
