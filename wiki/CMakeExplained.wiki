@@ -1,8 +1,9 @@
 ﻿#summary cmake help
 #labels Phase-Deploy
-#sidebar TableOfContents
-<wiki:toc max_depth="1" />
 
+||[Welcome home]||[TutorialsList Tutorials]|| 
+
+<wiki:toc max_depth="1" />
 = What is cmake =
 [http://www.cmake.org According to cmake homepage]
  the cross-platform, open-source build system

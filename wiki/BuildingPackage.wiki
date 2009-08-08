@@ -1,6 +1,7 @@
 ﻿#summary Instructions on how to build the package
 #labels Phase-Deploy
-#sidebar TableOfContents
+
+||[Welcome home]||[TutorialsList Tutorials]||
 
 = Getting and building QMCPACK =
 

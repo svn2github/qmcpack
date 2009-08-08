@@ -1,6 +1,7 @@
 ﻿#summary How to run QMCPACK
 #labels Phase-Deploy
-#sidebar TableOfContents
+
+||[Welcome home]||[TutorialsList Tutorials]||
 
 = Running applications =
 
