@@ -27,6 +27,7 @@ Adding a comment is done simply by putting a comment section within
 {{{
 <!-- whatever -->
 }}}
+Recursive comments are not valid.
 
 We understand the cons of XML and a steep learning curve to overcome but we
 believe that the pros outweigh the cons. Especially from the developers'
