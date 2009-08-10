@@ -75,7 +75,7 @@ If something did not work, simply remove the directory (e.g., `rm -rf gcc-real`)
 
 = Building with environment variables =
 
-This method works with GNU, Intel, and IBM XLC compilers. When the librariesare
+This method works with GNU, Intel, and IBM XLC compilers. When the libraries are
 installed in standard locations, e.g., /usr, /usr/local, there is no need to
 set the XYZ_HOME for XYZ package.
 
@@ -112,25 +112,25 @@ build stage. This file can be edited to modify the build properties.
   * `CXX=icpc` for Intel compilers
   * `CXX=xlC` for IBM compilers
  * When you use MPI compilers or scripts, e.g., mpicxx, few problems can arise. 
- * on jaguar at ORNL, CMake/CrayXT.cmake is automatically used. 
- * You can create your own compiler cmake file for fine tuning (See [[Writing your own cmake files]])
- Note that
- * Development and testing are done mostly on linux systems using  Intel or GNU compilers. 
- * Certain assumptions are made by the developers
-  * Recent compilers: GNU 4.2 or higher, Intel 10.x or higher
-  * Older compilers are OK but supports for OpenMP both compiler and run time may be not good.
-  * We strongly encourage people to move on new compilers: they are usually getting better with few exceptions, which will be posted on this wiki whenever cases are encountered.
+ * On jaguar at ORNL, CMake/CrayXT.cmake is automatically used. 
+ * You can create your own compiler cmake file for fine tuning (See [CustomizeCMakeBuild Writing your own cmake files])
+
+Development and testing are done mostly on LINUX systems using Intel 10.x or GNU 4.2 compilers. 
+Older compilers will work but supports for OpenMP both compiler and run time may be not good.
+We strongly encourage people to move on new compilers: they are usually getting
+better with few exceptions, which will be posted on this wiki whenever cases
+are encountered.
 
 = Building with a toolchain file =
 
 Several toolchain files used by the developers are available in config
 directory. They are used on large-scale parallel machines where setting up all
-the neccessary packages can be tricky. 
+the necessary packages can be tricky. 
  * AbeMvapich2.cmake for Abe cluster at NCSA
  * JaguarGNU.cmake for CrayXT systems at ORNL
  * KrakenGNU.cmake for CrayXT5 system at NICS
 
-Once a sutiable toolchain file is found, follow these step (example on abe.ncsa.uiuc.edu):
+Once a suitable toolchain file is found, follow these step (example on abe.ncsa.uiuc.edu):
 {{{
 cd build
 cmake -DCMAKE_TOOLCHAIN_FILE=../config/AbeMvapich2.cmake -DCMAKE_VERBOSE_MAKEFILE=TRUE ..
