@@ -115,11 +115,12 @@ build stage. This file can be edited to modify the build properties.
  * On jaguar at ORNL, CMake/CrayXT.cmake is automatically used. 
  * You can create your own compiler cmake file for fine tuning (See [CustomizeCMakeBuild Writing your own cmake files])
 
-Development and testing are done mostly on LINUX systems using Intel 10.x or GNU 4.2 compilers. 
-Older compilers will work but supports for OpenMP both compiler and run time may be not good.
-We strongly encourage people to move on new compilers: they are usually getting
-better with few exceptions, which will be posted on this wiki whenever cases
-are encountered.
+Development and testing are done mostly on LINUX systems using Intel 10.x or
+GNU 4.2 and higher compilers.  Older compilers will work but supports for
+OpenMP both at the compiler and run time may not be good.  We strongly
+encourage people to move on new compilers whenever possible: they are usually
+getting better with few exceptions, which will be posted on this wiki whenever
+such cases are encountered.
 
 = Building with a toolchain file =
 
