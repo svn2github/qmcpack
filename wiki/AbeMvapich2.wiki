@@ -1,5 +1,6 @@
 ﻿#summary Toolchain file for abe at NCSA
-#sidebar TableOfContents
+
+||[Welcome Home]||[CMakeExplained cmake howto]||
 
 = {{{config/AbeMvapich2.cmake}}} =
 a prototype toolchain file for a build using Intel compilers on LINUX clusters. 

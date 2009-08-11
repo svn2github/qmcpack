@@ -1,5 +1,6 @@
 ﻿#summary Getting started with XML
-#sidebar TableOfContents
+
+||[Welcome Home]||
 
 = Really short introduction to XML =
 

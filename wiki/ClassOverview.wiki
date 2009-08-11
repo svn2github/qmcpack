@@ -1,5 +1,6 @@
 ﻿#summary Overview of basic classes
-#sidebar TableOfContents
+
+||[Welcome Home]||[DevHandbook For developers]||
 
 = Summary =
 QMCPACK adopts many advanced C++ techniques based on template. Ultimately, one should be able to generate an executable tailored for an application by template instantiation but more conservative approaches are taken in the current implementation. It is too time consuming: compilation can take hours.

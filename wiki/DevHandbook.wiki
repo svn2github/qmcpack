@@ -1,5 +1,6 @@
-#summary Tips for the developers
+﻿#summary Tips for the developers
 #sidebar TableOfContents
+
 == Requirements ==
  * C++ 
  * MPI
