@@ -21,23 +21,26 @@ make
 = What is in a toolchain file  =
 == Compilers and compiler options ==
 Related cmake variables
- * `CMAKE_CXX_COMPILER`: c++ compiler, linker
- * `CMAKE_C_COMPILER`: c compiler
- * `CMAKE_CXX_FLAGS`: flags for c++
- * `CMAKE_C_FLAGS`: flags for c
+|| `CMAKE_CXX_COMPILER`|| c++ compiler, linker ||
+|| `CMAKE_C_COMPILER`|| c compiler ||
+|| `CMAKE_CXX_FLAGS`|| flags for c++ ||
+|| `CMAKE_C_FLAGS`|| flags for c ||
+
+An example using GNU compilers:
 {{{
 set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_C_COMPILER  gcc)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3  -std=c99")
+set(CMAKE_CXX_FLAGS "-g -O3 -ftemplate-depth-60 -Drestrict=__restrict__ -funroll-all-loops   -finline-limit=1000 -Wno-deprecated ")
+set(CMAKE_C_FLAGS "-O3 -Drestrict=__restrict__ -funroll-all-loops   -finline-limit=1000 -std=gnu99 -fomit-frame-pointer ")
 }}}
 
 == Paths for external libraries ==
 Add the paths to `CMAKE_FIND_ROOT_PATH`
 {{{
 set(CMAKE_FIND_ROOT_PATH
-XYZ_HOME
-....
+    XYZ_HOME
+    ....
+)
 }}}
 
 This enables `CMake/FindXYZ.cmake` to search 
@@ -47,8 +50,8 @@ Some libraries will link more than one library file.
 
 == Set build properties ==
 Important cmake variables are
- * `ENABLE_OPENMP` 
- * `HAVE_MPI` 
+ || `ENABLE_OPENMP`  || 1 | 0 ||
+ || `HAVE_MPI` || 1 | 0  ||
 
 = Special notes for cross-compilers =
 
