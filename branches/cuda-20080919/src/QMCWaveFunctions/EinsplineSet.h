@@ -31,6 +31,7 @@
 #include "Numerics/e2iphi.h"
 
 #include <einspline/multi_bspline_create_cuda.h>
+#include "QMCWaveFunctions/AtomicOrbitalCuda.h"
 
 
 namespace qmcplusplus {
@@ -424,6 +425,10 @@ namespace qmcplusplus {
     cuda_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_GPU;
     host_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_CPU;
     cuda_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_GPU;
+
+    cuda_vector<HybridJobType> HybridJobs_GPU;
+    cuda_vector<CudaRealType>  IonPos_GPU;
+    cuda_vector<CudaRealType>  SplineRadii_GPU, PolyRadii_GPU;
 
     cuda_vector<CudaRealType> Ylm_GPU;
     cuda_vector<CudaRealType*> Ylm_ptr_GPU, dYlm_dtheta_ptr_GPU, dYlm_dphi_ptr_GPU;
