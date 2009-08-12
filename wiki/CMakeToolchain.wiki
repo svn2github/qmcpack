@@ -1,4 +1,4 @@
-﻿#summary Toolchain file for abe at NCSA
+﻿#summary How to prepare a Toolchain file
 
 ||[Welcome Home]||[CMakeExplained cmake howto]||
 
@@ -50,8 +50,8 @@ Some libraries will link more than one library file.
 
 == Set build properties ==
 Important cmake variables are
- || `ENABLE_OPENMP`  || 1 | 0 ||
- || `HAVE_MPI` || 1 | 0  ||
+|| `ENABLE_OPENMP`  || 1 | 0 ||
+|| `HAVE_MPI` || 1 | 0  ||
 
 = Special notes for cross-compilers =
 
