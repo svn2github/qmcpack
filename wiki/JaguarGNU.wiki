@@ -2,7 +2,7 @@
 
 ||[Welcome Home]||[CMakeExplained cmake howto]||
 
-Check [CMakeToolChain] for the descriptions of the toolchain
+Check [CMakeToolchain] for the descriptions of the toolchain
 file and `cmake` variables.
 
 = {{{config/JaguarGNU.cmake}}} =
