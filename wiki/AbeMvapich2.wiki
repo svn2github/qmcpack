@@ -2,6 +2,9 @@
 
 ||[Welcome Home]||[CMakeExplained cmake howto]||
 
+Check [CMakeToolChain] for the descriptions of the toolchain
+file and `cmake` variables.
+
 = {{{config/AbeMvapich2.cmake}}} =
 a prototype toolchain file for a build using Intel compilers on LINUX clusters. 
 
@@ -60,3 +63,4 @@ SET(CMAKE_CXX_LINK_MODULE_LIBRARY)
 SET(CMAKE_C_LINK_SHARED_LIBRARY)
 SET(CMAKE_C_LINK_MODULE_LIBRARY)
 }}}
+

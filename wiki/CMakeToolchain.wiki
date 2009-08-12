@@ -50,14 +50,15 @@ Some libraries will link more than one library file.
 
 == Set build properties ==
 Important cmake variables are
-|| `ENABLE_OPENMP`  || 1 | 0 ||
-|| `HAVE_MPI` || 1 | 0  ||
+|| *Variables* || *type* || *valid option* ||
+|| `ENABLE_OPENMP`  || bool || 1/0 ||
+|| `HAVE_MPI` || bool || 1/0 ||
 
 = Special notes for cross-compilers =
 
 = Clusters using GNU compilers =
- * JaguarGNU.cmake 
+ * [JaguarGNU JaguarGNU.cmake]
  * KrakenGNU.cmake 
 
 = Clusters using INTEL compilers =
- * AbeMvapich2.cmake
+ * [AbeMvapich2 AbeMvapich2.cmake]
