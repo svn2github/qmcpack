@@ -2,6 +2,8 @@
 
 ||[Welcome Home]||[CMakeExplained cmake howto]||
 
+<wiki:toc max_depth="1" />
+
 One can prepare  a toolchain file, which is especially useful  on large
 clusters with changing environments. The toolchains in `topdir/config` are
 used by the developers on the NSF and DOE sites. Use them as a starting
@@ -12,15 +14,47 @@ In your build directory
 cp ../config/AbeMvapich2.cmake yourtoolchain.cmake
 .... modify yourtoolchain.cmake ....
 cmake -DCMAKE_TOOLCHAIN_FILE=yourtoolchain.cmake ..
+cmake -DCMAKE_TOOLCHAIN_FILE=yourtoolchain.cmake ..
 make
 }}}
 
+= What is in a toolchain file  =
+== Compilers and compiler options ==
+Related cmake variables
+ * `CMAKE_CXX_COMPILER`: c++ compiler, linker
+ * `CMAKE_C_COMPILER`: c compiler
+ * `CMAKE_CXX_FLAGS`: flags for c++
+ * `CMAKE_C_FLAGS`: flags for c
+{{{
+set(CMAKE_CXX_COMPILER g++)
+set(CMAKE_C_COMPILER  gcc)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3  -std=c99")
+}}}
+
+== Paths for external libraries ==
+Add the paths to `CMAKE_FIND_ROOT_PATH`
+{{{
+set(CMAKE_FIND_ROOT_PATH
+XYZ_HOME
+....
+}}}
+
+This enables `CMake/FindXYZ.cmake` to search 
+ * `XYZ_HOME/include` for the header files
+ * `XYZ_HOME/lib` for the library files
+Some libraries will link more than one library file.
+
+== Set build properties ==
+Important cmake variables are
+ * `ENABLE_OPENMP` 
+ * `HAVE_MPI` 
+
+= Special notes for cross-compilers =
+
 = Clusters using GNU compilers =
-== Sample Toolchains ==
- * JaguarGNU.cmake for CrayXT systems at ORNL
- * KrakenGNU.cmake for CrayXT5 system at NICS
+ * JaguarGNU.cmake 
+ * KrakenGNU.cmake 
 
 = Clusters using INTEL compilers =
-
-== Sample Toolchains ==
  * AbeMvapich2.cmake
