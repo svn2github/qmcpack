@@ -1,0 +1,26 @@
+﻿#summary Toolchain file for abe at NCSA
+
+||[Welcome Home]||[CMakeExplained cmake howto]||
+
+One can prepare  a toolchain file, which is especially useful  on large
+clusters with changing environments. The toolchains in `topdir/config` are
+used by the developers on the NSF and DOE sites. Use them as a starting
+point and customize them for your system.
+
+In your build directory
+{{{
+cp ../config/AbeMvapich2.cmake yourtoolchain.cmake
+.... modify yourtoolchain.cmake ....
+cmake -DCMAKE_TOOLCHAIN_FILE=yourtoolchain.cmake ..
+make
+}}}
+
+= Clusters using GNU compilers =
+== Sample Toolchains ==
+ * JaguarGNU.cmake for CrayXT systems at ORNL
+ * KrakenGNU.cmake for CrayXT5 system at NICS
+
+= Clusters using INTEL compilers =
+
+== Sample Toolchains ==
+ * AbeMvapich2.cmake
