@@ -232,6 +232,7 @@ namespace qmcplusplus {
       app_log() << buff;
     }
 
+
     //////////////////////////////////////////////////////////
     // If the density has not been set in TargetPtcl, and   //
     // the density is available, read it in and save it     //
@@ -311,13 +312,14 @@ namespace qmcplusplus {
 	VHXC_r_path << "/electrons/VHXC/spin_" << ispin << "/VHXC_r";
 	VHXC_g_path << "/electrons/VHXC/spin_" << ispin << "/VHXC_g";
 	h_VHXC_r.read (H5FileID, VHXC_r_path.str().c_str());
-	
+
 
 	if (TargetPtcl.VHXCReducedGvecs.size()) {
 	  app_log() << "  EinsplineSetBuilder found VHXC in the HDF5 file.\n";
 	  vector<ComplexType> VHXC_G;
 	  HDFAttribIO<vector<ComplexType > > h_VHXC_G (VHXC_G);
 	  h_VHXC_G.read (H5FileID, VHXC_g_path.str().c_str());
+
 	  if (!VHXC_G.size()) {
 	    app_error() << "  VHXC reduced G-vectors defined, but not the"
 			<< " VHXC.\n";
@@ -872,12 +874,15 @@ namespace qmcplusplus {
 	      (orbitalSet->MultiSpline, orbitalSet->CudaMultiSpline);
 	    // Destroy original CPU spline
 	    destroy_Bspline (orbitalSet->MultiSpline);
-	    host_vector<CudaRealType> Linv_host;
-	    Linv_host.resize(9);
+	    host_vector<CudaRealType> L_host(9), Linv_host(9);
 	    orbitalSet->Linv_cuda.resize(9);
+	    orbitalSet->L_cuda.resize(9);
 	    for (int i=0; i<3; i++)
-	      for (int j=0; j<3; j++)
+	      for (int j=0; j<3; j++) {
+		L_host[i*3+j]    = (float)orbitalSet->PrimLattice.R(i,j);
 		Linv_host[i*3+j] = (float)orbitalSet->PrimLattice.G(i,j);
+	      }
+	    orbitalSet->L_cuda    = L_host;
 	    orbitalSet->Linv_cuda = Linv_host;
 	  }
 	}
@@ -898,12 +903,16 @@ namespace qmcplusplus {
 					   orbitalSet->CudaMultiSpline);
 	    // Destroy original CPU spline
 	    destroy_Bspline (orbitalSet->MultiSpline);
-	    
-	    host_vector<CudaRealType> Linv_host;
-	    Linv_host.resize(9);
+
+	    host_vector<CudaRealType> L_host(9), Linv_host(9);
+	    orbitalSet->Linv_cuda.resize(9);
+	    orbitalSet->L_cuda.resize(9);
 	    for (int i=0; i<3; i++)
-	      for (int j=0; j<3; j++)
-		Linv_host[i*3+j] = OrbitalSet->PrimLattice.G(i,j);
+	      for (int j=0; j<3; j++) {
+		L_host[i*3+j]    = (float)orbitalSet->PrimLattice.R(i,j);
+		Linv_host[i*3+j] = (float)orbitalSet->PrimLattice.G(i,j);
+	      }
+	    orbitalSet->L_cuda    = L_host;
 	    orbitalSet->Linv_cuda = Linv_host;
 	  }
 	}
@@ -2103,6 +2112,7 @@ namespace qmcplusplus {
   EinsplineSetBuilder::ReadBands_ESHDF
   (int spin, EinsplineSetExtended<double>* orbitalSet)
   {
+
     vector<AtomicOrbital<double> > realOrbs(AtomicOrbitals.size());
     for (int iat=0; iat<realOrbs.size(); iat++) {
       AtomicOrbital<complex<double> > &corb (AtomicOrbitals[iat]);
@@ -2169,6 +2179,7 @@ namespace qmcplusplus {
       h_mesh.read (H5FileID, "/electrons/psi_r_mesh");
       h_mesh.read (H5FileID, "/electrons/mesh");
     }
+
     myComm->bcast(mesh);
     nx=mesh[0]; ny=mesh[1]; nz=mesh[2];
     splineData.resize(nx,ny,nz);
@@ -2327,7 +2338,6 @@ namespace qmcplusplus {
 	  myComm->bcast(poly_coefs);
 	  realOrbs[iat].set_band (ival, radial_spline, poly_coefs, twist);
 	}
-
       
 	// Now read orbital derivatives if we have them
 	if (HaveOrbDerivs) {

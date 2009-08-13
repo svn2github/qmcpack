@@ -1703,8 +1703,10 @@ namespace qmcplusplus {
     Ylm_ptr_GPU.resize        (numwalkers);   Ylm_ptr_CPU.resize       (numwalkers);
     dYlm_dtheta_ptr_GPU.resize(numwalkers);  dYlm_dtheta_ptr_CPU.resize(numwalkers);
     dYlm_dphi_ptr_GPU.resize  (numwalkers);  dYlm_dphi_ptr_CPU.resize  (numwalkers);
-    rhats_CPU.resize(numwalkers);
-    rhats_GPU.resize(numwalkers);
+
+    rhats_CPU.resize(OHMMS_DIM*numwalkers);
+    rhats_GPU.resize(OHMMS_DIM*numwalkers);
+    HybridJobs_GPU.resize(numwalkers);
 
     for (int iw=0; iw<numwalkers; iw++) {
       Ylm_ptr_CPU[iw]         = &(YlmData[0]) + (3*iw+0)*Ylm_BS;
@@ -1715,10 +1717,11 @@ namespace qmcplusplus {
     Ylm_ptr_GPU         = Ylm_ptr_CPU;
     dYlm_dtheta_ptr_GPU = dYlm_dtheta_ptr_CPU;
     dYlm_dphi_ptr_GPU   = dYlm_dphi_ptr_CPU;
-
+    
     // Resize AtomicJob temporaries
-    AtomicPolyJobs_GPU.resize(numwalkers);
-    AtomicSplineJobs_GPU.resize(numwalkers);
+    
+    // AtomicPolyJobs_GPU.resize(numwalkers);
+    // AtomicSplineJobs_GPU.resize(numwalkers);
   }
 
 
@@ -1754,8 +1757,8 @@ namespace qmcplusplus {
     dYlm_dphi_ptr_GPU   = dYlm_dphi_ptr_CPU;
 
     // Resize AtomicJob temporaries
-    AtomicPolyJobs_GPU.resize(numwalkers);
-    AtomicSplineJobs_GPU.resize(numwalkers);
+    // AtomicPolyJobs_GPU.resize(numwalkers);
+    // AtomicSplineJobs_GPU.resize(numwalkers);
   }
 
 
@@ -1764,6 +1767,9 @@ namespace qmcplusplus {
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, int iat,
 					cuda_vector<CudaRealType*> &phi)
   {
+    app_error() << "EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, int iat,\n"
+		<< " cuda_vector<CudaRealType*> &phi) not implemented.\n";
+    abort();
   }
 
   
@@ -1771,19 +1777,30 @@ namespace qmcplusplus {
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, int iat,
 				cuda_vector<CudaComplexType*> &phi)
   {
+    app_error() << "EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, int iat,\n"
+		<< " cuda_vector<CudaComplexType*> &phi) not implemented.\n";
+    abort();
   }
 
   
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-  		 cuda_vector<CudaRealType*> &phi)
+					cuda_vector<CudaRealType*> &phi)
   { 
+    app_error() << "EinsplineSetHybrid<double>::evaluate \n"
+		<< " (vector<Walker_t*> &walkers, vector<PosType> &newpos, \n"
+		<< " cuda_vector<CudaRealType*> &phi) not implemented.\n";
+    abort();
   }
 
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,
   		 cuda_vector<CudaComplexType*> &phi)
   {
+    app_error() << "EinsplineSetHybrid<double>::evaluate \n"
+		<< "  (vector<Walker_t*> &walkers, vector<PosType> &newpos,\n"
+		<< "   cuda_vector<CudaComplexType*> &phi) not implemented.\n";
+    abort();
   }
 
   
@@ -1794,6 +1811,49 @@ namespace qmcplusplus {
 					cuda_vector<CudaRealType*> &grad_lapl,
 					int row_stride)
   { 
+    // app_error() << "EinsplineSetHybrid<double>::evaluate \n"
+    // 		<< " (vector<Walker_t*> &walkers, vector<PosType> &newpos, \n"
+    // 		<< "  cuda_vector<CudaRealType*> &phi, cuda_vector<CudaRealType*> &grad_lapl,\n"
+    // 		<< "  int row_stride) ; not implemented.\n";
+    int N = newpos.size();
+    if (cudaPos.size() < N) {
+      resize_cuda(N);
+      hostPos.resize(N);
+      cudaPos.resize(N);
+    }
+    for (int iw=0; iw < N; iw++) 
+      hostPos[iw] = newpos[iw];
+    cudaPos = hostPos;
+    
+    hostPos = cudaPos;
+    for (int i=0; i<newpos.size(); i++)
+      cerr << "newPos[" << i << "] = " << newpos[i] << endl;
+
+    host_vector<CudaRealType> IonPos_CPU(IonPos_GPU.size());
+    IonPos_CPU = IonPos_GPU;
+    for (int i=0; i<IonPos_CPU.size()/3; i++)
+      fprintf (stderr, "ion[%d] = [%10.6f %10.6f %10.6f]\n",
+	       i, IonPos_CPU[3*i+0], IonPos_CPU[3*i+2], IonPos_CPU[3*i+2]);
+    cerr << "cudaPos.size()        = " << cudaPos.size() << endl;
+    cerr << "IonPos.size()         = " << IonPos_GPU.size() << endl;
+    cerr << "PolyRadii.size()      = " << PolyRadii_GPU.size() << endl;
+    cerr << "CutoffRadii.size()    = " << CutoffRadii_GPU.size() << endl;
+    cerr << "AtomicOrbitals.size() = " << AtomicOrbitals.size() << endl;
+    cerr << "L_cuda.size()         = " << L_cuda.size() << endl;
+    cerr << "Linv_cuda.size()      = " << Linv_cuda.size() << endl;
+    cerr << "HybridJobs_GPU.size() = " << HybridJobs_GPU.size() << endl;
+    cerr << "rhats_GPU.size()      = " << rhats_GPU.size() << endl;
+
+    MakeHybridJobList ((float*) cudaPos.data(), N, IonPos_GPU.data(), 
+		       PolyRadii_GPU.data(), CutoffRadii_GPU.data(),
+		       AtomicOrbitals.size(), L_cuda.data(), Linv_cuda.data(),
+		       HybridJobs_GPU.data(), rhats_GPU.data());
+
+    rhats_CPU = rhats_GPU;
+    for (int i=0; i<rhats_CPU.size()/3; i++)
+      fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f]\n",
+	       i, rhats_CPU[3*i+0], rhats_CPU[3*i+1], rhats_CPU[3*i+2]);
+
     // int N = newpos.size();
     // if (N > CurrentWalkers)
     //   resize_cuda(N);
@@ -1931,9 +1991,9 @@ namespace qmcplusplus {
 
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-  		 cuda_vector<CudaComplexType*> &phi,
-  		 cuda_vector<CudaComplexType*> &grad_lapl,
-  		 int row_stride)
+					cuda_vector<CudaComplexType*> &phi,
+					cuda_vector<CudaComplexType*> &grad_lapl,
+					int row_stride)
   {
   }
 
@@ -2222,18 +2282,23 @@ namespace qmcplusplus {
     // Setup B-spline Acuda matrix in constant memory
     void init_atomic_cuda();
 
-    host_vector<AtomicOrbitalCudaFloat> AtomicOrbitals_CPU;
+    host_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_CPU;
     const int BS=16;
     int num_orbs = getOrbitalSetSize();
     // Bump up the stride to be a multiple of 512-bit bus width
     int lm_stride = ((num_orbs+BS-1)/BS)*BS;
     
     AtomicSplineCoefs_GPU.resize(AtomicOrbitals.size());
+    vector<CudaRealType> IonPos_CPU, CutoffRadii_CPU, PolyRadii_CPU;
 
     for (int iat=0; iat<AtomicOrbitals.size(); iat++) {
       app_log() << "Copying atomic orbitals for ion " << iat << " to GPU memory.\n";
       AtomicOrbital<double> &atom = AtomicOrbitals[iat];
-      AtomicOrbitalCudaFloat atom_cuda;
+      for (int i=0; i<OHMMS_DIM; i++) 
+	IonPos_CPU.push_back(atom.Pos[i]);
+      CutoffRadii_CPU.push_back(atom.CutoffRadius);
+      PolyRadii_CPU.push_back(atom.PolyRadius);
+      AtomicOrbitalCuda<CudaRealType> atom_cuda;
       atom_cuda.lMax = atom.lMax;
       int numlm = (atom.lMax+1)*(atom.lMax+1);
       atom_cuda.lm_stride = lm_stride;
@@ -2241,6 +2306,7 @@ namespace qmcplusplus {
 
       AtomicOrbital<double>::SplineType &cpu_spline = 
 	*atom.get_radial_spline();
+      atom_cuda.spline_dr_inv = cpu_spline.x_grid.delta_inv;
       int Ngrid = cpu_spline.x_grid.num;
       int spline_size = atom_cuda.spline_stride * (Ngrid+2);
       host_vector<float> spline_coefs(spline_size);
@@ -2257,8 +2323,11 @@ namespace qmcplusplus {
       AtomicSplineCoefs_GPU[iat] = spline_coefs;
       
       AtomicOrbitals_CPU.push_back(atom_cuda);
-
     }
+    AtomicOrbitals_GPU = AtomicOrbitals_CPU;
+    IonPos_GPU      = IonPos_CPU;
+    CutoffRadii_GPU = CutoffRadii_CPU;
+    PolyRadii_GPU   = PolyRadii_CPU;
   }
 
   template<> void
@@ -2267,7 +2336,7 @@ namespace qmcplusplus {
     // Setup B-spline Acuda matrix in constant memory
     void init_atomic_cuda();
 
-    host_vector<AtomicOrbitalCudaFloat> AtomicOrbitals_CPU;
+    host_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_CPU;
     const int BS=16;
     int num_orbs = getOrbitalSetSize();
     // Bump up the stride to be a multiple of 512-bit bus width
@@ -2277,7 +2346,7 @@ namespace qmcplusplus {
 
     for (int iat=0; iat<AtomicOrbitals.size(); iat++) {
       AtomicOrbital<complex<double> > &atom = AtomicOrbitals[iat];
-      AtomicOrbitalCudaFloat atom_cuda;
+      AtomicOrbitalCuda<CudaRealType> atom_cuda;
       atom_cuda.lMax = atom.lMax;
       int numlm = (atom.lMax+1)*(atom.lMax+1);
       atom_cuda.lm_stride = lm_stride;
@@ -2305,6 +2374,8 @@ namespace qmcplusplus {
       AtomicOrbitals_CPU.push_back(atom_cuda);
 
     }
+    AtomicOrbitals_GPU = AtomicOrbitals_CPU;
+
   }
 
 

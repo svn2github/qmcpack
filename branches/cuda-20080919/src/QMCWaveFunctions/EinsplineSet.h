@@ -299,7 +299,7 @@ namespace qmcplusplus {
     cuda_vector<CudaRealType> cudaSign, NLcudaSign;
     // This stores the inverse of the lattice vector matrix in
     // GPU memory.
-    cuda_vector<CudaRealType> Linv_cuda;
+    cuda_vector<CudaRealType> Linv_cuda, L_cuda;
 
   public:
     void registerTimers();
@@ -422,21 +422,22 @@ namespace qmcplusplus {
     typedef typename EinsplineSetExtended<StorageType>::CudaStorageType CudaStorageType;
 
     vector<cuda_vector<CudaRealType> > AtomicSplineCoefs_GPU;
+    cuda_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_GPU;
 
-    host_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_CPU;
-    cuda_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_GPU;
-    host_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_CPU;
-    cuda_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_GPU;
+    // host_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_CPU;
+    // cuda_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_GPU;
+    // host_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_CPU;
+    // cuda_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_GPU;
 
     cuda_vector<HybridJobType> HybridJobs_GPU;
     cuda_vector<CudaRealType>  IonPos_GPU;
-    cuda_vector<CudaRealType>  SplineRadii_GPU, PolyRadii_GPU;
+    cuda_vector<CudaRealType>  CutoffRadii_GPU, PolyRadii_GPU;
 
     cuda_vector<CudaRealType> Ylm_GPU;
     cuda_vector<CudaRealType*> Ylm_ptr_GPU, dYlm_dtheta_ptr_GPU, dYlm_dphi_ptr_GPU;
     host_vector<CudaRealType*> Ylm_ptr_CPU, dYlm_dtheta_ptr_CPU, dYlm_dphi_ptr_CPU;
-    cuda_vector<CudaRealType> rhats_GPU, ion_pos_GPU;
-    host_vector<CudaRealType> rhats_CPU, ion_pos_CPU;
+    cuda_vector<CudaRealType> rhats_GPU;
+    host_vector<CudaRealType> rhats_CPU;
     cuda_vector<int> JobType;
     
     // Vectors for 3D Bspline evaluation

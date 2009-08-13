@@ -52,6 +52,7 @@ MakeHybridJobList_kernel (T* elec_list, int num_elecs, T* ion_list,
   
   int iBlocks = (num_ions+BS-1)/BS;
   jobs_shared[tid] = BSPLINE_3D_JOB;
+  HybridDataFloat data;
   for (int ib=0; ib<iBlocks; ib++) {
     // Fetch ion positions into shared memory
     for (int j=0; j<3; j++) {
@@ -65,38 +66,43 @@ MakeHybridJobList_kernel (T* elec_list, int num_elecs, T* ion_list,
       r_poly[tid]   = poly_radii  [ib*BS+tid];
     }
     __syncthreads();
-    // Find mininum image displacement
+    int iend = min (BS, num_ions - ib*BS);
     T dr0, dr1, dr2, u0, u1, u2, img0, img1, img2;
-    dr0 = epos[tid][0] - ipos[tid][0];
-    dr1 = epos[tid][1] - ipos[tid][1];
-    dr2 = epos[tid][2] - ipos[tid][2];
-    u0 = Linv_s[0][0]*dr0 + Linv_s[0][1]*dr1 + Linv_s[0][2]*dr2;
-    u1 = Linv_s[1][0]*dr0 + Linv_s[1][1]*dr1 + Linv_s[1][2]*dr2;
-    u2 = Linv_s[2][0]*dr0 + Linv_s[2][1]*dr1 + Linv_s[2][2]*dr2;
-    img0 = rintf(u0);  img1 = rintf(u1);  img2 = rintf(u2);
-    u0  -= img0;       u1  -= img1;       u2  -= img2;
-    u2 -= rintf(u2);
-    dr0 = L_s[0][0]*u0 + L_s[0][1]*u1 + L_s[0][2]*u2;
-    dr1 = L_s[1][0]*u0 + L_s[1][1]*u1 + L_s[1][2]*u2;
-    dr2 = L_s[2][0]*u0 + L_s[2][1]*u1 + L_s[2][2]*u2;
-
-    T dist2 = dr0*dr0 + dr1*dr1 + dr2*dr2;
-    T dist = sqrtf(dist2);
-
-    // Compare with radii
-    if (dist2 < r_poly[tid]) 
-      jobs_shared[tid] =  ATOMIC_POLY_JOB;
-    else if (dist2 < r_spline[tid]) 
-      jobs_shared[tid] =  ATOMIC_SPLINE_JOB;
-    
-    // Compute rhat
-    if (dist < r_spline[tid]) {
-      dist = 1.0/dist;
-      rhat[tid][0] = dr0 * dist;
-      rhat[tid][1] = dr1 * dist;
-      rhat[tid][2] = dr2 * dist;
-    }
+    rhat[tid][0] = 1.0f;
+    rhat[tid][1] = 0.0f;
+    rhat[tid][2] = 0.0f;
+    for (int ion=0; ion<iend; ion++) {
+      // Find mininum image displacement
+      dr0 = epos[tid][0] - ipos[ion][0];
+      dr1 = epos[tid][1] - ipos[ion][1];
+      dr2 = epos[tid][2] - ipos[ion][2];
+      u0 = Linv_s[0][0]*dr0 + Linv_s[0][1]*dr1 + Linv_s[0][2]*dr2;
+      u1 = Linv_s[1][0]*dr0 + Linv_s[1][1]*dr1 + Linv_s[1][2]*dr2;
+      u2 = Linv_s[2][0]*dr0 + Linv_s[2][1]*dr1 + Linv_s[2][2]*dr2;
+      img0 = rintf(u0);  img1 = rintf(u1);  img2 = rintf(u2);
+      u0  -= img0;       u1  -= img1;       u2  -= img2;
+      dr0 = L_s[0][0]*u0 + L_s[0][1]*u1 + L_s[0][2]*u2;
+      dr1 = L_s[1][0]*u0 + L_s[1][1]*u1 + L_s[1][2]*u2;
+      dr2 = L_s[2][0]*u0 + L_s[2][1]*u1 + L_s[2][2]*u2;
+      
+      T dist2 = dr0*dr0 + dr1*dr1 + dr2*dr2;
+      T dist = sqrtf(dist2);
+      
+      // Compare with radii
+      if (dist < r_poly[ion]) 
+	jobs_shared[tid] =  ATOMIC_POLY_JOB;
+      else if (dist < r_spline[ion]) 
+	jobs_shared[tid] =  ATOMIC_SPLINE_JOB;
+      // Compute rhat
+      if (dist < r_spline[ion]) {
+	dist = 1.0f/dist;
+	rhat[tid][0] =  dr0 * dist;
+	rhat[tid][1] =  dr1 * dist;
+	rhat[tid][2] =  dr2 * dist;
+      }
+    } 
   }
+  __syncthreads();
   // Now write rhats and job types to global memory
   for (int i=0; i<3; i++) {
     int off = (3*blockIdx.x+i)*BS + tid;
@@ -126,7 +132,7 @@ MakeHybridJobList (float* elec_list, int num_elecs, float* ion_list,
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf (stderr, "CUDA error in CalcYlmRealCuda:\n  %s\n",
+    fprintf (stderr, "CUDA error in MakeHybridJobList:\n  %s\n",
 	     cudaGetErrorString(err));
     abort();
   }

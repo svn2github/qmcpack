@@ -15,11 +15,13 @@ struct HybridDataFloat
   int lMax;
 };
 
-struct AtomicOrbitalCudaFloat
+template<typename T>
+class AtomicOrbitalCuda
 {
+public:
   int lMax, spline_stride, lm_stride;
-  float spline_dr_inv;
-  float *spline_coefs, *poly_coefs;
+  T spline_dr_inv;
+  T *spline_coefs, *poly_coefs;
 };
 
 void init_atomic_cuda();
