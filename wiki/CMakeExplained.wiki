@@ -131,6 +131,9 @@ the necessary packages can be tricky.
  * JaguarGNU.cmake for CrayXT systems at ORNL
  * KrakenGNU.cmake for CrayXT5 system at NICS
 
+Check [CMakeToolchain] for the descriptions of the toolchain file and `cmake`
+variables.
+
 Once a suitable toolchain file is found, follow these step (example on abe.ncsa.uiuc.edu):
 {{{
 cd build

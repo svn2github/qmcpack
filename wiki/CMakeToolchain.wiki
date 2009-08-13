@@ -30,8 +30,9 @@ An example using GNU compilers:
 {{{
 set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_C_COMPILER  gcc)
-set(CMAKE_CXX_FLAGS "-g -O3 -ftemplate-depth-60 -Drestrict=__restrict__ -funroll-all-loops   -finline-limit=1000 -Wno-deprecated ")
-set(CMAKE_C_FLAGS "-O3 -Drestrict=__restrict__ -funroll-all-loops   -finline-limit=1000 -std=gnu99 -fomit-frame-pointer ")
+set(GNU_FLAGS "-g -fopenmp -O3 -ftemplate-depth-60 -Drestrict=__restrict__ -finline-limit=1000 -fstrict-aliasing -funroll-all-loops -Wno-deprecated -fomit-frame-pointer ")
+set(CMAKE_CXX_FLAGS "${GNU_FLAGS} -ftemplate-depth-60")
+set(CMAKE_C_FLAGS "${GNU_FLAGS} -std=gnu99 ")
 }}}
 
 == Paths for external libraries ==
@@ -53,6 +54,16 @@ Important cmake variables are
 || *Variables* || *type* || *valid option* ||
 || `ENABLE_OPENMP`  || bool || 1/0 ||
 || `HAVE_MPI` || bool || 1/0 ||
+
+For GNU and INTEL compilers, add the definitions
+{{{
+ADD_DEFINITIONS(-DADD_ -DINLINE_ALL=inline)
+}}}
+to use BLAS.  
+
+For some compilers, setting `-DINLINE_ALL= `  is helpful to speed up
+compliations.
+
 
 = Special notes for cross-compilers =
 
