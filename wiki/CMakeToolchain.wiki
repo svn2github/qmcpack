@@ -72,4 +72,5 @@ compliations.
  * KrakenGNU.cmake 
 
 = Clusters using INTEL compilers =
+ * [LinuxIntelCMake LinuxIntel.cmake]
  * [AbeMvapich2 AbeMvapich2.cmake]
