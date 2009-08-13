@@ -39,6 +39,8 @@ namespace qmcplusplus {
   template<typename StorageType>
   class AtomicOrbital 
   {
+  public:
+    typedef typename AtomicOrbitalTraits<StorageType>::SplineType SplineType;
   private:
     typedef QMCTraits::PosType                    PosType;    
     typedef QMCTraits::RealType                   RealType;
@@ -47,7 +49,6 @@ namespace qmcplusplus {
     typedef Vector<TinyVector<double,OHMMS_DIM> > RealGradVector_t;
     typedef Vector<complex<double> >              ComplexValueVector_t;
     typedef Vector<TinyVector<complex<double>,OHMMS_DIM> > ComplexGradVector_t;
-    typedef typename AtomicOrbitalTraits<StorageType>::SplineType SplineType;
 
     // Store in order 
     // Index = l*(l+1) + m.  There are (lMax+1)^2 Ylm's
@@ -86,6 +87,10 @@ namespace qmcplusplus {
     { PolyRadius = radius; PolyOrder = order;        }
     inline void set_num_bands (int num_bands) 
     { NumBands = num_bands;                          }
+    SplineType* get_radial_spline () 
+    { return RadialSpline;                           }
+    Array<StorageType,3>& get_poly_coefs()        
+    { return PolyCoefs;                              }
 
     inline void registerTimers()
     {

@@ -17,16 +17,25 @@ struct HybridDataFloat
 
 struct AtomicOrbitalCudaFloat
 {
-  int lMax;
-  float *SplineCoefs, *PolyCoefs;
+  int lMax, spline_stride, lm_stride;
+  float spline_dr_inv;
+  float *spline_coefs, *poly_coefs;
 };
 
+void init_atomic_cuda();
 
 void
 MakeHybridJobList (float* elec_list, int num_elecs, float* ion_list, 
 		   float* poly_radii, float* spline_radii,
 		   int num_ions, float *L, float *Linv,
 		   HybridJobType *job_list, float *rhat_list);
+
+void
+evaluateHybridSplineReal (HybridJobType *job_types, 
+			  float **Ylm_real, int Ylm_stride,
+			  float** SplineCoefs, float gridInv, int grid_stride,
+			  HybridDataFloat *data,
+			  float **vals, int N, int numWalkers, int lMax);
 
 void CalcYlmRealCuda (float *rhats, float **Ylm_ptr, float **dYlm_dtheta_ptr, float **dYlm_dphi_ptr, 
 		      int lMax, int N);

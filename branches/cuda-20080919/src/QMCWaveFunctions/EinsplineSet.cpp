@@ -2216,6 +2216,97 @@ namespace qmcplusplus {
     for (int i=0; i<OHMMS_DIM; i++)
       HalfG[i] = 0;
   }
+  template<> void
+  EinsplineSetHybrid<double>::init_cuda()
+  {
+    // Setup B-spline Acuda matrix in constant memory
+    void init_atomic_cuda();
+
+    host_vector<AtomicOrbitalCudaFloat> AtomicOrbitals_CPU;
+    const int BS=16;
+    int num_orbs = getOrbitalSetSize();
+    // Bump up the stride to be a multiple of 512-bit bus width
+    int lm_stride = ((num_orbs+BS-1)/BS)*BS;
+    
+    AtomicSplineCoefs_GPU.resize(AtomicOrbitals.size());
+
+    for (int iat=0; iat<AtomicOrbitals.size(); iat++) {
+      app_log() << "Copying atomic orbitals for ion " << iat << " to GPU memory.\n";
+      AtomicOrbital<double> &atom = AtomicOrbitals[iat];
+      AtomicOrbitalCudaFloat atom_cuda;
+      atom_cuda.lMax = atom.lMax;
+      int numlm = (atom.lMax+1)*(atom.lMax+1);
+      atom_cuda.lm_stride = lm_stride;
+      atom_cuda.spline_stride = numlm * lm_stride;
+
+      AtomicOrbital<double>::SplineType &cpu_spline = 
+	*atom.get_radial_spline();
+      int Ngrid = cpu_spline.x_grid.num;
+      int spline_size = atom_cuda.spline_stride * (Ngrid+2);
+      host_vector<float> spline_coefs(spline_size);
+      AtomicSplineCoefs_GPU[iat].resize(spline_size);
+      atom_cuda.spline_coefs = &AtomicSplineCoefs_GPU[0][0];
+      // Reorder and copy splines to GPU memory
+      for (int igrid=0; igrid<Ngrid+2; igrid++)
+	for (int lm=0; lm<numlm; lm++)
+	  for (int orb=0; orb<num_orbs; orb++)
+	    spline_coefs[igrid*atom_cuda.spline_stride +
+			 lm   *atom_cuda.lm_stride + orb] =
+	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm];
+      
+      AtomicSplineCoefs_GPU[iat] = spline_coefs;
+      
+      AtomicOrbitals_CPU.push_back(atom_cuda);
+
+    }
+  }
+
+  template<> void
+  EinsplineSetHybrid<complex<double> >::init_cuda()
+  {
+    // Setup B-spline Acuda matrix in constant memory
+    void init_atomic_cuda();
+
+    host_vector<AtomicOrbitalCudaFloat> AtomicOrbitals_CPU;
+    const int BS=16;
+    int num_orbs = getOrbitalSetSize();
+    // Bump up the stride to be a multiple of 512-bit bus width
+    int lm_stride = ((2*num_orbs+BS-1)/BS)*BS;
+    
+    AtomicSplineCoefs_GPU.resize(AtomicOrbitals.size());
+
+    for (int iat=0; iat<AtomicOrbitals.size(); iat++) {
+      AtomicOrbital<complex<double> > &atom = AtomicOrbitals[iat];
+      AtomicOrbitalCudaFloat atom_cuda;
+      atom_cuda.lMax = atom.lMax;
+      int numlm = (atom.lMax+1)*(atom.lMax+1);
+      atom_cuda.lm_stride = lm_stride;
+      atom_cuda.spline_stride = numlm * lm_stride;
+
+      AtomicOrbital<complex<double> >::SplineType &cpu_spline = 
+	*atom.get_radial_spline();
+      int Ngrid = cpu_spline.x_grid.num;
+      int spline_size = atom_cuda.spline_stride * (Ngrid+2);
+      host_vector<float> spline_coefs(spline_size);
+      AtomicSplineCoefs_GPU[iat].resize(spline_size);
+      atom_cuda.spline_coefs = &AtomicSplineCoefs_GPU[0][0];
+      // Reorder and copy splines to GPU memory
+      for (int igrid=0; igrid<Ngrid+2; igrid++)
+	for (int lm=0; lm<numlm; lm++)
+	  for (int orb=0; orb<num_orbs; orb++) {
+	    spline_coefs[2*(igrid*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + orb)+0] =
+	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm].real();
+	    spline_coefs[2*(igrid*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + orb)+1] =
+	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm].imag();
+	  }
+      
+      AtomicSplineCoefs_GPU[iat] = spline_coefs;
+      
+      AtomicOrbitals_CPU.push_back(atom_cuda);
+
+    }
+  }
+
 
 
   template class EinsplineSetHybrid<complex<double> >;

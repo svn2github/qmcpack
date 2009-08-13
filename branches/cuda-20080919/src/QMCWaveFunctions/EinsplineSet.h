@@ -421,6 +421,8 @@ namespace qmcplusplus {
     typedef typename EinsplineSetExtended<StorageType>::CudaComplexType CudaComplexType;
     typedef typename EinsplineSetExtended<StorageType>::CudaStorageType CudaStorageType;
 
+    vector<cuda_vector<CudaRealType> > AtomicSplineCoefs_GPU;
+
     host_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_CPU;
     cuda_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_GPU;
     host_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_CPU;
@@ -461,8 +463,9 @@ namespace qmcplusplus {
     // Data for vectorized evaluations
 
     void sort_electrons(vector<PosType> &pos);
-    
+
   public:
+    void init_cuda();
     //    void registerTimers();
 
     // Resize cuda objects

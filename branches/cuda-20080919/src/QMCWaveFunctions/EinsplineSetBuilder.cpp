@@ -966,6 +966,8 @@ namespace qmcplusplus {
 	TargetPtcl.createSK();
       }
     }
+    if (useGPU)
+      OrbitalSet->init_cuda();
 
     return OrbitalSet;
   }

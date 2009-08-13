@@ -69,6 +69,8 @@ namespace qmcplusplus {
      */
     virtual ~SPOSetBase() {}
 
+    virtual void init_cuda() {}
+
     /** return the size of the orbital set
      */
     inline int getOrbitalSetSize() const { 
