@@ -77,7 +77,7 @@ namespace qmcplusplus {
     ///////////////////////////////////////////////
     vector<MuffinTinClass> MuffinTins;
     int NumValenceOrbs, NumCoreOrbs;
-        
+
   public:  
     UnitCellType GetLattice();
 
@@ -449,7 +449,7 @@ namespace qmcplusplus {
 
     // The maximum lMax across all atomic orbitals
     int lMax;
-    int numlm, Ylm_BS;
+    int numlm, NumOrbitals, Ylm_BS;
     // Stores the maximum number of walkers that can be handled by currently
     // allocated GPU memory.  Must resize if we have more walkers than this.
     int CurrentWalkers;

@@ -8,9 +8,18 @@
 using namespace std;
 __constant__ float  Acuda[48];
 
+bool atomic_cuda_initialized = false;
+
 void
 init_atomic_cuda()
-{float A_h[48] = { -1.0/6.0,  3.0/6.0, -3.0/6.0, 1.0/6.0,
+{
+  fprintf (stderr, "Initializing B-spline matrix.\n");
+  if (atomic_cuda_initialized)
+    return;
+
+  atomic_cuda_initialized = true;
+
+  float A_h[48] = { -1.0/6.0,  3.0/6.0, -3.0/6.0, 1.0/6.0,
 		     3.0/6.0, -6.0/6.0,  0.0/6.0, 4.0/6.0,
 		    -3.0/6.0,  3.0/6.0,  3.0/6.0, 1.0/6.0,
 		     1.0/6.0,  0.0/6.0,  0.0/6.0, 0.0/6.0,
@@ -171,10 +180,13 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types,
   __shared__ T *myYlm, *myCoefs, *myVal;
   __shared__ HybridDataFloat myData;
   __shared__ AtomicOrbitalCuda<T> myOrbital;
-  if (tid < 8) {
-    ((float*)&myData)[tid]   = ((float*)&(data[blockIdx.x]))[tid];
+  const int data_size = (sizeof(HybridDataFloat)     +3)/sizeof(float);
+  const int orb_size  = (sizeof(AtomicOrbitalCuda<T>)+3)/sizeof(float);
+  if (tid < data_size) 
+    ((float*)&myData)[tid]    = ((float*)&(data[blockIdx.x]))[tid];
+  if (tid < orb_size) 
     ((float*)&myOrbital)[tid] = ((float*)(&orbitals[myData.ion]))[tid];
-  }
+
   if (tid == 0) {
     myYlm   = YlmReal[blockIdx.x];
     myVal   = vals[blockIdx.x];
@@ -217,7 +229,8 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types,
 		 a[1] * c[ustride] + 
 		 a[2] * c[ustride2] + 
 		 a[3] * c[ustride3]);
-      val += u * Ylm[lm];
+      // HACK HACK HACK
+      val +=  u * Ylm[lm];
     }
     int off = block*BS + tid;
     if (off < N)

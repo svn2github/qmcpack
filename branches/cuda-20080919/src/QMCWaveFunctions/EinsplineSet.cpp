@@ -1855,6 +1855,33 @@ namespace qmcplusplus {
 		     Ylm_ptr_GPU.data(), dYlm_dtheta_ptr_GPU.data(), 
 		     dYlm_dphi_ptr_GPU.data(), lMax, newpos.size());
 
+    evaluateHybridSplineReal (HybridJobs_GPU.data(), Ylm_ptr_GPU.data(), 
+			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
+			      phi.data(), NumOrbitals, newpos.size(), lMax);
+
+    host_vector<CudaRealType*> phi_CPU (phi.size());
+    phi_CPU = phi;
+    host_vector<CudaRealType> vals_CPU(NumOrbitals);
+    host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    HybridJobs_CPU = HybridJobs_GPU;
+    host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
+    HybridData_CPU = HybridData_GPU;
+    for (int iw=0; iw<newpos.size(); iw++) 
+      if (HybridJobs_CPU[iw] != BSPLINE_3D_JOB) {
+	Vector<double> CPUvals(NumOrbitals);
+	HybridDataFloat &d = HybridData_CPU[iw];
+	AtomicOrbital<double> &atom = AtomicOrbitals[d.ion];
+	atom.evaluate (newpos[iw], CPUvals);
+
+	cudaMemcpy (&vals_CPU[0], phi_CPU[iw], NumOrbitals*sizeof(float),
+		    cudaMemcpyDeviceToHost);
+	fprintf (stderr, " %d %2.0f %2.0f %2.0f  %8.5f  %d %d\n",
+		 iw, d.img[0], d.img[1], d.img[2], d.dist, d.ion, d.lMax);
+	for (int j=0; j<NumOrbitals; j++)
+	  fprintf (stderr, "val[%2d] = %10.5e %10.5e\n", 
+		   j, vals_CPU[j], CPUvals[j]);
+      }
+
 #ifdef HYBRID_DEBUG
     host_vector<float> Ylm_CPU(Ylm_GPU.size());
     Ylm_CPU = Ylm_GPU;
@@ -2320,17 +2347,18 @@ namespace qmcplusplus {
     for (int i=0; i<OHMMS_DIM; i++)
       HalfG[i] = 0;
   }
+
   template<> void
   EinsplineSetHybrid<double>::init_cuda()
   {
     // Setup B-spline Acuda matrix in constant memory
-    void init_atomic_cuda();
+    init_atomic_cuda();
 
     host_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_CPU;
     const int BS=16;
-    int num_orbs = getOrbitalSetSize();
+    NumOrbitals = getOrbitalSetSize();
     // Bump up the stride to be a multiple of 512-bit bus width
-    int lm_stride = ((num_orbs+BS-1)/BS)*BS;
+    int lm_stride = ((NumOrbitals+BS-1)/BS)*BS;
     
     AtomicSplineCoefs_GPU.resize(AtomicOrbitals.size());
     vector<CudaRealType> IonPos_CPU, CutoffRadii_CPU, PolyRadii_CPU;
@@ -2359,7 +2387,7 @@ namespace qmcplusplus {
       // Reorder and copy splines to GPU memory
       for (int igrid=0; igrid<Ngrid+2; igrid++)
 	for (int lm=0; lm<numlm; lm++)
-	  for (int orb=0; orb<num_orbs; orb++)
+	  for (int orb=0; orb<NumOrbitals; orb++)
 	    spline_coefs[igrid*atom_cuda.spline_stride +
 			 lm   *atom_cuda.lm_stride + orb] =
 	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm];
@@ -2378,13 +2406,13 @@ namespace qmcplusplus {
   EinsplineSetHybrid<complex<double> >::init_cuda()
   {
     // Setup B-spline Acuda matrix in constant memory
-    void init_atomic_cuda();
+    init_atomic_cuda();
 
     host_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_CPU;
     const int BS=16;
-    int num_orbs = getOrbitalSetSize();
+    NumOrbitals = getOrbitalSetSize();
     // Bump up the stride to be a multiple of 512-bit bus width
-    int lm_stride = ((2*num_orbs+BS-1)/BS)*BS;
+    int lm_stride = ((2*NumOrbitals+BS-1)/BS)*BS;
     
     AtomicSplineCoefs_GPU.resize(AtomicOrbitals.size());
 
@@ -2406,7 +2434,7 @@ namespace qmcplusplus {
       // Reorder and copy splines to GPU memory
       for (int igrid=0; igrid<Ngrid+2; igrid++)
 	for (int lm=0; lm<numlm; lm++)
-	  for (int orb=0; orb<num_orbs; orb++) {
+	  for (int orb=0; orb<NumOrbitals; orb++) {
 	    spline_coefs[2*(igrid*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + orb)+0] =
 	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm].real();
 	    spline_coefs[2*(igrid*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + orb)+1] =
@@ -2414,7 +2442,6 @@ namespace qmcplusplus {
 	  }
       
       AtomicSplineCoefs_GPU[iat] = spline_coefs;
-      
       AtomicOrbitals_CPU.push_back(atom_cuda);
 
     }

@@ -34,9 +34,8 @@ MakeHybridJobList (float* elec_list, int num_elecs, float* ion_list,
 		   HybridDataFloat *data_list);
 
 void
-evaluateHybridSplineReal (HybridJobType *job_types, 
-			  float **Ylm_real, int Ylm_stride,
-			  float** SplineCoefs, float gridInv, int grid_stride,
+evaluateHybridSplineReal (HybridJobType *job_types, float **Ylm_real, 
+			  AtomicOrbitalCuda<float> *orbitals, 
 			  HybridDataFloat *data,
 			  float **vals, int N, int numWalkers, int lMax);
 
