@@ -11,8 +11,8 @@ struct HybridDataFloat
   float dist;
   // The index the ion this electron is near
   int ion;
-  // lMax for this ion
   int lMax;
+  int PAD[2];
 };
 
 template<typename T>
@@ -30,7 +30,8 @@ void
 MakeHybridJobList (float* elec_list, int num_elecs, float* ion_list, 
 		   float* poly_radii, float* spline_radii,
 		   int num_ions, float *L, float *Linv,
-		   HybridJobType *job_list, float *rhat_list);
+		   HybridJobType *job_list, float *rhat_list,
+		   HybridDataFloat *data_list);
 
 void
 evaluateHybridSplineReal (HybridJobType *job_types, 

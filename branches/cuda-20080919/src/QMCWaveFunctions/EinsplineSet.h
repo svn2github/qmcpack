@@ -432,6 +432,7 @@ namespace qmcplusplus {
     cuda_vector<HybridJobType> HybridJobs_GPU;
     cuda_vector<CudaRealType>  IonPos_GPU;
     cuda_vector<CudaRealType>  CutoffRadii_GPU, PolyRadii_GPU;
+    cuda_vector<HybridDataFloat> HybridData_GPU;
 
     cuda_vector<CudaRealType> Ylm_GPU;
     cuda_vector<CudaRealType*> Ylm_ptr_GPU, dYlm_dtheta_ptr_GPU, dYlm_dphi_ptr_GPU;

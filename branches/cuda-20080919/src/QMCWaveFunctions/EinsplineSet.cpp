@@ -1707,6 +1707,7 @@ namespace qmcplusplus {
     rhats_CPU.resize(OHMMS_DIM*numwalkers);
     rhats_GPU.resize(OHMMS_DIM*numwalkers);
     HybridJobs_GPU.resize(numwalkers);
+    HybridData_GPU.resize(numwalkers);
 
     for (int iw=0; iw<numwalkers; iw++) {
       Ylm_ptr_CPU[iw]         = &(YlmData[0]) + (3*iw+0)*Ylm_BS;
@@ -1847,12 +1848,23 @@ namespace qmcplusplus {
     MakeHybridJobList ((float*) cudaPos.data(), N, IonPos_GPU.data(), 
 		       PolyRadii_GPU.data(), CutoffRadii_GPU.data(),
 		       AtomicOrbitals.size(), L_cuda.data(), Linv_cuda.data(),
-		       HybridJobs_GPU.data(), rhats_GPU.data());
+		       HybridJobs_GPU.data(), rhats_GPU.data(),
+		       HybridData_GPU.data());
 
     rhats_CPU = rhats_GPU;
     for (int i=0; i<rhats_CPU.size()/3; i++)
       fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f]\n",
 	       i, rhats_CPU[3*i+0], rhats_CPU[3*i+1], rhats_CPU[3*i+2]);
+    
+    host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
+    HybridData_CPU = HybridData_GPU;
+    fprintf (stderr, " N  img      dist    ion    lMax\n");
+    for (int i=0; i<HybridData_CPU.size(); i++) {
+      HybridDataFloat &d = HybridData_CPU[i];
+      fprintf (stderr, " %d %2.0f %2.0f %2.0f  %8.5f  %d %d\n",
+	       i, d.img[0], d.img[1], d.img[2], d.dist, d.ion, d.lMax);
+    }
+      
 
     // int N = newpos.size();
     // if (N > CurrentWalkers)

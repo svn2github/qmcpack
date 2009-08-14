@@ -32,7 +32,8 @@ template<typename T, int BS> __global__ void
 MakeHybridJobList_kernel (T* elec_list, int num_elecs, T* ion_list, 
 			  T* poly_radii, T* spline_radii,
 			  int num_ions, T *L, T *Linv,
-			  HybridJobType *job_list, T *rhat_list)
+			  HybridJobType *job_list, T *rhat_list,
+			  HybridDataFloat *data_list)
 {
   __shared__ T epos[BS][3], ipos[BS][3], L_s[3][3], Linv_s[3][3];
   __shared__ T rhat[BS][3];
@@ -52,7 +53,7 @@ MakeHybridJobList_kernel (T* elec_list, int num_elecs, T* ion_list,
   
   int iBlocks = (num_ions+BS-1)/BS;
   jobs_shared[tid] = BSPLINE_3D_JOB;
-  HybridDataFloat data;
+  __shared__ HybridDataFloat data[BS];
   for (int ib=0; ib<iBlocks; ib++) {
     // Fetch ion positions into shared memory
     for (int j=0; j<3; j++) {
@@ -95,6 +96,11 @@ MakeHybridJobList_kernel (T* elec_list, int num_elecs, T* ion_list,
 	jobs_shared[tid] =  ATOMIC_SPLINE_JOB;
       // Compute rhat
       if (dist < r_spline[ion]) {
+	data[tid].dist = dist;
+	data[tid].img[0] = img0;
+	data[tid].img[1] = img1;
+	data[tid].img[2] = img2;
+	data[tid].ion = ion;
 	dist = 1.0f/dist;
 	rhat[tid][0] =  dr0 * dist;
 	rhat[tid][1] =  dr1 * dist;
@@ -110,8 +116,15 @@ MakeHybridJobList_kernel (T* elec_list, int num_elecs, T* ion_list,
       rhat_list[off] = rhat[0][i*BS+tid];
   }
   if (blockIdx.x*BS+tid < num_elecs)
-    job_list[tid] = jobs_shared[tid];
+    job_list[blockIdx.x*BS+tid] = jobs_shared[tid];
 
+  const int m = sizeof(HybridDataFloat)/sizeof(float);
+  float *data_f = (float*)data_list;
+  for (int i=0; i<m; i++) {
+    int off = (blockIdx.x*BS+i)*m + tid;
+    if (off < m*num_elecs)
+      data_f[off] = ((float*)data)[i*m+tid];
+  }
 }
 
 
@@ -119,7 +132,8 @@ void
 MakeHybridJobList (float* elec_list, int num_elecs, float* ion_list, 
 		   float* poly_radii, float* spline_radii,
 		   int num_ions, float *L, float *Linv,
-		   HybridJobType *job_list, float *rhat_list)
+		   HybridJobType *job_list, float *rhat_list,
+		   HybridDataFloat *data_list)
 { 
   const int BS=32;
   int numBlocks = (num_elecs+BS-1)/BS;
@@ -128,7 +142,8 @@ MakeHybridJobList (float* elec_list, int num_elecs, float* ion_list,
 
   MakeHybridJobList_kernel<float,BS><<<dimGrid,dimBlock>>> (elec_list, num_elecs,
 							    ion_list, poly_radii, spline_radii,
-							    num_ions, L, Linv, job_list, rhat_list);
+							    num_ions, L, Linv, job_list, rhat_list,
+							    data_list);
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
