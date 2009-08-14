@@ -53,15 +53,6 @@ namespace qmcplusplus {
     // Store in order 
     // Index = l*(l+1) + m.  There are (lMax+1)^2 Ylm's
     vector<StorageType> YlmVec, dYlm_dthetaVec, dYlm_dphiVec, ulmVec, dulmVec, d2ulmVec;
-    inline void CalcYlm(PosType rhat, 
-			vector<complex<double> > &Ylm,
-			vector<complex<double> > &dYlm_dtheta,
-			vector<complex<double> > &dYlm_dphi);
-
-    inline void CalcYlm(PosType rhat, 
-			vector<double> &Ylm, 
-			vector<double> &dYlm_dtheta,
-			vector<double> &dYlm_dphi);
 
     SplineType *RadialSpline;
     // The first index is n in r^n, the second is lm = l*(l+1)+m
@@ -106,6 +97,16 @@ namespace qmcplusplus {
     void set_band (int band, Array<complex<double>,2> &spline_data,
 		   Array<complex<double>,2> &poly_coefs,
 		   PosType twist);
+
+    inline void CalcYlm(PosType rhat, 
+			vector<complex<double> > &Ylm,
+			vector<complex<double> > &dYlm_dtheta,
+			vector<complex<double> > &dYlm_dphi);
+
+    inline void CalcYlm(PosType rhat, 
+			vector<double> &Ylm, 
+			vector<double> &dYlm_dtheta,
+			vector<double> &dYlm_dphi);
     
     inline bool evaluate (PosType r, ComplexValueVector_t &vals);
     inline bool evaluate (PosType r, ComplexValueVector_t &val,

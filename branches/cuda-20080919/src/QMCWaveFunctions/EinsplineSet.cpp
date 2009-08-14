@@ -1699,7 +1699,7 @@ namespace qmcplusplus {
     numlm = (lMax+1)*(lMax+1);
     Ylm_BS = ((numlm+15)/16) * 16;
     
-    YlmData.resize(numwalkers*Ylm_BS*3);
+    Ylm_GPU.resize(numwalkers*Ylm_BS*3);
     Ylm_ptr_GPU.resize        (numwalkers);   Ylm_ptr_CPU.resize       (numwalkers);
     dYlm_dtheta_ptr_GPU.resize(numwalkers);  dYlm_dtheta_ptr_CPU.resize(numwalkers);
     dYlm_dphi_ptr_GPU.resize  (numwalkers);  dYlm_dphi_ptr_CPU.resize  (numwalkers);
@@ -1710,9 +1710,9 @@ namespace qmcplusplus {
     HybridData_GPU.resize(numwalkers);
 
     for (int iw=0; iw<numwalkers; iw++) {
-      Ylm_ptr_CPU[iw]         = &(YlmData[0]) + (3*iw+0)*Ylm_BS;
-      dYlm_dtheta_ptr_CPU[iw] = &(YlmData[0]) + (3*iw+1)*Ylm_BS;
-      dYlm_dphi_ptr_CPU[iw]   = &(YlmData[0]) + (3*iw+2)*Ylm_BS;
+      Ylm_ptr_CPU[iw]         = &(Ylm_GPU[0]) + (3*iw+0)*Ylm_BS;
+      dYlm_dtheta_ptr_CPU[iw] = &(Ylm_GPU[0]) + (3*iw+1)*Ylm_BS;
+      dYlm_dphi_ptr_CPU[iw]   = &(Ylm_GPU[0]) + (3*iw+2)*Ylm_BS;
     }
     
     Ylm_ptr_GPU         = Ylm_ptr_CPU;
@@ -1740,7 +1740,7 @@ namespace qmcplusplus {
     numlm = (lMax+1)*(lMax+1);
     Ylm_BS = ((numlm+15)/16) * 16;
     
-    YlmData.resize(numwalkers*Ylm_BS*3);
+    Ylm_GPU.resize(numwalkers*Ylm_BS*3);
     Ylm_ptr_GPU.resize        (numwalkers);   Ylm_ptr_CPU.resize       (numwalkers);
     dYlm_dtheta_ptr_GPU.resize(numwalkers);  dYlm_dtheta_ptr_CPU.resize(numwalkers);
     dYlm_dphi_ptr_GPU.resize  (numwalkers);  dYlm_dphi_ptr_CPU.resize  (numwalkers);
@@ -1748,9 +1748,9 @@ namespace qmcplusplus {
     rhats_GPU.resize(numwalkers);
 
     for (int iw=0; iw<numwalkers; iw++) {
-      Ylm_ptr_CPU[iw]         = &(YlmData[0]) + (3*iw+0)*Ylm_BS;
-      dYlm_dtheta_ptr_CPU[iw] = &(YlmData[0]) + (3*iw+1)*Ylm_BS;
-      dYlm_dphi_ptr_CPU[iw]   = &(YlmData[0]) + (3*iw+2)*Ylm_BS;
+      Ylm_ptr_CPU[iw]         = &(Ylm_GPU[0]) + (3*iw+0)*Ylm_BS;
+      dYlm_dtheta_ptr_CPU[iw] = &(Ylm_GPU[0]) + (3*iw+1)*Ylm_BS;
+      dYlm_dphi_ptr_CPU[iw]   = &(Ylm_GPU[0]) + (3*iw+2)*Ylm_BS;
     }
     
     Ylm_ptr_GPU         = Ylm_ptr_CPU;
@@ -1826,24 +1826,24 @@ namespace qmcplusplus {
       hostPos[iw] = newpos[iw];
     cudaPos = hostPos;
     
-    hostPos = cudaPos;
-    for (int i=0; i<newpos.size(); i++)
-      cerr << "newPos[" << i << "] = " << newpos[i] << endl;
+    // hostPos = cudaPos;
+    // for (int i=0; i<newpos.size(); i++)
+    //   cerr << "newPos[" << i << "] = " << newpos[i] << endl;
 
-    host_vector<CudaRealType> IonPos_CPU(IonPos_GPU.size());
-    IonPos_CPU = IonPos_GPU;
-    for (int i=0; i<IonPos_CPU.size()/3; i++)
-      fprintf (stderr, "ion[%d] = [%10.6f %10.6f %10.6f]\n",
-	       i, IonPos_CPU[3*i+0], IonPos_CPU[3*i+2], IonPos_CPU[3*i+2]);
-    cerr << "cudaPos.size()        = " << cudaPos.size() << endl;
-    cerr << "IonPos.size()         = " << IonPos_GPU.size() << endl;
-    cerr << "PolyRadii.size()      = " << PolyRadii_GPU.size() << endl;
-    cerr << "CutoffRadii.size()    = " << CutoffRadii_GPU.size() << endl;
-    cerr << "AtomicOrbitals.size() = " << AtomicOrbitals.size() << endl;
-    cerr << "L_cuda.size()         = " << L_cuda.size() << endl;
-    cerr << "Linv_cuda.size()      = " << Linv_cuda.size() << endl;
-    cerr << "HybridJobs_GPU.size() = " << HybridJobs_GPU.size() << endl;
-    cerr << "rhats_GPU.size()      = " << rhats_GPU.size() << endl;
+    // host_vector<CudaRealType> IonPos_CPU(IonPos_GPU.size());
+    // IonPos_CPU = IonPos_GPU;
+    // for (int i=0; i<IonPos_CPU.size()/3; i++)
+    //   fprintf (stderr, "ion[%d] = [%10.6f %10.6f %10.6f]\n",
+    // 	       i, IonPos_CPU[3*i+0], IonPos_CPU[3*i+2], IonPos_CPU[3*i+2]);
+    // cerr << "cudaPos.size()        = " << cudaPos.size() << endl;
+    // cerr << "IonPos.size()         = " << IonPos_GPU.size() << endl;
+    // cerr << "PolyRadii.size()      = " << PolyRadii_GPU.size() << endl;
+    // cerr << "CutoffRadii.size()    = " << CutoffRadii_GPU.size() << endl;
+    // cerr << "AtomicOrbitals.size() = " << AtomicOrbitals.size() << endl;
+    // cerr << "L_cuda.size()         = " << L_cuda.size() << endl;
+    // cerr << "Linv_cuda.size()      = " << Linv_cuda.size() << endl;
+    // cerr << "HybridJobs_GPU.size() = " << HybridJobs_GPU.size() << endl;
+    // cerr << "rhats_GPU.size()      = " << rhats_GPU.size() << endl;
 
     MakeHybridJobList ((float*) cudaPos.data(), N, IonPos_GPU.data(), 
 		       PolyRadii_GPU.data(), CutoffRadii_GPU.data(),
@@ -1851,20 +1851,48 @@ namespace qmcplusplus {
 		       HybridJobs_GPU.data(), rhats_GPU.data(),
 		       HybridData_GPU.data());
 
+    CalcYlmRealCuda (rhats_GPU.data(), HybridJobs_GPU.data(),
+		     Ylm_ptr_GPU.data(), dYlm_dtheta_ptr_GPU.data(), 
+		     dYlm_dphi_ptr_GPU.data(), lMax, newpos.size());
+
+#ifdef HYBRID_DEBUG
+    host_vector<float> Ylm_CPU(Ylm_GPU.size());
+    Ylm_CPU = Ylm_GPU;
+    
     rhats_CPU = rhats_GPU;
     for (int i=0; i<rhats_CPU.size()/3; i++)
       fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f]\n",
 	       i, rhats_CPU[3*i+0], rhats_CPU[3*i+1], rhats_CPU[3*i+2]);
-    
+
+    host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    HybridJobs_CPU = HybridJobs_GPU;
+        
     host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
     HybridData_CPU = HybridData_GPU;
+
+    cerr << "Before loop.\n";
+    for (int i=0; i<newpos.size(); i++) 
+      if (HybridJobs_CPU[i] != BSPLINE_3D_JOB) {
+	cerr << "Inside if.\n";
+	PosType rhat(rhats_CPU[3*i+0], rhats_CPU[3*i+1], rhats_CPU[3*i+2]);
+	AtomicOrbital<double> &atom = AtomicOrbitals[HybridData_CPU[i].ion];
+	int numlm = (atom.lMax+1)*(atom.lMax+1);
+	vector<double> Ylm(numlm), dYlm_dtheta(numlm), dYlm_dphi(numlm);
+	atom.CalcYlm (rhat, Ylm, dYlm_dtheta, dYlm_dphi);
+	
+	for (int lm=0; lm < numlm; lm++) {
+	  fprintf (stderr, "lm=%3d  Ylm_CPU=%8.5f  Ylm_GPU=%8.5f\n",
+		   lm, Ylm[lm], Ylm_CPU[3*i*Ylm_BS+lm]);
+	}
+      }
+
     fprintf (stderr, " N  img      dist    ion    lMax\n");
     for (int i=0; i<HybridData_CPU.size(); i++) {
       HybridDataFloat &d = HybridData_CPU[i];
       fprintf (stderr, " %d %2.0f %2.0f %2.0f  %8.5f  %d %d\n",
 	       i, d.img[0], d.img[1], d.img[2], d.dist, d.ion, d.lMax);
     }
-      
+#endif
 
     // int N = newpos.size();
     // if (N > CurrentWalkers)
@@ -2225,22 +2253,26 @@ namespace qmcplusplus {
   		 cuda_vector<CudaComplexType*> &grad_lapl,
   		 int row_stride)
   {
-    app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, \n"
-		<< "			   	                    cuda_vector<CudaComplexType*> &phi,\n"
-		<< "				                    cuda_vector<CudaComplexType*> &grad_lapl,\n"
-		<< "				                    int row_stride)\n"
+    app_error() << "EinsplineSetHybrid<complex<double> >::evaluate \n"
+		<< "(vector<Walker_t*> &walkers, vector<PosType> &newpos, \n"
+		<< " cuda_vector<CudaComplexType*> &phi,\n"
+		<< " cuda_vector<CudaComplexType*> &grad_lapl,\n"
+		<< " int row_stride)\n"
 		<< "not yet implemented.\n";
   }
 
   template<> void
-  EinsplineSetHybrid<complex<double> >::evaluate (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
+  EinsplineSetHybrid<complex<double> >::evaluate 
+  (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
   {
   }
 
   template<> void
-  EinsplineSetHybrid<complex<double> >::evaluate (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
+  EinsplineSetHybrid<complex<double> >::evaluate 
+  (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
   {
-    app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)\n"
+    app_error() << "EinsplineSetHybrid<complex<double> >::evaluate \n"
+		<< "(vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)\n"
 		<< "not yet implemented.\n";
   }
   

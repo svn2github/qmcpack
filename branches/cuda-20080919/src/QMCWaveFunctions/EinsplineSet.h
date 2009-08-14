@@ -454,7 +454,6 @@ namespace qmcplusplus {
     // allocated GPU memory.  Must resize if we have more walkers than this.
     int CurrentWalkers;
 
-    cuda_vector<CudaRealType> YlmData;
     //////////////////////////////
     /// Orbital storage objects //
     //////////////////////////////

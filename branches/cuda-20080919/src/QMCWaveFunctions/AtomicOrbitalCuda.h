@@ -40,14 +40,22 @@ evaluateHybridSplineReal (HybridJobType *job_types,
 			  HybridDataFloat *data,
 			  float **vals, int N, int numWalkers, int lMax);
 
-void CalcYlmRealCuda (float *rhats, float **Ylm_ptr, float **dYlm_dtheta_ptr, float **dYlm_dphi_ptr, 
+template<typename T>
+void CalcYlmRealCuda (T *rhats,  HybridJobType *job_type,
+		      T **Ylm_ptr, T **dYlm_dtheta_ptr, T **dYlm_dphi_ptr, 
 		      int lMax, int N);
 
-void CalcYlmComplexCuda (float *rhats, float **Ylm_ptr, float **dYlm_dtheta_ptr, float **dYlm_dphi_ptr, 
+template<typename T>
+void CalcYlmComplexCuda (T *rhats,  HybridJobType *job_type,
+			 T **Ylm_ptr, T **dYlm_dtheta_ptr, T **dYlm_dphi_ptr, 
 			 int lMax, int N);
 
-void CalcYlmRealCuda (float *rhats, float **Ylm_ptr, int lMax, int N);
+template<typename T>
+void CalcYlmRealCuda (T *rhats,  HybridJobType *job_type,
+		      T **Ylm_ptr, int lMax, int N);
 
-void CalcYlmComplexCuda (float *rhats, float **Ylm_ptr, int lMax, int N);
+template<typename T>
+void CalcYlmComplexCuda (T *rhats,  HybridJobType *job_type,
+			 T **Ylm_ptr, int lMax, int N);
 
 #endif
