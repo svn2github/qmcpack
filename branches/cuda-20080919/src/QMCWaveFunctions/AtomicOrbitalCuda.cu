@@ -6,7 +6,7 @@
 #include <einspline/multi_bspline_create_cuda.h>
 
 using namespace std;
-__constant__ float  Acuda[48];
+__constant__ float  Dcuda[48];
 
 bool atomic_cuda_initialized = false;
 
@@ -32,7 +32,7 @@ init_atomic_cuda()
 		         0.0,      0.0,     -3.0,     1.0,
 		         0.0,      0.0,      1.0,     0.0 };
 
-  cudaMemcpyToSymbol(Acuda, A_h, 48*sizeof(float), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(Dcuda, A_h, 48*sizeof(float), 0, cudaMemcpyHostToDevice);
 }
   
 
@@ -198,13 +198,13 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types,
   // Compute spline basis functions
   T unit = myData.dist * myOrbital.spline_dr_inv;
   T sf = floor(unit);
-  T t  = sf - unit;
+  T t  = unit - sf;
   int index= (int) sf;
   float4 tp;
-  tp = make_float4(t*t*t, t*t, t, 1.0);
+  tp = make_float4(t*t*t, t*t, t, 1.0f);
   __shared__ float a[4];
   if (tid < 4) 
-    a[tid] = Acuda[4*tid+0]*tp.x + Acuda[4*tid+1]*tp.y + Acuda[4*tid+2]*tp.z + Acuda[4*tid+3]*tp.w;
+    a[tid] = Dcuda[4*tid+0]*tp.x + Dcuda[4*tid+1]*tp.y + Dcuda[4*tid+2]*tp.z + Dcuda[4*tid+3]*tp.w;
   __syncthreads();
 
 
@@ -229,7 +229,6 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types,
 		 a[1] * c[ustride] + 
 		 a[2] * c[ustride2] + 
 		 a[3] * c[ustride3]);
-      // HACK HACK HACK
       val +=  u * Ylm[lm];
     }
     int off = block*BS + tid;

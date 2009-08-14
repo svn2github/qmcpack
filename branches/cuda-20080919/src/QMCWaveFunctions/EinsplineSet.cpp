@@ -2383,7 +2383,7 @@ namespace qmcplusplus {
       int spline_size = atom_cuda.spline_stride * (Ngrid+2);
       host_vector<float> spline_coefs(spline_size);
       AtomicSplineCoefs_GPU[iat].resize(spline_size);
-      atom_cuda.spline_coefs = &AtomicSplineCoefs_GPU[0][0];
+      atom_cuda.spline_coefs = &AtomicSplineCoefs_GPU[iat][0];
       // Reorder and copy splines to GPU memory
       for (int igrid=0; igrid<Ngrid+2; igrid++)
 	for (int lm=0; lm<numlm; lm++)

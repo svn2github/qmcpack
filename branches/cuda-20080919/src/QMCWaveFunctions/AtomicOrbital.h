@@ -201,7 +201,7 @@ namespace qmcplusplus {
     
     double rmag = std::sqrt(r2);
     PosType rhat = (1.0/rmag)*dr;
-    
+
     // Evaluate Ylm's
     CalcYlm (rhat, YlmVec, dYlm_dthetaVec, dYlm_dphiVec);
 
@@ -232,6 +232,8 @@ namespace qmcplusplus {
       vals[i] = 0.0;
       StorageType tmp = 0.0;
       for (int lm=0; lm < Numlm; lm++, index++)
+
+	// HACK HACK HACK
 	tmp += ulmVec[index] * YlmVec[lm];
         //vals[i] += real(ulmVec[index++] * YlmVec[lm]);
         // vals[i] += (ulmVec[index].real() * YlmVec[lm].real() -
