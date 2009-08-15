@@ -1854,7 +1854,7 @@ namespace qmcplusplus {
     // evaluateHybridSplineReal (HybridJobs_GPU.data(), Ylm_ptr_GPU.data(), 
     // 			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
     // 			      phi.data(), NumOrbitals, newpos.size(), lMax);
-    evaluateHybridSplineReal (HybridJobs_GPU.data(), Ylm_ptr_GPU.data(),
+    evaluateHybridSplineReal (HybridJobs_GPU.data(), rhats_GPU.data(), Ylm_ptr_GPU.data(),
 			      dYlm_dtheta_ptr_GPU.data(), dYlm_dphi_ptr_GPU.data(),
 			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
 			      phi.data(), grad_lapl.data(), row_stride, 
