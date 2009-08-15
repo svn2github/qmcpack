@@ -1812,10 +1812,6 @@ namespace qmcplusplus {
 					cuda_vector<CudaRealType*> &grad_lapl,
 					int row_stride)
   { 
-    // app_error() << "EinsplineSetHybrid<double>::evaluate \n"
-    // 		<< " (vector<Walker_t*> &walkers, vector<PosType> &newpos, \n"
-    // 		<< "  cuda_vector<CudaRealType*> &phi, cuda_vector<CudaRealType*> &grad_lapl,\n"
-    // 		<< "  int row_stride) ; not implemented.\n";
     int N = newpos.size();
     if (cudaPos.size() < N) {
       resize_cuda(N);
@@ -1855,9 +1851,15 @@ namespace qmcplusplus {
 		     Ylm_ptr_GPU.data(), dYlm_dtheta_ptr_GPU.data(), 
 		     dYlm_dphi_ptr_GPU.data(), lMax, newpos.size());
 
-    evaluateHybridSplineReal (HybridJobs_GPU.data(), Ylm_ptr_GPU.data(), 
+    // evaluateHybridSplineReal (HybridJobs_GPU.data(), Ylm_ptr_GPU.data(), 
+    // 			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
+    // 			      phi.data(), NumOrbitals, newpos.size(), lMax);
+    evaluateHybridSplineReal (HybridJobs_GPU.data(), Ylm_ptr_GPU.data(),
+			      dYlm_dtheta_ptr_GPU.data(), dYlm_dphi_ptr_GPU.data(),
 			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
-			      phi.data(), NumOrbitals, newpos.size(), lMax);
+			      phi.data(), grad_lapl.data(), row_stride, 
+			      NumOrbitals, newpos.size(), lMax);
+
 
     host_vector<CudaRealType*> phi_CPU (phi.size());
     phi_CPU = phi;

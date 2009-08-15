@@ -38,6 +38,13 @@ evaluateHybridSplineReal (HybridJobType *job_types, float **Ylm_real,
 			  AtomicOrbitalCuda<float> *orbitals, 
 			  HybridDataFloat *data,
 			  float **vals, int N, int numWalkers, int lMax);
+void
+evaluateHybridSplineReal (HybridJobType *job_types, 
+			  float **Ylm_real, float **dYlm_dTheta, float **dYlm_dphi,
+			  AtomicOrbitalCuda<float> *orbitals,
+			  HybridDataFloat *data,
+			  float **vals, float **grad_lapl,
+			  int row_stride, int N, int numWalkers, int lMax);
 
 template<typename T>
 void CalcYlmRealCuda (T *rhats,  HybridJobType *job_type,
