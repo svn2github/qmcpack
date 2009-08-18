@@ -1,6 +1,10 @@
 #ifndef ATOMIC_ORBITAL_CUDA_H
 #define ATOMIC_ORBITAL_CUDA_H
 
+#include <einspline/multi_bspline.h>
+#include <einspline/multi_bspline_create_cuda.h>
+
+
 typedef enum { BSPLINE_3D_JOB, ATOMIC_POLY_JOB, ATOMIC_SPLINE_JOB } HybridJobType;
 
 struct HybridDataFloat
@@ -45,6 +49,19 @@ evaluateHybridSplineReal (HybridJobType *job_types, float *rhats,
 			  HybridDataFloat *data,
 			  float **vals, float **grad_lapl,
 			  int row_stride, int N, int numWalkers, int lMax);
+
+
+void
+evaluate3DSplineReal (HybridJobType *job_types, float *pos, float *kpoints,
+		      multi_UBspline_3d_s_cuda *multispline, float *Linv,
+		      float **vals, int N, int numWalkers);
+
+void
+evaluate3DSplineReal (HybridJobType *job_types, float *pos, float *kpoints,
+		      multi_UBspline_3d_s_cuda *multispline, float *Linv,
+		      float **vals, float **grad_lapl,
+		      int row_stride, int N, int numWalkers);
+
 
 template<typename T>
 void CalcYlmRealCuda (T *rhats,  HybridJobType *job_type,

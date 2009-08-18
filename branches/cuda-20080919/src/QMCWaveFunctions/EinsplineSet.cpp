@@ -1859,6 +1859,10 @@ namespace qmcplusplus {
 			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
 			      phi.data(), grad_lapl.data(), row_stride, 
 			      NumOrbitals, newpos.size(), lMax);
+    evaluate3DSplineReal (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
+			  (float*)CudakPoints.data(),CudaMultiSpline,
+			  Linv_cuda.data(), phi.data(), grad_lapl.data(), 
+			  row_stride, NumOrbitals, newpos.size());
 
 #ifdef HYBRID_DEBUG
 
@@ -2085,12 +2089,36 @@ namespace qmcplusplus {
   }
 
   template<> void
-  EinsplineSetHybrid<double>::evaluate (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
+  EinsplineSetHybrid<double>::evaluate 
+  (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
   {
-     app_error() << "EinsplineSetHybrid<double>::evaluate \n"
-		 << "(vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)\n"
-		 << "     is not yet implemented.\n";
-     abort();
+    int N = pos.size();
+    if (cudaPos.size() < N) {
+      resize_cuda(N);
+      hostPos.resize(N);
+      cudaPos.resize(N);
+    }
+    for (int iw=0; iw < N; iw++) 
+      hostPos[iw] = pos[iw];
+    cudaPos = hostPos;
+    
+
+    MakeHybridJobList ((float*) cudaPos.data(), N, IonPos_GPU.data(), 
+		       PolyRadii_GPU.data(), CutoffRadii_GPU.data(),
+		       AtomicOrbitals.size(), L_cuda.data(), Linv_cuda.data(),
+		       HybridJobs_GPU.data(), rhats_GPU.data(),
+		       HybridData_GPU.data());
+
+    CalcYlmRealCuda (rhats_GPU.data(), HybridJobs_GPU.data(),
+		     Ylm_ptr_GPU.data(), dYlm_dtheta_ptr_GPU.data(), 
+		     dYlm_dphi_ptr_GPU.data(), lMax, pos.size());
+
+    evaluateHybridSplineReal (HybridJobs_GPU.data(), Ylm_ptr_GPU.data(), 
+    			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
+    			      phi.data(), NumOrbitals, pos.size(), lMax);
+    evaluate3DSplineReal (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
+			  (float*)CudakPoints.data(),CudaMultiSpline,
+			  Linv_cuda.data(), phi.data(), NumOrbitals, pos.size());
   }
 
   template<> void
