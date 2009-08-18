@@ -1861,27 +1861,34 @@ namespace qmcplusplus {
 			      NumOrbitals, newpos.size(), lMax);
 
 
-    host_vector<CudaRealType*> phi_CPU (phi.size());
+    host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
     phi_CPU = phi;
-    host_vector<CudaRealType> vals_CPU(NumOrbitals);
+    grad_lapl_CPU = grad_lapl;
+    host_vector<CudaRealType> vals_CPU(NumOrbitals), GL_CPU(4*row_stride);
     host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
     HybridJobs_CPU = HybridJobs_GPU;
     host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
     HybridData_CPU = HybridData_GPU;
     for (int iw=0; iw<newpos.size(); iw++) 
       if (HybridJobs_CPU[iw] != BSPLINE_3D_JOB) {
-	Vector<double> CPUvals(NumOrbitals);
+	ValueVector_t CPUvals(NumOrbitals), CPUlapl(NumOrbitals);
+	GradVector_t CPUgrad(NumOrbitals);
 	HybridDataFloat &d = HybridData_CPU[iw];
 	AtomicOrbital<double> &atom = AtomicOrbitals[d.ion];
-	atom.evaluate (newpos[iw], CPUvals);
+	atom.evaluate (newpos[iw], CPUvals, CPUgrad, CPUlapl);
 
 	cudaMemcpy (&vals_CPU[0], phi_CPU[iw], NumOrbitals*sizeof(float),
 		    cudaMemcpyDeviceToHost);
+	cudaMemcpy (&GL_CPU[0], grad_lapl_CPU[iw], 4*row_stride*sizeof(float),
+		    cudaMemcpyDeviceToHost);
 	fprintf (stderr, " %d %2.0f %2.0f %2.0f  %8.5f  %d %d\n",
 		 iw, d.img[0], d.img[1], d.img[2], d.dist, d.ion, d.lMax);
-	for (int j=0; j<NumOrbitals; j++)
-	  fprintf (stderr, "val[%2d] = %10.5e %10.5e\n", 
+	for (int j=0; j<NumOrbitals; j++) {
+	  fprintf (stderr, "val[%2d]  = %10.5e %10.5e\n", 
 		   j, vals_CPU[j], CPUvals[j]);
+	  fprintf (stderr, "lapl[%2d] = %10.5e %10.5e\n", 
+		   j, GL_CPU[3*row_stride+j], CPUlapl[j]);
+	}
       }
 
 #ifdef HYBRID_DEBUG
