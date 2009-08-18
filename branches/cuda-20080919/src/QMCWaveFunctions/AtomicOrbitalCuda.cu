@@ -357,7 +357,8 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types, T* rhats,
   tp = make_float4(t*t*t, t*t, t, 1.0f);
   __shared__ float a[12];
   if (tid < 12) 
-    a[tid] = Dcuda[4*tid+0]*tp.x + Dcuda[4*tid+1]*tp.y + Dcuda[4*tid+2]*tp.z + Dcuda[4*tid+3]*tp.w;
+    a[tid] = (Dcuda[4*tid+0]*tp.x + Dcuda[4*tid+1]*tp.y + 
+	      Dcuda[4*tid+2]*tp.z + Dcuda[4*tid+3]*tp.w);
   __syncthreads();
 
 
@@ -390,6 +391,7 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types, T* rhats,
       float *c = c0 + lm*myOrbital.lm_stride;
       float u, du, d2u, coef;
       coef = c[0];
+      // Evaluate spline value and derivatives
       u  = a[0]*coef;  du  = a[4]*coef;  d2u  = a[8]*coef;
       coef = c[ustride];
       u += a[1]*coef;  du += a[5]*coef;  d2u += a[9]*coef;
@@ -399,6 +401,8 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types, T* rhats,
       u += a[3]*coef;  du += a[7]*coef;  d2u += a[11]*coef;
       du  *= myOrbital.spline_dr_inv;
       d2u *= myOrbital.spline_dr_inv * myOrbital.spline_dr_inv;
+      
+      // Now accumulate values
       val    +=   u * Ylm[lm];
       g_rhat +=  du*Ylm[lm];
       g_thetahat += u*rInv*dTheta[lm];
@@ -408,6 +412,9 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types, T* rhats,
     int off = block*BS + tid;
     if (off < N) {
       myVal[off] = val;
+      myGradLapl[0*row_stride+off] = g_rhat*rhat[0]+g_thetahat*thetahat[0]+g_phihat*phihat[0];
+      myGradLapl[1*row_stride+off] = g_rhat*rhat[1]+g_thetahat*thetahat[1]+g_phihat*phihat[1];
+      myGradLapl[2*row_stride+off] = g_rhat*rhat[2]+g_thetahat*thetahat[2]+g_phihat*phihat[2];
       myGradLapl[3*row_stride+off] = lap;
     }
   }

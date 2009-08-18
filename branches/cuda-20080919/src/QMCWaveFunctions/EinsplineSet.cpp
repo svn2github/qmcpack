@@ -1860,6 +1860,7 @@ namespace qmcplusplus {
 			      phi.data(), grad_lapl.data(), row_stride, 
 			      NumOrbitals, newpos.size(), lMax);
 
+#ifdef HYBRID_DEBUG
 
     host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
     phi_CPU = phi;
@@ -1886,12 +1887,16 @@ namespace qmcplusplus {
 	for (int j=0; j<NumOrbitals; j++) {
 	  fprintf (stderr, "val[%2d]  = %10.5e %10.5e\n", 
 		   j, vals_CPU[j], CPUvals[j]);
+	  fprintf (stderr, "grad[%2d] = %10.5e %10.5e  %10.5e %10.5e  %10.5e %10.5e\n", j,
+		   GL_CPU[0*row_stride+j], CPUgrad[j][0],
+		   GL_CPU[1*row_stride+j], CPUgrad[j][1],
+		   GL_CPU[2*row_stride+j], CPUgrad[j][2]);
+
 	  fprintf (stderr, "lapl[%2d] = %10.5e %10.5e\n", 
 		   j, GL_CPU[3*row_stride+j], CPUlapl[j]);
 	}
       }
 
-#ifdef HYBRID_DEBUG
     host_vector<float> Ylm_CPU(Ylm_GPU.size());
     Ylm_CPU = Ylm_GPU;
     
@@ -2071,16 +2076,30 @@ namespace qmcplusplus {
 					cuda_vector<CudaComplexType*> &grad_lapl,
 					int row_stride)
   {
+    app_error() << "EinsplineSetHybrid<double>::evaluate \n"
+		<< "(vector<Walker_t*> &walkers, vector<PosType> &newpos, \n"
+		<< " cuda_vector<CudaComplexType*> &phi,\n"
+		<< " cuda_vector<CudaComplexType*> &grad_lapl, int row_stride)\n"
+		<< "     is not yet implemented.\n";
+    abort();
   }
 
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
   {
+     app_error() << "EinsplineSetHybrid<double>::evaluate \n"
+		 << "(vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)\n"
+		 << "     is not yet implemented.\n";
+     abort();
   }
 
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
   {
+    app_error() << "EinsplineSetHybrid<double>::evaluate \n"
+		 << "(vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)\n"
+		 << "     is not yet implemented.\n";
+    abort();
   }
   
   template<> string
