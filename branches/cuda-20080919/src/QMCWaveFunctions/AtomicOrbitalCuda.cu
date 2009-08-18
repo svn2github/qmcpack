@@ -61,6 +61,9 @@ MakeHybridJobList_kernel (T* elec_list, int num_elecs, T* ion_list,
   int iBlocks = (num_ions+BS-1)/BS;
   jobs_shared[tid] = BSPLINE_3D_JOB;
   __shared__ HybridDataFloat data[BS];
+
+  __syncthreads();
+
   for (int ib=0; ib<iBlocks; ib++) {
     // Fetch ion positions into shared memory
     for (int j=0; j<3; j++) {
@@ -126,12 +129,12 @@ MakeHybridJobList_kernel (T* elec_list, int num_elecs, T* ion_list,
   if (blockIdx.x*BS+tid < num_elecs)
     job_list[blockIdx.x*BS+tid] = jobs_shared[tid];
 
-  const int m = sizeof(HybridDataFloat)/sizeof(float);
+  const int m = (sizeof(HybridDataFloat)+sizeof(float)-1)/sizeof(float);
   float *data_f = (float*)data_list;
   for (int i=0; i<m; i++) {
-    int off = (blockIdx.x*BS+i)*m + tid;
+    int off = (blockIdx.x*m+i)*BS + tid;
     if (off < m*num_elecs)
-      data_f[off] = ((float*)data)[i*m+tid];
+      data_f[off] = ((float*)data)[i*BS+tid];
   }
 }
 
@@ -1190,7 +1193,7 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
 {
   int tid = threadIdx.x;
   __shared__ HybridJobType myjob;
-  if (tid == 0) myjob = job_types[blockIdx.x];
+  if (tid == 0) myjob = job_types[blockIdx.y];
   __syncthreads();
   if (myjob != BSPLINE_3D_JOB)
     return;
@@ -1206,17 +1209,16 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
   
   int i0 = tid/3;
   int i1 = tid - 3*i0;
-  if (tid < 9) 
+  if (tid < 9) {
     G[0][tid] = Linv[tid];
-  if (tid < 9)   
     GGt[i0][i1] = (G[i0][0]*G[i1][0] + 
 		   G[i0][1]*G[i1][1] + 
 		   G[i0][2]*G[i1][2]);
+  }
   if (tid == 0) {
     myval  = vals[ir];
     mygrad_lapl = grad_lapl[ir];
   }
-  if (tid < 3)    r[tid] = pos[3*ir+tid];
   // for (int i=0; i<3; i++) {
   //   int off = (3*blockIdx.x+i)*BS+tid;
   //   if (off < 3*N)
@@ -1225,11 +1227,12 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
   __syncthreads();
 
   if (tid < 3) {
+    r[tid] = pos[3*ir+tid];
     u[tid] = G[tid][0]*r[0] + G[tid][1]*r[1] + G[tid][2]*r[2];
     img[tid] = floor(u[tid]);
     u[tid] -= img[tid];
   }
-
+  __syncthreads();
   int3 index;
   float3 t;
   float s, sf;
@@ -1377,7 +1380,7 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
 {
   int tid = threadIdx.x;
   __shared__ HybridJobType myjob;
-  if (tid == 0) myjob = job_types[blockIdx.x];
+  if (tid == 0) myjob = job_types[blockIdx.y];
   __syncthreads();
   if (myjob != BSPLINE_3D_JOB)
     return;

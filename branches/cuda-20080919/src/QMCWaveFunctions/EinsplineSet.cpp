@@ -1863,7 +1863,6 @@ namespace qmcplusplus {
 			  (float*)CudakPoints.data(),CudaMultiSpline,
 			  Linv_cuda.data(), phi.data(), grad_lapl.data(), 
 			  row_stride, NumOrbitals, newpos.size());
-
 #ifdef HYBRID_DEBUG
 
     host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
@@ -1874,6 +1873,9 @@ namespace qmcplusplus {
     HybridJobs_CPU = HybridJobs_GPU;
     host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
     HybridData_CPU = HybridData_GPU;
+    
+    rhats_CPU = rhats_GPU;
+    
     for (int iw=0; iw<newpos.size(); iw++) 
       if (HybridJobs_CPU[iw] != BSPLINE_3D_JOB) {
 	ValueVector_t CPUvals(NumOrbitals), CPUlapl(NumOrbitals);
@@ -1889,15 +1891,56 @@ namespace qmcplusplus {
 	fprintf (stderr, " %d %2.0f %2.0f %2.0f  %8.5f  %d %d\n",
 		 iw, d.img[0], d.img[1], d.img[2], d.dist, d.ion, d.lMax);
 	for (int j=0; j<NumOrbitals; j++) {
-	  fprintf (stderr, "val[%2d]  = %10.5e %10.5e\n", 
-		   j, vals_CPU[j], CPUvals[j]);
-	  fprintf (stderr, "grad[%2d] = %10.5e %10.5e  %10.5e %10.5e  %10.5e %10.5e\n", j,
-		   GL_CPU[0*row_stride+j], CPUgrad[j][0],
-		   GL_CPU[1*row_stride+j], CPUgrad[j][1],
-		   GL_CPU[2*row_stride+j], CPUgrad[j][2]);
+	  //	  if (isnan(vals_CPU[j])) {
+	  if (1 || isnan(GL_CPU[0*row_stride+j])) {
+	    cerr << "iw = " << iw << endl;
+	    fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f] dist = %10.6e\n",
+		     iw, rhats_CPU[3*iw+0], rhats_CPU[3*iw+1], rhats_CPU[3*iw+2], 
+		     d.dist);
+	    fprintf (stderr, "val[%2d]  = %10.5e %10.5e\n", 
+		     j, vals_CPU[j], CPUvals[j]);
+	    fprintf (stderr, "grad[%2d] = %10.5e %10.5e  %10.5e %10.5e  %10.5e %10.5e\n", j,
+		     GL_CPU[0*row_stride+j], CPUgrad[j][0],
+		     GL_CPU[1*row_stride+j], CPUgrad[j][1],
+		     GL_CPU[2*row_stride+j], CPUgrad[j][2]);
+	    
+	    fprintf (stderr, "lapl[%2d] = %10.5e %10.5e\n", 
+		     j, GL_CPU[3*row_stride+j], CPUlapl[j]);
+	  }
+	}
+      }
+      else {
+	ValueVector_t CPUvals(NumOrbitals), CPUlapl(NumOrbitals);
+	GradVector_t CPUgrad(NumOrbitals);
+	PosType ru(PrimLattice.toUnit(newpos[iw]));
+	for (int i=0; i<3; i++)
+	  ru[i] -= std::floor(ru[i]);
+	EinsplineMultiEval (MultiSpline, ru, CPUvals, CPUgrad,
+	 		    StorageHessVector);
 
-	  fprintf (stderr, "lapl[%2d] = %10.5e %10.5e\n", 
-		   j, GL_CPU[3*row_stride+j], CPUlapl[j]);
+	cudaMemcpy (&vals_CPU[0], phi_CPU[iw], NumOrbitals*sizeof(float),
+		    cudaMemcpyDeviceToHost);
+	cudaMemcpy (&GL_CPU[0], grad_lapl_CPU[iw], 4*row_stride*sizeof(float),
+		    cudaMemcpyDeviceToHost);
+
+	for (int j=0; j<NumOrbitals; j++) {
+	  CPUgrad[j] = dot (PrimLattice.G, CPUgrad[j]);
+	  CPUlapl[j] = trace (StorageHessVector[j], GGt);
+	
+	  if (isnan(GL_CPU[0*row_stride+j])) {
+	    cerr << "r[" << iw << "] = " << newpos[iw] << endl;
+	    cerr << "iw = " << iw << endl;
+
+	    fprintf (stderr, "3D val[%2d]  = %10.5e %10.5e\n", 
+		     j, vals_CPU[j], CPUvals[j]);
+	    fprintf (stderr, "3D grad[%2d] = %10.5e %10.5e  %10.5e %10.5e  %10.5e %10.5e\n", j,
+		     GL_CPU[0*row_stride+j], CPUgrad[j][0],
+		     GL_CPU[1*row_stride+j], CPUgrad[j][1],
+		     GL_CPU[2*row_stride+j], CPUgrad[j][2]);
+	    
+	    fprintf (stderr, "3D lapl[%2d] = %10.5e %10.5e\n", 
+		     j, GL_CPU[3*row_stride+j], CPUlapl[j]);
+	  }
 	}
       }
 

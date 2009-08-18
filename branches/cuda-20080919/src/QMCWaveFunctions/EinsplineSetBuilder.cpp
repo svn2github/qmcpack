@@ -873,7 +873,8 @@ namespace qmcplusplus {
 	    create_multi_UBspline_3d_cuda 
 	      (orbitalSet->MultiSpline, orbitalSet->CudaMultiSpline);
 	    // Destroy original CPU spline
-	    destroy_Bspline (orbitalSet->MultiSpline);
+	    // HACK HACK HACK
+	    //destroy_Bspline (orbitalSet->MultiSpline);
 	    host_vector<CudaRealType> L_host(9), Linv_host(9);
 	    orbitalSet->Linv_cuda.resize(9);
 	    orbitalSet->L_cuda.resize(9);
@@ -902,7 +903,8 @@ namespace qmcplusplus {
 	    create_multi_UBspline_3d_cuda (orbitalSet->MultiSpline,
 					   orbitalSet->CudaMultiSpline);
 	    // Destroy original CPU spline
-	    destroy_Bspline (orbitalSet->MultiSpline);
+	    // HACK HACK HACK
+	    //destroy_Bspline (orbitalSet->MultiSpline);
 
 	    host_vector<CudaRealType> L_host(9), Linv_host(9);
 	    orbitalSet->Linv_cuda.resize(9);
