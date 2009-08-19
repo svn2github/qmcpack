@@ -260,7 +260,7 @@ namespace qmcplusplus {
     // Cuda equivalents of the above
     cuda_vector<CudaStorageType> CudaValueVector, CudaGradLaplVector;
     cuda_vector<CudaStorageType*> CudaValuePointers, CudaGradLaplPointers;
-    void resizeCuda(int numWalkers);
+    void resize_cuda(int numWalkers);
     // Temporary storage used when blending functions        
     StorageValueVector_t BlendValueVector, BlendLaplVector;   
     StorageGradVector_t BlendGradVector;

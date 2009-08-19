@@ -409,7 +409,7 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types, T* rhats,
       g_rhat +=  du*Ylm[lm];
       g_thetahat += u*rInv*dTheta[lm];
       g_phihat   += u*rInv*sinthetaInv*dPhi[lm];
-      lap += Ylm[lm] * (lpref[lm] * u + d2u + 2.0*rInv*du);
+      lap += Ylm[lm] * (lpref[lm] * u + d2u + 2.0f*rInv*du);
     }
     int off = block*BS + tid;
     if (off < N) {
@@ -1190,7 +1190,7 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
 
   __shared__ float *myval, *mygrad_lapl;
   __shared__ float r[3], u[3], img[3];
-  __shared__ float kp[BS][3];
+  __shared__ float kp[BS][3], sign[BS];
   __shared__ float G[3][3], GGt[3][3];
 
   
@@ -1206,13 +1206,17 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
     myval  = vals[ir];
     mygrad_lapl = grad_lapl[ir];
   }
-  // for (int i=0; i<3; i++) {
-  //   int off = (3*blockIdx.x+i)*BS+tid;
-  //   if (off < 3*N)
-  //     kp[0][i*BS+tid] = kpoints[off];
-  // }
+  for (int i=0; i<3; i++) {
+    int off = (3*blockIdx.x+i)*BS+tid;
+    if (off < 3*N)
+      kp[0][i*BS+tid] = kpoints[off];
+  }
   __syncthreads();
 
+  sign[tid] = copysign(1.0f,__cosf(-(r[0]*kp[tid][0] + 
+				     r[1]*kp[tid][1] + 
+				     r[2]*kp[tid][2])));
+  
   if (tid < 3) {
     r[tid] = pos[3*ir+tid];
     u[tid] = G[tid][0]*r[0] + G[tid][1]*r[1] + G[tid][2]*r[2];
@@ -1311,14 +1315,15 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
     
     //  __shared__ float buff[6*SPLINE_BLOCK_SIZE];
     // Note, we can reuse abc, by replacing buff with abc.
-    myval[off] = v;
+    myval[off] = sign[tid]*v;
   }
+
 
   if (off < N) {
     // Store gradients back to global memory
-    mygrad_lapl[off+0*row_stride] = G[0][0]*g0 + G[0][1]*g1 + G[0][2]*g2;
-    mygrad_lapl[off+1*row_stride] = G[1][0]*g0 + G[1][1]*g1 + G[1][2]*g2;
-    mygrad_lapl[off+2*row_stride] = G[2][0]*g0 + G[2][1]*g1 + G[2][2]*g2;
+    mygrad_lapl[off+0*row_stride] = sign[tid]*(G[0][0]*g0 + G[0][1]*g1 + G[0][2]*g2);
+    mygrad_lapl[off+1*row_stride] = sign[tid]*(G[1][0]*g0 + G[1][1]*g1 + G[1][2]*g2);
+    mygrad_lapl[off+2*row_stride] = sign[tid]*(G[2][0]*g0 + G[2][1]*g1 + G[2][2]*g2);
     
     // Store laplacians back to global memory
     // Hessian = H00 H01 H02 H11 H12 H22
@@ -1326,7 +1331,7 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
     //          [1 3 4]
     //          [2 4 5]
     // laplacian = Trace(GGt*Hessian)
-    mygrad_lapl[off+3*row_stride] = 
+    mygrad_lapl[off+3*row_stride] = sign[tid]*
       (GGt[0][0]*h00 + GGt[1][0]*h01 + GGt[2][0]*h02 +
        GGt[0][1]*h01 + GGt[1][1]*h11 + GGt[2][1]*h12 +
        GGt[0][2]*h02 + GGt[1][2]*h12 + GGt[2][2]*h22);

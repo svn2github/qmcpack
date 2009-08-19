@@ -1186,7 +1186,7 @@ namespace qmcplusplus {
     int N = walkers.size();
 
     if (CudaValuePointers.size() < N)
-      resizeCuda(N);
+      resize_cuda(N);
 
     if (cudaPos.size() < N) {
       hostPos.resize(N);
@@ -1262,7 +1262,7 @@ namespace qmcplusplus {
   }
 
   template<typename T> void
-  EinsplineSetExtended<T>::resizeCuda(int numWalkers)
+  EinsplineSetExtended<T>::resize_cuda(int numWalkers)
   {
     CudaValuePointers.resize(numWalkers);
     CudaGradLaplPointers.resize(numWalkers);
@@ -1301,7 +1301,7 @@ namespace qmcplusplus {
     //    app_log() << "Eval 2.\n";
     int N = walkers.size();
     if (CudaValuePointers.size() < N)
-      resizeCuda(N);
+      resize_cuda(N);
 
     if (cudaPos.size() < N) {
       hostPos.resize(N);
@@ -1393,7 +1393,7 @@ namespace qmcplusplus {
     int M = CudaMultiSpline->num_splines;
 
     if (CudaValuePointers.size() < N)
-      resizeCuda(N);
+      resize_cuda(N);
 
     if (cudaPos.size() < N) {
       hostPos.resize(N);
@@ -1510,7 +1510,7 @@ namespace qmcplusplus {
     int N = pos.size();
 
     if (CudaValuePointers.size() < N)
-      resizeCuda(N);
+      resize_cuda(N);
 
     if (cudaPos.size() < N) {
       hostPos.resize(N);
@@ -1688,6 +1688,7 @@ namespace qmcplusplus {
   template<> void
   EinsplineSetHybrid<double>::resize_cuda(int numwalkers)
   {
+    EinsplineSetExtended<double>::resize_cuda(numwalkers);
     CurrentWalkers = numwalkers;
 
     // Resize Ylm temporaries
@@ -2326,7 +2327,7 @@ namespace qmcplusplus {
     // int M = CudaMultiSpline->num_splines;
 
     // if (CudaValuePointers.size() < N)
-    //   resizeCuda(N);
+    //   resize_cuda(N);
 
     // if (cudaPos.size() < N) {
     //   hostPos.resize(N);
