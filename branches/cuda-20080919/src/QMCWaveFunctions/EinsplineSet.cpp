@@ -1854,17 +1854,16 @@ namespace qmcplusplus {
     // evaluateHybridSplineReal (HybridJobs_GPU.data(), Ylm_ptr_GPU.data(), 
     // 			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
     // 			      phi.data(), NumOrbitals, newpos.size(), lMax);
+    evaluate3DSplineReal (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
+			  (float*)CudakPoints.data(),CudaMultiSpline,
+			  Linv_cuda.data(), phi.data(), grad_lapl.data(), 
+			  row_stride, NumOrbitals, newpos.size());
     evaluateHybridSplineReal (HybridJobs_GPU.data(), rhats_GPU.data(), Ylm_ptr_GPU.data(),
 			      dYlm_dtheta_ptr_GPU.data(), dYlm_dphi_ptr_GPU.data(),
 			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
 			      phi.data(), grad_lapl.data(), row_stride, 
 			      NumOrbitals, newpos.size(), lMax);
-    evaluate3DSplineReal (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
-			  (float*)CudakPoints.data(),CudaMultiSpline,
-			  Linv_cuda.data(), phi.data(), grad_lapl.data(), 
-			  row_stride, NumOrbitals, newpos.size());
 #ifdef HYBRID_DEBUG
-
     host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
     phi_CPU = phi;
     grad_lapl_CPU = grad_lapl;
@@ -1888,11 +1887,27 @@ namespace qmcplusplus {
 		    cudaMemcpyDeviceToHost);
 	cudaMemcpy (&GL_CPU[0], grad_lapl_CPU[iw], 4*row_stride*sizeof(float),
 		    cudaMemcpyDeviceToHost);
-	fprintf (stderr, " %d %2.0f %2.0f %2.0f  %8.5f  %d %d\n",
-		 iw, d.img[0], d.img[1], d.img[2], d.dist, d.ion, d.lMax);
+	// fprintf (stderr, " %d %2.0f %2.0f %2.0f  %8.5f  %d %d\n",
+	// 	 iw, d.img[0], d.img[1], d.img[2], d.dist, d.ion, d.lMax);
+	double mindist = 1.0e5;
+	for (int ion=0; ion<AtomicOrbitals.size(); ion++) {
+	  PosType disp = newpos[iw] - AtomicOrbitals[ion].Pos;
+	  PosType u = PrimLattice.toUnit(disp);
+	  PosType img;
+	  for (int i=0; i<OHMMS_DIM; i++) 
+	    u[i] -= round(u[i]);
+	  disp = PrimLattice.toCart(u);
+	  double dist = std::sqrt(dot(disp,disp));
+	  if (dist < AtomicOrbitals[ion].CutoffRadius)
+	    mindist = dist;
+	}
+	if (std::fabs (mindist - d.dist) > 1.0e-3)
+	  fprintf (stderr, "CPU dist = %1.8f  GPU dist = %1.8f\n",
+		   mindist, d.dist);
+
 	for (int j=0; j<NumOrbitals; j++) {
 	  //	  if (isnan(vals_CPU[j])) {
-	  if (1 || isnan(GL_CPU[0*row_stride+j])) {
+	  if (isnan(GL_CPU[0*row_stride+j])) {
 	    cerr << "iw = " << iw << endl;
 	    fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f] dist = %10.6e\n",
 		     iw, rhats_CPU[3*iw+0], rhats_CPU[3*iw+1], rhats_CPU[3*iw+2], 

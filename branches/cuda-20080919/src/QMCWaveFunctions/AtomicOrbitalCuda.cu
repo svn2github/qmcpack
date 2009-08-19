@@ -498,9 +498,6 @@ template<typename T, int LMAX, int BS> __global__ void
 CalcYlmComplex (T *rhats, HybridJobType  *job_types,
 		T **Ylm_ptr, T **dYlm_dtheta_ptr, T **dYlm_dphi_ptr, int N)
 {
-  HybridJobType jt = job_types[blockIdx.x];
-  if (jt == BSPLINE_3D_JOB)   return;
-
   const T fourPiInv = 0.0795774715459477f;
   int tid = threadIdx.x;
   const int numlm = (LMAX+1)*(LMAX+1);
@@ -649,10 +646,6 @@ template<typename T, int LMAX, int BS> __global__ void
 CalcYlmReal (T *rhats, HybridJobType* job_type,
 	     T **Ylm_ptr, T **dYlm_dtheta_ptr, T **dYlm_dphi_ptr, int N)
 {
-  HybridJobType jt = job_type[blockIdx.x];
-  if (jt == BSPLINE_3D_JOB)
-    return;
-
   const T fourPiInv = 0.0795774715459477f;
   int tid = threadIdx.x;
   const int numlm = (LMAX+1)*(LMAX+2)/2;
@@ -865,9 +858,6 @@ void CalcYlmComplexCuda (float *rhats, HybridJobType *job_type,
 template<typename T, int LMAX, int BS> __global__ void
 CalcYlmComplex (T *rhats, HybridJobType *job_types, T **Ylm_ptr, int N)
 {
-  HybridJobType jt = job_types[blockIdx.x];
-  if (jt == BSPLINE_3D_JOB)   return;
-
   const T fourPiInv = 0.0795774715459477f;
   int tid = threadIdx.x;
   const int numlm = (LMAX+1)*(LMAX+1);
@@ -982,9 +972,6 @@ CalcYlmComplex (T *rhats, HybridJobType *job_types, T **Ylm_ptr, int N)
 template<typename T, int LMAX, int BS> __global__ void
 CalcYlmReal (T *rhats, HybridJobType *job_types, T **Ylm_ptr, int N)
 {
-  HybridJobType jt = job_types[blockIdx.x];
-  if (jt == BSPLINE_3D_JOB)   return;
-
   const T fourPiInv = 0.0795774715459477f;
   int tid = threadIdx.x;
   const int numlm = (LMAX+1)*(LMAX+2)/2;
@@ -1359,9 +1346,7 @@ evaluate3DSplineReal (HybridJobType *job_types, float *pos, float *kpoints,
     (job_types, pos, kpoints, multispline->gridInv, multispline->coefs, 
      multispline->dim, multispline->stride, Linv, vals, grad_lapl, 
      row_stride, N);
-     // float3 drInv, float *coefs, uint3 dim, uint3 strides, float *Linv,
-     // float **vals, float **grad_lapl,
-     // int row_stride, int N)
+
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
