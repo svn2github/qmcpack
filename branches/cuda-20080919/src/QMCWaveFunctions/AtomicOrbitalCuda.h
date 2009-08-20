@@ -40,13 +40,13 @@ MakeHybridJobList (float* elec_list, int num_elecs, float* ion_list,
 void
 evaluateHybridSplineReal (HybridJobType *job_types, float **Ylm_real, 
 			  AtomicOrbitalCuda<float> *orbitals, 
-			  HybridDataFloat *data,
+			  HybridDataFloat *data, float *k_reduced,
 			  float **vals, int N, int numWalkers, int lMax);
 void
 evaluateHybridSplineReal (HybridJobType *job_types, float *rhats, 
 			  float **Ylm_real, float **dYlm_dTheta, float **dYlm_dphi,
 			  AtomicOrbitalCuda<float> *orbitals,
-			  HybridDataFloat *data,
+			  HybridDataFloat *data, float *k_reduced,
 			  float **vals, float **grad_lapl,
 			  int row_stride, int N, int numWalkers, int lMax);
 

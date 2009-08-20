@@ -1285,12 +1285,18 @@ namespace qmcplusplus {
     CudaMakeTwoCopies = hostMakeTwoCopies;
 
     CudakPoints.resize(N);
-    host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > hostkPoints(N);
+    CudakPoints_reduced.resize(N);
+    host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > hostkPoints(N),
+      hostkPoints_reduced(N);
     for (int i=0; i<N; i++) {
-      for (int j=0; j<OHMMS_DIM; j++)
-	hostkPoints[i][j] = kPoints[i][j];
+      PosType k_red = PrimLattice.toCart(kPoints[i]);
+      for (int j=0; j<OHMMS_DIM; j++) {
+	hostkPoints[i][j]         = kPoints[i][j];
+	hostkPoints_reduced[i][j] = k_red[j];
+      }
     }
     CudakPoints = hostkPoints;
+    CudakPoints_reduced = hostkPoints_reduced;
   }
 
   template<> void 
@@ -1856,14 +1862,15 @@ namespace qmcplusplus {
     // 			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
     // 			      phi.data(), NumOrbitals, newpos.size(), lMax);
     evaluate3DSplineReal (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
-			  (float*)CudakPoints.data(),CudaMultiSpline,
+			  (CudaRealType*)CudakPoints.data(),CudaMultiSpline,
 			  Linv_cuda.data(), phi.data(), grad_lapl.data(), 
 			  row_stride, NumOrbitals, newpos.size());
     evaluateHybridSplineReal (HybridJobs_GPU.data(), rhats_GPU.data(), Ylm_ptr_GPU.data(),
 			      dYlm_dtheta_ptr_GPU.data(), dYlm_dphi_ptr_GPU.data(),
 			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
-			      phi.data(), grad_lapl.data(), row_stride, 
-			      NumOrbitals, newpos.size(), lMax);
+			      (CudaRealType*)CudakPoints_reduced.data(), 
+			      phi.data(), grad_lapl.data(), 
+			      row_stride, NumOrbitals, newpos.size(), lMax);
 #ifdef HYBRID_DEBUG
     host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
     phi_CPU = phi;
@@ -2174,9 +2181,10 @@ namespace qmcplusplus {
 
     evaluateHybridSplineReal (HybridJobs_GPU.data(), Ylm_ptr_GPU.data(), 
     			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
-    			      phi.data(), NumOrbitals, pos.size(), lMax);
+    			      (CudaRealType*)CudakPoints_reduced.data(),
+			      phi.data(), NumOrbitals, pos.size(), lMax);
     evaluate3DSplineReal (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
-			  (float*)CudakPoints.data(),CudaMultiSpline,
+			  (CudaRealType*)CudakPoints.data(),CudaMultiSpline,
 			  Linv_cuda.data(), phi.data(), NumOrbitals, pos.size());
   }
 

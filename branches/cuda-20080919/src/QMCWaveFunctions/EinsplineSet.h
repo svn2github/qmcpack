@@ -272,7 +272,8 @@ namespace qmcplusplus {
     // k-points for each orbital
     Vector<TinyVector<RealType,OHMMS_DIM> > kPoints;
     // Cuda equivalent
-    cuda_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM > > CudakPoints;
+    cuda_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM > > CudakPoints,
+      CudakPoints_reduced;
 
     ///////////////////
     // Phase factors //
