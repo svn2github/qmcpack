@@ -50,6 +50,23 @@ evaluateHybridSplineReal (HybridJobType *job_types, float *rhats,
 			  float **vals, float **grad_lapl,
 			  int row_stride, int N, int numWalkers, int lMax);
 
+void
+evaluateHybridSplineComplexToReal 
+  (HybridJobType *job_types, float **Ylm_real, 
+   AtomicOrbitalCuda<float> *orbitals, 
+   HybridDataFloat *data, float *k_reduced, int *make2copies,
+   float **vals, int N, int numWalkers, int lMax);
+
+void
+evaluateHybridSplineComplexToReal 
+  (HybridJobType *job_types, float *rhats, 
+   float **Ylm_real, float **dYlm_dTheta, float **dYlm_dphi,
+   AtomicOrbitalCuda<float> *orbitals,
+   HybridDataFloat *data, float *k_reduced, int *make2copies,
+   float **vals, float **grad_lapl, 
+   int row_stride, int N, int numWalkers, int lMax);
+
+
 
 void
 evaluate3DSplineReal (HybridJobType *job_types, float *pos, float *kpoints,
@@ -61,6 +78,20 @@ evaluate3DSplineReal (HybridJobType *job_types, float *pos, float *kpoints,
 		      multi_UBspline_3d_s_cuda *multispline, float *Linv,
 		      float **vals, float **grad_lapl,
 		      int row_stride, int N, int numWalkers);
+
+void
+evaluate3DSplineComplexToReal 
+  (HybridJobType *job_types, float *pos, float *kpoints, int *make2copies,
+   multi_UBspline_3d_s_cuda *multispline, float *Linv,
+   float **vals, int N, int numWalkers);
+
+void
+evaluate3DSplineComplexToReal 
+  (HybridJobType *job_types, float *pos, float *kpoints, int *make2copies,
+   multi_UBspline_3d_s_cuda *multispline, float *Linv,
+   float **vals, float **grad_lapl,
+   int row_stride, int N, int numWalkers);
+
 
 
 template<typename T>

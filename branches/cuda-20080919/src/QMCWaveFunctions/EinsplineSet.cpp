@@ -2551,8 +2551,8 @@ namespace qmcplusplus {
 	*atom.get_radial_spline();
       int Ngrid = cpu_spline.x_grid.num;
       int spline_size = atom_cuda.spline_stride * (Ngrid+2);
-      host_vector<float> spline_coefs(spline_size);
-      AtomicSplineCoefs_GPU[iat].resize(spline_size);
+      host_vector<float> spline_coefs(2*spline_size);
+      AtomicSplineCoefs_GPU[iat].resize(2*spline_size);
       atom_cuda.spline_coefs = &AtomicSplineCoefs_GPU[0][0];
       // Reorder and copy splines to GPU memory
       for (int igrid=0; igrid<Ngrid+2; igrid++)

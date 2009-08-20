@@ -167,12 +167,6 @@ MakeHybridJobList (float* elec_list, int num_elecs, float* ion_list,
 
 // The spline coefficients should be reordered so that the
 // orbital is the fastest index.
-
-//////////////////////////////////////////////////////////
-// Need to add k-points and use image to determine sign //
-// for anti-periodic boundary conditions!!!!!!          //
-//////////////////////////////////////////////////////////
-
 template<typename T, int BS, int LMAX> __global__ void
 evaluateHybridSplineReal_kernel (HybridJobType *job_types, 
 				 T **YlmReal, AtomicOrbitalCuda<T> *orbitals,
@@ -232,15 +226,15 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types,
   int ustride2 = 2*myOrbital.spline_stride;
   int ustride3 = 3*myOrbital.spline_stride;
   for (int block=0; block<numBlocks; block++) {
-    T sign;
     for (int i=0; i<3; i++) {
       int off = (3*block+i)*BS + tid;
       if (off < 3*N)
 	k_red[0][i*BS+tid] = k_reduced[off];
-      sign = __cosf(-(k_red[tid][0]*myData.img[0]+
+    }
+    __syncthreads();
+    T sign = __cosf(-(k_red[tid][0]*myData.img[0]+
 		      k_red[tid][1]*myData.img[1]+
 		      k_red[tid][2]*myData.img[2]));
-    }
     T *c0 =  myCoefs + index*ustride + block*BS + tid;
     T val = T();
     for (int lm=0; lm<numlm; lm++) {
@@ -401,15 +395,15 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types, T* rhats,
   int ustride2 = 2*myOrbital.spline_stride;
   int ustride3 = 3*myOrbital.spline_stride;
   for (int block=0; block<numBlocks; block++) {
-    T sign;
     for (int i=0; i<3; i++) {
       int off = (3*block+i)*BS + tid;
       if (off < 3*N)
 	k_red[0][i*BS+tid] = k_reduced[off];
-      sign = __cosf(-(k_red[tid][0]*myData.img[0]+
+    }
+    __syncthreads();
+    T sign = __cosf(-(k_red[tid][0]*myData.img[0]+
 		      k_red[tid][1]*myData.img[1]+
 		      k_red[tid][2]*myData.img[2]));
-    }
     T *c0 =  myCoefs + index*ustride + block*BS + tid;
     T val = T();
     T g_rhat=T(), g_thetahat=T(), g_phihat=T(), lap=T();
@@ -516,6 +510,382 @@ evaluateHybridSplineReal (HybridJobType *job_types, float *rhats,
 }
 
 
+
+
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//// Complex splines to real orbitals evaluation routines ////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+
+// The spline coefficients should be reordered so that the
+// orbital is the fastest index.
+template<typename T, int BS, int LMAX> __global__ void
+evaluateHybridSplineComplexToReal_kernel 
+  (HybridJobType *job_types, 
+   T **YlmComplex, AtomicOrbitalCuda<T> *orbitals,
+   HybridDataFloat *data, T *k_reduced, int *make2copies,
+   T **vals, int N)
+{
+  int tid = threadIdx.x;
+  __shared__ HybridJobType myjob;
+  if (tid == 0) myjob = job_types[blockIdx.x];
+  __syncthreads();
+  if (myjob == BSPLINE_3D_JOB)
+    return;
+  
+  __shared__ T *myYlm, *myCoefs, *myVal;
+  __shared__ HybridDataFloat myData;
+  __shared__ AtomicOrbitalCuda<T> myOrbital;
+  __shared__ T k_red[BS][3];
+  const int data_size = (sizeof(HybridDataFloat)     +3)/sizeof(float);
+  const int orb_size  = (sizeof(AtomicOrbitalCuda<T>)+3)/sizeof(float);
+  if (tid < data_size) 
+    ((float*)&myData)[tid]    = ((float*)&(data[blockIdx.x]))[tid];
+  if (tid < orb_size) 
+    ((float*)&myOrbital)[tid] = ((float*)(&orbitals[myData.ion]))[tid];
+
+  if (tid == 0) {
+    myYlm   = YlmComplex[blockIdx.x];
+    myVal   = vals[blockIdx.x];
+    myCoefs = myOrbital.spline_coefs;
+  }
+  __syncthreads();
+  
+
+  // Compute spline basis functions
+  T unit = myData.dist * myOrbital.spline_dr_inv;
+  T sf = floor(unit);
+  T t  = unit - sf;
+  int index= (int) sf;
+  float4 tp;
+  tp = make_float4(t*t*t, t*t, t, 1.0f);
+  __shared__ float a[4];
+  if (tid < 4) 
+    a[tid] = (Acuda[4*tid+0]*tp.x + Acuda[4*tid+1]*tp.y + 
+	      Acuda[4*tid+2]*tp.z + Acuda[4*tid+3]*tp.w);
+  __syncthreads();
+
+
+  __shared__ T Ylm[(LMAX+1)*(LMAX+1)][2];
+  int numlm = (myOrbital.lMax+1)*(myOrbital.lMax+1);
+  int Yblocks = (2*numlm+BS-1)/BS;
+  for (int ib=0; ib<Yblocks; ib++)
+    if (ib*BS + tid < 2*numlm)
+      Ylm[0][ib*BS+tid] = myYlm[ib*BS + tid];
+  __syncthreads();
+
+  int numBlocks = (N+BS-1)/BS;
+  int ustride  = 1*myOrbital.spline_stride;
+  int ustride2 = 2*myOrbital.spline_stride;
+  int ustride3 = 3*myOrbital.spline_stride;
+  for (int block=0; block<numBlocks; block++) {
+    T phase_re, phase_im;
+    for (int i=0; i<3; i++) {
+      int off = (3*block+i)*BS + tid;
+      if (off < 3*N)
+	k_red[0][i*BS+tid] = k_reduced[off];
+    }
+    __syncthreads();
+    __sincosf(-(k_red[tid][0]*myData.img[0]+
+		k_red[tid][1]*myData.img[1]+
+		k_red[tid][2]*myData.img[2]), 
+	      &phase_im, &phase_re);
+    T *c0 =  myCoefs + index*ustride + 2*block*BS;
+    __shared__ T c[BS][2];
+    T val_re=T(), val_im=T();
+    for (int lm=0; lm<numlm; lm++) {
+      float u_re, u_im;
+      float *coef = c0 + lm*myOrbital.lm_stride;
+      c[0][tid]    = coef[tid];
+      c[0][BS+tid] = coef[BS+tid];
+      u_re = a[0]*c[tid][0];
+      u_im = a[0]*c[tid][1];
+
+      c[0][tid]    = coef[ustride      + tid];
+      c[0][BS+tid] = coef[ustride + BS + tid];
+      u_re += a[1]*c[tid][0];
+      u_im += a[1]*c[tid][1];
+
+      c[0][tid]    = coef[ustride2      + tid];
+      c[0][BS+tid] = coef[ustride2 + BS + tid];
+      u_re += a[2]*c[tid][0];
+      u_im += a[2]*c[tid][1];
+
+      c[0][tid]    = coef[ustride3      + tid];
+      c[0][BS+tid] = coef[ustride3 + BS + tid];
+      u_re += a[3]*c[tid][0];
+      u_im += a[3]*c[tid][1];
+
+      val_re +=  u_re*Ylm[lm][0] - u_im*Ylm[lm][1];
+      val_im +=  u_im*Ylm[lm][0] + u_re*Ylm[lm][1];
+    }
+    // int off = block*BS + tid;
+    // if (off < N)
+    //   myVal[off] = phase_re*val;
+  }
+
+  __syncthreads();
+}
+
+
+void
+evaluateHybridSplineComplexToReal 
+  (HybridJobType *job_types, 
+   float **Ylm_real, AtomicOrbitalCuda<float> *orbitals,
+   HybridDataFloat *data, float *k_reduced, int* make2copies,
+   float **vals, int N, int numWalkers, int lMax)
+{
+  const int BS=32;
+  dim3 dimGrid(numWalkers);
+  dim3 dimBlock(BS);
+  
+  if (lMax == 0) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,0><<<dimGrid,dimBlock>>> 
+      (job_types, Ylm_real, orbitals, data, k_reduced, make2copies, vals, N);
+  else if (lMax == 1) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,1><<<dimGrid,dimBlock>>> 
+      (job_types, Ylm_real, orbitals, data, k_reduced, make2copies, vals, N);
+  else if (lMax == 2) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,2><<<dimGrid,dimBlock>>> 
+      (job_types, Ylm_real, orbitals, data, k_reduced, make2copies, vals, N);
+  else if (lMax == 3) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,3><<<dimGrid,dimBlock>>> 
+      (job_types, Ylm_real, orbitals, data, k_reduced, make2copies, vals, N);
+  else if (lMax == 4) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,4><<<dimGrid,dimBlock>>> 
+      (job_types, Ylm_real, orbitals, data, k_reduced, make2copies, vals, N);
+  else if (lMax == 5) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,5><<<dimGrid,dimBlock>>> 
+      (job_types, Ylm_real, orbitals, data, k_reduced, make2copies, vals, N);
+  else if (lMax == 6) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,6><<<dimGrid,dimBlock>>> 
+      (job_types, Ylm_real, orbitals, data, k_reduced, make2copies, vals, N);
+  else if (lMax == 7) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,7><<<dimGrid,dimBlock>>> 
+      (job_types, Ylm_real, orbitals, data, k_reduced, make2copies, vals, N);
+  else if (lMax == 8) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,8><<<dimGrid,dimBlock>>> 
+      (job_types, Ylm_real, orbitals, data, k_reduced, make2copies, vals, N);
+  else if (lMax == 9) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,9><<<dimGrid,dimBlock>>> 
+      (job_types, Ylm_real, orbitals, data, k_reduced, make2copies, vals, N);
+
+     
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in evaluateHybridSplineReal:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+}
+
+
+template<typename T,int BS,int LMAX> __global__ void
+evaluateHybridSplineComplexToReal_kernel 
+  (HybridJobType *job_types, T* rhats, 
+   T **YlmReal, float **dYlm_dTheta, float **dYlm_dphi,
+   AtomicOrbitalCuda<T> *orbitals, HybridDataFloat *data, 
+   T *k_reduced, int *make2copies, T **vals, T **grad_lapl, 
+   int row_stride, int N)
+{
+  int tid = threadIdx.x;
+  __shared__ HybridJobType myjob;
+  if (tid == 0) myjob = job_types[blockIdx.x];
+  __syncthreads();
+  if (myjob == BSPLINE_3D_JOB)
+    return;
+  
+  __shared__ T *myYlm, *mydTheta, *mydPhi, *myCoefs, *myVal, *myGradLapl;
+  __shared__ HybridDataFloat myData;
+  __shared__ AtomicOrbitalCuda<T> myOrbital;
+  __shared__ T k_red[BS][3];
+  
+  const int data_size = (sizeof(HybridDataFloat)     +3)/sizeof(float);
+  const int orb_size  = (sizeof(AtomicOrbitalCuda<T>)+3)/sizeof(float);
+  if (tid < data_size) 
+    ((float*)&myData)[tid]    = ((float*)&(data[blockIdx.x]))[tid];
+  if (tid < orb_size) 
+    ((float*)&myOrbital)[tid] = ((float*)(&orbitals[myData.ion]))[tid];
+
+  if (tid == 0) {
+    myYlm      = YlmReal[blockIdx.x];
+    mydTheta   = dYlm_dTheta[blockIdx.x];
+    mydPhi     = dYlm_dphi[blockIdx.x];
+    myVal      = vals[blockIdx.x];
+    myGradLapl = grad_lapl[blockIdx.x];
+    myCoefs    = myOrbital.spline_coefs;
+  }
+  __shared__ T rhat[3], thetahat[3], phihat[3];
+  __shared__ T sintheta, cosphi, sinphi, rInv, sinthetaInv;
+  if (tid < 3) 
+    rhat[tid] = rhats[3*blockIdx.x+tid];
+  if (tid ==0) {
+    rInv = 1.0f/myData.dist;
+    sintheta = sqrtf(1.0-rhat[2]*rhat[2]);
+    sinthetaInv = 1.0/sintheta;
+    cosphi = rhat[0]*sinthetaInv;
+    sinphi = rhat[1]*sinthetaInv;
+    thetahat[0] = rhat[2]*cosphi;
+    thetahat[1] = rhat[2]*sinphi;
+    thetahat[2] = -sintheta;
+    phihat[0]   = -sinphi;
+    phihat[1]   = cosphi;
+    phihat[2]   = 0.0f;
+  }
+  __syncthreads();
+
+  // Compute spline basis functions
+  T unit = myData.dist * myOrbital.spline_dr_inv;
+  T sf = floor(unit);
+  T t  = unit - sf;
+  int index= (int) sf;
+  float4 tp;
+  tp = make_float4(t*t*t, t*t, t, 1.0f);
+  __shared__ float a[12];
+  if (tid < 12) 
+    a[tid] = (Acuda[4*tid+0]*tp.x + Acuda[4*tid+1]*tp.y + 
+	      Acuda[4*tid+2]*tp.z + Acuda[4*tid+3]*tp.w);
+  __syncthreads();
+
+
+  __shared__ T Ylm[(LMAX+1)*(LMAX+1)], dTheta[(LMAX+1)*(LMAX+1)], dPhi[(LMAX+1)*(LMAX+1)],
+    lpref[(LMAX+1)*(LMAX+1)];
+  int numlm = (myOrbital.lMax+1)*(myOrbital.lMax+1);
+  int Yblocks = (numlm+BS-1)/BS;
+  for (int ib=0; ib<Yblocks; ib++)
+    if (ib*BS + tid < numlm) {
+      Ylm[ib*BS+tid]    = myYlm[ib*BS + tid];
+      dTheta[ib*BS+tid] = mydTheta[ib*BS + tid];
+      dPhi[ib*BS+tid]   = mydPhi[ib*BS + tid];
+    }
+  for (int l=0; l<=myOrbital.lMax; l++) 
+    if (tid < 2*l+1) {
+      int lm = l*l + tid;
+      lpref[lm] = -rInv*rInv*(T)(l*(l+1));
+    }
+  __syncthreads();
+
+  int numBlocks = (N+BS-1)/BS;
+  int ustride  = 1*myOrbital.spline_stride;
+  int ustride2 = 2*myOrbital.spline_stride;
+  int ustride3 = 3*myOrbital.spline_stride;
+  for (int block=0; block<numBlocks; block++) {
+    for (int i=0; i<3; i++) {
+      int off = (3*block+i)*BS + tid;
+      if (off < 3*N)
+	k_red[0][i*BS+tid] = k_reduced[off];
+    }
+    __syncthreads();
+    T sign = __cosf(-(k_red[tid][0]*myData.img[0]+
+		      k_red[tid][1]*myData.img[1]+
+		      k_red[tid][2]*myData.img[2]));
+    T *c0 =  myCoefs + index*ustride + block*BS + tid;
+    T val = T();
+    T g_rhat=T(), g_thetahat=T(), g_phihat=T(), lap=T();
+    for (int lm=0; lm<numlm; lm++) {
+      float *c = c0 + lm*myOrbital.lm_stride;
+      float u, du, d2u, coef;
+      coef = c[0];
+      // Evaluate spline value and derivatives
+      u  = a[0]*coef;  du  = a[4]*coef;  d2u  = a[8]*coef;
+      coef = c[ustride];
+      u += a[1]*coef;  du += a[5]*coef;  d2u += a[9]*coef;
+      coef = c[ustride2];
+      u += a[2]*coef;  du += a[6]*coef;  d2u += a[10]*coef;
+      coef = c[ustride3];
+      u += a[3]*coef;  du += a[7]*coef;  d2u += a[11]*coef;
+      du  *= myOrbital.spline_dr_inv;
+      d2u *= myOrbital.spline_dr_inv * myOrbital.spline_dr_inv;
+      
+      // Now accumulate values
+      val    +=   u * Ylm[lm];
+      g_rhat +=  du*Ylm[lm];
+      g_thetahat += u*rInv*dTheta[lm];
+      g_phihat   += u*rInv*sinthetaInv*dPhi[lm];
+      lap += Ylm[lm] * (lpref[lm] * u + d2u + 2.0f*rInv*du);
+    }
+    int off = block*BS + tid;
+    if (off < N) {
+      myVal[off] = sign * val;
+      myGradLapl[0*row_stride+off] = sign *
+	(g_rhat*rhat[0]+g_thetahat*thetahat[0]+g_phihat*phihat[0]);
+      myGradLapl[1*row_stride+off] = sign *
+	(g_rhat*rhat[1]+g_thetahat*thetahat[1]+g_phihat*phihat[1]);
+      myGradLapl[2*row_stride+off] = sign *
+	(g_rhat*rhat[2]+g_thetahat*thetahat[2]+g_phihat*phihat[2]);
+      myGradLapl[3*row_stride+off] = sign * lap;
+    }
+  }
+
+  __syncthreads();
+  
+}
+
+void
+evaluateHybridSplineComplexToReal 
+  (HybridJobType *job_types, float *rhats,
+   float **Ylm_real, float **dYlm_dTheta, float **dYlm_dphi,
+   AtomicOrbitalCuda<float> *orbitals,
+   HybridDataFloat *data, float *k_reduced, int *make2copies,
+   float **vals, float **grad_lapl,
+   int row_stride, int N, int numWalkers, int lMax)
+{
+  const int BS=32;
+  dim3 dimGrid(numWalkers);
+  dim3 dimBlock(BS);
+  
+  if (lMax == 0) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,0><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  else if (lMax == 1) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,1><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  else if (lMax == 2) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,2><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  else if (lMax == 3) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,3><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  else if (lMax == 4) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,4><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  else if (lMax == 5) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,5><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  else if (lMax == 6) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,6><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  else if (lMax == 7) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,7><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  else if (lMax == 8) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,8><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  else if (lMax == 9) 
+    evaluateHybridSplineComplexToReal_kernel<float,BS,9><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+
+     
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in evaluateHybridSplineReal:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+}
 
 
 template<typename T, int LMAX, int BS> __global__ void
