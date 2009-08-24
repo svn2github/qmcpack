@@ -579,6 +579,8 @@ evaluateHybridSplineComplexToReal_kernel
   int ustride  = 1*myOrbital.spline_stride;
   int ustride2 = 2*myOrbital.spline_stride;
   int ustride3 = 3*myOrbital.spline_stride;
+  int outIndex=0, outBlock=0;
+  __shared__ T outbuff[BS];
   for (int block=0; block<numBlocks; block++) {
     T phase_re, phase_im;
     for (int i=0; i<3; i++) {
@@ -586,14 +588,19 @@ evaluateHybridSplineComplexToReal_kernel
       if (off < 3*N)
 	k_red[0][i*BS+tid] = k_reduced[off];
     }
+    __shared__ T m2c[BS];
+    if (block*BS+tid < N)
+      m2c[tid] = make2copies[block*BS+tid];
     __syncthreads();
     __sincosf(-(k_red[tid][0]*myData.img[0]+
 		k_red[tid][1]*myData.img[1]+
 		k_red[tid][2]*myData.img[2]), 
 	      &phase_im, &phase_re);
     T *c0 =  myCoefs + index*ustride + 2*block*BS;
-    __shared__ T c[BS][2];
-    T val_re=T(), val_im=T();
+    __shared__ T c[BS][2], val[BS][2];
+    val[0][tid]    = T();
+    val[0][tid+BS] = T();
+    T v_re=T(), v_im=T();
     for (int lm=0; lm<numlm; lm++) {
       float u_re, u_im;
       float *coef = c0 + lm*myOrbital.lm_stride;
@@ -617,13 +624,41 @@ evaluateHybridSplineComplexToReal_kernel
       u_re += a[3]*c[tid][0];
       u_im += a[3]*c[tid][1];
 
-      val_re +=  u_re*Ylm[lm][0] - u_im*Ylm[lm][1];
-      val_im +=  u_im*Ylm[lm][0] + u_re*Ylm[lm][1];
+      v_re +=  u_re*Ylm[lm][0] - u_im*Ylm[lm][1];
+      v_im +=  u_im*Ylm[lm][0] + u_re*Ylm[lm][1];
+    }
+    val[tid][0] = phase_re * v_re - phase_im * v_im;
+    val[tid][1] = phase_re * v_im + phase_im * v_re;
+    __syncthreads();
+    int iend = min (BS, N-block*BS);
+    for (int i=0; i<iend; i++) {
+      if (tid == 0) 
+	outbuff[outIndex] = val[i][0];
+      outIndex++;
+      __syncthreads();
+      if (outIndex == BS) {
+	myVal[outBlock++*BS+tid] = outbuff[tid];
+	outIndex = 0;
+      }
+      __syncthreads();
+      if (m2c[i]) {
+	if (tid == 0) 
+	  outbuff[outIndex] = val[i][1];
+	outIndex++;
+	__syncthreads();
+      }
+      if (outIndex == BS) {
+	myVal[outBlock++*BS+tid] = outbuff[tid];
+	outIndex = 0;
+      }
+    __syncthreads();
     }
     // int off = block*BS + tid;
     // if (off < N)
     //   myVal[off] = phase_re*val;
   }
+  if (tid < outIndex)
+    myVal[outBlock*BS+tid] = outbuff[tid];
 
   __syncthreads();
 }
@@ -1200,8 +1235,10 @@ void CalcYlmRealCuda (T *rhats, HybridJobType *job_type,
   }
 }
 
-void CalcYlmComplexCuda (float *rhats, HybridJobType *job_type,
-			 float **Ylm_ptr, float **dYlm_dtheta_ptr, float **dYlm_dphi_ptr, 
+
+template<typename T>
+void CalcYlmComplexCuda (T *rhats, HybridJobType *job_type,
+			 T **Ylm_ptr, T **dYlm_dtheta_ptr, T **dYlm_dphi_ptr, 
 			 int lMax, int N)
 {
   const int BS=32;
@@ -1212,28 +1249,28 @@ void CalcYlmComplexCuda (float *rhats, HybridJobType *job_type,
   if (lMax == 0)
     return;
   else if (lMax == 1)
-    CalcYlmComplex<float,1,BS><<<dimGrid,dimBlock>>>
+    CalcYlmComplex<T,1,BS><<<dimGrid,dimBlock>>>
       (rhats,job_type,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 2)
-    CalcYlmComplex<float,2,BS><<<dimGrid,dimBlock>>>
+    CalcYlmComplex<T,2,BS><<<dimGrid,dimBlock>>>
       (rhats,job_type,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 3)
-    CalcYlmComplex<float,3,BS><<<dimGrid,dimBlock>>>
+    CalcYlmComplex<T,3,BS><<<dimGrid,dimBlock>>>
       (rhats,job_type,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 4)
-    CalcYlmComplex<float,4,BS><<<dimGrid,dimBlock>>>
+    CalcYlmComplex<T,4,BS><<<dimGrid,dimBlock>>>
       (rhats,job_type,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 5)
-    CalcYlmComplex<float,5,BS><<<dimGrid,dimBlock>>>
+    CalcYlmComplex<T,5,BS><<<dimGrid,dimBlock>>>
       (rhats,job_type,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 6)
-    CalcYlmComplex<float,6,BS><<<dimGrid,dimBlock>>>
+    CalcYlmComplex<T,6,BS><<<dimGrid,dimBlock>>>
       (rhats,job_type,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 7)
-    CalcYlmComplex<float,7,BS><<<dimGrid,dimBlock>>>
+    CalcYlmComplex<T,7,BS><<<dimGrid,dimBlock>>>
       (rhats,job_type,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
   else if (lMax == 8)
-    CalcYlmComplex<float,8,BS><<<dimGrid,dimBlock>>>
+    CalcYlmComplex<T,8,BS><<<dimGrid,dimBlock>>>
       (rhats,job_type,Ylm_ptr,dYlm_dtheta_ptr,dYlm_dphi_ptr,N);
 
   cudaThreadSynchronize();

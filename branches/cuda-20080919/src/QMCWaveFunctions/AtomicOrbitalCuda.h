@@ -60,7 +60,7 @@ evaluateHybridSplineComplexToReal
 void
 evaluateHybridSplineComplexToReal 
   (HybridJobType *job_types, float *rhats, 
-   float **Ylm_real, float **dYlm_dTheta, float **dYlm_dphi,
+   float **Ylm, float **dYlm_dTheta, float **dYlm_dphi,
    AtomicOrbitalCuda<float> *orbitals,
    HybridDataFloat *data, float *k_reduced, int *make2copies,
    float **vals, float **grad_lapl, 

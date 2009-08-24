@@ -1736,6 +1736,7 @@ namespace qmcplusplus {
   template<> void
   EinsplineSetHybrid<complex<double> >::resize_cuda(int numwalkers)
   {
+    EinsplineSetExtended<complex<double> >::resize_cuda(numwalkers);
     CurrentWalkers = numwalkers;
 
     // Resize Ylm temporaries
@@ -1745,14 +1746,16 @@ namespace qmcplusplus {
       lMax = max(AtomicOrbitals[i].lMax, lMax);
     
     numlm = (lMax+1)*(lMax+1);
-    Ylm_BS = ((numlm+15)/16) * 16;
+    Ylm_BS = ((2*numlm+15)/16) * 16;
     
     Ylm_GPU.resize(numwalkers*Ylm_BS*3);
     Ylm_ptr_GPU.resize        (numwalkers);   Ylm_ptr_CPU.resize       (numwalkers);
     dYlm_dtheta_ptr_GPU.resize(numwalkers);  dYlm_dtheta_ptr_CPU.resize(numwalkers);
     dYlm_dphi_ptr_GPU.resize  (numwalkers);  dYlm_dphi_ptr_CPU.resize  (numwalkers);
-    rhats_CPU.resize(numwalkers);
-    rhats_GPU.resize(numwalkers);
+    rhats_CPU.resize(OHMMS_DIM*numwalkers);
+    rhats_GPU.resize(OHMMS_DIM*numwalkers);
+    HybridJobs_GPU.resize(numwalkers);
+    HybridData_GPU.resize(numwalkers);
 
     for (int iw=0; iw<numwalkers; iw++) {
       Ylm_ptr_CPU[iw]         = &(Ylm_GPU[0]) + (3*iw+0)*Ylm_BS;
@@ -2256,11 +2259,205 @@ namespace qmcplusplus {
   }
 
   template<> void
-  EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
+  EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, 
+						  vector<PosType> &newpos, 
 						  cuda_vector<CudaRealType*> &phi,
 						  cuda_vector<CudaRealType*> &grad_lapl,
 						  int row_stride)
   { 
+    int N = newpos.size();
+    if (cudaPos.size() < N) {
+      resize_cuda(N);
+      hostPos.resize(N);
+      cudaPos.resize(N);
+    }
+    for (int iw=0; iw < N; iw++) 
+      hostPos[iw] = newpos[iw];
+    cudaPos = hostPos;
+    
+    MakeHybridJobList ((float*) cudaPos.data(), N, IonPos_GPU.data(), 
+		       PolyRadii_GPU.data(), CutoffRadii_GPU.data(),
+		       AtomicOrbitals.size(), L_cuda.data(), Linv_cuda.data(),
+		       HybridJobs_GPU.data(), rhats_GPU.data(),
+		       HybridData_GPU.data());
+
+    CalcYlmComplexCuda (rhats_GPU.data(), HybridJobs_GPU.data(),
+			Ylm_ptr_GPU.data(), dYlm_dtheta_ptr_GPU.data(), 
+			dYlm_dphi_ptr_GPU.data(), lMax, newpos.size());
+
+    // evaluate3DSplineComplexToReal (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
+    // 				   (CudaRealType*)CudakPoints.data(),CudaMultiSpline,
+    // 				   Linv_cuda.data(), phi.data(), grad_lapl.data(), 
+    // 				   row_stride, NumOrbitals, newpos.size());
+    evaluateHybridSplineComplexToReal 
+      (HybridJobs_GPU.data(), 
+       //rhats_GPU.data(), 
+       Ylm_ptr_GPU.data(),
+       // dYlm_dtheta_ptr_GPU.data(), dYlm_dphi_ptr_GPU.data(),
+       AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
+       (CudaRealType*)CudakPoints_reduced.data(), 
+       CudaMakeTwoCopies.data(), (CudaRealType**)phi.data(), 
+       //grad_lapl.data(), row_stride, 
+       CudaMakeTwoCopies.size(), newpos.size(), lMax);
+
+    host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
+    phi_CPU = phi;
+    grad_lapl_CPU = grad_lapl;
+    host_vector<CudaRealType> vals_CPU(2*NumOrbitals), GL_CPU(8*row_stride);
+    host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    HybridJobs_CPU = HybridJobs_GPU;
+    host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
+    HybridData_CPU = HybridData_GPU;
+    
+    rhats_CPU = rhats_GPU;
+    
+    // for (int iw=0; iw<newpos.size(); iw++) 
+    //   fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f]\n",
+    // 	       iw, rhats_CPU[3*iw+0], rhats_CPU[3*iw+1], rhats_CPU[3*iw+2]);
+
+    for (int iw=0; iw<newpos.size(); iw++) 
+      if (HybridJobs_CPU[iw] != BSPLINE_3D_JOB) {
+	ComplexValueVector_t CPUzvals(NumOrbitals), CPUzlapl(NumOrbitals);
+	ComplexGradVector_t CPUzgrad(NumOrbitals);
+	ValueVector_t CPUvals(NumOrbitals), CPUlapl(NumOrbitals);
+	GradVector_t CPUgrad(NumOrbitals);
+	HybridDataFloat &d = HybridData_CPU[iw];
+	AtomicOrbital<complex<double> > &atom = AtomicOrbitals[d.ion];
+	atom.evaluate (newpos[iw], CPUzvals, CPUzgrad, CPUzlapl);
+	int index=0;
+	for (int i=0; i<MakeTwoCopies.size(); i++) {
+	  CPUvals[index] = CPUzvals[i].real();
+	  CPUlapl[index] = CPUzlapl[i].real();
+	  for (int j=0; j<OHMMS_DIM; j++)
+	    CPUgrad[index] = CPUzgrad[i][j].real();
+	  index++;
+	  if (MakeTwoCopies[i]) {
+	    CPUvals[index] = CPUzvals[i].imag();
+	    CPUlapl[index] = CPUzlapl[i].imag();
+	    for (int j=0; j<OHMMS_DIM; j++)
+	      CPUgrad[index] = CPUzgrad[i][j].imag();
+	    index++;
+	  }
+	
+	}
+
+	cudaMemcpy (&vals_CPU[0], phi_CPU[iw], 2*NumOrbitals*sizeof(float),
+		    cudaMemcpyDeviceToHost);
+	cudaMemcpy (&GL_CPU[0], grad_lapl_CPU[iw], 8*row_stride*sizeof(float),
+		    cudaMemcpyDeviceToHost);
+	// fprintf (stderr, " %d %2.0f %2.0f %2.0f  %8.5f  %d %d\n",
+	// 	 iw, d.img[0], d.img[1], d.img[2], d.dist, d.ion, d.lMax);
+	double mindist = 1.0e5;
+	for (int ion=0; ion<AtomicOrbitals.size(); ion++) {
+	  PosType disp = newpos[iw] - AtomicOrbitals[ion].Pos;
+	  PosType u = PrimLattice.toUnit(disp);
+	  PosType img;
+	  for (int i=0; i<OHMMS_DIM; i++) 
+	    u[i] -= round(u[i]);
+	  disp = PrimLattice.toCart(u);
+	  double dist = std::sqrt(dot(disp,disp));
+	  if (dist < AtomicOrbitals[ion].CutoffRadius)
+	    mindist = dist;
+	}
+	if (std::fabs (mindist - d.dist) > 1.0e-3)
+	  fprintf (stderr, "CPU dist = %1.8f  GPU dist = %1.8f\n",
+		   mindist, d.dist);
+	fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f] dist = %10.6e\n",
+		 iw, rhats_CPU[3*iw+0], rhats_CPU[3*iw+1], rhats_CPU[3*iw+2], 
+		 d.dist);
+
+	for (int j=0; j<NumOrbitals; j++) {
+	  //	  if (isnan(vals_CPU[j])) {
+	  if (true || isnan(GL_CPU[0*row_stride+j])) {
+	    cerr << "iw = " << iw << endl;
+	    fprintf (stderr, "val[%2d]  = %10.5e %10.5e\n", 
+		     j, vals_CPU[j], CPUvals[j]);
+	    fprintf (stderr, "grad[%2d] = %10.5e %10.5e  %10.5e %10.5e  %10.5e %10.5e\n", j,
+		     GL_CPU[0*row_stride+j], CPUgrad[j][0],
+		     GL_CPU[1*row_stride+j], CPUgrad[j][1],
+		     GL_CPU[2*row_stride+j], CPUgrad[j][2]);
+	    
+	    fprintf (stderr, "lapl[%2d] = %10.5e %10.5e\n", 
+		     j, GL_CPU[3*row_stride+j], CPUlapl[j]);
+	  }
+	}
+      }
+      // else {
+      // 	ValueVector_t CPUvals(NumOrbitals), CPUlapl(NumOrbitals);
+      // 	GradVector_t CPUgrad(NumOrbitals);
+      // 	PosType ru(PrimLattice.toUnit(newpos[iw]));
+      // 	for (int i=0; i<3; i++)
+      // 	  ru[i] -= std::floor(ru[i]);
+      // 	EinsplineMultiEval (MultiSpline, ru, CPUvals, CPUgrad,
+      // 	 		    StorageHessVector);
+
+      // 	cudaMemcpy (&vals_CPU[0], phi_CPU[iw], NumOrbitals*sizeof(float),
+      // 		    cudaMemcpyDeviceToHost);
+      // 	cudaMemcpy (&GL_CPU[0], grad_lapl_CPU[iw], 4*row_stride*sizeof(float),
+      // 		    cudaMemcpyDeviceToHost);
+
+      // 	for (int j=0; j<NumOrbitals; j++) {
+      // 	  CPUgrad[j] = dot (PrimLattice.G, CPUgrad[j]);
+      // 	  CPUlapl[j] = trace (StorageHessVector[j], GGt);
+	
+      // 	  if (isnan(GL_CPU[0*row_stride+j])) {
+      // 	    cerr << "r[" << iw << "] = " << newpos[iw] << endl;
+      // 	    cerr << "iw = " << iw << endl;
+
+      // 	    fprintf (stderr, "3D val[%2d]  = %10.5e %10.5e\n", 
+      // 		     j, vals_CPU[j], CPUvals[j]);
+      // 	    fprintf (stderr, "3D grad[%2d] = %10.5e %10.5e  %10.5e %10.5e  %10.5e %10.5e\n", j,
+      // 		     GL_CPU[0*row_stride+j], CPUgrad[j][0],
+      // 		     GL_CPU[1*row_stride+j], CPUgrad[j][1],
+      // 		     GL_CPU[2*row_stride+j], CPUgrad[j][2]);
+	    
+      // 	    fprintf (stderr, "3D lapl[%2d] = %10.5e %10.5e\n", 
+      // 		     j, GL_CPU[3*row_stride+j], CPUlapl[j]);
+      // 	  }
+      // 	}
+      // }
+
+#ifdef HYBRID_DEBUG
+
+    host_vector<float> Ylm_CPU(Ylm_GPU.size());
+    Ylm_CPU = Ylm_GPU;
+    
+    rhats_CPU = rhats_GPU;
+    for (int i=0; i<rhats_CPU.size()/3; i++)
+      fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f]\n",
+	       i, rhats_CPU[3*i+0], rhats_CPU[3*i+1], rhats_CPU[3*i+2]);
+
+    host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    HybridJobs_CPU = HybridJobs_GPU;
+        
+    host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
+    HybridData_CPU = HybridData_GPU;
+
+    cerr << "Before loop.\n";
+    for (int i=0; i<newpos.size(); i++) 
+      if (HybridJobs_CPU[i] != BSPLINE_3D_JOB) {
+	cerr << "Inside if.\n";
+	PosType rhat(rhats_CPU[3*i+0], rhats_CPU[3*i+1], rhats_CPU[3*i+2]);
+	AtomicOrbital<double> &atom = AtomicOrbitals[HybridData_CPU[i].ion];
+	int numlm = (atom.lMax+1)*(atom.lMax+1);
+	vector<double> Ylm(numlm), dYlm_dtheta(numlm), dYlm_dphi(numlm);
+	atom.CalcYlm (rhat, Ylm, dYlm_dtheta, dYlm_dphi);
+	
+	for (int lm=0; lm < numlm; lm++) {
+	  fprintf (stderr, "lm=%3d  Ylm_CPU=%8.5f  Ylm_GPU=%8.5f\n",
+		   lm, Ylm[lm], Ylm_CPU[3*i*Ylm_BS+lm]);
+	}
+      }
+
+    fprintf (stderr, " N  img      dist    ion    lMax\n");
+    for (int i=0; i<HybridData_CPU.size(); i++) {
+      HybridDataFloat &d = HybridData_CPU[i];
+      fprintf (stderr, " %d %2.0f %2.0f %2.0f  %8.5f  %d %d\n",
+	       i, d.img[0], d.img[1], d.img[2], d.dist, d.ion, d.lMax);
+    }
+#endif
+
+
     // int N = newpos.size();
     // if (N > CurrentWalkers)
     //   resize_cuda(N);
@@ -2538,9 +2735,15 @@ namespace qmcplusplus {
     int lm_stride = ((2*NumOrbitals+BS-1)/BS)*BS;
     
     AtomicSplineCoefs_GPU.resize(AtomicOrbitals.size());
+    vector<CudaRealType> IonPos_CPU, CutoffRadii_CPU, PolyRadii_CPU;
 
     for (int iat=0; iat<AtomicOrbitals.size(); iat++) {
+      app_log() << "Copying atomic orbitals for ion " << iat << " to GPU memory.\n";
       AtomicOrbital<complex<double> > &atom = AtomicOrbitals[iat];
+      for (int i=0; i<OHMMS_DIM; i++) 
+	IonPos_CPU.push_back(atom.Pos[i]);
+      CutoffRadii_CPU.push_back(atom.CutoffRadius);
+      PolyRadii_CPU.push_back(atom.PolyRadius);
       AtomicOrbitalCuda<CudaRealType> atom_cuda;
       atom_cuda.lMax = atom.lMax;
       int numlm = (atom.lMax+1)*(atom.lMax+1);
@@ -2549,18 +2752,19 @@ namespace qmcplusplus {
 
       AtomicOrbital<complex<double> >::SplineType &cpu_spline = 
 	*atom.get_radial_spline();
+      atom_cuda.spline_dr_inv = cpu_spline.x_grid.delta_inv;
       int Ngrid = cpu_spline.x_grid.num;
       int spline_size = atom_cuda.spline_stride * (Ngrid+2);
-      host_vector<float> spline_coefs(2*spline_size);
-      AtomicSplineCoefs_GPU[iat].resize(2*spline_size);
-      atom_cuda.spline_coefs = &AtomicSplineCoefs_GPU[0][0];
+      host_vector<float> spline_coefs(spline_size);
+      AtomicSplineCoefs_GPU[iat].resize(spline_size);
+      atom_cuda.spline_coefs = &AtomicSplineCoefs_GPU[iat][0];
       // Reorder and copy splines to GPU memory
       for (int igrid=0; igrid<Ngrid+2; igrid++)
 	for (int lm=0; lm<numlm; lm++)
 	  for (int orb=0; orb<NumOrbitals; orb++) {
-	    spline_coefs[2*(igrid*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + orb)+0] =
+	    spline_coefs[(igrid*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + 2*orb)+0] =
 	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm].real();
-	    spline_coefs[2*(igrid*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + orb)+1] =
+	    spline_coefs[(igrid*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + 2*orb)+1] =
 	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm].imag();
 	  }
       
@@ -2569,7 +2773,9 @@ namespace qmcplusplus {
 
     }
     AtomicOrbitals_GPU = AtomicOrbitals_CPU;
-
+    IonPos_GPU      = IonPos_CPU;
+    CutoffRadii_GPU = CutoffRadii_CPU;
+    PolyRadii_GPU   = PolyRadii_CPU;
   }
 
 
