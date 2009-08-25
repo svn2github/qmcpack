@@ -588,7 +588,7 @@ evaluateHybridSplineComplexToReal_kernel
       if (off < 3*N)
 	k_red[0][i*BS+tid] = k_reduced[off];
     }
-    __shared__ T m2c[BS];
+    __shared__ int m2c[BS];
     if (block*BS+tid < N)
       m2c[tid] = make2copies[block*BS+tid];
     __syncthreads();
@@ -2028,6 +2028,324 @@ evaluate3DSplineReal (HybridJobType *job_types, float *pos, float *kpoints,
     abort();
   }
 }
+
+
+//////////////////////////////////////////////////////
+// 3D B-spline complex-to-real evaluation functions //
+//////////////////////////////////////////////////////
+
+template<int BS> __global__ void
+evaluate3DSplineComplexToReal_kernel 
+  (HybridJobType *job_types, float *pos, float *kpoints, int *make2copies,
+   float3 drInv, float *coefs, uint3 dim, uint3 strides, 
+   float *Linv, float **vals, float **grad_lapl,
+   int row_stride, int N)
+{
+  int tid = threadIdx.x;
+  __shared__ HybridJobType myjob;
+  if (tid == 0) myjob = job_types[blockIdx.y];
+  __syncthreads();
+  if (myjob != BSPLINE_3D_JOB)
+    return;
+
+  int ir    = blockIdx.x;
+
+  __shared__ float *myVal, *myGradLapl;
+  __shared__ float r[3], u[3], img[3];
+  __shared__ float G[3][3], GGt[3][3];
+  
+  int i0 = tid/3;
+  int i1 = tid - 3*i0;
+  if (tid < 9) {
+    G[0][tid] = Linv[tid];
+    GGt[i0][i1] = (G[i0][0]*G[i1][0] + 
+		   G[i0][1]*G[i1][1] + 
+		   G[i0][2]*G[i1][2]);
+  }
+  if (tid == 0) {
+    myVal  = vals[ir];
+    myGradLapl = grad_lapl[ir];
+  }
+  
+  if (tid < 3) {
+    r[tid] = pos[3*ir+tid];
+    u[tid] = G[tid][0]*r[0] + G[tid][1]*r[1] + G[tid][2]*r[2];
+    img[tid] = floor(u[tid]);
+    u[tid] -= img[tid];
+  }
+  __syncthreads();
+  int3 index;
+  float3 t;
+  float s, sf;
+  float4 tp[3];
+
+  s = u[0] * drInv.x;
+  sf = floor(s);
+  index.x = min(max(0,(int)sf), dim.x-1);
+  t.x = s - sf;
+
+  s = u[1] * drInv.y;
+  sf = floor(s);
+  index.y = min(max(0,(int)sf), dim.y-1);
+  t.y = s - sf;
+
+  s = u[2] * drInv.z;
+  sf = floor(s);
+  index.z = min(max(0,(int)sf), dim.z-1);
+  t.z = s - sf;
+  
+  tp[0] = make_float4(t.x*t.x*t.x, t.x*t.x, t.x, 1.0f);
+  tp[1] = make_float4(t.y*t.y*t.y, t.y*t.y, t.y, 1.0f);
+  tp[2] = make_float4(t.z*t.z*t.z, t.z*t.z, t.z, 1.0f);
+
+  // First 4 of a are value, second 4 are derivative, last four are
+  // second derivative.
+  __shared__ float a[12], b[12], c[12];
+  if (tid < 12) {
+    a[tid] = Acuda[4*tid+0]*tp[0].x + Acuda[4*tid+1]*tp[0].y + Acuda[4*tid+2]*tp[0].z + Acuda[4*tid+3]*tp[0].w;
+    b[tid] = Acuda[4*tid+0]*tp[1].x + Acuda[4*tid+1]*tp[1].y + Acuda[4*tid+2]*tp[1].z + Acuda[4*tid+3]*tp[1].w;
+    c[tid] = Acuda[4*tid+0]*tp[2].x + Acuda[4*tid+1]*tp[2].y + Acuda[4*tid+2]*tp[2].z + Acuda[4*tid+3]*tp[2].w;
+  }
+  __syncthreads();
+
+  __shared__ float abc[640];
+  int i = (tid>>4)&3;
+  int j = (tid>>2)&3;
+  int k = (tid & 3);
+
+  abc[(16*i+4*j+k)+0]   = a[i+0]*b[j+0]*c[k+0]; // val
+  abc[(16*i+4*j+k)+64]  = a[i+4]*b[j+0]*c[k+0]; // d/dx
+  abc[(16*i+4*j+k)+128] = a[i+0]*b[j+4]*c[k+0]; // d/dy
+  abc[(16*i+4*j+k)+192] = a[i+0]*b[j+0]*c[k+4]; // d/dz
+  abc[(16*i+4*j+k)+256] = a[i+8]*b[j+0]*c[k+0]; // d2/dx2
+  abc[(16*i+4*j+k)+320] = a[i+4]*b[j+4]*c[k+0]; // d2/dxdy
+  abc[(16*i+4*j+k)+384] = a[i+4]*b[j+0]*c[k+4]; // d2/dxdz
+  abc[(16*i+4*j+k)+448] = a[i+0]*b[j+8]*c[k+0]; // d2/dy2
+  abc[(16*i+4*j+k)+512] = a[i+0]*b[j+4]*c[k+4]; // d2/dydz
+  abc[(16*i+4*j+k)+576] = a[i+0]*b[j+0]*c[k+8]; // d2/dz2
+
+  __syncthreads();
+
+  int numBlocks = (N+BS-1)/BS;
+  int outIndex=0, outBlock=0;
+  __shared__ float outval[BS], outgrad[BS][3], outlap[BS];
+
+  for (int block=0; block<numBlocks; block++) {
+    __shared__ float kp[BS][3];
+    for (int i=0; i<3; i++) {
+      int off = (3*blockIdx.x+i)*BS+tid;
+      if (off < 3*N)
+	kp[0][i*BS+tid] = kpoints[off];
+    }
+    float phase_re, phase_im;
+    __sincosf(-(r[0]*kp[tid][0] +
+		r[1]*kp[tid][1] + 
+		r[2]*kp[tid][2]), &phase_im, &phase_re);;
+  __syncthreads();
+
+    __shared__ int m2c[BS];
+    if (block*BS+tid < N)
+      m2c[tid] = make2copies[block*BS+tid];
+    __syncthreads();
+
+    float v=0.0f, g0=0.0f, g1=0.0f, g2=0.0f,
+      h00=0.0f, h01=0.0f, h02=0.0f, h11=0.0f, h12=0.0f, h22=0.0f;
+    __shared__ float val[BS][2], grad[BS][2][3], lapl[BS][2];
+    int off   = 2*block*BS+threadIdx.x;
+    int n = 0;
+    float *b0 = coefs + index.x*strides.x + index.y*strides.y + index.z*strides.z + off;
+    if (off < 2*N) {
+      for (int i=0; i<4; i++) {
+	for (int j=0; j<4; j++) {
+	  float *base = b0 + i*strides.x + j*strides.y;
+	  for (int k=0; k<4; k++) {
+	    float c  = base[k*strides.z];
+	    v   += abc[n+  0] * c;
+	    g0  += abc[n+ 64] * c;
+	    g1  += abc[n+128] * c;
+	    g2  += abc[n+192] * c;
+	    h00 += abc[n+256] * c;
+	    h01 += abc[n+320] * c;
+	    h02 += abc[n+384] * c;
+	    h11 += abc[n+448] * c;
+	    h12 += abc[n+512] * c;
+	    h22 += abc[n+576] * c;
+	    n += 1;
+	  }
+	}
+      }
+    }
+    g0 *= drInv.x; 
+    g1 *= drInv.y; 
+    g2 *= drInv.z; 
+    
+    h00 *= drInv.x * drInv.x;  
+    h01 *= drInv.x * drInv.y;  
+    h02 *= drInv.x * drInv.z;  
+    h11 *= drInv.y * drInv.y;  
+    h12 *= drInv.y * drInv.z;  
+    h22 *= drInv.z * drInv.z;  
+    
+    val[0][tid]    = v;
+    grad[0][tid][0] = G[0][0]*g0 + G[0][1]*g1 + G[0][2]*g2;
+    grad[0][tid][1] = G[1][0]*g0 + G[1][1]*g1 + G[1][2]*g2;
+    grad[0][tid][2] = G[2][0]*g0 + G[2][1]*g1 + G[2][2]*g2;
+    lapl[0][tid]    = (GGt[0][0]*h00 + GGt[1][0]*h01 + GGt[2][0]*h02 +
+		       GGt[0][1]*h01 + GGt[1][1]*h11 + GGt[2][1]*h12 +
+		       GGt[0][2]*h02 + GGt[1][2]*h12 + GGt[2][2]*h22);
+    
+    v=0.0f; g0=0.0f; g1=0.0f; g2=0.0f;
+    h00=0.0f; h01=0.0f; h02=0.0f; h11=0.0f; h12=0.0f; h22=0.0f;
+    off   = (2*block*BS+1)+threadIdx.x;
+    n = 0;
+    b0 = coefs + index.x*strides.x + index.y*strides.y + index.z*strides.z + off;
+    if (off < N) {
+      for (int i=0; i<4; i++) {
+	for (int j=0; j<4; j++) {
+	  float *base = b0 + i*strides.x + j*strides.y;
+	  for (int k=0; k<4; k++) {
+	    float c  = base[k*strides.z];
+	    v   += abc[n+  0] * c;
+	    g0  += abc[n+ 64] * c;
+	    g1  += abc[n+128] * c;
+	    g2  += abc[n+192] * c;
+	    h00 += abc[n+256] * c;
+	    h01 += abc[n+320] * c;
+	    h02 += abc[n+384] * c;
+	    h11 += abc[n+448] * c;
+	    h12 += abc[n+512] * c;
+	    h22 += abc[n+576] * c;
+	    n += 1;
+	  }
+	}
+      }
+    }
+    g0 *= drInv.x; 
+    g1 *= drInv.y; 
+    g2 *= drInv.z; 
+    
+    h00 *= drInv.x * drInv.x;  
+    h01 *= drInv.x * drInv.y;  
+    h02 *= drInv.x * drInv.z;  
+    h11 *= drInv.y * drInv.y;  
+    h12 *= drInv.y * drInv.z;  
+    h22 *= drInv.z * drInv.z;  
+    
+    val[0][tid+BS]    = v;
+    grad[0][tid+BS][0] = G[0][0]*g0 + G[0][1]*g1 + G[0][2]*g2;
+    grad[0][tid+BS][1] = G[1][0]*g0 + G[1][1]*g1 + G[1][2]*g2;
+    grad[0][tid+BS][2] = G[2][0]*g0 + G[2][1]*g1 + G[2][2]*g2;
+    lapl[0][tid+BS]    = (GGt[0][0]*h00 + GGt[1][0]*h01 + GGt[2][0]*h02 +
+			  GGt[0][1]*h01 + GGt[1][1]*h11 + GGt[2][1]*h12 +
+			  GGt[0][2]*h02 + GGt[1][2]*h12 + GGt[2][2]*h22);
+   
+    __syncthreads();
+    float re, im;
+    // Add phase contribution to laplacian
+    float k2 = (kp[tid][0]*kp[tid][0] + 
+		kp[tid][1]*kp[tid][1] + 
+		kp[tid][2]*kp[tid][2]);
+    re = lapl[tid][0] - k2*val[tid][0] +
+      2.0f*(kp[tid][0]*grad[tid][1][0]+
+	    kp[tid][1]*grad[tid][1][1]+
+	    kp[tid][2]*grad[tid][1][2]);
+    im = lapl[tid][1] - k2*val[tid][1] - 
+      2.0f*(kp[tid][0]*grad[tid][0][0]+
+	    kp[tid][1]*grad[tid][0][1]+
+	    kp[tid][2]*grad[tid][0][2]);
+
+    lapl[tid][0] = re*phase_re - im*phase_im;
+    lapl[tid][1] = re*phase_im + im*phase_re;
+
+    // Gradient = e^(-ikr)*(-i*u*k + gradu)
+    for (int dim=0; dim<3; dim++) {
+      re = grad[tid][0][dim] + kp[tid][dim]*val[tid][1];
+      im = grad[tid][1][dim] - kp[tid][dim]*val[tid][0];
+      grad[tid][0][dim] = phase_re*re - phase_im*im;
+      grad[tid][1][dim] = phase_re*im + phase_im*re;
+    }
+    re = val[tid][0];
+    im = val[tid][1];
+    val[tid][0] = phase_re*re - phase_im*im;
+    val[tid][1] = phase_re*im + phase_im*re;
+
+    __syncthreads();
+   
+    
+    // Now serialize to output buffers.
+    int iend = min (BS, N-block*BS);
+    for (int i=0; i<iend; i++) {
+      if (tid == 0) {
+	outval[outIndex]     = val[i][0];
+	outgrad[outIndex][0] = grad[i][0][0];
+	outgrad[outIndex][1] = grad[i][0][1];
+	outgrad[outIndex][2] = grad[i][0][2];
+	outlap[outIndex]     = lapl[i][0];
+      }
+      outIndex++;
+      __syncthreads();
+      if (outIndex == BS) {
+	int off = outBlock++*BS+tid;
+	myVal[off] = outval[tid];
+	myGradLapl[0*row_stride+off] = outgrad[tid][0];
+	myGradLapl[1*row_stride+off] = outgrad[tid][1];
+	myGradLapl[2*row_stride+off] = outgrad[tid][2];
+	myGradLapl[3*row_stride+off] = outlap[tid];
+	outIndex = 0;
+      }
+      __syncthreads();
+      if (m2c[i]) {
+	if (tid == 0) {
+	  outval[outIndex]     = val[i][1];
+	  outgrad[outIndex][0] = grad[i][1][0];
+	  outgrad[outIndex][1] = grad[i][1][1];
+	  outgrad[outIndex][2] = grad[i][1][2];
+	  outlap[outIndex]     = lapl[i][1];
+	}
+	outIndex++;
+	__syncthreads();
+      }
+      if (outIndex == BS) {
+	int off = outBlock++*BS+tid;
+	myVal[off] = outval[tid];
+	myGradLapl[0*row_stride+off] = outgrad[tid][0];
+	myGradLapl[1*row_stride+off] = outgrad[tid][1];
+	myGradLapl[2*row_stride+off] = outgrad[tid][2];
+	myGradLapl[3*row_stride+off] = outlap[tid];
+	outIndex = 0;
+      }
+    __syncthreads();
+    }
+  }
+  
+}
+
+void
+evaluate3DSplineComplexToReal 
+  (HybridJobType *job_types, float *pos, float *kpoints, int *make2copies,
+   multi_UBspline_3d_s_cuda *multispline, float *Linv,
+   float **vals, float **grad_lapl,
+   int row_stride, int N, int numWalkers)
+{
+  const int BS=64;
+  dim3 dimGrid(numWalkers);
+  dim3 dimBlock(BS);
+  evaluate3DSplineComplexToReal_kernel<BS><<<dimGrid,dimBlock>>>
+    (job_types, pos, kpoints, make2copies,
+     multispline->gridInv, multispline->coefs, 
+     multispline->dim, multispline->stride, Linv, vals, grad_lapl, 
+     row_stride, N);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in evaluate3DSplineReal:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+}
+
+
 
 
 

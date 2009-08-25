@@ -2338,7 +2338,6 @@ namespace qmcplusplus {
 	      CPUgrad[index][j] = CPUzgrad[i][j].imag();
 	    index++;
 	  }
-	
 	}
 
 	cudaMemcpy (&vals_CPU[0], phi_CPU[iw], NumOrbitals*sizeof(float),
@@ -2612,6 +2611,37 @@ namespace qmcplusplus {
   EinsplineSetHybrid<complex<double> >::evaluate 
   (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
   {
+    int N = pos.size();
+    if (cudaPos.size() < N) {
+      resize_cuda(N);
+      hostPos.resize(N);
+      cudaPos.resize(N);
+    }
+    for (int iw=0; iw < N; iw++) 
+      hostPos[iw] = pos[iw];
+    cudaPos = hostPos;
+    
+    MakeHybridJobList ((float*) cudaPos.data(), N, IonPos_GPU.data(), 
+		       PolyRadii_GPU.data(), CutoffRadii_GPU.data(),
+		       AtomicOrbitals.size(), L_cuda.data(), Linv_cuda.data(),
+		       HybridJobs_GPU.data(), rhats_GPU.data(),
+		       HybridData_GPU.data());
+
+    CalcYlmComplexCuda (rhats_GPU.data(), HybridJobs_GPU.data(),
+			Ylm_ptr_GPU.data(), dYlm_dtheta_ptr_GPU.data(), 
+			dYlm_dphi_ptr_GPU.data(), lMax, pos.size());
+
+    // evaluate3DSplineComplexToReal (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
+    // 				   (CudaRealType*)CudakPoints.data(),CudaMultiSpline,
+    // 				   Linv_cuda.data(), phi.data(), grad_lapl.data(), 
+    // 				   row_stride, NumOrbitals, pos.size());
+    evaluateHybridSplineComplexToReal 
+      (HybridJobs_GPU.data(), 
+       Ylm_ptr_GPU.data(),
+       AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
+       (CudaRealType*)CudakPoints_reduced.data(), 
+       CudaMakeTwoCopies.data(), (CudaRealType**)phi.data(), 
+       CudaMakeTwoCopies.size(), pos.size(), lMax);
   }
 
   template<> void
