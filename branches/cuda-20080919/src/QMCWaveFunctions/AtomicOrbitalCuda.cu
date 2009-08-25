@@ -720,7 +720,7 @@ evaluateHybridSplineComplexToReal
 template<typename T,int BS,int LMAX> __global__ void
 evaluateHybridSplineComplexToReal_kernel 
   (HybridJobType *job_types, T* rhats, 
-   T **YlmReal, float **dYlm_dTheta, float **dYlm_dphi,
+   T **Ylm_complex, float **dYlm_dTheta, float **dYlm_dphi,
    AtomicOrbitalCuda<T> *orbitals, HybridDataFloat *data, 
    T *k_reduced, int *make2copies, T **vals, T **grad_lapl, 
    int row_stride, int N)
@@ -745,7 +745,7 @@ evaluateHybridSplineComplexToReal_kernel
     ((float*)&myOrbital)[tid] = ((float*)(&orbitals[myData.ion]))[tid];
 
   if (tid == 0) {
-    myYlm      = YlmReal[blockIdx.x];
+    myYlm      = Ylm_complex[blockIdx.x];
     mydTheta   = dYlm_dTheta[blockIdx.x];
     mydPhi     = dYlm_dphi[blockIdx.x];
     myVal      = vals[blockIdx.x];
@@ -785,15 +785,16 @@ evaluateHybridSplineComplexToReal_kernel
   __syncthreads();
 
 
-  __shared__ T Ylm[(LMAX+1)*(LMAX+1)], dTheta[(LMAX+1)*(LMAX+1)], dPhi[(LMAX+1)*(LMAX+1)],
+  __shared__ T Ylm[(LMAX+1)*(LMAX+1)][2], 
+    dTheta[(LMAX+1)*(LMAX+1)][2], dPhi[(LMAX+1)*(LMAX+1)][2],
     lpref[(LMAX+1)*(LMAX+1)];
   int numlm = (myOrbital.lMax+1)*(myOrbital.lMax+1);
-  int Yblocks = (numlm+BS-1)/BS;
+  int Yblocks = (2*numlm+BS-1)/BS;
   for (int ib=0; ib<Yblocks; ib++)
-    if (ib*BS + tid < numlm) {
-      Ylm[ib*BS+tid]    = myYlm[ib*BS + tid];
-      dTheta[ib*BS+tid] = mydTheta[ib*BS + tid];
-      dPhi[ib*BS+tid]   = mydPhi[ib*BS + tid];
+    if (ib*BS + tid < 2*numlm) {
+      Ylm[0][ib*BS+tid]    = myYlm[ib*BS + tid];
+      dTheta[0][ib*BS+tid] = mydTheta[ib*BS + tid];
+      dPhi[0][ib*BS+tid]   = mydPhi[ib*BS + tid];
     }
   for (int l=0; l<=myOrbital.lMax; l++) 
     if (tid < 2*l+1) {
@@ -806,52 +807,156 @@ evaluateHybridSplineComplexToReal_kernel
   int ustride  = 1*myOrbital.spline_stride;
   int ustride2 = 2*myOrbital.spline_stride;
   int ustride3 = 3*myOrbital.spline_stride;
+
+  int outIndex=0, outBlock=0;
+  __shared__ T outval[BS], outgrad[BS][3], outlap[BS];
+
   for (int block=0; block<numBlocks; block++) {
+    T phase_re, phase_im;
     for (int i=0; i<3; i++) {
       int off = (3*block+i)*BS + tid;
       if (off < 3*N)
 	k_red[0][i*BS+tid] = k_reduced[off];
     }
+    __shared__ T m2c[BS];
+    if (block*BS+tid < N)
+      m2c[tid] = make2copies[block*BS+tid];
     __syncthreads();
-    T sign = __cosf(-(k_red[tid][0]*myData.img[0]+
-		      k_red[tid][1]*myData.img[1]+
-		      k_red[tid][2]*myData.img[2]));
-    T *c0 =  myCoefs + index*ustride + block*BS + tid;
-    T val = T();
-    T g_rhat=T(), g_thetahat=T(), g_phihat=T(), lap=T();
+    __sincosf(-(k_red[tid][0]*myData.img[0]+
+		k_red[tid][1]*myData.img[1]+
+		k_red[tid][2]*myData.img[2]), 
+	      &phase_im, &phase_re);
+    T *c0 =  myCoefs + index*ustride + 2*block*BS;
+    T v_re         =T(), v_im         =T();
+    T g_rhat_re    =T(), g_rhat_im    =T(),
+      g_thetahat_re=T(), g_thetahat_im=T(),
+      g_phihat_re  =T(), g_phihat_im  =T(), 
+      lap_re       =T(), lap_im       =T();
+    __shared__ T c[BS][2];
     for (int lm=0; lm<numlm; lm++) {
-      float *c = c0 + lm*myOrbital.lm_stride;
-      float u, du, d2u, coef;
-      coef = c[0];
-      // Evaluate spline value and derivatives
-      u  = a[0]*coef;  du  = a[4]*coef;  d2u  = a[8]*coef;
-      coef = c[ustride];
-      u += a[1]*coef;  du += a[5]*coef;  d2u += a[9]*coef;
-      coef = c[ustride2];
-      u += a[2]*coef;  du += a[6]*coef;  d2u += a[10]*coef;
-      coef = c[ustride3];
-      u += a[3]*coef;  du += a[7]*coef;  d2u += a[11]*coef;
-      du  *= myOrbital.spline_dr_inv;
-      d2u *= myOrbital.spline_dr_inv * myOrbital.spline_dr_inv;
-      
+      float u_re, u_im, du_re, du_im, d2u_re, d2u_im;
+      float *coef = c0 + lm*myOrbital.lm_stride;
+      c[0][tid]    = coef[tid];
+      c[0][BS+tid] = coef[BS+tid];
+      u_re   = a[0]*c[tid][0];      u_im   = a[0]*c[tid][1];
+      du_re  = a[4]*c[tid][0];      du_im  = a[4]*c[tid][1];
+      d2u_re = a[8]*c[tid][0];      d2u_im = a[8]*c[tid][1];
+
+      c[0][tid]    = coef[ustride      + tid];
+      c[0][BS+tid] = coef[ustride + BS + tid];
+      u_re   += a[1]*c[tid][0];      u_im   += a[1]*c[tid][1];
+      du_re  += a[5]*c[tid][0];      du_im  += a[5]*c[tid][1];
+      d2u_re += a[9]*c[tid][0];      d2u_im += a[9]*c[tid][1];
+
+      c[0][tid]    = coef[ustride2      + tid];
+      c[0][BS+tid] = coef[ustride2 + BS + tid];
+      u_re   += a[ 2]*c[tid][0];      u_im   += a[ 2]*c[tid][1];
+      du_re  += a[ 6]*c[tid][0];      du_im  += a[ 6]*c[tid][1];
+      d2u_re += a[10]*c[tid][0];      d2u_im += a[10]*c[tid][1];
+
+      c[0][tid]    = coef[ustride3      + tid];
+      c[0][BS+tid] = coef[ustride3 + BS + tid];
+      u_re   += a[ 3]*c[tid][0];      u_im   += a[ 3]*c[tid][1];
+      du_re  += a[ 7]*c[tid][0];      du_im  += a[ 7]*c[tid][1];
+      d2u_re += a[11]*c[tid][0];      d2u_im += a[11]*c[tid][1];
+
+      du_re  *= myOrbital.spline_dr_inv;
+      du_im  *= myOrbital.spline_dr_inv;
+      d2u_re *= myOrbital.spline_dr_inv * myOrbital.spline_dr_inv;
+      d2u_im *= myOrbital.spline_dr_inv * myOrbital.spline_dr_inv;
+
       // Now accumulate values
-      val    +=   u * Ylm[lm];
-      g_rhat +=  du*Ylm[lm];
-      g_thetahat += u*rInv*dTheta[lm];
-      g_phihat   += u*rInv*sinthetaInv*dPhi[lm];
-      lap += Ylm[lm] * (lpref[lm] * u + d2u + 2.0f*rInv*du);
+      v_re    +=   u_re * Ylm[lm][0] - u_im * Ylm[lm][1];
+      v_im    +=   u_re * Ylm[lm][1] + u_im * Ylm[lm][0];
+      
+      g_rhat_re +=  du_re * Ylm[lm][0] - du_im * Ylm[lm][1];
+      g_rhat_im +=  du_re * Ylm[lm][1] + du_im * Ylm[lm][0];
+
+      g_thetahat_re += rInv*(u_re*dTheta[lm][0] - u_im*dTheta[lm][1]);
+      g_thetahat_im += rInv*(u_re*dTheta[lm][1] + u_im*dTheta[lm][0]);
+
+      g_phihat_re += rInv*sinthetaInv*
+	(u_re*dPhi[lm][0] - u_im*dPhi[lm][1]);
+      g_phihat_im += rInv*sinthetaInv*
+	(u_re*dPhi[lm][1] + u_im*dPhi[lm][0]);
+
+      lap_re += (Ylm[lm][0] * (lpref[lm]*u_re + d2u_re + 2.0f*rInv*du_re) -
+		 Ylm[lm][1] * (lpref[lm]*u_im + d2u_im + 2.0f*rInv*du_im));
+      lap_im += (Ylm[lm][1] * (lpref[lm]*u_re + d2u_re + 2.0f*rInv*du_re) +
+		 Ylm[lm][0] * (lpref[lm]*u_im + d2u_im + 2.0f*rInv*du_im));
     }
-    int off = block*BS + tid;
-    if (off < N) {
-      myVal[off] = sign * val;
-      myGradLapl[0*row_stride+off] = sign *
-	(g_rhat*rhat[0]+g_thetahat*thetahat[0]+g_phihat*phihat[0]);
-      myGradLapl[1*row_stride+off] = sign *
-	(g_rhat*rhat[1]+g_thetahat*thetahat[1]+g_phihat*phihat[1]);
-      myGradLapl[2*row_stride+off] = sign *
-	(g_rhat*rhat[2]+g_thetahat*thetahat[2]+g_phihat*phihat[2]);
-      myGradLapl[3*row_stride+off] = sign * lap;
+    __shared__ T val[BS][2], grad[BS][3][2], lap[BS][2];
+
+    val[tid][0] = phase_re *   v_re - phase_im *   v_im;
+    val[tid][1] = phase_re *   v_im + phase_im *   v_re;
+    lap[tid][0] = phase_re * lap_re - phase_im * lap_im;
+    lap[tid][1] = phase_re * lap_im + phase_im * lap_re;
+    for (int i=0; i<3; i++) {
+      grad[tid][i][0] = 
+	(phase_re*g_rhat_re     - phase_im*g_rhat_im    )*rhat[i] +
+	(phase_re*g_thetahat_re - phase_im*g_thetahat_im)*thetahat[i] +
+	(phase_re*g_phihat_re   - phase_im*g_phihat_im  )*phihat[i];
+      grad[tid][i][1] = 
+	(phase_im*g_rhat_re     + phase_re*g_rhat_im    )*rhat[i] +
+	(phase_im*g_thetahat_re + phase_re*g_thetahat_im)*thetahat[i] +
+	(phase_im*g_phihat_re   + phase_re*g_phihat_im  )*phihat[i];
     }
+    // Now serialize to output buffers.
+    int iend = min (BS, N-block*BS);
+    for (int i=0; i<iend; i++) {
+      if (tid == 0) {
+	outval[outIndex]     = val[i][0];
+	outgrad[outIndex][0] = grad[i][0][0];
+	outgrad[outIndex][1] = grad[i][1][0];
+	outgrad[outIndex][2] = grad[i][2][0];
+	outlap[outIndex]     = lap[i][0];
+      }
+      outIndex++;
+      __syncthreads();
+      if (outIndex == BS) {
+	int off = outBlock++*BS+tid;
+	myVal[off] = outval[tid];
+	myGradLapl[0*row_stride+off] = outgrad[tid][0];
+	myGradLapl[1*row_stride+off] = outgrad[tid][1];
+	myGradLapl[2*row_stride+off] = outgrad[tid][2];
+	myGradLapl[3*row_stride+off] = outlap[tid];
+	outIndex = 0;
+      }
+      __syncthreads();
+      if (m2c[i]) {
+	if (tid == 0) {
+	  outval[outIndex]     = val[i][1];
+	  outgrad[outIndex][0] = grad[i][0][1];
+	  outgrad[outIndex][1] = grad[i][1][1];
+	  outgrad[outIndex][2] = grad[i][2][1];
+	  outlap[outIndex]     = lap[i][1];
+	}
+	outIndex++;
+	__syncthreads();
+      }
+      if (outIndex == BS) {
+	int off = outBlock++*BS+tid;
+	myVal[off] = outval[tid];
+	myGradLapl[0*row_stride+off] = outgrad[tid][0];
+	myGradLapl[1*row_stride+off] = outgrad[tid][1];
+	myGradLapl[2*row_stride+off] = outgrad[tid][2];
+	myGradLapl[3*row_stride+off] = outlap[tid];
+	outIndex = 0;
+      }
+    __syncthreads();
+    }  
+
+    // int off = block*BS + tid;
+    // if (off < N) {
+    //   myVal[off] = sign * val;
+    //   myGradLapl[0*row_stride+off] = sign *
+    // 	(g_rhat*rhat[0]+g_thetahat*thetahat[0]+g_phihat*phihat[0]);
+    //   myGradLapl[1*row_stride+off] = sign *
+    // 	(g_rhat*rhat[1]+g_thetahat*thetahat[1]+g_phihat*phihat[1]);
+    //   myGradLapl[2*row_stride+off] = sign *
+    // 	(g_rhat*rhat[2]+g_thetahat*thetahat[2]+g_phihat*phihat[2]);
+    //   myGradLapl[3*row_stride+off] = sign * lap;
+    // }
   }
 
   __syncthreads();
@@ -861,7 +966,7 @@ evaluateHybridSplineComplexToReal_kernel
 void
 evaluateHybridSplineComplexToReal 
   (HybridJobType *job_types, float *rhats,
-   float **Ylm_real, float **dYlm_dTheta, float **dYlm_dphi,
+   float **Ylm, float **dYlm_dTheta, float **dYlm_dphi,
    AtomicOrbitalCuda<float> *orbitals,
    HybridDataFloat *data, float *k_reduced, int *make2copies,
    float **vals, float **grad_lapl,
@@ -873,45 +978,44 @@ evaluateHybridSplineComplexToReal
   
   if (lMax == 0) 
     evaluateHybridSplineComplexToReal_kernel<float,BS,0><<<dimGrid,dimBlock>>> 
-      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
   else if (lMax == 1) 
     evaluateHybridSplineComplexToReal_kernel<float,BS,1><<<dimGrid,dimBlock>>> 
-      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
   else if (lMax == 2) 
     evaluateHybridSplineComplexToReal_kernel<float,BS,2><<<dimGrid,dimBlock>>> 
-      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
   else if (lMax == 3) 
     evaluateHybridSplineComplexToReal_kernel<float,BS,3><<<dimGrid,dimBlock>>> 
-      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
   else if (lMax == 4) 
     evaluateHybridSplineComplexToReal_kernel<float,BS,4><<<dimGrid,dimBlock>>> 
-      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
   else if (lMax == 5) 
     evaluateHybridSplineComplexToReal_kernel<float,BS,5><<<dimGrid,dimBlock>>> 
-      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
   else if (lMax == 6) 
     evaluateHybridSplineComplexToReal_kernel<float,BS,6><<<dimGrid,dimBlock>>> 
-      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
   else if (lMax == 7) 
     evaluateHybridSplineComplexToReal_kernel<float,BS,7><<<dimGrid,dimBlock>>> 
-      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
   else if (lMax == 8) 
     evaluateHybridSplineComplexToReal_kernel<float,BS,8><<<dimGrid,dimBlock>>> 
-      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
   else if (lMax == 9) 
     evaluateHybridSplineComplexToReal_kernel<float,BS,9><<<dimGrid,dimBlock>>> 
-      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
-
      
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();

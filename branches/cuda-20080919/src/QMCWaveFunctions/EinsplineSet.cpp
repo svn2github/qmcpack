@@ -2291,19 +2291,19 @@ namespace qmcplusplus {
     // 				   row_stride, NumOrbitals, newpos.size());
     evaluateHybridSplineComplexToReal 
       (HybridJobs_GPU.data(), 
-       //rhats_GPU.data(), 
+       rhats_GPU.data(), 
        Ylm_ptr_GPU.data(),
-       // dYlm_dtheta_ptr_GPU.data(), dYlm_dphi_ptr_GPU.data(),
+        dYlm_dtheta_ptr_GPU.data(), dYlm_dphi_ptr_GPU.data(),
        AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
        (CudaRealType*)CudakPoints_reduced.data(), 
        CudaMakeTwoCopies.data(), (CudaRealType**)phi.data(), 
-       //grad_lapl.data(), row_stride, 
+       grad_lapl.data(), row_stride, 
        CudaMakeTwoCopies.size(), newpos.size(), lMax);
 
     host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
     phi_CPU = phi;
     grad_lapl_CPU = grad_lapl;
-    host_vector<CudaRealType> vals_CPU(2*NumOrbitals), GL_CPU(8*row_stride);
+    host_vector<CudaRealType> vals_CPU(NumOrbitals), GL_CPU(4*row_stride);
     host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
     HybridJobs_CPU = HybridJobs_GPU;
     host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
@@ -2329,21 +2329,21 @@ namespace qmcplusplus {
 	  CPUvals[index] = CPUzvals[i].real();
 	  CPUlapl[index] = CPUzlapl[i].real();
 	  for (int j=0; j<OHMMS_DIM; j++)
-	    CPUgrad[index] = CPUzgrad[i][j].real();
+	    CPUgrad[index][j] = CPUzgrad[i][j].real();
 	  index++;
 	  if (MakeTwoCopies[i]) {
 	    CPUvals[index] = CPUzvals[i].imag();
 	    CPUlapl[index] = CPUzlapl[i].imag();
 	    for (int j=0; j<OHMMS_DIM; j++)
-	      CPUgrad[index] = CPUzgrad[i][j].imag();
+	      CPUgrad[index][j] = CPUzgrad[i][j].imag();
 	    index++;
 	  }
 	
 	}
 
-	cudaMemcpy (&vals_CPU[0], phi_CPU[iw], 2*NumOrbitals*sizeof(float),
+	cudaMemcpy (&vals_CPU[0], phi_CPU[iw], NumOrbitals*sizeof(float),
 		    cudaMemcpyDeviceToHost);
-	cudaMemcpy (&GL_CPU[0], grad_lapl_CPU[iw], 8*row_stride*sizeof(float),
+	cudaMemcpy (&GL_CPU[0], grad_lapl_CPU[iw], 4*row_stride*sizeof(float),
 		    cudaMemcpyDeviceToHost);
 	// fprintf (stderr, " %d %2.0f %2.0f %2.0f  %8.5f  %d %d\n",
 	// 	 iw, d.img[0], d.img[1], d.img[2], d.dist, d.ion, d.lMax);
