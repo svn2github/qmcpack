@@ -958,9 +958,14 @@ evaluateHybridSplineComplexToReal_kernel
     //   myGradLapl[3*row_stride+off] = sign * lap;
     // }
   }
-
-  __syncthreads();
-  
+  if (tid < outIndex) {
+    int off = outBlock*BS+tid;
+    myVal[off] = outval[tid];
+    myGradLapl[0*row_stride+off] = outgrad[tid][0];
+    myGradLapl[1*row_stride+off] = outgrad[tid][1];
+    myGradLapl[2*row_stride+off] = outgrad[tid][2];
+    myGradLapl[3*row_stride+off] = outlap[tid];
+  }
 }
 
 void
@@ -2043,7 +2048,7 @@ evaluate3DSplineComplexToReal_kernel
 {
   int tid = threadIdx.x;
   __shared__ HybridJobType myjob;
-  if (tid == 0) myjob = job_types[blockIdx.y];
+  if (tid == 0) myjob = job_types[blockIdx.x];
   __syncthreads();
   if (myjob != BSPLINE_3D_JOB)
     return;
@@ -2051,7 +2056,7 @@ evaluate3DSplineComplexToReal_kernel
   int ir    = blockIdx.x;
 
   __shared__ float *myVal, *myGradLapl;
-  __shared__ float r[3], u[3], img[3];
+  __shared__ float r[3], u[3];
   __shared__ float G[3][3], GGt[3][3];
   
   int i0 = tid/3;
@@ -2063,15 +2068,14 @@ evaluate3DSplineComplexToReal_kernel
 		   G[i0][2]*G[i1][2]);
   }
   if (tid == 0) {
-    myVal  = vals[ir];
+    myVal      =      vals[ir];
     myGradLapl = grad_lapl[ir];
   }
   
   if (tid < 3) {
     r[tid] = pos[3*ir+tid];
     u[tid] = G[tid][0]*r[0] + G[tid][1]*r[1] + G[tid][2]*r[2];
-    img[tid] = floor(u[tid]);
-    u[tid] -= img[tid];
+    u[tid] -= floor(u[tid]);
   }
   __syncthreads();
   int3 index;
@@ -2137,23 +2141,23 @@ evaluate3DSplineComplexToReal_kernel
       if (off < 3*N)
 	kp[0][i*BS+tid] = kpoints[off];
     }
-    float phase_re, phase_im;
-    __sincosf(-(r[0]*kp[tid][0] +
-		r[1]*kp[tid][1] + 
-		r[2]*kp[tid][2]), &phase_im, &phase_re);;
-  __syncthreads();
-
     __shared__ int m2c[BS];
     if (block*BS+tid < N)
       m2c[tid] = make2copies[block*BS+tid];
     __syncthreads();
+
+    float phase_re, phase_im;
+    __sincosf(-(r[0]*kp[tid][0] +
+		r[1]*kp[tid][1] + 
+		r[2]*kp[tid][2]), &phase_im, &phase_re);;
 
     float v=0.0f, g0=0.0f, g1=0.0f, g2=0.0f,
       h00=0.0f, h01=0.0f, h02=0.0f, h11=0.0f, h12=0.0f, h22=0.0f;
     __shared__ float val[BS][2], grad[BS][2][3], lapl[BS][2];
     int off   = 2*block*BS+threadIdx.x;
     int n = 0;
-    float *b0 = coefs + index.x*strides.x + index.y*strides.y + index.z*strides.z + off;
+    float *b0 = coefs + index.x*strides.x + index.y*strides.y + 
+      index.z*strides.z + off;
     if (off < 2*N) {
       for (int i=0; i<4; i++) {
 	for (int j=0; j<4; j++) {
@@ -2194,9 +2198,8 @@ evaluate3DSplineComplexToReal_kernel
 		       GGt[0][1]*h01 + GGt[1][1]*h11 + GGt[2][1]*h12 +
 		       GGt[0][2]*h02 + GGt[1][2]*h12 + GGt[2][2]*h22);
     
-    v=0.0f; g0=0.0f; g1=0.0f; g2=0.0f;
-    h00=0.0f; h01=0.0f; h02=0.0f; h11=0.0f; h12=0.0f; h22=0.0f;
-    off   = (2*block*BS+1)+threadIdx.x;
+    v=g0=g1=g2=h00=h01=h02=h11=h12=h22=0.0f;
+    off   = (2*block+1)*BS+threadIdx.x;
     n = 0;
     b0 = coefs + index.x*strides.x + index.y*strides.y + index.z*strides.z + off;
     if (off < N) {
@@ -2285,12 +2288,13 @@ evaluate3DSplineComplexToReal_kernel
       outIndex++;
       __syncthreads();
       if (outIndex == BS) {
-	int off = outBlock++*BS+tid;
+	int off = outBlock*BS+tid;
 	myVal[off] = outval[tid];
 	myGradLapl[0*row_stride+off] = outgrad[tid][0];
 	myGradLapl[1*row_stride+off] = outgrad[tid][1];
 	myGradLapl[2*row_stride+off] = outgrad[tid][2];
 	myGradLapl[3*row_stride+off] = outlap[tid];
+	outBlock++;
 	outIndex = 0;
       }
       __syncthreads();
@@ -2306,16 +2310,25 @@ evaluate3DSplineComplexToReal_kernel
 	__syncthreads();
       }
       if (outIndex == BS) {
-	int off = outBlock++*BS+tid;
+	int off = outBlock*BS+tid;
 	myVal[off] = outval[tid];
 	myGradLapl[0*row_stride+off] = outgrad[tid][0];
 	myGradLapl[1*row_stride+off] = outgrad[tid][1];
 	myGradLapl[2*row_stride+off] = outgrad[tid][2];
 	myGradLapl[3*row_stride+off] = outlap[tid];
 	outIndex = 0;
+	outBlock++;
       }
     __syncthreads();
     }
+  }
+  if (tid < outIndex) {
+    int off = outBlock*BS+tid;
+    myVal[off] = outval[tid];
+    myGradLapl[0*row_stride+off] = outgrad[tid][0];
+    myGradLapl[1*row_stride+off] = outgrad[tid][1];
+    myGradLapl[2*row_stride+off] = outgrad[tid][2];
+    myGradLapl[3*row_stride+off] = outlap[tid];
   }
   
 }
@@ -2323,7 +2336,7 @@ evaluate3DSplineComplexToReal_kernel
 void
 evaluate3DSplineComplexToReal 
   (HybridJobType *job_types, float *pos, float *kpoints, int *make2copies,
-   multi_UBspline_3d_s_cuda *multispline, float *Linv,
+   multi_UBspline_3d_c_cuda *multispline, float *Linv,
    float **vals, float **grad_lapl,
    int row_stride, int N, int numWalkers)
 {
@@ -2332,14 +2345,14 @@ evaluate3DSplineComplexToReal
   dim3 dimBlock(BS);
   evaluate3DSplineComplexToReal_kernel<BS><<<dimGrid,dimBlock>>>
     (job_types, pos, kpoints, make2copies,
-     multispline->gridInv, multispline->coefs, 
+     multispline->gridInv, (float*)multispline->coefs, 
      multispline->dim, multispline->stride, Linv, vals, grad_lapl, 
      row_stride, N);
 
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf (stderr, "CUDA error in evaluate3DSplineReal:\n  %s\n",
+    fprintf (stderr, "CUDA error in evaluate3DSplineComplexToReal:\n  %s\n",
 	     cudaGetErrorString(err));
     abort();
   }

@@ -82,13 +82,13 @@ evaluate3DSplineReal (HybridJobType *job_types, float *pos, float *kpoints,
 void
 evaluate3DSplineComplexToReal 
   (HybridJobType *job_types, float *pos, float *kpoints, int *make2copies,
-   multi_UBspline_3d_s_cuda *multispline, float *Linv,
+   multi_UBspline_3d_c_cuda *multispline, float *Linv,
    float **vals, int N, int numWalkers);
 
 void
 evaluate3DSplineComplexToReal 
   (HybridJobType *job_types, float *pos, float *kpoints, int *make2copies,
-   multi_UBspline_3d_s_cuda *multispline, float *Linv,
+   multi_UBspline_3d_c_cuda *multispline, float *Linv,
    float **vals, float **grad_lapl,
    int row_stride, int N, int numWalkers);
 
