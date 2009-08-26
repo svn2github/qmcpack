@@ -2307,7 +2307,7 @@ namespace qmcplusplus {
     host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
     phi_CPU = phi;
     grad_lapl_CPU = grad_lapl;
-    host_vector<CudaRealType> vals_CPU(NumOrbitals), GL_CPU(8*row_stride);
+    host_vector<CudaRealType> vals_CPU(NumOrbitals), GL_CPU(4*row_stride);
     host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
     HybridJobs_CPU = HybridJobs_GPU;
     host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
@@ -2438,7 +2438,7 @@ namespace qmcplusplus {
 
       	cudaMemcpy (&vals_CPU[0], phi_CPU[iw], NumOrbitals*sizeof(float),
       		    cudaMemcpyDeviceToHost);
-      	cudaMemcpy (&GL_CPU[0], grad_lapl_CPU[iw], 8*row_stride*sizeof(float),
+      	cudaMemcpy (&GL_CPU[0], grad_lapl_CPU[iw], 4*row_stride*sizeof(float),
       		    cudaMemcpyDeviceToHost);
 
 	// for (int i=0; i<4*row_stride; i++)
@@ -2449,9 +2449,8 @@ namespace qmcplusplus {
       	    // cerr << "r[" << iw << "] = " << newpos[iw] << endl;
       	    // cerr << "iw = " << iw << endl;
 
-      	    fprintf (stderr, "3D val[%2d]  = %10.5e %10.5e\n", 
+      	    fprintf (stderr, "\n3D      val[%2d]  = %10.5e %10.5e\n", 
       		     j, vals_CPU[j], CPUvals[j]);
-	    fprintf (stderr, "row_stride=%d\n", row_stride);
       	    fprintf (stderr, "3D GPU grad[%2d] = %10.5e %10.5e %10.5e\n", j,
       		     GL_CPU[0*row_stride+j],
       		     GL_CPU[1*row_stride+j],
@@ -2461,7 +2460,7 @@ namespace qmcplusplus {
       		     CPUgrad[j][1],
       		     CPUgrad[j][2]);
 	    
-      	    fprintf (stderr, "3D lapl[%2d] = %10.5e %10.5e\n", 
+      	    fprintf (stderr, "3D     lapl[%2d] = %10.5e %10.5e\n", 
       		     j, GL_CPU[3*row_stride+j], CPUlapl[j]);
       	  }
       	}

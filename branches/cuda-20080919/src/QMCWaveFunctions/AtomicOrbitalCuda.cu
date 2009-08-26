@@ -2134,10 +2134,13 @@ evaluate3DSplineComplexToReal_kernel
   int outIndex=0, outBlock=0;
   __shared__ float outval[BS], outgrad[BS][3], outlap[BS];
 
+  //////////////////////
+  // Outer block loop //
+  //////////////////////
   for (int block=0; block<numBlocks; block++) {
     __shared__ float kp[BS][3];
     for (int i=0; i<3; i++) {
-      int off = (3*blockIdx.x+i)*BS+tid;
+      int off = (3*block+i)*BS+tid;
       if (off < 3*N)
 	kp[0][i*BS+tid] = kpoints[off];
     }
@@ -2202,7 +2205,7 @@ evaluate3DSplineComplexToReal_kernel
     off   = (2*block+1)*BS+threadIdx.x;
     n = 0;
     b0 = coefs + index.x*strides.x + index.y*strides.y + index.z*strides.z + off;
-    if (off < N) {
+    if (off < 2*N) {
       for (int i=0; i<4; i++) {
 	for (int j=0; j<4; j++) {
 	  float *base = b0 + i*strides.x + j*strides.y;
@@ -2307,11 +2310,11 @@ evaluate3DSplineComplexToReal_kernel
 	  outlap[outIndex]     = lapl[i][1];
 	}
 	outIndex++;
-	__syncthreads();
       }
+      __syncthreads();
       if (outIndex == BS) {
 	int off = outBlock*BS+tid;
-	myVal[off] = outval[tid];
+	myVal[off]                   = outval[tid];
 	myGradLapl[0*row_stride+off] = outgrad[tid][0];
 	myGradLapl[1*row_stride+off] = outgrad[tid][1];
 	myGradLapl[2*row_stride+off] = outgrad[tid][2];
@@ -2321,7 +2324,9 @@ evaluate3DSplineComplexToReal_kernel
       }
     __syncthreads();
     }
+    __syncthreads();
   }
+  __syncthreads();
   if (tid < outIndex) {
     int off = outBlock*BS+tid;
     myVal[off] = outval[tid];
