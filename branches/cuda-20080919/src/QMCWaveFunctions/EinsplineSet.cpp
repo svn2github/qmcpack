@@ -2545,10 +2545,11 @@ namespace qmcplusplus {
 			Ylm_ptr_GPU.data(), dYlm_dtheta_ptr_GPU.data(), 
 			dYlm_dphi_ptr_GPU.data(), lMax, pos.size());
 
-    // evaluate3DSplineComplexToReal (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
-    // 				   (CudaRealType*)CudakPoints.data(),CudaMultiSpline,
-    // 				   Linv_cuda.data(), phi.data(), grad_lapl.data(), 
-    // 				   row_stride, NumOrbitals, pos.size());
+    evaluate3DSplineComplexToReal 
+      (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
+       (CudaRealType*)CudakPoints.data(),CudaMakeTwoCopies.data(),
+       CudaMultiSpline, Linv_cuda.data(), 
+       phi.data(), CudaMakeTwoCopies.size(), pos.size());
     evaluateHybridSplineComplexToReal 
       (HybridJobs_GPU.data(), 
        Ylm_ptr_GPU.data(),

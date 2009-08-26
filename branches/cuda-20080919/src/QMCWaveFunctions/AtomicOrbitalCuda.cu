@@ -2366,6 +2366,218 @@ evaluate3DSplineComplexToReal
 
 
 
+template<int BS> __global__ void
+evaluate3DSplineComplexToReal_kernel 
+  (HybridJobType *job_types, float *pos, float *kpoints, int *make2copies,
+   float3 drInv, float *coefs, uint3 dim, uint3 strides, 
+   float *Linv, float **vals, int N)
+{
+  int tid = threadIdx.x;
+  __shared__ HybridJobType myjob;
+  if (tid == 0) myjob = job_types[blockIdx.x];
+  __syncthreads();
+  if (myjob != BSPLINE_3D_JOB)
+    return;
+
+  int ir    = blockIdx.x;
+
+  __shared__ float *myVal;
+  __shared__ float r[3], u[3];
+  __shared__ float G[3][3];
+  
+  int i0 = tid/3;
+  int i1 = tid - 3*i0;
+  if (tid < 9) 
+    G[0][tid] = Linv[tid];
+  if (tid == 0) 
+    myVal      =      vals[ir];
+  
+  if (tid < 3) {
+    r[tid] = pos[3*ir+tid];
+    u[tid] = G[tid][0]*r[0] + G[tid][1]*r[1] + G[tid][2]*r[2];
+    u[tid] -= floor(u[tid]);
+  }
+  __syncthreads();
+  int3 index;
+  float3 t;
+  float s, sf;
+  float4 tp[3];
+
+  s = u[0] * drInv.x;
+  sf = floor(s);
+  index.x = min(max(0,(int)sf), dim.x-1);
+  t.x = s - sf;
+
+  s = u[1] * drInv.y;
+  sf = floor(s);
+  index.y = min(max(0,(int)sf), dim.y-1);
+  t.y = s - sf;
+
+  s = u[2] * drInv.z;
+  sf = floor(s);
+  index.z = min(max(0,(int)sf), dim.z-1);
+  t.z = s - sf;
+  
+  tp[0] = make_float4(t.x*t.x*t.x, t.x*t.x, t.x, 1.0f);
+  tp[1] = make_float4(t.y*t.y*t.y, t.y*t.y, t.y, 1.0f);
+  tp[2] = make_float4(t.z*t.z*t.z, t.z*t.z, t.z, 1.0f);
+
+  // First 4 of a are value, second 4 are derivative, last four are
+  // second derivative.
+  __shared__ float a[4], b[4], c[4];
+  if (tid < 4) {
+    a[tid] = Acuda[4*tid+0]*tp[0].x + Acuda[4*tid+1]*tp[0].y + Acuda[4*tid+2]*tp[0].z + Acuda[4*tid+3]*tp[0].w;
+    b[tid] = Acuda[4*tid+0]*tp[1].x + Acuda[4*tid+1]*tp[1].y + Acuda[4*tid+2]*tp[1].z + Acuda[4*tid+3]*tp[1].w;
+    c[tid] = Acuda[4*tid+0]*tp[2].x + Acuda[4*tid+1]*tp[2].y + Acuda[4*tid+2]*tp[2].z + Acuda[4*tid+3]*tp[2].w;
+  }
+  __syncthreads();
+
+  __shared__ float abc[64];
+  int i = (tid>>4)&3;
+  int j = (tid>>2)&3;
+  int k = (tid & 3);
+
+  if (tid < 64)
+    abc[(16*i+4*j+k)]   = a[i]*b[j]*c[k]; 
+  __syncthreads();
+
+  int numBlocks = (N+BS-1)/BS;
+  int outIndex=0, outBlock=0;
+  __shared__ float outval[BS];
+
+  //////////////////////
+  // Outer block loop //
+  //////////////////////
+  for (int block=0; block<numBlocks; block++) {
+    __shared__ float kp[BS][3];
+    for (int i=0; i<3; i++) {
+      int off = (3*block+i)*BS+tid;
+      if (off < 3*N)
+	kp[0][i*BS+tid] = kpoints[off];
+    }
+    __shared__ int m2c[BS];
+    if (block*BS+tid < N)
+      m2c[tid] = make2copies[block*BS+tid];
+    __syncthreads();
+
+    float phase_re, phase_im;
+    __sincosf(-(r[0]*kp[tid][0] +
+		r[1]*kp[tid][1] + 
+		r[2]*kp[tid][2]), &phase_im, &phase_re);;
+
+    float v=0.0f;
+    __shared__ float val[BS][2];
+    int off   = 2*block*BS+threadIdx.x;
+    int n = 0;
+    float *b0 = coefs + index.x*strides.x + index.y*strides.y + 
+      index.z*strides.z + off;
+    if (off < 2*N) {
+      for (int i=0; i<4; i++) {
+	for (int j=0; j<4; j++) {
+	  float *base = b0 + i*strides.x + j*strides.y;
+	  for (int k=0; k<4; k++) {
+	    float c  = base[k*strides.z];
+	    v   += abc[n+  0] * c;
+	    n += 1;
+	  }
+	}
+      }
+    }
+    val[0][tid]    = v;
+    
+    v=0.0f;
+    off   = (2*block+1)*BS+threadIdx.x;
+    n = 0;
+    b0 = coefs + index.x*strides.x + index.y*strides.y + index.z*strides.z + off;
+    if (off < 2*N) {
+      for (int i=0; i<4; i++) {
+	for (int j=0; j<4; j++) {
+	  float *base = b0 + i*strides.x + j*strides.y;
+	  for (int k=0; k<4; k++) {
+	    float c  = base[k*strides.z];
+	    v   += abc[n+  0] * c;
+	    n += 1;
+	  }
+	}
+      }
+    }
+    val[0][tid+BS]    = v;
+    __syncthreads();
+    float re, im;
+    // Add phase contribution to laplacian
+    re = val[tid][0];
+    im = val[tid][1];
+    val[tid][0] = phase_re*re - phase_im*im;
+    val[tid][1] = phase_re*im + phase_im*re;
+    __syncthreads();
+   
+    
+    // Now serialize to output buffers.
+    int iend = min (BS, N-block*BS);
+    for (int i=0; i<iend; i++) {
+      if (tid == 0) {
+	outval[outIndex]     = val[i][0];
+      }
+      outIndex++;
+      __syncthreads();
+      if (outIndex == BS) {
+	int off = outBlock*BS+tid;
+	myVal[off] = outval[tid];
+	outBlock++;
+	outIndex = 0;
+      }
+      __syncthreads();
+      if (m2c[i]) {
+	if (tid == 0) {
+	  outval[outIndex]     = val[i][1];
+	}
+	outIndex++;
+      }
+      __syncthreads();
+      if (outIndex == BS) {
+	int off = outBlock*BS+tid;
+	myVal[off]                   = outval[tid];
+	outIndex = 0;
+	outBlock++;
+      }
+    __syncthreads();
+    }
+    __syncthreads();
+  }
+  __syncthreads();
+  if (tid < outIndex) {
+    int off = outBlock*BS+tid;
+    myVal[off] = outval[tid];
+  }  
+}
+
+void
+evaluate3DSplineComplexToReal 
+  (HybridJobType *job_types, float *pos, float *kpoints, int *make2copies,
+   multi_UBspline_3d_c_cuda *multispline, float *Linv,
+   float **vals, int N, int numWalkers)
+{
+  const int BS=64;
+  dim3 dimGrid(numWalkers);
+  dim3 dimBlock(BS);
+  evaluate3DSplineComplexToReal_kernel<BS><<<dimGrid,dimBlock>>>
+    (job_types, pos, kpoints, make2copies,
+     multispline->gridInv, (float*)multispline->coefs, 
+     multispline->dim, multispline->stride, Linv, vals, N);
+
+  cudaThreadSynchronize();
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf (stderr, "CUDA error in evaluate3DSplineComplexToReal:\n  %s\n",
+	     cudaGetErrorString(err));
+    abort();
+  }
+}
+
+
+
+
+
 
 
 #ifdef TEST_GPU_YLM
