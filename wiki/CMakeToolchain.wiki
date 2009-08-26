@@ -69,7 +69,7 @@ compliations.
 
 = Clusters using GNU compilers =
  * [JaguarGNU JaguarGNU.cmake]
- * KrakenGNU.cmake 
+ * [KrakenGNU KrakenGNU.cmake]
 
 = Clusters using INTEL compilers =
  * [LinuxIntelCMake LinuxIntel.cmake]
