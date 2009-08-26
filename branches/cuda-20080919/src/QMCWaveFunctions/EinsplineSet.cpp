@@ -2303,6 +2303,7 @@ namespace qmcplusplus {
        CudaMakeTwoCopies.data(), (CudaRealType**)phi.data(), 
        grad_lapl.data(), row_stride, 
        CudaMakeTwoCopies.size(), newpos.size(), lMax);
+#ifdef HYBRID_DEBUG
 
     host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
     phi_CPU = phi;
@@ -2466,7 +2467,6 @@ namespace qmcplusplus {
       	}
       }
 
-#ifdef HYBRID_DEBUG
 
     host_vector<float> Ylm_CPU(Ylm_GPU.size());
     Ylm_CPU = Ylm_GPU;
