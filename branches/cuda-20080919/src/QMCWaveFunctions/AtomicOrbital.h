@@ -459,12 +459,11 @@ namespace qmcplusplus {
 	    (-(double)(l*(l+1))*rInv*rInv * ulmVec[index]
 	     + d2ulmVec[index] + 2.0*rInv *dulmVec[index]);
 	}
-      for (int j=0; j<OHMMS_DIM; j++) {
-	vals[i] *= e2mikr;
-	lapl[i] *= e2mikr;
+      vals[i] *= e2mikr;
+      lapl[i] *= e2mikr;
+      for (int j=0; j<OHMMS_DIM; j++) 
 	grads[i][j] = e2mikr*(grad_rhat*rhat[j] + grad_thetahat*thetahat[j] 
 			      + grad_phihat * phihat[j]);
-      }
     }
     SumTimer.stop();
     rmagLast = rmag;
