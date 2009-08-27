@@ -2385,8 +2385,6 @@ evaluate3DSplineComplexToReal_kernel
   __shared__ float r[3], u[3];
   __shared__ float G[3][3];
   
-  int i0 = tid/3;
-  int i1 = tid - 3*i0;
   if (tid < 9) 
     G[0][tid] = Linv[tid];
   if (tid == 0) 
