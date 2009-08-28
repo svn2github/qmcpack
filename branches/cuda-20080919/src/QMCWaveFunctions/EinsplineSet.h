@@ -295,7 +295,7 @@ namespace qmcplusplus {
 
     // Data for vectorized evaluations
     host_vector<CudaPosType> hostPos, NLhostPos;
-    cuda_vector<CudaPosType> cudaPos, NLcudaPos;
+    cuda_vector<CudaPosType> cudapos, NLcudapos;
     host_vector<CudaRealType> hostSign, NLhostSign;
     cuda_vector<CudaRealType> cudaSign, NLcudaSign;
     // This stores the inverse of the lattice vector matrix in

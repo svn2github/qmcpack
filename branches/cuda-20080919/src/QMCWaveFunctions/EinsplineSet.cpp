@@ -1206,9 +1206,9 @@ namespace qmcplusplus {
     // app_log() << "Start EinsplineSet CUDA evaluation\n";
     int N = walkers.size();
     CudaRealType plus_minus[2] = {1.0, -1.0};
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       hostPos.resize(N);
-      cudaPos.resize(N);
+      cudapos.resize(N);
       hostSign.resize(N);
       cudaSign.resize(N);
     }
@@ -1229,10 +1229,10 @@ namespace qmcplusplus {
       hostPos[iw] = ru;
     }
 
-    cudaPos = hostPos;
+    cudapos = hostPos;
     cudaSign = hostSign;
     eval_multi_multi_UBspline_3d_cuda 
-      (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), cudaSign.data(), phi.data(), N);
+      (CudaMultiSpline, (CudaRealType*)(cudapos.data()), cudaSign.data(), phi.data(), N);
   }
 
   template<> void 
@@ -1246,9 +1246,9 @@ namespace qmcplusplus {
     if (CudaValuePointers.size() < N)
       resize_cuda(N);
 
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       hostPos.resize(N);
-      cudaPos.resize(N);
+      cudapos.resize(N);
     }
     for (int iw=0; iw < N; iw++) {
       PosType r = walkers[iw]->R[iat];
@@ -1259,19 +1259,19 @@ namespace qmcplusplus {
       hostPos[iw] = ru;
     }
 
-    cudaPos = hostPos;
+    cudapos = hostPos;
 
     eval_multi_multi_UBspline_3d_cuda 
-      (CudaMultiSpline, (float*)cudaPos.data(), CudaValuePointers.data(), N);
+      (CudaMultiSpline, (float*)cudapos.data(), CudaValuePointers.data(), N);
 
     // Now, add on phases
     for (int iw=0; iw < N; iw++) 
       hostPos[iw] = walkers[iw]->R[iat];
-    cudaPos = hostPos;
+    cudapos = hostPos;
 
     apply_phase_factors ((CUDA_PRECISION*) CudakPoints.data(),
 			 CudaMakeTwoCopies.data(),
-			 (CUDA_PRECISION*)cudaPos.data(),
+			 (CUDA_PRECISION*)cudapos.data(),
 			 (CUDA_PRECISION**)CudaValuePointers.data(),
 			 phi.data(), CudaMultiSpline->num_splines, 
 			 walkers.size());
@@ -1287,9 +1287,9 @@ namespace qmcplusplus {
     int N = newpos.size();
     CudaRealType plus_minus[2] = {1.0, -1.0};
     
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       hostPos.resize(N);
-      cudaPos.resize(N);
+      cudapos.resize(N);
       hostSign.resize(N);
       cudaSign.resize(N);
     }
@@ -1311,10 +1311,10 @@ namespace qmcplusplus {
       hostPos[iw] = ru;
     }
 
-    cudaPos = hostPos;
+    cudapos = hostPos;
     cudaSign = hostSign;
     eval_multi_multi_UBspline_3d_cuda 
-      (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), cudaSign.data(), 
+      (CudaMultiSpline, (CudaRealType*)(cudapos.data()), cudaSign.data(), 
        phi.data(), N);
     //app_log() << "End EinsplineSet CUDA evaluation\n";
   }
@@ -1368,9 +1368,9 @@ namespace qmcplusplus {
     if (CudaValuePointers.size() < N)
       resize_cuda(N);
 
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       hostPos.resize(N);
-      cudaPos.resize(N);
+      cudapos.resize(N);
     }
     for (int iw=0; iw < N; iw++) {
       PosType r = newpos[iw];
@@ -1381,19 +1381,19 @@ namespace qmcplusplus {
       hostPos[iw] = ru;
     }
 
-    cudaPos = hostPos;
+    cudapos = hostPos;
     
     eval_multi_multi_UBspline_3d_cuda 
-      (CudaMultiSpline, (float*)cudaPos.data(), CudaValuePointers.data(), N);
+      (CudaMultiSpline, (float*)cudapos.data(), CudaValuePointers.data(), N);
     
     // Now, add on phases
     for (int iw=0; iw < N; iw++) 
       hostPos[iw] = newpos[iw];
-    cudaPos = hostPos;
+    cudapos = hostPos;
     
     apply_phase_factors ((CUDA_PRECISION*) CudakPoints.data(),
 			 CudaMakeTwoCopies.data(),
-			 (CUDA_PRECISION*)cudaPos.data(),
+			 (CUDA_PRECISION*)cudapos.data(),
 			 (CUDA_PRECISION**)CudaValuePointers.data(),
 			 phi.data(), CudaMultiSpline->num_splines, 
 			 walkers.size());
@@ -1408,9 +1408,9 @@ namespace qmcplusplus {
   {
     int N = walkers.size();
     CudaRealType plus_minus[2] = {1.0, -1.0};
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       hostPos.resize(N);
-      cudaPos.resize(N);
+      cudapos.resize(N);
       hostSign.resize(N);
       cudaSign.resize(N);
     }
@@ -1431,11 +1431,11 @@ namespace qmcplusplus {
       hostPos[iw] = ru;
     }
     
-    cudaPos = hostPos;
+    cudapos = hostPos;
     cudaSign = hostSign;
 
     eval_multi_multi_UBspline_3d_vgl_cuda
-      (CudaMultiSpline, (CudaRealType*)cudaPos.data(), cudaSign.data(), 
+      (CudaMultiSpline, (CudaRealType*)cudapos.data(), cudaSign.data(), 
        Linv_cuda.data(), phi.data(), grad_lapl.data(), N, row_stride);
 
     // host_vector<CudaRealType*> pointers;
@@ -1460,9 +1460,9 @@ namespace qmcplusplus {
     if (CudaValuePointers.size() < N)
       resize_cuda(N);
 
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       hostPos.resize(N);
-      cudaPos.resize(N);
+      cudapos.resize(N);
     }
     for (int iw=0; iw < N; iw++) {
       PosType r = newpos[iw];
@@ -1473,10 +1473,10 @@ namespace qmcplusplus {
       hostPos[iw] = ru;
     }
 
-    cudaPos = hostPos;
+    cudapos = hostPos;
 
     eval_multi_multi_UBspline_3d_c_vgl_cuda
-      (CudaMultiSpline, (float*)cudaPos.data(),  Linv_cuda.data(), CudaValuePointers.data(), 
+      (CudaMultiSpline, (float*)cudapos.data(),  Linv_cuda.data(), CudaValuePointers.data(), 
        CudaGradLaplPointers.data(), N, CudaMultiSpline->num_splines);
 
 
@@ -1507,11 +1507,11 @@ namespace qmcplusplus {
     // Now, add on phases
     for (int iw=0; iw < N; iw++) 
       hostPos[iw] = newpos[iw];
-    cudaPos = hostPos;
+    cudapos = hostPos;
     
     apply_phase_factors ((CUDA_PRECISION*) CudakPoints.data(),
 			 CudaMakeTwoCopies.data(),
-			 (CUDA_PRECISION*)cudaPos.data(),
+			 (CUDA_PRECISION*)cudapos.data(),
 			 (CUDA_PRECISION**)CudaValuePointers.data(), phi.data(), 
 			 (CUDA_PRECISION**)CudaGradLaplPointers.data(), grad_lapl.data(),
 			 CudaMultiSpline->num_splines,  walkers.size(), row_stride);
@@ -1525,9 +1525,9 @@ namespace qmcplusplus {
     int N = pos.size();
     CudaRealType plus_minus[2] = {1.0, -1.0};
 
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       NLhostPos.resize(N);
-      NLcudaPos.resize(N);
+      NLcudapos.resize(N);
       NLhostSign.resize(N);
       NLcudaSign.resize(N);
     }
@@ -1549,10 +1549,10 @@ namespace qmcplusplus {
       NLhostPos[iw] = ru;
     }
 
-    NLcudaPos  = NLhostPos;
+    NLcudapos  = NLhostPos;
     NLcudaSign = NLhostSign;
     eval_multi_multi_UBspline_3d_cuda 
-      (CudaMultiSpline, (CudaRealType*)(NLcudaPos.data()), 
+      (CudaMultiSpline, (CudaRealType*)(NLcudapos.data()), 
        NLcudaSign.data(), phi.data(), N);    
   }
 
@@ -1577,9 +1577,9 @@ namespace qmcplusplus {
     if (CudaValuePointers.size() < N)
       resize_cuda(N);
 
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       hostPos.resize(N);
-      cudaPos.resize(N);
+      cudapos.resize(N);
     }
     for (int iw=0; iw < N; iw++) {
       PosType r = pos[iw];
@@ -1590,19 +1590,19 @@ namespace qmcplusplus {
       hostPos[iw] = ru;
     }
 
-    cudaPos = hostPos;
+    cudapos = hostPos;
     eval_multi_multi_UBspline_3d_cuda 
-      (CudaMultiSpline, (CUDA_PRECISION*) cudaPos.data(), 
+      (CudaMultiSpline, (CUDA_PRECISION*) cudapos.data(), 
        CudaValuePointers.data(), N);
     
     // Now, add on phases
     for (int iw=0; iw < N; iw++) 
       hostPos[iw] = pos[iw];
-    cudaPos = hostPos;
+    cudapos = hostPos;
     
     apply_phase_factors ((CUDA_PRECISION*) CudakPoints.data(),
 			 CudaMakeTwoCopies.data(),
-			 (CUDA_PRECISION*)cudaPos.data(),
+			 (CUDA_PRECISION*)cudapos.data(),
 			 (CUDA_PRECISION**)CudaValuePointers.data(),
 			 phi.data(), CudaMultiSpline->num_splines, N);
   }
@@ -1884,16 +1884,16 @@ namespace qmcplusplus {
 					int row_stride)
   { 
     int N = newpos.size();
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       resize_cuda(N);
       hostPos.resize(N);
-      cudaPos.resize(N);
+      cudapos.resize(N);
     }
     for (int iw=0; iw < N; iw++) 
       hostPos[iw] = newpos[iw];
-    cudaPos = hostPos;
+    cudapos = hostPos;
     
-    // hostPos = cudaPos;
+    // hostPos = cudapos;
     // for (int i=0; i<newpos.size(); i++)
     //   cerr << "newPos[" << i << "] = " << newpos[i] << endl;
 
@@ -1902,7 +1902,7 @@ namespace qmcplusplus {
     // for (int i=0; i<IonPos_CPU.size()/3; i++)
     //   fprintf (stderr, "ion[%d] = [%10.6f %10.6f %10.6f]\n",
     // 	       i, IonPos_CPU[3*i+0], IonPos_CPU[3*i+2], IonPos_CPU[3*i+2]);
-    // cerr << "cudaPos.size()        = " << cudaPos.size() << endl;
+    // cerr << "cudapos.size()        = " << cudapos.size() << endl;
     // cerr << "IonPos.size()         = " << IonPos_GPU.size() << endl;
     // cerr << "PolyRadii.size()      = " << PolyRadii_GPU.size() << endl;
     // cerr << "CutoffRadii.size()    = " << CutoffRadii_GPU.size() << endl;
@@ -1912,7 +1912,7 @@ namespace qmcplusplus {
     // cerr << "HybridJobs_GPU.size() = " << HybridJobs_GPU.size() << endl;
     // cerr << "rhats_GPU.size()      = " << rhats_GPU.size() << endl;
 
-    MakeHybridJobList ((float*) cudaPos.data(), N, IonPos_GPU.data(), 
+    MakeHybridJobList ((float*) cudapos.data(), N, IonPos_GPU.data(), 
 		       PolyRadii_GPU.data(), CutoffRadii_GPU.data(),
 		       AtomicOrbitals.size(), L_cuda.data(), Linv_cuda.data(),
 		       HybridJobs_GPU.data(), rhats_GPU.data(),
@@ -1925,7 +1925,7 @@ namespace qmcplusplus {
     // evaluateHybridSplineReal (HybridJobs_GPU.data(), Ylm_ptr_GPU.data(), 
     // 			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
     // 			      phi.data(), NumOrbitals, newpos.size(), lMax);
-    evaluate3DSplineReal (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
+    evaluate3DSplineReal (HybridJobs_GPU.data(), (float*)cudapos.data(), 
 			  (CudaRealType*)CudakPoints.data(),CudaMultiSpline,
 			  Linv_cuda.data(), phi.data(), grad_lapl.data(), 
 			  row_stride, NumOrbitals, newpos.size());
@@ -2144,9 +2144,9 @@ namespace qmcplusplus {
     // int N = newpos.size();
     // CudaRealType plus_minus[2] = {1.0, -1.0};
     
-    // if (cudaPos.size() < N) {
+    // if (cudapos.size() < N) {
     //   hostPos.resize(N);
-    //   cudaPos.resize(N);
+    //   cudapos.resize(N);
     //   hostSign.resize(N);
     //   cudaSign.resize(N);
     // }
@@ -2168,10 +2168,10 @@ namespace qmcplusplus {
     //   hostPos[iw] = ru;
     // }
 
-    // cudaPos = hostPos;
+    // cudapos = hostPos;
     // cudaSign = hostSign;
     // eval_multi_multi_UBspline_3d_cuda 
-    //   (CudaMultiSpline, (CudaRealType*)(cudaPos.data()), cudaSign.data(), 
+    //   (CudaMultiSpline, (CudaRealType*)(cudapos.data()), cudaSign.data(), 
     //    phi.data(), N);
 
     // ////////////////////////////////////////////////////////////
@@ -2223,17 +2223,17 @@ namespace qmcplusplus {
   (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
   {
     int N = pos.size();
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       resize_cuda(N);
       hostPos.resize(N);
-      cudaPos.resize(N);
+      cudapos.resize(N);
     }
     for (int iw=0; iw < N; iw++) 
       hostPos[iw] = pos[iw];
-    cudaPos = hostPos;
+    cudapos = hostPos;
     
 
-    MakeHybridJobList ((float*) cudaPos.data(), N, IonPos_GPU.data(), 
+    MakeHybridJobList ((float*) cudapos.data(), N, IonPos_GPU.data(), 
 		       PolyRadii_GPU.data(), CutoffRadii_GPU.data(),
 		       AtomicOrbitals.size(), L_cuda.data(), Linv_cuda.data(),
 		       HybridJobs_GPU.data(), rhats_GPU.data(),
@@ -2247,7 +2247,7 @@ namespace qmcplusplus {
     			      AtomicOrbitals_GPU.data(), HybridData_GPU.data(),
     			      (CudaRealType*)CudakPoints_reduced.data(),
 			      phi.data(), NumOrbitals, pos.size(), lMax);
-    evaluate3DSplineReal (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
+    evaluate3DSplineReal (HybridJobs_GPU.data(), (float*)cudapos.data(), 
 			  (CudaRealType*)CudakPoints.data(),CudaMultiSpline,
 			  Linv_cuda.data(), phi.data(), NumOrbitals, pos.size());
   }
@@ -2326,16 +2326,16 @@ namespace qmcplusplus {
      int row_stride)
   { 
     int N = newpos.size();
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       resize_cuda(N);
       hostPos.resize(N);
-      cudaPos.resize(N);
+      cudapos.resize(N);
     }
     for (int iw=0; iw < N; iw++) 
       hostPos[iw] = newpos[iw];
-    cudaPos = hostPos;
+    cudapos = hostPos;
     
-    MakeHybridJobList ((float*) cudaPos.data(), N, IonPos_GPU.data(), 
+    MakeHybridJobList ((float*) cudapos.data(), N, IonPos_GPU.data(), 
 		       PolyRadii_GPU.data(), CutoffRadii_GPU.data(),
 		       AtomicOrbitals.size(), L_cuda.data(), Linv_cuda.data(),
 		       HybridJobs_GPU.data(), rhats_GPU.data(),
@@ -2346,7 +2346,7 @@ namespace qmcplusplus {
 			dYlm_dphi_ptr_GPU.data(), lMax, newpos.size());
 
     evaluate3DSplineComplexToReal (HybridJobs_GPU.data(), 
-				   (float*)cudaPos.data(), 
+				   (float*)cudapos.data(), 
     				   (CudaRealType*)CudakPoints.data(),
 				   CudaMakeTwoCopies.data(), CudaMultiSpline,
     				   Linv_cuda.data(), 
@@ -2586,16 +2586,16 @@ namespace qmcplusplus {
   (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
   {
     int N = pos.size();
-    if (cudaPos.size() < N) {
+    if (cudapos.size() < N) {
       resize_cuda(N);
       hostPos.resize(N);
-      cudaPos.resize(N);
+      cudapos.resize(N);
     }
     for (int iw=0; iw < N; iw++) 
       hostPos[iw] = pos[iw];
-    cudaPos = hostPos;
+    cudapos = hostPos;
     
-    MakeHybridJobList ((float*) cudaPos.data(), N, IonPos_GPU.data(), 
+    MakeHybridJobList ((float*) cudapos.data(), N, IonPos_GPU.data(), 
 		       PolyRadii_GPU.data(), CutoffRadii_GPU.data(),
 		       AtomicOrbitals.size(), L_cuda.data(), Linv_cuda.data(),
 		       HybridJobs_GPU.data(), rhats_GPU.data(),
@@ -2606,7 +2606,7 @@ namespace qmcplusplus {
 			dYlm_dphi_ptr_GPU.data(), lMax, pos.size());
 
     evaluate3DSplineComplexToReal 
-      (HybridJobs_GPU.data(), (float*)cudaPos.data(), 
+      (HybridJobs_GPU.data(), (float*)cudapos.data(), 
        (CudaRealType*)CudakPoints.data(),CudaMakeTwoCopies.data(),
        CudaMultiSpline, Linv_cuda.data(), 
        phi.data(), CudaMakeTwoCopies.size(), pos.size());
