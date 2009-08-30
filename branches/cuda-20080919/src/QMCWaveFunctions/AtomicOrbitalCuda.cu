@@ -1468,8 +1468,8 @@ evaluateHybridPolyComplexToReal_kernel
   __shared__ T polyfuncs[16][3];
   if (tid < 16) {
     polyfuncs[tid][0] = __powf(myData.dist,(float)tid);
-    polyfuncs[tid][1] = (float)tid    *polyfuncs[tid][0] / myData.dist;
-    polyfuncs[tid][2] = (float)(tid-1)*polyfuncs[tid][1] / myData.dist;
+    polyfuncs[tid][1] = (T)tid    *polyfuncs[tid][0] / myData.dist;
+    polyfuncs[tid][2] = (T)(tid-1)*polyfuncs[tid][1] / myData.dist;
   }
   __syncthreads();
 
@@ -1553,9 +1553,9 @@ evaluateHybridPolyComplexToReal_kernel
 	(u_re*dPhi[lm][1] + u_im*dPhi[lm][0]);
 
       lap_re += (Ylm[lm][0] * (lpref[lm]*u_re + d2u_re + 2.0f*rInv*du_re) -
-		 Ylm[lm][1] * (lpref[lm]*u_im + d2u_im + 2.0f*rInv*du_im));
+      		 Ylm[lm][1] * (lpref[lm]*u_im + d2u_im + 2.0f*rInv*du_im));
       lap_im += (Ylm[lm][1] * (lpref[lm]*u_re + d2u_re + 2.0f*rInv*du_re) +
-		 Ylm[lm][0] * (lpref[lm]*u_im + d2u_im + 2.0f*rInv*du_im));
+      		 Ylm[lm][0] * (lpref[lm]*u_im + d2u_im + 2.0f*rInv*du_im));
     }
     __shared__ T val[BS][2], grad[BS][3][2], lap[BS][2];
 
@@ -1563,6 +1563,7 @@ evaluateHybridPolyComplexToReal_kernel
     val[tid][1] = phase_re *   v_im + phase_im *   v_re;
     lap[tid][0] = phase_re * lap_re - phase_im * lap_im;
     lap[tid][1] = phase_re * lap_im + phase_im * lap_re;
+    
     for (int i=0; i<3; i++) {
       grad[tid][i][0] = 
 	(phase_re*g_rhat_re     - phase_im*g_rhat_im    )*rhat[i] +
@@ -1573,6 +1574,7 @@ evaluateHybridPolyComplexToReal_kernel
 	(phase_im*g_thetahat_re + phase_re*g_thetahat_im)*thetahat[i] +
 	(phase_im*g_phihat_re   + phase_re*g_phihat_im  )*phihat[i];
     }
+    __syncthreads();
     // Now serialize to output buffers.
     int iend = min (BS, N-block*BS);
     for (int i=0; i<iend; i++) {

@@ -1935,6 +1935,7 @@ namespace qmcplusplus {
 			      (CudaRealType*)CudakPoints_reduced.data(), 
 			      phi.data(), grad_lapl.data(), 
 			      row_stride, NumOrbitals, newpos.size(), lMax);
+
 #ifdef HYBRID_DEBUG
 
     host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
@@ -2365,6 +2366,8 @@ namespace qmcplusplus {
        grad_lapl.data(), row_stride, 
        CudaMakeTwoCopies.size(), newpos.size(), lMax);
 
+#ifdef HYBRID_DEBUG
+
     host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
     phi_CPU = phi;
     grad_lapl_CPU = grad_lapl;
@@ -2382,8 +2385,9 @@ namespace qmcplusplus {
 
     for (int iw=0; iw<newpos.size(); iw++) 
       if (HybridJobs_CPU[iw] == ATOMIC_POLY_JOB) {
-	ComplexValueVector_t CPUzvals(NumOrbitals), CPUzlapl(NumOrbitals);
-	ComplexGradVector_t CPUzgrad(NumOrbitals);
+	int M = MakeTwoCopies.size();
+	ComplexValueVector_t CPUzvals(M), CPUzlapl(M);
+	ComplexGradVector_t CPUzgrad(M);
 	ValueVector_t CPUvals(NumOrbitals), CPUlapl(NumOrbitals);
 	GradVector_t CPUgrad(NumOrbitals);
 	HybridDataFloat &d = HybridData_CPU[iw];
@@ -2526,7 +2530,6 @@ namespace qmcplusplus {
       // 	  }
       // 	}
       // }
-#ifdef HYBRID_DEBUG
 
 
     host_vector<float> Ylm_CPU(Ylm_GPU.size());

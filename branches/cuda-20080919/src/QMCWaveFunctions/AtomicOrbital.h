@@ -408,7 +408,7 @@ namespace qmcplusplus {
     else {
       for (int index=0; index<ulmVec.size(); index++) {
       	ulmVec[index]   = StorageType();
-	dulmVec[index]  = StorageType();
+	dulmVec[index]  = 0.0;//StorageType();
 	d2ulmVec[index] = StorageType();
       }
 
@@ -440,7 +440,7 @@ namespace qmcplusplus {
       lapl[i] = 0.0;
       int lm=0;
       StorageType grad_rhat, grad_thetahat, grad_phihat;
-
+      grad_rhat = grad_thetahat = grad_phihat = StorageType();
       // Compute e^{-i k.L} phase factor
       double phase = -2.0*M_PI*dot(TwistAngles[i],img);
       double s,c;
