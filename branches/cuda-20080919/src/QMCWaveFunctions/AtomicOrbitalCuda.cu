@@ -74,8 +74,7 @@ MakeHybridJobList_kernel (T* elec_list, int num_elecs, T* ion_list,
     // Fetch radii into shared memory
     if (ib*BS+tid < num_ions) {
       r_spline[tid] = spline_radii[ib*BS+tid];
-      // HACK HACK HACK
-      r_poly[tid]   = 0.0f*poly_radii  [ib*BS+tid];
+      r_poly[tid]   = poly_radii  [ib*BS+tid];
     }
     __syncthreads();
     int iend = min (BS, num_ions - ib*BS);
@@ -317,7 +316,7 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types, T* rhats,
   __shared__ HybridJobType myjob;
   if (tid == 0) myjob = job_types[blockIdx.x];
   __syncthreads();
-  if (myjob == BSPLINE_3D_JOB)
+  if (myjob != ATOMIC_SPLINE_JOB)
     return;
   
   __shared__ T *myYlm, *mydTheta, *mydPhi, *myCoefs, *myVal, *myGradLapl;
@@ -503,18 +502,23 @@ evaluateHybridPolyReal_kernel (HybridJobType *job_types, T* rhats,
   // Compute polynomial basis functions
   // Note maximum polynomial order of 16
   __shared__ T polyfuncs[16][3];
-  if (tid == 0) {
-    polyfuncs[0][0] = 1.0f; polyfuncs[0][0] = myData.dist;
-    polyfuncs[0][1] = 0.0f; polyfuncs[0][1] = 1.0f;
-    polyfuncs[0][2] = 0.0f; polyfuncs[0][2] = 0.0f;
-    float dn = 2.0f;
-    for (int n=2; n<myOrbital.poly_order; n++) {
-      polyfuncs[n][0] = myData.dist*polyfuncs[n-1][0];
-      polyfuncs[n][1] = dn*polyfuncs[n-1][0];
-      polyfuncs[n][2] = dn*(dn-1.0f)*polyfuncs[n-2][0];
-      dn += 1.0f;
-    }
-  } 
+  // if (tid == 0) {
+  //   polyfuncs[0][0] = 1.0f; polyfuncs[1][0] = myData.dist;
+  //   polyfuncs[0][1] = 0.0f; polyfuncs[1][1] = 1.0f;
+  //   polyfuncs[0][2] = 0.0f; polyfuncs[1][2] = 0.0f;
+  //   float dn = 2.0f;
+  //   for (int n=2; n<=myOrbital.poly_order; n++) {
+  //     polyfuncs[n][0] = myData.dist*polyfuncs[n-1][0];
+  //     polyfuncs[n][1] = dn*polyfuncs[n-1][0];
+  //     polyfuncs[n][2] = dn*(dn-1.0f)*polyfuncs[n-2][0];
+  //     dn += 1.0f;
+  //   }
+  // } 
+  if (tid < 16) {
+    polyfuncs[tid][0] = __powf(myData.dist,(float)tid);
+    polyfuncs[tid][1] = (float)tid    *polyfuncs[tid][0] / myData.dist;
+    polyfuncs[tid][2] = (float)(tid-1)*polyfuncs[tid][1] / myData.dist;
+  }
   __syncthreads();
 
 
@@ -553,10 +557,10 @@ evaluateHybridPolyReal_kernel (HybridJobType *job_types, T* rhats,
       float *c = c0 + lm*myOrbital.lm_stride;
       float u=0.0f, du=0.0f, d2u=0.0f, coef;
       for (int n=0; n<=myOrbital.poly_order; n++) {
-	coef = c[n];
-	u   += coef * polyfuncs[n][0];
-	du  += coef * polyfuncs[n][1];
-	d2u += coef * polyfuncs[n][2];
+      	coef = c[n*myOrbital.poly_stride];
+      	u   += coef * polyfuncs[n][0];
+      	du  += coef * polyfuncs[n][1];
+      	d2u += coef * polyfuncs[n][2];
       }
       
       // Now accumulate values
@@ -710,7 +714,7 @@ evaluateHybridSplineComplexToReal_kernel
   __shared__ HybridJobType myjob;
   if (tid == 0) myjob = job_types[blockIdx.x];
   __syncthreads();
-  if (myjob == BSPLINE_3D_JOB)
+  if (myjob != ATOMIC_SPLINE_JOB)
     return;
   
   __shared__ T *myYlm, *myCoefs, *myVal;

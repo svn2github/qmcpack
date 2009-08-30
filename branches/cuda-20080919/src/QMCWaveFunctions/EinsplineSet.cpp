@@ -1936,6 +1936,7 @@ namespace qmcplusplus {
 			      phi.data(), grad_lapl.data(), 
 			      row_stride, NumOrbitals, newpos.size(), lMax);
 #ifdef HYBRID_DEBUG
+
     host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
     phi_CPU = phi;
     grad_lapl_CPU = grad_lapl;
@@ -1948,7 +1949,7 @@ namespace qmcplusplus {
     rhats_CPU = rhats_GPU;
     
     for (int iw=0; iw<newpos.size(); iw++) 
-      if (HybridJobs_CPU[iw] != BSPLINE_3D_JOB) {
+      if (HybridJobs_CPU[iw] == ATOMIC_POLY_JOB) {
 	ValueVector_t CPUvals(NumOrbitals), CPUlapl(NumOrbitals);
 	GradVector_t CPUgrad(NumOrbitals);
 	HybridDataFloat &d = HybridData_CPU[iw];
@@ -1979,7 +1980,7 @@ namespace qmcplusplus {
 
 	for (int j=0; j<NumOrbitals; j++) {
 	  //	  if (isnan(vals_CPU[j])) {
-	  if (isnan(GL_CPU[0*row_stride+j])) {
+	  if (true || isnan(GL_CPU[0*row_stride+j])) {
 	    cerr << "iw = " << iw << endl;
 	    fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f] dist = %10.6e\n",
 		     iw, rhats_CPU[3*iw+0], rhats_CPU[3*iw+1], rhats_CPU[3*iw+2], 
@@ -2720,18 +2721,20 @@ namespace qmcplusplus {
 	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm];
       
       AtomicSplineCoefs_GPU[iat] = spline_coefs;      
-      AtomicOrbitals_CPU.push_back(atom_cuda);
       
-      int poly_size = max_poly_coefs * atom_cuda.lm_stride;
+      atom_cuda.poly_stride = numlm*atom_cuda.lm_stride;
+      atom_cuda.poly_order = atom.PolyOrder;
+      int poly_size = (atom.PolyOrder+1)*atom_cuda.poly_stride;
       host_vector<float> poly_coefs(poly_size);
       AtomicPolyCoefs_GPU[iat].resize(poly_size);
-      atom_cuda.spline_coefs = &AtomicPolyCoefs_GPU[iat][0];
+      atom_cuda.poly_coefs = &AtomicPolyCoefs_GPU[iat][0];
       for (int lm=0; lm<numlm; lm++)
 	for (int n=0; n<atom.PolyOrder; n++)
 	  for (int orb=0; orb<NumOrbitals; orb++)
-	    poly_coefs[lm * atom_cuda.lm_stride + orb] = 
-	      atom.get_poly_coefs()(n,orb,lm);
+	    poly_coefs[n*atom_cuda.poly_stride + lm*atom_cuda.lm_stride + orb] 
+	      = atom.get_poly_coefs()(n,orb,lm);
       AtomicPolyCoefs_GPU[iat] = poly_coefs;
+      AtomicOrbitals_CPU.push_back(atom_cuda);
     }
     AtomicOrbitals_GPU = AtomicOrbitals_CPU;
     IonPos_GPU      = IonPos_CPU;
