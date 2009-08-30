@@ -24,8 +24,10 @@ class AtomicOrbitalCuda
 {
 public:
   int lMax, spline_stride, lm_stride;
+  int poly_order, poly_stride;
   T spline_dr_inv;
   T *spline_coefs, *poly_coefs;
+  int PAD[6];
 };
 
 void init_atomic_cuda();

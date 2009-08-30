@@ -422,7 +422,8 @@ namespace qmcplusplus {
     typedef typename EinsplineSetExtended<StorageType>::CudaComplexType CudaComplexType;
     typedef typename EinsplineSetExtended<StorageType>::CudaStorageType CudaStorageType;
 
-    vector<cuda_vector<CudaRealType> > AtomicSplineCoefs_GPU;
+    vector<cuda_vector<CudaRealType> > AtomicSplineCoefs_GPU,
+      AtomicPolyCoefs_GPU;
     cuda_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_GPU;
 
     // host_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_CPU;

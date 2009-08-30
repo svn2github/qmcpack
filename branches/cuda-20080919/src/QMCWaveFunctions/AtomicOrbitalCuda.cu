@@ -446,6 +446,145 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types, T* rhats,
   
 }
 
+
+template<typename T,int BS,int LMAX> __global__ void
+evaluateHybridPolyReal_kernel (HybridJobType *job_types, T* rhats, 
+			       T **YlmReal, float **dYlm_dTheta, float **dYlm_dphi,
+			       AtomicOrbitalCuda<T> *orbitals, HybridDataFloat *data, 
+			       T *k_reduced, T **vals, T **grad_lapl, 
+			       int row_stride, int N)
+{
+  int tid = threadIdx.x;
+  __shared__ HybridJobType myjob;
+  if (tid == 0) myjob = job_types[blockIdx.x];
+  __syncthreads();
+  if (myjob != ATOMIC_POLY_JOB)
+    return;
+  
+  __shared__ T *myYlm, *mydTheta, *mydPhi, *myCoefs, *myVal, *myGradLapl;
+  __shared__ HybridDataFloat myData;
+  __shared__ AtomicOrbitalCuda<T> myOrbital;
+  __shared__ T k_red[BS][3];
+  
+  const int data_size = (sizeof(HybridDataFloat)     +3)/sizeof(float);
+  const int orb_size  = (sizeof(AtomicOrbitalCuda<T>)+3)/sizeof(float);
+  if (tid < data_size) 
+    ((float*)&myData)[tid]    = ((float*)&(data[blockIdx.x]))[tid];
+  if (tid < orb_size) 
+    ((float*)&myOrbital)[tid] = ((float*)(&orbitals[myData.ion]))[tid];
+
+  if (tid == 0) {
+    myYlm      = YlmReal[blockIdx.x];
+    mydTheta   = dYlm_dTheta[blockIdx.x];
+    mydPhi     = dYlm_dphi[blockIdx.x];
+    myVal      = vals[blockIdx.x];
+    myGradLapl = grad_lapl[blockIdx.x];
+    myCoefs    = myOrbital.poly_coefs;
+  }
+  __shared__ T rhat[3], thetahat[3], phihat[3];
+  __shared__ T sintheta, cosphi, sinphi, rInv, sinthetaInv;
+  if (tid < 3) 
+    rhat[tid] = rhats[3*blockIdx.x+tid];
+  if (tid ==0) {
+    rInv = 1.0f/myData.dist;
+    sintheta = sqrtf(1.0-rhat[2]*rhat[2]);
+    sinthetaInv = 1.0/sintheta;
+    cosphi = rhat[0]*sinthetaInv;
+    sinphi = rhat[1]*sinthetaInv;
+    thetahat[0] = rhat[2]*cosphi;
+    thetahat[1] = rhat[2]*sinphi;
+    thetahat[2] = -sintheta;
+    phihat[0]   = -sinphi;
+    phihat[1]   = cosphi;
+    phihat[2]   = 0.0f;
+  }
+  __syncthreads();
+
+  // Compute polynomial basis functions
+  // Note maximum polynomial order of 16
+  __shared__ T polyfuncs[16][3];
+  if (tid == 0) {
+    polyfuncs[0][0] = 1.0f; polyfuncs[0][0] = myData.dist;
+    polyfuncs[0][1] = 0.0f; polyfuncs[0][1] = 1.0f;
+    polyfuncs[0][2] = 0.0f; polyfuncs[0][2] = 0.0f;
+    float dn = 2.0f;
+    for (int n=2; n<myOrbital.poly_order; n++) {
+      polyfuncs[n][0] = myData.dist*polyfuncs[n-1][0];
+      polyfuncs[n][1] = dn*polyfuncs[n-1][0];
+      polyfuncs[n][2] = dn*(dn-1.0f)*polyfuncs[n-2][0];
+      dn += 1.0f;
+    }
+  } 
+  __syncthreads();
+
+
+  __shared__ T Ylm[(LMAX+1)*(LMAX+1)], dTheta[(LMAX+1)*(LMAX+1)], dPhi[(LMAX+1)*(LMAX+1)],
+    lpref[(LMAX+1)*(LMAX+1)];
+  int numlm = (myOrbital.lMax+1)*(myOrbital.lMax+1);
+  int Yblocks = (numlm+BS-1)/BS;
+  for (int ib=0; ib<Yblocks; ib++)
+    if (ib*BS + tid < numlm) {
+      Ylm[ib*BS+tid]    = myYlm[ib*BS + tid];
+      dTheta[ib*BS+tid] = mydTheta[ib*BS + tid];
+      dPhi[ib*BS+tid]   = mydPhi[ib*BS + tid];
+    }
+  for (int l=0; l<=myOrbital.lMax; l++) 
+    if (tid < 2*l+1) {
+      int lm = l*l + tid;
+      lpref[lm] = -rInv*rInv*(T)(l*(l+1));
+    }
+  __syncthreads();
+
+  int numBlocks = (N+BS-1)/BS;
+  for (int block=0; block<numBlocks; block++) {
+    for (int i=0; i<3; i++) {
+      int off = (3*block+i)*BS + tid;
+      if (off < 3*N)
+	k_red[0][i*BS+tid] = k_reduced[off];
+    }
+    __syncthreads();
+    T sign = __cosf(-(k_red[tid][0]*myData.img[0]+
+		      k_red[tid][1]*myData.img[1]+
+		      k_red[tid][2]*myData.img[2]));
+    T *c0 =  myCoefs + block*BS + tid;
+    T val = T();
+    T g_rhat=T(), g_thetahat=T(), g_phihat=T(), lap=T();
+    for (int lm=0; lm<numlm; lm++) {
+      float *c = c0 + lm*myOrbital.lm_stride;
+      float u=0.0f, du=0.0f, d2u=0.0f, coef;
+      for (int n=0; n<=myOrbital.poly_order; n++) {
+	coef = c[n];
+	u   += coef * polyfuncs[n][0];
+	du  += coef * polyfuncs[n][1];
+	d2u += coef * polyfuncs[n][2];
+      }
+      
+      // Now accumulate values
+      val    +=   u * Ylm[lm];
+      g_rhat +=  du*Ylm[lm];
+      g_thetahat += u*rInv*dTheta[lm];
+      g_phihat   += u*rInv*sinthetaInv*dPhi[lm];
+      lap += Ylm[lm] * (lpref[lm] * u + d2u + 2.0f*rInv*du);
+    }
+    int off = block*BS + tid;
+    if (off < N) {
+      myVal[off] = sign * val;
+      myGradLapl[0*row_stride+off] = sign *
+	(g_rhat*rhat[0]+g_thetahat*thetahat[0]+g_phihat*phihat[0]);
+      myGradLapl[1*row_stride+off] = sign *
+	(g_rhat*rhat[1]+g_thetahat*thetahat[1]+g_phihat*phihat[1]);
+      myGradLapl[2*row_stride+off] = sign *
+	(g_rhat*rhat[2]+g_thetahat*thetahat[2]+g_phihat*phihat[2]);
+      myGradLapl[3*row_stride+off] = sign * lap;
+    }
+  }
+
+  __syncthreads();
+  
+}
+
+
+
 void
 evaluateHybridSplineReal (HybridJobType *job_types, float *rhats,
 			  float **Ylm_real, float **dYlm_dTheta, float **dYlm_dphi,
@@ -458,46 +597,86 @@ evaluateHybridSplineReal (HybridJobType *job_types, float *rhats,
   dim3 dimGrid(numWalkers);
   dim3 dimBlock(BS);
   
-  if (lMax == 0) 
+  if (lMax == 0) {
     evaluateHybridSplineReal_kernel<float,BS,0><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, vals, grad_lapl, row_stride, N);
-  else if (lMax == 1) 
+    evaluateHybridPolyReal_kernel<float,BS,0><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 1) {
     evaluateHybridSplineReal_kernel<float,BS,1><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, vals, grad_lapl, row_stride, N);
-  else if (lMax == 2) 
+    evaluateHybridPolyReal_kernel<float,BS,1><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 2) {
     evaluateHybridSplineReal_kernel<float,BS,2><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, vals, grad_lapl, row_stride, N);
-  else if (lMax == 3) 
+    evaluateHybridPolyReal_kernel<float,BS,2><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 3) {
     evaluateHybridSplineReal_kernel<float,BS,3><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, vals, grad_lapl, row_stride, N);
-  else if (lMax == 4) 
+    evaluateHybridPolyReal_kernel<float,BS,3><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 4) {
     evaluateHybridSplineReal_kernel<float,BS,4><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, vals, grad_lapl, row_stride, N);
-  else if (lMax == 5) 
+    evaluateHybridPolyReal_kernel<float,BS,4><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 5) {
     evaluateHybridSplineReal_kernel<float,BS,5><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, vals, grad_lapl, row_stride, N);
-  else if (lMax == 6) 
+    evaluateHybridPolyReal_kernel<float,BS,5><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 6) {
     evaluateHybridSplineReal_kernel<float,BS,6><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, vals, grad_lapl, row_stride, N);
-  else if (lMax == 7) 
+    evaluateHybridPolyReal_kernel<float,BS,6><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 7) {
     evaluateHybridSplineReal_kernel<float,BS,7><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, vals, grad_lapl, row_stride, N);
-  else if (lMax == 8) 
+    evaluateHybridPolyReal_kernel<float,BS,7><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 8) {
     evaluateHybridSplineReal_kernel<float,BS,8><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, vals, grad_lapl, row_stride, N);
-  else if (lMax == 9) 
+    evaluateHybridPolyReal_kernel<float,BS,8><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 9) {
     evaluateHybridSplineReal_kernel<float,BS,9><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, vals, grad_lapl, row_stride, N);
+    evaluateHybridPolyReal_kernel<float,BS,9><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm_real, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, vals, grad_lapl, row_stride, N);
+  }
 
      
   cudaThreadSynchronize();

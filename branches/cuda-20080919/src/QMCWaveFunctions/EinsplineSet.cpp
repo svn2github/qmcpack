@@ -2686,7 +2686,9 @@ namespace qmcplusplus {
     int lm_stride = ((NumOrbitals+BS-1)/BS)*BS;
     
     AtomicSplineCoefs_GPU.resize(AtomicOrbitals.size());
+    AtomicPolyCoefs_GPU.resize(AtomicOrbitals.size());
     vector<CudaRealType> IonPos_CPU, CutoffRadii_CPU, PolyRadii_CPU;
+    const int max_poly_coefs = 16;
 
     for (int iat=0; iat<AtomicOrbitals.size(); iat++) {
       app_log() << "Copying atomic orbitals for ion " << iat << " to GPU memory.\n";
@@ -2717,9 +2719,19 @@ namespace qmcplusplus {
 			 lm   *atom_cuda.lm_stride + orb] =
 	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm];
       
-      AtomicSplineCoefs_GPU[iat] = spline_coefs;
-      
+      AtomicSplineCoefs_GPU[iat] = spline_coefs;      
       AtomicOrbitals_CPU.push_back(atom_cuda);
+      
+      int poly_size = max_poly_coefs * atom_cuda.lm_stride;
+      host_vector<float> poly_coefs(poly_size);
+      AtomicPolyCoefs_GPU[iat].resize(poly_size);
+      atom_cuda.spline_coefs = &AtomicPolyCoefs_GPU[iat][0];
+      for (int lm=0; lm<numlm; lm++)
+	for (int n=0; n<atom.PolyOrder; n++)
+	  for (int orb=0; orb<NumOrbitals; orb++)
+	    poly_coefs[lm * atom_cuda.lm_stride + orb] = 
+	      atom.get_poly_coefs()(n,orb,lm);
+      AtomicPolyCoefs_GPU[iat] = poly_coefs;
     }
     AtomicOrbitals_GPU = AtomicOrbitals_CPU;
     IonPos_GPU      = IonPos_CPU;
