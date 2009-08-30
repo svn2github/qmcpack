@@ -1027,6 +1027,7 @@ evaluateHybridPolyComplexToReal_kernel
       for (int n=0; n<=myOrbital.poly_order; n++) {
 	c[0][tid]    = coef[n*myOrbital.poly_stride];
 	c[0][BS+tid] = coef[n*myOrbital.poly_stride+BS];
+	__syncthreads();
 	u_re = r2n[n]*c[tid][0];
 	u_im = r2n[n]*c[tid][1];
       }
@@ -1441,7 +1442,7 @@ evaluateHybridPolyComplexToReal_kernel
     mydPhi     = dYlm_dphi[blockIdx.x];
     myVal      = vals[blockIdx.x];
     myGradLapl = grad_lapl[blockIdx.x];
-    myCoefs    = myOrbital.spline_coefs;
+    myCoefs    = myOrbital.poly_coefs;
   }
   __shared__ T rhat[3], thetahat[3], phihat[3];
   __shared__ T sintheta, cosphi, sinphi, rInv, sinthetaInv;
@@ -1519,19 +1520,21 @@ evaluateHybridPolyComplexToReal_kernel
       lap_re       =T(), lap_im       =T();
     __shared__ T c[BS][2];
     for (int lm=0; lm<numlm; lm++) {
-      T u_re=T(), u_im=T(), du_re=T(), 
-	du_im=T(), d2u_re=T(), d2u_im=T();
+      T u_re=T(), u_im=T(), du_re=T(), du_im=T(), 
+	d2u_re=T(), d2u_im=T();
       T *coef = c0 + lm*myOrbital.lm_stride;
       
       for (int n=0; n<=myOrbital.poly_order; n++) {
 	c[0][tid]    = coef[n*myOrbital.poly_stride];
 	c[0][BS+tid] = coef[n*myOrbital.poly_stride+BS];
+	__syncthreads();
 	u_re   += polyfuncs[n][0]*c[tid][0];      
 	u_im   += polyfuncs[n][0]*c[tid][1];
 	du_re  += polyfuncs[n][1]*c[tid][0];      
 	du_im  += polyfuncs[n][1]*c[tid][1];
 	d2u_re += polyfuncs[n][2]*c[tid][0];      
 	d2u_im += polyfuncs[n][2]*c[tid][1];
+	__syncthreads();
       }
 
       // Now accumulate values
@@ -1641,46 +1644,86 @@ evaluateHybridSplineComplexToReal
   dim3 dimGrid(numWalkers);
   dim3 dimBlock(BS);
   
-  if (lMax == 0) 
+  if (lMax == 0) {
     evaluateHybridSplineComplexToReal_kernel<float,BS,0><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
-  else if (lMax == 1) 
+    evaluateHybridPolyComplexToReal_kernel<float,BS,0><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 1) {
     evaluateHybridSplineComplexToReal_kernel<float,BS,1><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
-  else if (lMax == 2) 
+    evaluateHybridPolyComplexToReal_kernel<float,BS,1><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 2) {
     evaluateHybridSplineComplexToReal_kernel<float,BS,2><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
-  else if (lMax == 3) 
+    evaluateHybridPolyComplexToReal_kernel<float,BS,2><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 3) {
     evaluateHybridSplineComplexToReal_kernel<float,BS,3><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
-  else if (lMax == 4) 
+    evaluateHybridPolyComplexToReal_kernel<float,BS,3><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 4) {
     evaluateHybridSplineComplexToReal_kernel<float,BS,4><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
-  else if (lMax == 5) 
+    evaluateHybridPolyComplexToReal_kernel<float,BS,4><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 5) {
     evaluateHybridSplineComplexToReal_kernel<float,BS,5><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
-  else if (lMax == 6) 
+    evaluateHybridPolyComplexToReal_kernel<float,BS,5><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 6) {
     evaluateHybridSplineComplexToReal_kernel<float,BS,6><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
-  else if (lMax == 7) 
+    evaluateHybridPolyComplexToReal_kernel<float,BS,6><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 7) {
     evaluateHybridSplineComplexToReal_kernel<float,BS,7><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
-  else if (lMax == 8) 
+    evaluateHybridPolyComplexToReal_kernel<float,BS,7><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 8) {
     evaluateHybridSplineComplexToReal_kernel<float,BS,8><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
-  else if (lMax == 9) 
+    evaluateHybridPolyComplexToReal_kernel<float,BS,8><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  }
+  else if (lMax == 9) {
     evaluateHybridSplineComplexToReal_kernel<float,BS,9><<<dimGrid,dimBlock>>> 
       (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
        data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+    evaluateHybridPolyComplexToReal_kernel<float,BS,9><<<dimGrid,dimBlock>>> 
+      (job_types, rhats, Ylm, dYlm_dTheta, dYlm_dphi, orbitals, 
+       data, k_reduced, make2copies, vals, grad_lapl, row_stride, N);
+  }
      
   cudaThreadSynchronize();
   cudaError_t err = cudaGetLastError();
