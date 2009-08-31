@@ -367,7 +367,7 @@ namespace qmcplusplus {
 	  if (accepted.size())
 	    Psi.update(accepted,iat);
 	}
-	for (int iw=0; iw < nw; i++) 
+	for (int iw=0; iw < nw; iw++) 
 	  if (W[iw]->Age)
 	    cerr << "Encountered stuck walker with iw=" << iw << endl;
 
