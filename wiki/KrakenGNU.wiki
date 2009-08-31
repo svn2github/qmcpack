@@ -4,16 +4,15 @@
 
 Check [CMakeToolchain] for the descriptions of the toolchain file and `cmake` variables.
 
-= {{{config/KrakenGNU.cmake}}} =
-a prototype toolchain file for a build using GNU compilers on LINUX clusters. 
-
-After `cmake` stage, edit CMakeCache.txt file to replace any dynamic libraries (*.so) 
+Important: After `cmake` stage, edit CMakeCache.txt file to replace any dynamic libraries (\*.so) 
 with static libraries, e.g.,
 {{{
 //Path to a library.
 FFTW_LIBRARY:FILEPATH=/opt/fftw/3.2.1/lib/libfftw3.a
 }}}
 
+= {{{config/KrakenGNU.cmake}}} =
+a prototype toolchain file for a build using GNU compilers on LINUX clusters. 
 {{{
 --------------------------------------------------------------------------
 # tool chain for kraken Wed Aug 31 2009
