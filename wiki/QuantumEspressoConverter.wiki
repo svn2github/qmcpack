@@ -1,4 +1,4 @@
-#summary How to install the pw2qmcpack.x converter
+#summary How to install the pw2qmcpack.x converter for espresso-4.1
 = Installation =
   # untar CHANGES.tar in espresso-4.1/
   # ./configure
@@ -158,4 +158,3 @@ HDF5_LIBS = -L/home/mcminis2/src/hdf5-1.8.3/lib -lhdf5 -lhdf5_hl
 LIBOBJS        = ../flib/ptools.a ../flib/flib.a ../clib/clib.a ../iotk/src/libiotk.a ../Multigrid/mglib.a
 LIBS           = $(LAPACK_LIBS) $(BLAS_LIBS) $(FFT_LIBS) $(MPI_LIBS) $(MASS_LIBS) $(PGPLOT_LIBS) $(LD_LIBS) $(HDF5_LIBS)
 }}}
-
