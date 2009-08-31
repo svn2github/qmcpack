@@ -1028,8 +1028,8 @@ evaluateHybridPolyComplexToReal_kernel
 	c[0][tid]    = coef[n*myOrbital.poly_stride];
 	c[0][BS+tid] = coef[n*myOrbital.poly_stride+BS];
 	__syncthreads();
-	u_re = r2n[n]*c[tid][0];
-	u_im = r2n[n]*c[tid][1];
+	u_re += r2n[n]*c[tid][0];
+	u_im += r2n[n]*c[tid][1];
       }
 
       v_re +=  u_re*Ylm[lm][0] - u_im*Ylm[lm][1];
