@@ -9,12 +9,23 @@
     * add HDF5_LIBS to LIBS
   # make pw pp
 
-=Changing the % of Exact exchange used in B3LYP functional =
+=Changing the % of Exact exchange used in B3LYP/PBE0 functional =
 
-  To change % of exact exchange in B3LYP
+  To change % of exact exchange in B3LYP/PBE0
     # open Modules/functionals.f90
-      * line 407: exx_fraction = 0.2_DP  
+      * on line 402 or 407 edit the exx_fraction
   default value is 20%
+{{{
+    ! PBE0
+    IF ( iexch==6 .or. igcx ==8 ) exx_fraction = 0.25_DP
+    ! HF or OEP
+    IF ( iexch==4 .or. iexch==5 ) exx_fraction = 1.0_DP
+    !B3LYP
+    IF ( matches( 'B3LP',dft ) .OR. matches( 'B3LYP',dft ) ) &
+                                  exx_fraction = 0.2_DP
+
+}}}
+
 = Sample make.sys =
   This make.sys is a non-parallel version built on mcminis.physics.uiuc.edu. Using the MKL math libraries, the intel compilers, hdf5-1.8.3 (build with -v1.6), and the internal pwscf FFT.
 {{{
