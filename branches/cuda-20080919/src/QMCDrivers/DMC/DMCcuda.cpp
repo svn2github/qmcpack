@@ -61,7 +61,7 @@ namespace qmcplusplus {
       app_log() << "  Scaling weight per Umrigar/Nightengale.\n";
       
     resetRun();
-    Mover->MaxAge = 2;
+    Mover->MaxAge = 1;
     IndexType block = 0;
     IndexType nAcceptTot = 0;
     IndexType nRejectTot = 0;
@@ -273,7 +273,7 @@ namespace qmcplusplus {
   bool DMCcuda::runWithNonlocal() 
   { 
     resetRun();
-    Mover->MaxAge = 2;
+    Mover->MaxAge = 1;
     IndexType block = 0;
     IndexType nAcceptTot = 0;
     IndexType nRejectTot = 0;
@@ -367,6 +367,10 @@ namespace qmcplusplus {
 	  if (accepted.size())
 	    Psi.update(accepted,iat);
 	}
+	for (int iw=0; iw < nw; i++) 
+	  if (W[iw]->Age)
+	    cerr << "Encountered stuck walker with iw=" << iw << endl;
+
 	//	Psi.recompute(W, false);
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy, Txy);
