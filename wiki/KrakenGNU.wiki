@@ -4,7 +4,7 @@
 
 Check [CMakeToolchain] for the descriptions of the toolchain file and `cmake` variables.
 
-Important: After `cmake` stage, edit CMakeCache.txt file to replace any dynamic libraries (\*.so) 
+Important: After `cmake` stage, edit CMakeCache.txt file to replace any dynamic libraries (`libxyz.so`) 
 with static libraries, e.g.,
 {{{
 //Path to a library.
