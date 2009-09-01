@@ -3,8 +3,11 @@
 = Introduction =
 SiC
 
-= Details =
+= Trail Needs Dirac Fock PP =
+http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=6&output=image
 
-<img src="http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=4&output=image" />
+= Trail Needs Hartree Fock PP =
+http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=5&output=image
 
-http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=4&output=image
+= Filippi Hartree Fock PP =
+http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=7&output=image
