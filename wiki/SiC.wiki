@@ -11,6 +11,8 @@ SiC, 2 atom unit Zinc-Blende cell, a_0=8.2392 Bohr.
     http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=5&output=image
   * *Filippi Hartree Fock PP*
     http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=7&output=image
+  * *raw xls sheet*
+    https://netfiles.uiuc.edu:443/mcminis2/shared/sic_pp_converge.xls
 
 ===TO-DO===
 SiC, 2 atom unit Zinc-Blende cell, a_0=8.2392 Bohr. 
