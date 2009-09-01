@@ -1,13 +1,21 @@
 #summary Summary of SiC project
 
-= Introduction =
-SiC
+= SiC =
+Convergence study: VMC energy without Jastrow as DFT wave function plane wave cutoff is increased.
 
-= Trail Needs Dirac Fock PP =
-http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=6&output=image
+===DONE===
+SiC, 2 atom unit Zinc-Blende cell, a_0=8.2392 Bohr. 
+  * *Trail Needs Dirac Fock PP*
+    http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=6&output=image
+  * *Trail Needs Hartree Fock PP*
+    http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=5&output=image
+  * *Filippi Hartree Fock PP*
+    http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=7&output=image
 
-= Trail Needs Hartree Fock PP =
-http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=5&output=image
+===TO-DO===
+SiC, 2 atom unit Zinc-Blende cell, a_0=8.2392 Bohr. 
+Energy study: VMC energy with and without 1 and 2 body Jastrow factors. DMC energy with Jastrow. converge error bars to a little less than 1mHa per SiC pair (depends on cost with Jastrow). (~1/2 day)
 
-= Filippi Hartree Fock PP =
-http://spreadsheets.google.com/pub?key=t4BaqgRj0i0EbW8gq4jabUw&oid=7&output=image
+Choose one PP to use for the next step. Leaning towards TN_DF thus far. (~moments)
+
+Energy Study: SiC, 54 atom unit Zinc-Blende cell. Vary a_0. We may try an opium PP if TN core is too large or BFD_HF doesn't converge sufficiently fast. (1/2 day to days)
