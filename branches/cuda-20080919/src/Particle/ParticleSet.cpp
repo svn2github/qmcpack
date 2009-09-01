@@ -192,7 +192,6 @@ namespace qmcplusplus {
   }
 
   void ParticleSet::update(int iflag) { 
-    fprintf (stderr, "this = %p\n", this);
     //apply Boundary condition
     //R.setUnit(0);
     //double xL=Lattice.R(0,0);
