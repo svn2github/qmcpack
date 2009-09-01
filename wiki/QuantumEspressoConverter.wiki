@@ -26,6 +26,9 @@
 
 }}}
 
+Note that B3LYP is pretty bad for solids/metals.
+  Paier, J.; Marsman, M.; Kresse, G., “Why does the B3LYP hybrid functional fail for metals?.” The Journal of Chemical Physics, 127 (2) 024103-10 (2007).
+
 = Sample make.sys =
   This make.sys is a non-parallel version built on mcminis.physics.uiuc.edu. Using the MKL math libraries, the intel compilers, hdf5-1.8.3 (build with -v1.6), and the internal pwscf FFT.
 {{{
