@@ -1,0 +1,52 @@
+﻿#summary how to run 3D homogeneous electron gas
+
+||[Welcome Home]||[TutorialsList Tutorials]||
+
+= Objectives =
+QMC calculations of the Homegeneous Electron Gas in 3D (HEG3D)
+
+== Homogeneous electron gas ==
+
+Ideally, one only has to set `rs` and the shell number to set the problem. However, the current implementation requires that the parameters associated with the number of particles have to be set consistently.
+
+Key parameters
+* `simulationcell/parameter/@name='rs'` sets rs of the problem.
+** `condition` is used to set the number of particles at the given rs.
+
+Other parameters to set the number of particles have to be provided explicitly.
+* `particleset/group/@size` : number of particles per spin
+* `determinantset/@shell`  
+
+{{{
+  <qmcsystem>
+    <simulationcell>
+      <!-- Note 1.
+      change condition for different number of electrons. Only closed-shell
+      systems are supported for the moment. The allowed numbers are:
+      14 38 54 66 114 162 ....
+      -->
+      <parameter name="rs" condition="14">5</parameter>
+      <parameter name="bconds">p p p</parameter>
+      <parameter name="LR_dim_cutoff">6</parameter>
+    </simulationcell>
+    <particleset name="e" random="yes">
+      <group name="u" size="7">
+        <parameter name="charge">-1</parameter>
+      </group>
+      <group name="d" size="7">
+        <parameter name="charge">-1</parameter>
+      </group>
+    </particleset>
+    <hamiltonian name="h0" type="generic" target="e">
+      <pairpot name="ElecElec" type="coulomb" source="e" target="e"/>
+    </hamiltonian>
+    <wavefunction name="psi0" target="e">
+      <!-- Note 2.
+      change shell according to the parameter/@condition
+      14(1) 38(2) 54 (3) 66 (4) 114 (5) 162 (6) ...
+      -->
+      <determinantset type="electron-gas" shell="1" randomize="true"/>
+      <jastrow name="Jee" type="Two-Body" function="rpa"/>
+    </wavefunction>
+  </qmcsystem>
+}}}
