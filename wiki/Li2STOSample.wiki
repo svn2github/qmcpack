@@ -1,4 +1,4 @@
-﻿#summary How to run Li2 in STO 
+﻿#summary How to run Li2 in STO
 
 ||[Welcome Home]||[TutorialsList Tutorials]||
 
@@ -117,6 +117,8 @@ They are optimized by Umrigar et al, see JCP 99, 2865 (1993).
 
 == Electrons and Ions ==
 
+
+
 == Trialwavefunction ==
 
 == Hamiltonian ==
@@ -125,4 +127,16 @@ They are optimized by Umrigar et al, see JCP 99, 2865 (1993).
 
 = Optimization of Jastrow =
 
+== Two-body Jastrow ==
+* 1D bspline with rcut=12 bohr.
+{{{
+   <jastrow name="J2" type="Two-Body" function="Bspline" print="yes">
+      <correlation pairType="uu" speciesA="u" speciesB="u" size="8" rcut="12.0" cusp="-0.25">
+        <coefficients id="uu" type="Array"> 0.199175 0.0449776 0.0172974 0.00723406 0.0184583 0.03176 0.0185173 0.0198187</coefficients>
+      </correlation>
+      <correlation pairType="ud" speciesA="u" speciesB="d" size="8" rcut="12.0" cusp="-0.5">
+        <coefficients id="ud" type="Array"> 0.324139 0.145526 0.0636637 0.0411212 0.0272355 0.0178122 -0.00372468 0.00868363</coefficients>
+      </correlation>
+    </jastrow>
+}}}
 = Analyzing data =
