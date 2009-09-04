@@ -4,6 +4,7 @@
 = Sample runs =
  * [Li2STOSample Li2 using Slater-type Molecular Orbitals]
  * [SHEGSample Spherical Homogeneous Electron Gas]
+ * [HEG3DSample 3D Homogeneous Electron Gas]
  * [BulkSolidDFTSample Bulk Solid with DFT oritals]
 
 = Adding a tutorial or a sample run =

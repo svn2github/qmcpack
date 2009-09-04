@@ -42,6 +42,12 @@ Spherical Homegeneous Electron Gas (SHEG)
 </simulation>
 }}}
 
+=== Control parameters for eigensolver ==
+ * mix_ratio : a simple charge mixing scheme.
+ {{{
+ rho_new = mix_ratio*rho_old + (1-mix_ratio)*rho_old
+ }}}
+
 == jellium.qmc.xml ==
 {{{
 <?xml version="1.0"?>
