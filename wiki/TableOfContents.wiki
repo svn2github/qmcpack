@@ -9,6 +9,7 @@
   * [Li2STOSample Li2]
   * [BulkSolidDFTSample Bulk Solid]
   * [SHEGSample SHEG]
+  * [HEG3DSample 3DHEG]
  * [DevHandbook For developers]
   * [ClassOverview Class Overview]
   * [IntroXml QMC-XML]
