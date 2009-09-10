@@ -191,7 +191,30 @@ namespace qmcplusplus {
 	  vector<int> iatList;
 	  vector<PosType> accPos;
 	  for (int iw=0; iw<nw; iw++) {
+	    /// HACK HACK HACK
+// 	    if (LocalEnergy[iw] < -2300.0) {
+// 	      cerr << "Walker " << iw << " has energy " 
+// 		   << LocalEnergy[iw] << endl;;
+// 	      double maxWeight = 0.0;
+// 	      int elMax = -1;
+// 	      PosType posMax;
+// 	      for (int j=1; j<Txy[iw].size(); j++)
+// 		if (std::fabs(Txy[iw][j].Weight) > std::fabs(maxWeight)) {
+// 		  maxWeight = Txy[iw][j].Weight;
+// 		  elMax = Txy[iw][j].PID;
+// 		  posMax = W[iw]->R[elMax] + Txy[iw][j].Delta;
+// 		}
+// 	      cerr << "Maximum weight is " << maxWeight << " for electron " 
+// 		   << elMax << " at position " << posMax << endl;
+// 	      PosType unit = W.Lattice.toUnit(posMax);
+// 	      unit[0] -= round(unit[0]);
+// 	      unit[1] -= round(unit[1]);
+// 	      unit[2] -= round(unit[2]);
+// 	      cerr << "Reduced position = " << unit << endl;
+// 	    }
+
 	    int ibar = NLop.selectMove(Random(), Txy[iw]);
+		    
 	    if (ibar) {
 	      accepted.push_back(W[iw]);
 	      int iat = Txy[iw][ibar].PID;

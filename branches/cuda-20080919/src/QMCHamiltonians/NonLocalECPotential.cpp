@@ -248,6 +248,15 @@ namespace qmcplusplus {
 	Dist_host      = Dist_GPU;
 	int numQuad = PPset[sp]->nknot;
 
+	// HACK HACK HACK
+	// cerr << "Dist_host.size() = " << Dist_host.size() <<endl;
+	// for (int iw=0; iw<nw; iw++) {
+	//   for (int ie=0; ie<NumPairs_host[iw]; ie++)
+	//     if (Dist_host[MaxPairs*iw+ie] > 1.3)
+	//       cerr << "Dist too long:  " << Dist_host[MaxPairs*iw+ie]
+	// 	   << endl;
+	// }
+
 	JobList.clear();
 	QuadPosList.clear();
 	for (int iw=0; iw<nw; iw++) {
@@ -362,9 +371,7 @@ namespace qmcplusplus {
       LocalEnergy[iw] += esum[iw];
     }
   
-
-
-}
+  }
 
 
 
