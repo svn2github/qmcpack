@@ -53,7 +53,7 @@ namespace qmcplusplus {
 
     //typedef PooledData<T>                            BufferType;
     //enum {ENERGY_INDEX, ENERGY_SQ_INDEX, POTENTIAL_INDEX, LE_MAX};
-    enum {ENERGY_INDEX, POTENTIAL_INDEX, LE_MAX};
+    enum {ENERGY_INDEX, ENERGY2_INDEX, POTENTIAL_INDEX, LE_MAX};
 
     //int LocalPotentialIndex;
     int FirstHamiltonian;
@@ -79,9 +79,11 @@ namespace qmcplusplus {
     inline void accumulate(const Walker_t& awalker, RealType wgt) {
       const RealType* restrict ePtr = awalker.getPropertyBase();
       scalars[0](ePtr[LOCALENERGY],wgt);
-      scalars[1](ePtr[LOCALPOTENTIAL],wgt);
-      for(int target=2, source=FirstHamiltonian; target<scalars.size(); 
+      scalars[1](ePtr[LOCALENERGY]*ePtr[LOCALENERGY],wgt);
+      scalars[2](ePtr[LOCALPOTENTIAL],wgt);
+      for(int target=3, source=FirstHamiltonian; target<scalars.size(); 
           ++target, ++source)
+
         scalars[target](ePtr[source],wgt);
     }
 

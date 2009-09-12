@@ -2647,6 +2647,7 @@ namespace qmcplusplus {
 		<< " cuda_vector<CudaComplexType*> &grad_lapl,\n"
 		<< " int row_stride)\n"
 		<< "not yet implemented.\n";
+    abort();
   }
 
   template<> void
