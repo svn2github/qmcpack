@@ -23,6 +23,8 @@
 
 namespace qmcplusplus {
 
+  typedef enum { V_TIMER, VGL_TIMER, ACCEPT_TIMER, NL_TIMER, TIMER_SKIP} TimerEnum;
+
   TrialWaveFunction::TrialWaveFunction(Communicate* c): MPIObjectBase(c), OhmmsElementBase("psi0"), 
   Ordered(true), NumPtcls(0), PhaseValue(0.0),LogValue(0.0) 
   {
@@ -60,20 +62,24 @@ namespace qmcplusplus {
 
     Z.push_back(aterm);
     //int n=Z.size();
-    char name1[64],name2[64],name3[64];
+    char name1[64],name2[64],name3[64],name4[64];
     sprintf(name1,"WaveFunction::%s_V",aname.c_str());
     sprintf(name2,"WaveFunction::%s_VGL",aname.c_str());
     sprintf(name3,"WaveFunction::%s_accept",aname.c_str());
+    sprintf(name4,"WaveFunction::%s_NLratio",aname.c_str());
     NewTimer *vtimer=new NewTimer(name1);
     NewTimer *vgltimer=new NewTimer(name2);
     NewTimer *accepttimer=new NewTimer(name3);
+    NewTimer *NLtimer=new NewTimer(name4);
 
     myTimers.push_back(vtimer);
     myTimers.push_back(vgltimer);
     myTimers.push_back(accepttimer);
+    myTimers.push_back(NLtimer);
     TimerManager.addTimer(vtimer);
     TimerManager.addTimer(vgltimer);
     TimerManager.addTimer(accepttimer);
+    TimerManager.addTimer(NLtimer);
   }
 
   
@@ -200,7 +206,7 @@ namespace qmcplusplus {
   TrialWaveFunction::RealType
   TrialWaveFunction::ratio(ParticleSet& P,int iat) {
     ValueType r(1.0);
-    for(int i=0,ii=0; i<Z.size(); ++i,ii+=3) 
+    for(int i=0,ii=V_TIMER; i<Z.size(); ++i,ii+=TIMER_SKIP) 
     {
       myTimers[ii]->start();
       r *= Z[i]->ratio(P,iat);
@@ -244,7 +250,7 @@ namespace qmcplusplus {
     dG = 0.0;
     dL = 0.0;
     ValueType r(1.0);
-    for(int i=0, ii=1; i<Z.size(); ++i, ii+=3) 
+    for(int i=0, ii=VGL_TIMER; i<Z.size(); ++i, ii+=TIMER_SKIP) 
     {
       myTimers[ii]->start();
       r *= Z[i]->ratio(P,iat,dG,dL);
@@ -279,7 +285,7 @@ namespace qmcplusplus {
    */
   void   
   TrialWaveFunction::acceptMove(ParticleSet& P,int iat) {
-    for(int i=0,ii=2; i<Z.size(); i++, ii+=3) {
+    for(int i=0,ii=ACCEPT_TIMER; i<Z.size(); i++, ii+=TIMER_SKIP) {
       myTimers[ii]->start();
       Z[i]->acceptMove(P,iat);
       myTimers[ii]->stop();
@@ -354,7 +360,7 @@ namespace qmcplusplus {
     PhaseValue=0.0;
     vector<OrbitalBase*>::iterator it(Z.begin());
     vector<OrbitalBase*>::iterator it_end(Z.end());
-    for(int ii=1; it!=it_end; ++it,ii+=3)
+    for(int ii=1; it!=it_end; ++it,ii+=TIMER_SKIP)
     {
       myTimers[ii]->start();
       logpsi += (*it)->updateBuffer(P,buf,fromscratch);
@@ -552,12 +558,16 @@ namespace qmcplusplus {
 			    vector<ValueType> &psi_ratios,
 			    vector<GradType> &newG)
   {
+
     for (int wi=0; wi<W.WalkerList.size(); wi++) {
       psi_ratios[wi] = 1.0;
       newG[wi] = GradType();
     }
-    for (int i=0; i<Z.size(); i++)
+    for (int i=0,ii=0; i<Z.size(); i++,ii+=TIMER_SKIP) {
+      myTimers[ii]->start();
       Z[i]->ratio (W, iat, psi_ratios, newG);
+      myTimers[ii]->stop();
+    }
   }
 
 
@@ -571,8 +581,12 @@ namespace qmcplusplus {
       newG[wi] = GradType();
       newL[wi] = ValueType();
     }
-    for (int i=0; i<Z.size(); i++)
+
+    for (int i=0,ii=1; i<Z.size(); i++,ii+=TIMER_SKIP) {
+      myTimers[ii]->start();
       Z[i]->ratio (W, iat, psi_ratios, newG, newL);
+      myTimers[ii]->stop();
+    }
   }
 
   void
@@ -585,8 +599,11 @@ namespace qmcplusplus {
       newG[wi] = GradType();
       newL[wi] = ValueType();
     }
-    for (int i=0; i<Z.size(); i++)
+    for (int i=0,ii=1; i<Z.size(); i++,ii+=TIMER_SKIP) {
+      myTimers[ii]->start();
       Z[i]->ratio (walkers, iatList, rNew, psi_ratios, newG, newL);
+      myTimers[ii]->stop();
+    } 
   }
 
   void 
@@ -595,23 +612,32 @@ namespace qmcplusplus {
   {
     for (int wi=0; wi<W.WalkerList.size(); wi++) 
       psi_ratios[wi] = 1.0;
-    for (int i=0; i<Z.size(); i++)
+    for (int i=0,ii=V_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+      myTimers[ii]->start();
       Z[i]->ratio (W, iat, psi_ratios);
+      myTimers[ii]->stop();
+    } 
   }
 
   void
   TrialWaveFunction::update (vector<Walker_t*> &walkers, int iat)
   {
-    for (int i=0; i<Z.size(); i++)
+    for (int i=0,ii=ACCEPT_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+      myTimers[ii]->start();
       Z[i]->update(walkers, iat);
+      myTimers[ii]->stop();
+    } 
   }
 
   void
   TrialWaveFunction::update (const vector<Walker_t*> &walkers, 
 			     const vector<int> &iatList)
   {
-    for (int i=0; i<Z.size(); i++)
+    for (int i=0,ii=ACCEPT_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+      myTimers[ii]->start();
       Z[i]->update(walkers, iatList);
+      myTimers[ii]->stop();
+    } 
   }
 
 
@@ -624,8 +650,11 @@ namespace qmcplusplus {
 	grads(i,j) = GradType();
 	lapl(i,j)  = ValueType();
       }
-    for (int i=0; i<Z.size(); i++)
+    for (int i=0,ii=VGL_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+      myTimers[ii]->start();
       Z[i]->gradLapl (W, grads, lapl);
+      myTimers[ii]->stop();
+    }     
     for (int iw=0; iw<W.WalkerList.size(); iw++) 
       for (int ptcl=0; ptcl<grads.cols(); ptcl++) {
 	W[iw]->Grad[ptcl] = grads(iw, ptcl);
@@ -641,8 +670,11 @@ namespace qmcplusplus {
   {
     for (int i=0; i<psi_ratios.size(); i++)
       psi_ratios[i] = 1.0;
-    for (int i=0; i<Z.size(); i++)
+    for (int i=0,ii=NL_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+      myTimers[ii]->start();
       Z[i]->NLratios(W, jobList, quadPoints, psi_ratios);
+      myTimers[ii]->stop();
+    } 
   }
 
   void 
@@ -654,9 +686,12 @@ namespace qmcplusplus {
 			       cuda_vector<CUDA_PRECISION*> &RatioList,
 			       int numQuadPoints)
   {
-    for (int i=0; i<Z.size(); i++)
+    for (int i=0,ii=NL_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+      myTimers[ii]->start();
       Z[i]->NLratios(W, Rlist, ElecList, NumCoreElecs,
 		     QuadPosList, RatioList, numQuadPoints);
+      myTimers[ii]->stop();
+    } 
   }
 
 
