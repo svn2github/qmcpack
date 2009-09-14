@@ -3,6 +3,7 @@
  * [Welcome Getting started]
   * [BuildingPackage Building]
   * [RunningApp Running]
+  * [ConcurrentJobs Running multiple instances]
   * [CMakeExplained cmake howto]
   * [UsingExternalES Using external packages]
  * [TutorialsList Tutorials]

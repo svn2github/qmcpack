@@ -2,7 +2,11 @@
 
 ||[Welcome Home]||[TutorialsList Tutorials]||
 
-In order to run multiple systems, two options are available.
+One can submit a job which combines multiple QMC simulations. This is useful
+when a simulation involves scanning a parameter space, configuration space and
+and k-point intergration. 
+
+In order to run multiple instances, two options are available.
   * Use <code>--clones [int]</code> option. <pre>qmcapp --clones 4 GeH4.xml</pre>
   ** Multiple xml files (qmc instances) can be used.
   ** All the qmc instances are cloned by the same number of copies.
@@ -18,7 +22,7 @@ When ''cloning'' is done, the out files have an extra field, g### to indicate a 
 
 Any combination of input files can be used but one should consider the load-balance issues. We will introduce '''timestamp''' parameter.
 
-=== What is going on inside ===
+== What is going on inside ==
  * Utilize MPI groups to partition MPI nodes into groups.
  ** Each MPI group is an independent unit.
  ** The names, e.g., psi0, ion0, can be identical or distinct: a MPI has a separate name space.
