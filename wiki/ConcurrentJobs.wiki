@@ -7,7 +7,8 @@ when a simulation involves scanning a parameter space, configuration space and
 and k-point intergration. 
 
 In order to run multiple instances, two options are available.
-  * Use <code>--clones [int]</code> option. <pre>qmcapp --clones 4 GeH4.xml</pre>
+  * Use `--clones [int]` option. 
+  {{{qmcapp --clones 4 GeH4.xml}}}
   ** Multiple xml files (qmc instances) can be used.
   ** All the qmc instances are cloned by the same number of copies.
   * prepare a file which lists the input xml files:
@@ -18,9 +19,9 @@ In order to run multiple instances, two options are available.
   GeH4.xml
   }}}
 
-When ''cloning'' is done, the out files have an extra field, g### to indicate a MPI group for each qmc instance.
+When *cloning* is done, the out files have an extra field, g### to indicate a MPI group for each qmc instance.
 
-Any combination of input files can be used but one should consider the load-balance issues. We will introduce '''timestamp''' parameter.
+Any combination of input files can be used but one should consider the load-balance issues. We will introduce *timestamp*
 
 == What is going on inside ==
  * Utilize MPI groups to partition MPI nodes into groups.
