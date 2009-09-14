@@ -1,0 +1,29 @@
+﻿#summary running multiple instances concurrently
+
+||[Welcome Home]||[TutorialsList Tutorials]||
+
+In order to run multiple systems, two options are available.
+  * Use <code>--clones [int]</code> option. <pre>qmcapp --clones 4 GeH4.xml</pre>
+  ** Multiple xml files (qmc instances) can be used.
+  ** All the qmc instances are cloned by the same number of copies.
+  * prepare a file which lists the input xml files:
+  {{{
+  GeH4.xml
+  GeH4.xml  
+  GeH4.xml
+  GeH4.xml
+  }}}
+
+When ''cloning'' is done, the out files have an extra field, g### to indicate a MPI group for each qmc instance.
+
+Any combination of input files can be used but one should consider the load-balance issues. We will introduce '''timestamp''' parameter.
+
+=== What is going on inside ===
+ * Utilize MPI groups to partition MPI nodes into groups.
+ ** Each MPI group is an independent unit.
+ ** The names, e.g., psi0, ion0, can be identical or distinct: a MPI has a separate name space.
+ * Each group operates on a system.
+ * Use analysis tools to combine the data
+
+A common example of multiple systems is with multiple twist angles as explained in [How to handle multiple twist angles].
+
