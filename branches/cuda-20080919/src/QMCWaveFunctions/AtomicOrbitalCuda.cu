@@ -2418,7 +2418,7 @@ void dummy_float()
 
 
 template<int BS> __global__ void
-evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoints,
+evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *k_reduced,
 			     float3 drInv, float *coefs, uint3 dim, uint3 strides, 
 			     float *Linv, float **vals, float **grad_lapl,
 			     int row_stride, int N)
@@ -2435,7 +2435,7 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
 
   __shared__ float *myval, *mygrad_lapl;
   __shared__ float r[3], u[3], img[3];
-  __shared__ float kp[BS][3], sign[BS];
+  __shared__ float k_red[BS][3];
   __shared__ float G[3][3], GGt[3][3];
 
   
@@ -2454,7 +2454,7 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
   for (int i=0; i<3; i++) {
     int off = (3*blockIdx.x+i)*BS+tid;
     if (off < 3*N)
-      kp[0][i*BS+tid] = kpoints[off];
+      k_red[0][i*BS+tid] = k_reduced[off];
   }
   
   if (tid < 3) {
@@ -2464,10 +2464,13 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
     u[tid] -= img[tid];
   }
   __syncthreads();
-  sign[tid] = copysign(1.0f,__cosf(-(r[0]*kp[tid][0] + 
-				     r[1]*kp[tid][1] + 
-				     r[2]*kp[tid][2])));
-
+  float sign = __cosf(-(k_red[tid][0]*img[0]+
+			k_red[tid][1]*img[1]+
+			k_red[tid][2]*img[2]));
+  // copysign(1.0f,__sinf(-(r[0]*kp[tid][0] + 
+  // 		     r[1]*kp[tid][1] + 
+  // 		     r[2]*kp[tid][2])));
+  
 
   __syncthreads();
   int3 index;
@@ -2561,15 +2564,15 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
     
     //  __shared__ float buff[6*SPLINE_BLOCK_SIZE];
     // Note, we can reuse abc, by replacing buff with abc.
-    myval[off] = sign[tid]*v;
+    myval[off] = sign*v;
   }
 
 
   if (off < N) {
     // Store gradients back to global memory
-    mygrad_lapl[off+0*row_stride] = sign[tid]*(G[0][0]*g0 + G[0][1]*g1 + G[0][2]*g2);
-    mygrad_lapl[off+1*row_stride] = sign[tid]*(G[1][0]*g0 + G[1][1]*g1 + G[1][2]*g2);
-    mygrad_lapl[off+2*row_stride] = sign[tid]*(G[2][0]*g0 + G[2][1]*g1 + G[2][2]*g2);
+    mygrad_lapl[off+0*row_stride] = sign*(G[0][0]*g0 + G[0][1]*g1 + G[0][2]*g2);
+    mygrad_lapl[off+1*row_stride] = sign*(G[1][0]*g0 + G[1][1]*g1 + G[1][2]*g2);
+    mygrad_lapl[off+2*row_stride] = sign*(G[2][0]*g0 + G[2][1]*g1 + G[2][2]*g2);
     
     // Store laplacians back to global memory
     // Hessian = H00 H01 H02 H11 H12 H22
@@ -2577,15 +2580,15 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
     //          [1 3 4]
     //          [2 4 5]
     // laplacian = Trace(GGt*Hessian)
-    mygrad_lapl[off+3*row_stride] = sign[tid]*
-      (GGt[0][0]*h00 + GGt[1][0]*h01 + GGt[2][0]*h02 +
-       GGt[0][1]*h01 + GGt[1][1]*h11 + GGt[2][1]*h12 +
-       GGt[0][2]*h02 + GGt[1][2]*h12 + GGt[2][2]*h22);
+    mygrad_lapl[off+3*row_stride] = sign *
+       (GGt[0][0]*h00 + GGt[1][0]*h01 + GGt[2][0]*h02 +
+        GGt[0][1]*h01 + GGt[1][1]*h11 + GGt[2][1]*h12 +
+        GGt[0][2]*h02 + GGt[1][2]*h12 + GGt[2][2]*h22);
   }
 }
 
 void
-evaluate3DSplineReal (HybridJobType *job_types, float *pos, float *kpoints,
+evaluate3DSplineReal (HybridJobType *job_types, float *pos, float *kpoints_reduced,
 		      multi_UBspline_3d_s_cuda *multispline, float *Linv,
 		      float **vals, float **grad_lapl,
 		      int row_stride, int N, int numWalkers)
@@ -2594,7 +2597,7 @@ evaluate3DSplineReal (HybridJobType *job_types, float *pos, float *kpoints,
   dim3 dimGrid((N+BS-1)/BS,numWalkers);
   dim3 dimBlock(BS);
   evaluate3DSplineReal_kernel<BS><<<dimGrid,dimBlock>>>
-    (job_types, pos, kpoints, multispline->gridInv, multispline->coefs, 
+    (job_types, pos, kpoints_reduced, multispline->gridInv, multispline->coefs, 
      multispline->dim, multispline->stride, Linv, vals, grad_lapl, 
      row_stride, N);
 
@@ -2610,7 +2613,7 @@ evaluate3DSplineReal (HybridJobType *job_types, float *pos, float *kpoints,
 
 
 template<int BS> __global__ void
-evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoints,
+evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoints_reduced,
 			     float3 drInv, float *coefs, uint3 dim, uint3 strides, 
 			     float *Linv, float **vals, int N)
 {
@@ -2626,7 +2629,7 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
 
   __shared__ float *myval;
   __shared__ float r[3], u[3], img[3];
-  __shared__ float kp[BS][3];
+  __shared__ float k_red[BS][3];
   __shared__ float G[3][3];
   float sign;
 
@@ -2638,7 +2641,7 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
   for (int i=0; i<3; i++) {
     int off = (3*blockIdx.x+i)*BS+tid;
     if (off < 3*N)
-      kp[0][i*BS+tid] = kpoints[off];
+      k_red[0][i*BS+tid] = kpoints_reduced[off];
   }
   
   if (tid < 3) {
@@ -2648,9 +2651,13 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
     u[tid] -= img[tid];
   }
   __syncthreads();
-  sign = copysign(1.0f,__cosf(-(r[0]*kp[tid][0] + 
-				r[1]*kp[tid][1] + 
-				r[2]*kp[tid][2])));
+  sign = __cosf(-(k_red[tid][0]*img[0]+
+		  k_red[tid][1]*img[1]+
+		  k_red[tid][2]*img[2]));
+
+  // sign = copysign(1.0f,__sinf(-(r[0]*kp[tid][0] + 
+  // 				r[1]*kp[tid][1] + 
+  // 				r[2]*kp[tid][2])));
   // for (int i=0; i<3; i++) {
   //   int off = (3*blockIdx.x+i)*BS+tid;
   //   if (off < 3*N)
