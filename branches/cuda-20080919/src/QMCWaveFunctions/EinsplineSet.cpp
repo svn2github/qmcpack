@@ -2816,7 +2816,7 @@ namespace qmcplusplus {
     vector<CudaRealType> IonPos_CPU, CutoffRadii_CPU, PolyRadii_CPU;
 
     for (int iat=0; iat<AtomicOrbitals.size(); iat++) {
-      app_log() << "Copying atomic orbitals for ion " << iat << " to GPU memory.\n";
+      app_log() << "Copying real atomic orbitals for ion " << iat << " to GPU memory.\n";
       AtomicOrbital<double> &atom = AtomicOrbitals[iat];
       for (int i=0; i<OHMMS_DIM; i++) 
 	IonPos_CPU.push_back(atom.Pos[i]);
@@ -2832,17 +2832,32 @@ namespace qmcplusplus {
 	*atom.get_radial_spline();
       atom_cuda.spline_dr_inv = cpu_spline.x_grid.delta_inv;
       int Ngrid = cpu_spline.x_grid.num;
-      int spline_size = atom_cuda.spline_stride * (Ngrid+2);
+      int spline_size = 2*atom_cuda.spline_stride * (Ngrid+2);
       host_vector<float> spline_coefs(spline_size);
       AtomicSplineCoefs_GPU[iat].resize(spline_size);
       atom_cuda.spline_coefs = &AtomicSplineCoefs_GPU[iat][0];
       // Reorder and copy splines to GPU memory
-      for (int igrid=0; igrid<Ngrid+2; igrid++)
+      for (int igrid=0; igrid<Ngrid; igrid++)
 	for (int lm=0; lm<numlm; lm++)
-	  for (int orb=0; orb<NumOrbitals; orb++)
-	    spline_coefs[igrid*atom_cuda.spline_stride +
-			 lm   *atom_cuda.lm_stride + orb] =
-	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm];
+	  for (int orb=0; orb<NumOrbitals; orb++) {
+	    // Convert splines to Hermite spline form, because
+	    // B-spline form in single precision with dense grids
+	    // leads to large truncation error
+	    double u = 1.0/6.0*
+	      (1.0*cpu_spline.coefs[(igrid+0)*cpu_spline.x_stride + orb*numlm +lm] +
+	       4.0*cpu_spline.coefs[(igrid+1)*cpu_spline.x_stride + orb*numlm +lm] +
+	       1.0*cpu_spline.coefs[(igrid+2)*cpu_spline.x_stride + orb*numlm +lm]);
+	    double d2u = cpu_spline.x_grid.delta_inv * cpu_spline.x_grid.delta_inv *
+	       (1.0*cpu_spline.coefs[(igrid+0)*cpu_spline.x_stride + orb*numlm +lm] +
+	       -2.0*cpu_spline.coefs[(igrid+1)*cpu_spline.x_stride + orb*numlm +lm] +
+		1.0*cpu_spline.coefs[(igrid+2)*cpu_spline.x_stride + orb*numlm +lm]);
+	      
+	    spline_coefs[(2*igrid+0)*atom_cuda.spline_stride +
+			 lm   *atom_cuda.lm_stride + orb] = u;
+	    spline_coefs[(2*igrid+1)*atom_cuda.spline_stride +
+			 lm   *atom_cuda.lm_stride + orb] = d2u;
+	  }
+
       
       AtomicSplineCoefs_GPU[iat] = spline_coefs;      
       
@@ -2899,18 +2914,36 @@ namespace qmcplusplus {
 	*atom.get_radial_spline();
       atom_cuda.spline_dr_inv = cpu_spline.x_grid.delta_inv;
       int Ngrid = cpu_spline.x_grid.num;
-      int spline_size = atom_cuda.spline_stride * (Ngrid+2);
+      int spline_size = 2*atom_cuda.spline_stride * (Ngrid+2);
       host_vector<float> spline_coefs(spline_size);
       AtomicSplineCoefs_GPU[iat].resize(spline_size);
       atom_cuda.spline_coefs = &AtomicSplineCoefs_GPU[iat][0];
       // Reorder and copy splines to GPU memory
-      for (int igrid=0; igrid<Ngrid+2; igrid++)
+      for (int igrid=0; igrid<Ngrid; igrid++)
 	for (int lm=0; lm<numlm; lm++)
 	  for (int orb=0; orb<NumOrbitals; orb++) {
-	    spline_coefs[(igrid*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + 2*orb)+0] =
-	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm].real();
-	    spline_coefs[(igrid*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + 2*orb)+1] =
-	      cpu_spline.coefs[igrid*cpu_spline.x_stride + orb*numlm +lm].imag();
+	    // Convert splines to Hermite spline form, because
+	    // B-spline form in single precision with dense grids
+	    // leads to large truncation error
+	    complex<double> u = 1.0/6.0*
+	      (1.0*cpu_spline.coefs[(igrid+0)*cpu_spline.x_stride + orb*numlm +lm] +
+	       4.0*cpu_spline.coefs[(igrid+1)*cpu_spline.x_stride + orb*numlm +lm] +
+	       1.0*cpu_spline.coefs[(igrid+2)*cpu_spline.x_stride + orb*numlm +lm]);
+	    complex<double> d2u = cpu_spline.x_grid.delta_inv * cpu_spline.x_grid.delta_inv *
+	      (1.0*cpu_spline.coefs[(igrid+0)*cpu_spline.x_stride + orb*numlm +lm] +
+	      -2.0*cpu_spline.coefs[(igrid+1)*cpu_spline.x_stride + orb*numlm +lm] +
+	       1.0*cpu_spline.coefs[(igrid+2)*cpu_spline.x_stride + orb*numlm +lm]);
+	    
+	    
+
+	    spline_coefs[((2*igrid+0)*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + 2*orb)+0] =
+	      u.real();
+	    spline_coefs[((2*igrid+0)*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + 2*orb)+1] =
+	      u.imag();
+	    spline_coefs[((2*igrid+1)*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + 2*orb)+0] =
+	      d2u.real();
+	    spline_coefs[((2*igrid+1)*atom_cuda.spline_stride + lm*atom_cuda.lm_stride + 2*orb)+1] =
+	      d2u.imag();
 	  }
       AtomicSplineCoefs_GPU[iat] = spline_coefs;
 

@@ -202,13 +202,22 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types,
   T unit = myData.dist * myOrbital.spline_dr_inv;
   T sf = floor(unit);
   T t  = unit - sf;
+  T v  = 1.0f - t;
+  T dr = 1.0f / myOrbital.spline_dr_inv;
   int index= (int) sf;
-  float4 tp;
-  tp = make_float4(t*t*t, t*t, t, 1.0f);
+  // float4 tp;
+  // tp = make_float4(t*t*t, t*t, t, 1.0f);
   __shared__ float a[4];
-  if (tid < 4) 
-    a[tid] = (Acuda[4*tid+0]*tp.x + Acuda[4*tid+1]*tp.y + 
-	      Acuda[4*tid+2]*tp.z + Acuda[4*tid+3]*tp.w);
+  if (tid == 0) {
+    a[0]  = v;
+    a[1]  = 0.166666666666666666f*(v*v*v-v)*dr*dr;
+    a[2]  = t;
+    a[3]  = 0.166666666666666666f*(t*t*t-t)*dr*dr;
+  }
+
+  // if (tid < 4) 
+  //   a[tid] = (Acuda[4*tid+0]*tp.x + Acuda[4*tid+1]*tp.y + 
+  // 	      Acuda[4*tid+2]*tp.z + Acuda[4*tid+3]*tp.w);
   __syncthreads();
 
 
@@ -234,7 +243,7 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types,
     T sign = __cosf(-(k_red[tid][0]*myData.img[0]+
 		      k_red[tid][1]*myData.img[1]+
 		      k_red[tid][2]*myData.img[2]));
-    T *c0 =  myCoefs + index*ustride + block*BS + tid;
+    T *c0 =  myCoefs + 2*index*ustride + block*BS + tid;
     T val = T();
     for (int lm=0; lm<numlm; lm++) {
       float *c = c0 + lm*myOrbital.lm_stride;
@@ -468,13 +477,31 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types, T* rhats,
   T unit = myData.dist * myOrbital.spline_dr_inv;
   T sf = floor(unit);
   T t  = unit - sf;
+  T v  = 1.0f - t;
   int index= (int) sf;
-  float4 tp;
-  tp = make_float4(t*t*t, t*t, t, 1.0f);
+  T dr = 1.0f / myOrbital.spline_dr_inv;
+  // float4 tp;
+  // tp = make_float4(t*t*t, t*t, t, 1.0f);
   __shared__ float a[12];
-  if (tid < 12) 
-    a[tid] = (Acuda[4*tid+0]*tp.x + Acuda[4*tid+1]*tp.y + 
-	      Acuda[4*tid+2]*tp.z + Acuda[4*tid+3]*tp.w);
+  if (tid == 0) {
+    a[0]  = v;
+    a[1]  = 0.166666666666666666f*(v*v*v-v)*dr*dr;
+    a[2]  = t;
+    a[3]  = 0.166666666666666666f*(t*t*t-t)*dr*dr;
+    
+    a[4]  = -myOrbital.spline_dr_inv;
+    a[5]  = -0.16666666666666666f * dr * (3.0*v*v-1.0);
+    a[6]  =  myOrbital.spline_dr_inv;
+    a[7]  =  0.16666666666666666f * dr * (3.0*t*t-1.0);
+    
+    a[8]  = 0.0f;
+    a[9]  = v;
+    a[10] = 0.0f;
+    a[11] = t;
+  }
+  // if (tid < 12) 
+  //   a[tid] = (Acuda[4*tid+0]*tp.x + Acuda[4*tid+1]*tp.y + 
+  // 	      Acuda[4*tid+2]*tp.z + Acuda[4*tid+3]*tp.w);
   __syncthreads();
 
 
@@ -509,7 +536,7 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types, T* rhats,
     T sign = __cosf(-(k_red[tid][0]*myData.img[0]+
 		      k_red[tid][1]*myData.img[1]+
 		      k_red[tid][2]*myData.img[2]));
-    T *c0 =  myCoefs + index*ustride + block*BS + tid;
+    T *c0 =  myCoefs + 2*index*ustride + block*BS + tid;
     T val = T();
     T g_rhat=T(), g_thetahat=T(), g_phihat=T(), lap=T();
     for (int lm=0; lm<numlm; lm++) {
@@ -524,8 +551,8 @@ evaluateHybridSplineReal_kernel (HybridJobType *job_types, T* rhats,
       u += a[2]*coef;  du += a[6]*coef;  d2u += a[10]*coef;
       coef = c[ustride3];
       u += a[3]*coef;  du += a[7]*coef;  d2u += a[11]*coef;
-      du  *= myOrbital.spline_dr_inv;
-      d2u *= myOrbital.spline_dr_inv * myOrbital.spline_dr_inv;
+      // du  *= myOrbital.spline_dr_inv;
+      // d2u *= myOrbital.spline_dr_inv * myOrbital.spline_dr_inv;
       
       // Now accumulate values
       val    +=   u * Ylm[lm];
@@ -846,13 +873,21 @@ evaluateHybridSplineComplexToReal_kernel
   T unit = myData.dist * myOrbital.spline_dr_inv;
   T sf = floor(unit);
   T t  = unit - sf;
+  T v  = 1.0f - t;
   int index= (int) sf;
-  float4 tp;
-  tp = make_float4(t*t*t, t*t, t, 1.0f);
+  // float4 tp;
+  // tp = make_float4(t*t*t, t*t, t, 1.0f);
   __shared__ float a[4];
-  if (tid < 4) 
-    a[tid] = (Acuda[4*tid+0]*tp.x + Acuda[4*tid+1]*tp.y + 
-	      Acuda[4*tid+2]*tp.z + Acuda[4*tid+3]*tp.w);
+  T dr = 1.0f / myOrbital.spline_dr_inv;
+  if (tid == 0) {
+    a[0]  = v;
+    a[1]  = 0.166666666666666666f*(v*v*v-v)*dr*dr;
+    a[2]  = t;
+    a[3]  = 0.166666666666666666f*(t*t*t-t)*dr*dr;
+  }  
+  // if (tid < 4) 
+  //   a[tid] = (Acuda[4*tid+0]*tp.x + Acuda[4*tid+1]*tp.y + 
+  // 	      Acuda[4*tid+2]*tp.z + Acuda[4*tid+3]*tp.w);
   __syncthreads();
 
 
@@ -885,7 +920,7 @@ evaluateHybridSplineComplexToReal_kernel
 		k_red[tid][1]*myData.img[1]+
 		k_red[tid][2]*myData.img[2]), 
 	      &phase_im, &phase_re);
-    T *c0 =  myCoefs + index*ustride + 2*block*BS;
+    T *c0 =  myCoefs + 2*index*ustride + 2*block*BS;
     __shared__ T c[BS][2], val[BS][2];
     val[0][tid]    = T();
     val[0][tid+BS] = T();
@@ -1214,13 +1249,32 @@ evaluateHybridSplineComplexToReal_kernel
   T unit = myData.dist * myOrbital.spline_dr_inv;
   T sf = floor(unit);
   T t  = unit - sf;
+  T v = 1.0f - t;
   int index= (int) sf;
-  float4 tp;
-  tp = make_float4(t*t*t, t*t, t, 1.0f);
+  // float4 tp;
+  // tp = make_float4(t*t*t, t*t, t, 1.0f);
   __shared__ float a[12];
-  if (tid < 12) 
-    a[tid] = (Acuda[4*tid+0]*tp.x + Acuda[4*tid+1]*tp.y + 
-	      Acuda[4*tid+2]*tp.z + Acuda[4*tid+3]*tp.w);
+  T dr = 1.0f / myOrbital.spline_dr_inv;
+  if (tid == 0) {
+    a[0]  = v;
+    a[1]  = 0.166666666666666666f*(v*v*v-v)*dr*dr;
+    a[2]  = t;
+    a[3]  = 0.166666666666666666f*(t*t*t-t)*dr*dr;
+    
+    a[4]  = -myOrbital.spline_dr_inv;
+    a[5]  = -0.16666666666666666f * dr * (3.0*v*v-1.0);
+    a[6]  =  myOrbital.spline_dr_inv;
+    a[7]  =  0.16666666666666666f * dr * (3.0*t*t-1.0);
+    
+    a[8]  = 0.0f;
+    a[9]  = v;
+    a[10] = 0.0f;
+    a[11] = t;
+  }
+
+  // if (tid < 12) 
+  //   a[tid] = (Acuda[4*tid+0]*tp.x + Acuda[4*tid+1]*tp.y + 
+  // 	      Acuda[4*tid+2]*tp.z + Acuda[4*tid+3]*tp.w);
   __syncthreads();
 
 
@@ -1265,7 +1319,7 @@ evaluateHybridSplineComplexToReal_kernel
 		k_red[tid][1]*myData.img[1]+
 		k_red[tid][2]*myData.img[2]), 
 	      &phase_im, &phase_re);
-    T *c0 =  myCoefs + index*ustride + 2*block*BS;
+    T *c0 =  myCoefs + 2*index*ustride + 2*block*BS;
     T v_re         =T(), v_im         =T();
     T g_rhat_re    =T(), g_rhat_im    =T(),
       g_thetahat_re=T(), g_thetahat_im=T(),
@@ -1299,10 +1353,10 @@ evaluateHybridSplineComplexToReal_kernel
       du_re  += a[ 7]*c[tid][0];      du_im  += a[ 7]*c[tid][1];
       d2u_re += a[11]*c[tid][0];      d2u_im += a[11]*c[tid][1];
 
-      du_re  *= myOrbital.spline_dr_inv;
-      du_im  *= myOrbital.spline_dr_inv;
-      d2u_re *= myOrbital.spline_dr_inv * myOrbital.spline_dr_inv;
-      d2u_im *= myOrbital.spline_dr_inv * myOrbital.spline_dr_inv;
+      // du_re  *= myOrbital.spline_dr_inv;
+      // du_im  *= myOrbital.spline_dr_inv;
+      // d2u_re *= myOrbital.spline_dr_inv * myOrbital.spline_dr_inv;
+      // d2u_im *= myOrbital.spline_dr_inv * myOrbital.spline_dr_inv;
 
       // Now accumulate values
       v_re    +=   u_re * Ylm[lm][0] - u_im * Ylm[lm][1];
