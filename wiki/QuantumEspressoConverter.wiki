@@ -9,6 +9,8 @@
     * add HDF5_LIBS to LIBS
   # make pw pp
 
+The make.sys in the CHANGES.tar is meant as an example. You will need to edit this by hand to compile.
+
 =Changing the % of Exact exchange used in B3LYP/PBE0 functional =
 
   To change % of exact exchange in B3LYP/PBE0
