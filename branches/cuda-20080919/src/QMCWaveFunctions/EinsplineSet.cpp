@@ -2698,7 +2698,7 @@ namespace qmcplusplus {
        (CudaRealType*)CudakPoints.data(),CudaMakeTwoCopies.data(),
        CudaMultiSpline, Linv_cuda.data(), 
        phi.data(), CudaMakeTwoCopies.size(), pos.size());
-    evaluateHybridSplineComplexToReal 
+    evaluateHybridSplineComplexToReal//NLPP 
       (HybridJobs_GPU.data(), 
        Ylm_ptr_GPU.data(),
        AtomicOrbitals_GPU.data(), HybridData_GPU.data(),

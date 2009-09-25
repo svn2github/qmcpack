@@ -227,6 +227,12 @@ namespace qmcplusplus {
       path << "/electrons/kpoint_" << ti << "/reduced_k";
       HDFAttribIO<PosType> h_Twist(TwistAngles[ti]);
       h_Twist.read (H5FileID, path.str().c_str());
+      // Early versions from wfconv had wrong sign convention for
+      // k-points.  EinsplineSet uses the opposite sign convention
+      // from most DFT codes.
+      if (version[0] >= 2)
+	for (int dim=0; dim<OHMMS_DIM; dim++)
+	  TwistAngles[ti][dim] *= -1.0;
       snprintf (buff, 1000, "  Found twist angle (%6.3f, %6.3f, %6.3f)\n", 
 	       TwistAngles[ti][0], TwistAngles[ti][1], TwistAngles[ti][2]);
       app_log() << buff;

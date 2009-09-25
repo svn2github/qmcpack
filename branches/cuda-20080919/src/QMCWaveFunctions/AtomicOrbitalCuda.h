@@ -60,6 +60,13 @@ evaluateHybridSplineComplexToReal
    float **vals, int N, int numWalkers, int lMax);
 
 void
+evaluateHybridSplineComplexToRealNLPP 
+  (HybridJobType *job_types, 
+   float **Ylm_real, AtomicOrbitalCuda<float> *orbitals,
+   HybridDataFloat *data, float *k_reduced, int* make2copies,
+   float **vals, int N, int numWalkers, int lMax);
+
+void
 evaluateHybridSplineComplexToReal 
   (HybridJobType *job_types, float *rhats, 
    float **Ylm, float **dYlm_dTheta, float **dYlm_dphi,
