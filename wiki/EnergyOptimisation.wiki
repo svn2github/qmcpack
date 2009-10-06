@@ -1,0 +1,47 @@
+#summary Sample block for the energy minimization algorithm in qmcpack.
+
+= Optimization =
+
+This is a slight variant on the Energy Minimization method of Umrigar et al. It uses a generalized eigenvalue solver on a linearized wavefunction (Psi trial and its derivatives with respect to its parameters) to find the lowest eigenvalue in the space spanned by the wavefunction w.r.t. its parameterization. Once the eigenvalue problem (which only includes the energy terms) is solved, a line minimization is performed along the direction of the optimal parameter changes using both the gradient and value of the cost function (which may include energy and variance) to find the minimum and update the parameters. This line minimization is necessary if using non linear parameters.
+
+{{{
+<qmc method="linear" move="pbyp" checkpoint="100" gpu="no">   
+<!--start regular VMC parameters-->                           
+<estimator name="LocalEnergy" hdf5="no"/>                                                
+<parameter name="useDrift">yes</parameter>                                               
+<parameter name="warmupSteps">10</parameter>                                              
+<parameter name="blocks">50</parameter>
+<parameter name="stepsbetweensamples">8</parameter>
+<parameter name="walkersperthread">1</parameter>   
+<parameter name="timestep">0.5</parameter>
+<!--end regular VMC parameters-->
+<!--start cost function parameters -->
+<cost name="energy"> 0.92 </cost>
+<cost name="variance"> 0.0 </cost>
+<cost name="reweightedvariance"> 0.08 </cost>
+<!--end cost function parameters -->
+<!--start optimization parameters -->
+<parameter name="samples">20000</parameter>       
+<parameter name="maxWeight">1e6</parameter>
+<parameter name="minKE">-1e6</parameter>
+<parameter name="max_its"> 1 </parameter>
+<parameter name="exp0"> -8 </parameter>
+<parameter name="gradtol"> 1e-5 </parameter>
+<!--end optimization parameters -->
+</qmc>
+}}}
+
+==Optimization algorithm==
+ * samples = number of samples to optimize on.
+ * max_its = maximum number of repeat optimization without generating new samples. 1-5 is regular range here.
+ * exp0 = 10^exp0 is added to the diagonal for added stability in the algorithm.
+ * gradtol = when gradient in energy is less than this quit optimization.
+For stability using small sample sizes it may be good to adjust these. Not normally necessary.
+ * maxWeight = maximum weight a walker can have. 
+ * minKE = minimum KE allowed for a sample. 
+
+==Cost function==
+ * energy
+ * variance = unreweighted variance
+ * reweighted variance
+As mentioned before, the eigenvalue problem does not find eigenvalues of this cost function. This cost function is used to evaluate the optimal change in parameters after a direction is determined through the eigenvalue problem. By mixing in some variance you can get a more efficient wave function for DMC and can reduce some problems you might observe when using too few samples.
