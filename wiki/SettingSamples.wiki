@@ -1,0 +1,62 @@
+#summary Setting VMC and DMC parameters for a run
+
+= VMC Optimisation =
+
+One way to set the number of samples for an optimisation is as follows,
+
+{{{
+<parameter name="blocks">50</parameter>
+<parameter name="stepsbetweensamples">8</parameter>
+<parameter name="walkersperthread">1</parameter>   
+<parameter name="samples">200000</parameter>
+}}}
+
+ * blocks = number of lines in the scalar.dat file.
+ * stepsbetweensamples = how often to dump configurations.
+ * walkersperthread = walkers per thread (defaults to 1).
+ * samples = number of samples to optimize on, this is across all nodes and threads.
+
+= VMC to DMC Run =
+
+One way to set the parameters for a VMC run leading up to a DMC run is
+
+{{{ 
+<parameter name="blocks">50</parameter>
+<parameter name="steps">15000</parameter>
+<parameter name="samples">10000</parameter>
+<parameter name="walkers">4</parameter>
+}}}
+
+ * steps = number of steps each block
+ * blocks = number of times to repeat steps (total steps for each walker is blocks x steps).
+ * walkers = number of walkers on each node. default is one walker per thread.
+ * samples = target number of walkers for the following DMC run. This is a global quantity across all nodes and threads.
+
+Another way to set this is,
+
+{{{ 
+<parameter name="blocks">50</parameter>
+<parameter name="steps">15000</parameter>
+<parameter name="samples">10000</parameter>
+<parameter name="fractionaldeficit">0.8</parameter>
+<parameter name="walkers">4</parameter>
+}}}
+
+ * fractionaldeficit = choose the number of samples so there is not an integer number of samples per thread. This might allow for less wasted time in the case of a fluctuating population. 0.0 <= fractionaldeficit < 1. This rounds the number of samples down to an even integer then adds the correct amount to get the desired imbalance.
+
+= Other useful parameters =
+Some other things you might find useful to put in your VMC and DMC blocks.
+== VMC ==
+== DMC ==
+{{{
+<parameter name="MaxAge"> 2 </parameter>
+<parameter name="nonlocalmoves"> no </parameter>
+<parameter name="fastgrad">yes</parameter>
+<parameter name="MaxCopy"> 2 </parameter>
+<parameter name="feedback">5.0e-1</parameter>
+}}}
+ * MaxAge = the maximum number of times a walker can have a rejected move without reducing the probability to survive to the next step.
+ * nonlocalmoves = T-moves of Casula. default is no.
+ * fastgrad = default is yes. Might choose no for debugging?
+ * MaxCopy = maximum number of children a walker can spawn at each step.
+ * feedback = feedback parameter for adjusting trial energy. default = 1 (adjusted for tau).
