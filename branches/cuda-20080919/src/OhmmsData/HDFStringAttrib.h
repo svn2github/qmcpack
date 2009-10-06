@@ -42,6 +42,11 @@ namespace qmcplusplus
 
       inline void read(hid_t grp, const char* name) 
       {
+	H5E_auto_t func;
+	void *client_data;
+	H5Eget_auto (&func, &client_data);
+	H5Eset_auto (NULL, NULL);
+
         hid_t dataset = H5Dopen(grp,name);
         hid_t datatype=H5Dget_type(dataset);
         hsize_t dim_out;
@@ -59,6 +64,7 @@ namespace qmcplusplus
         hid_t ret = H5Dread(dataset, datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT,&(ref[0]));
         H5Tclose(datatype);
         H5Dclose(dataset);
+	H5Eset_auto (func, client_data);
       }
     };
 

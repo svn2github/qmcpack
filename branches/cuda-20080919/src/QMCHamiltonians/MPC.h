@@ -19,6 +19,8 @@
 #include "QMCHamiltonians/QMCHamiltonianBase.h"
 #include "LongRange/LRCoulombSingleton.h"
 #include <einspline/bspline.h>
+#include "QMCHamiltonians/CudaCoulomb.h"
+
 
 namespace qmcplusplus {
 
@@ -89,6 +91,19 @@ namespace qmcplusplus {
     QMCHamiltonianBase* makeClone(ParticleSet& qp, TrialWaveFunction& psi);
 
     void initBreakup();
+
+    //////////////////////////////////
+    // Vectorized evaluation on GPU //
+    //////////////////////////////////
+    //// Short-range part
+    UBspline_3d_s_cuda *CudaSpline;
+    vector<int> IonFirst, IonLast;
+    // This is indexed by the ion species
+    cuda_vector<CUDA_PRECISION>  SumGPU;
+    host_vector<CUDA_PRECISION>  SumHost;
+    cuda_vector<CUDA_PRECISION>  L, Linv;
+    void addEnergy(MCWalkerConfiguration &W, 
+		   vector<RealType> &LocalEnergy);
   };
 
 }

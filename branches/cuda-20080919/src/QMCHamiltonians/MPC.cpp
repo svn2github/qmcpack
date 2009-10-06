@@ -4,6 +4,8 @@
 #include "OhmmsData/AttributeSet.h"
 #include "Particle/DistanceTable.h"
 #include "Particle/DistanceTableData.h"
+#include <einspline/bspline_create_cuda.h>
+
 
 #include <fftw3.h>
 
@@ -316,7 +318,20 @@ namespace qmcplusplus {
     }
     fclose(fout);
 
+#ifdef QMC_CUDA
+      host_vector<CUDA_PRECISION> LHost(9), LinvHost(9);
+      for (int i=0; i<3; i++)
+	for (int j=0; j<3; j++) {
+	  LHost[3*i+j]    = PtclRef->Lattice.a(j)[i];
+	  LinvHost[3*i+j] = PtclRef->Lattice.b(i)[j];
+	}
+      L    = LHost;
+      Linv = LinvHost;
 
+      app_log() << "    Starting to copy MPC spline to GPU memory.\n";
+      CudaSpline = create_UBspline_3d_s_cuda_conv (VlongSpline);
+      app_log() << "    Finished copying MPC spline to GPU memory.\n";
+#endif
     app_log() << "  === MPC interaction initialized === \n\n";
   }
 
@@ -384,8 +399,46 @@ namespace qmcplusplus {
       Value = evalSR() + evalLR() + Vconst;
       FirstTime = false;
     }
-    return 0.0;
+    return Value;
   }
+
+  void
+  MPC::addEnergy(MCWalkerConfiguration &W, 
+		 vector<RealType> &LocalEnergy)
+  {
+    init_Acuda();
+    vector<Walker_t*> &walkers = W.WalkerList;
+    
+    int nw = walkers.size();
+    int N = NParticles;
+    if (SumGPU.size() < nw) {
+      SumGPU.resize(nw);
+      SumHost.resize(nw);
+      SumHost.resize(nw);
+    }
+    for (int iw=0; iw<nw; iw++) 
+      SumHost[iw] = 0.0;
+    SumGPU = SumHost;
+
+    // First, do short-range part
+    vector<double> esum(nw, 0.0);
+    MPC_SR_Sum (W.RList_GPU.data(), N, 
+    		L.data(), Linv.data(), SumGPU.data(), nw);
+    SumHost = SumGPU;
+    for (int iw=0; iw<nw; iw++)  esum[iw] += SumHost[iw];
+    
+    // Now, do long-range part:
+    MPC_LR_Sum (W.RList_GPU.data(), N, CudaSpline,
+     		Linv.data(), SumGPU.data(), nw);
+    SumHost = SumGPU;
+    for (int iw=0; iw<nw; iw++)   esum[iw] += SumHost[iw];
+
+    for (int iw=0; iw<nw; iw++) {
+      walkers[iw]->getPropertyBase()[NUMPROPERTIES+myIndex] = esum[iw] + Vconst;
+      LocalEnergy[iw] += esum[iw];
+    }
+  }
+
 
 
 }

@@ -108,6 +108,7 @@ namespace qmcplusplus {
     app_log() << "  HDF5 orbital file version " 
 	      << version[0] << "." << version[1] << "." << version[2] << endl;
 
+
     HDFAttribIO<Tensor<double,3> > h_Lattice(Lattice);
     h_Lattice.read      (H5FileID, "/supercell/primitive_vectors");
     RecipLattice = 2.0*M_PI*inverse(Lattice);
@@ -878,6 +879,7 @@ namespace qmcplusplus {
 	    app_log() << "Copying einspline orbitals to GPU.\n";
 	    create_multi_UBspline_3d_cuda 
 	      (orbitalSet->MultiSpline, orbitalSet->CudaMultiSpline);
+	    app_log() << "Successful copy.\n";
 	    // Destroy original CPU spline
 	    // HACK HACK HACK
 	    //destroy_Bspline (orbitalSet->MultiSpline);
@@ -907,7 +909,8 @@ namespace qmcplusplus {
 	  if (useGPU) {
 	    app_log() << "Copying einspline orbitals to GPU.\n";
 	    create_multi_UBspline_3d_cuda (orbitalSet->MultiSpline,
-					   orbitalSet->CudaMultiSpline);
+	    				   orbitalSet->CudaMultiSpline);
+	    app_log() << "Successful copy.\n";
 	    // Destroy original CPU spline
 	    // HACK HACK HACK
 	    //destroy_Bspline (orbitalSet->MultiSpline);

@@ -1,6 +1,9 @@
 #ifndef CUDA_COULOMB_H
 #define CUDA_COULOMB_H
 
+#include <einspline/bspline_base.h>
+#include <einspline/bspline_structs_cuda.h>
+
 class TextureSpline
 {
 public:
@@ -87,5 +90,19 @@ eval_vk_sum_cuda (double *rhok1[], double rhok2[],
 		  int numWalkers);
 
 
+
+void
+MPC_SR_Sum(float *R[], int N, float lattice[], float latticeInv[], 
+	   float sum[], int numWalkers);
+void
+MPC_SR_Sum(double *R[], int N, double lattice[], double latticeInv[], 
+	   double sum[], int numWalkers);
+void
+MPC_LR_Sum(float *R[], int N, UBspline_3d_s_cuda *spline, 
+	   float latticeInv[], float sum[], int numWalkers);
+void
+MPC_LR_Sum(double *R[], int N, UBspline_3d_d_cuda *spline,
+	   double latticeInv[], double sum[], int numWalkers);
+void init_Acuda();
 
 #endif

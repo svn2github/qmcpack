@@ -158,6 +158,7 @@ QMCHamiltonian::evaluate(MCWalkerConfiguration &W,
   if (LocalEnergyVector.size() != nw) {
     LocalEnergyVector.resize(nw);
     KineticEnergyVector.resize(nw);
+    AuxEnergyVector.resize(nw);
   }
 
   if (energyVector.size() != nw)
@@ -188,7 +189,7 @@ QMCHamiltonian::evaluate(MCWalkerConfiguration &W,
   // P.PropertyList[LOCALPOTENTIAL]=LocalEnergy-KineticEnergy;
   for(int i=0; i<auxH.size(); ++i)
   {
-    auxH[i]->evaluate(W);
+    auxH[i]->addEnergy(W, AuxEnergyVector);
     //auxH[i]->setObservables(Observables);
   }
 }
@@ -205,6 +206,7 @@ QMCHamiltonian::evaluate(MCWalkerConfiguration &W,
   if (LocalEnergyVector.size() != nw) {
     LocalEnergyVector.resize(nw);
     KineticEnergyVector.resize(nw);
+    AuxEnergyVector.resize(nw);
   }
 
   if (energyVector.size() != nw)
@@ -229,7 +231,7 @@ QMCHamiltonian::evaluate(MCWalkerConfiguration &W,
   energyVector = LocalEnergyVector;
 
   for(int i=0; i<auxH.size(); ++i)
-    auxH[i]->evaluate(W);
+    auxH[i]->addEnergy(W, AuxEnergyVector);
 }
 
 

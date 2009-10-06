@@ -32,6 +32,9 @@
 #include "QMCHamiltonians/MomentumDistribution.h"
 #include "QMCHamiltonians/DispersionRelation.h"
 #endif
+#ifdef HAVE_LIBFFTW
+#include "QMCHamiltonians/MPC.h"
+#endif
 #include "QMCHamiltonians/CoulombPBCAATemp.h"
 #include "QMCHamiltonians/CoulombPBCABTemp.h"
 #include "OhmmsData/AttributeSet.h"
@@ -138,7 +141,10 @@ namespace qmcplusplus {
           else {
             addConstCoulombPotential(cur,sourceInp);
           }
-        } else if(potType == "HFDHE2") {
+        } 
+	else if (potType == "MPC" || potType == "mpc") 
+	   addMPCPotential(cur);
+	else if(potType == "HFDHE2") {
           targetH->addOperator(new HFDHE2Potential(*targetPtcl),"HFDHE2",true);
           app_log() << "  Adding HFDHE2Potential " << endl;
         } else if(potType == "pseudo") {
@@ -278,17 +284,20 @@ namespace qmcplusplus {
 #if defined(HAVE_LIBFFTW)
     string a("e"), title("MPC");
     OhmmsAttributeSet hAttrib;
+    bool physical = true;
     double cutoff = 30.0;
     hAttrib.add(title,"id"); 
     hAttrib.add(title,"name"); 
     hAttrib.add(cutoff,"cutoff");
+    hAttrib.add(physical,"physical");
     hAttrib.put(cur);
 
     renameProperty(a);
 
     MPC *mpc = new MPC (*targetPtcl, cutoff);
-    targetH->addOperator(mpc, "MPC");
-    
+    targetH->addOperator(mpc, "MPC", physical);
+#else
+    APP_ABORT("HamiltonianFactory::addMPCPotential MPC is disabled because FFTW3 was not found during the build process.");
 #endif // defined(HAVE_LIBFFTW)
   }
 

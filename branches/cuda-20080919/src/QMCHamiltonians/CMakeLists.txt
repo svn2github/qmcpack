@@ -2,6 +2,7 @@ SET(HAMSRCS
   QMCHamiltonian.cpp
   CoulombPBCAATemp.cpp
   CoulombPBCABTemp.cpp
+  MPC.cpp
   HamiltonianFactory.cpp
   NonLocalTOperator.cpp
   NumericalRadialPotential.cpp

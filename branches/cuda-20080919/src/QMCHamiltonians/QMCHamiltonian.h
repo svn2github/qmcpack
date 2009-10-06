@@ -222,7 +222,8 @@ namespace qmcplusplus {
     /////////////////////
     // Vectorized data //
     /////////////////////
-    vector<Return_t> LocalEnergyVector, KineticEnergyVector;
+    vector<Return_t> LocalEnergyVector, KineticEnergyVector,
+      AuxEnergyVector;
   };
 }
 #endif

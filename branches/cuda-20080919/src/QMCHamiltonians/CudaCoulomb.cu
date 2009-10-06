@@ -1,6 +1,23 @@
 #include "CudaCoulomb.h"
 
+
 const int MAX_TEXTURES = 10;
+__constant__ float  Acuda[16];
+
+void init_Acuda()
+{
+  static bool initialized(false);
+  if (!initialized) {
+    float A_h[16] = { -1.0/6.0,  3.0/6.0, -3.0/6.0, 1.0/6.0,
+		      3.0/6.0, -6.0/6.0,  0.0/6.0, 4.0/6.0,
+		      -3.0/6.0,  3.0/6.0,  3.0/6.0, 1.0/6.0,
+		      1.0/6.0,  0.0/6.0,  0.0/6.0, 0.0/6.0 };
+    
+    cudaMemcpyToSymbol(Acuda, A_h, 16*sizeof(float), 0, cudaMemcpyHostToDevice);
+    initialized = true;
+  }
+}
+
 
 texture<float,1,cudaReadModeElementType> myTex;
 texture<float,1,cudaReadModeElementType> tex00, tex01, tex02, tex03, tex04, tex05, tex06, tex07, tex08, tex09;
@@ -190,6 +207,52 @@ T min_dist (T& x, T& y, T& z,
   return sqrt(d2min);
 }
 
+
+template<typename T>
+__device__
+T min_dist2 (T& x, T& y, T& z, 
+	     T L[3][3], T Linv[3][3])
+{
+  T u0 = Linv[0][0]*x + Linv[0][1]*y + Linv[0][2]*z;  
+  T u1 = Linv[1][0]*x + Linv[1][1]*y + Linv[1][2]*z;
+  T u2 = Linv[2][0]*x + Linv[2][1]*y + Linv[2][2]*z;
+
+  u0 -= rintf(u0);
+  u1 -= rintf(u1);
+  u2 -= rintf(u2);
+
+  x = L[0][0]*u0 + L[0][1]*u1 + L[0][2]*u2;
+  y = L[1][0]*u0 + L[1][1]*u1 + L[1][2]*u2;
+  z = L[2][0]*u0 + L[2][1]*u1 + L[2][2]*u2;
+
+  // T u0 = Linv[0][0]*x; u0 -= rintf(u0); x = L[0][0]*u0;
+  // T u1 = Linv[1][1]*y; u1 -= rintf(u1); y = L[1][1]*u1;
+  // T u2 = Linv[2][2]*z; u2 -= rintf(u2); z = L[2][2]*u2;
+
+  //  return sqrtf(x*x + y*y + z*z);
+
+  T d2min = x*x + y*y + z*z;
+  for (T i=-1.0f; i<=1.001; i+=1.0f)
+    for (T j=-1.0f; j<=1.001; j+=1.0f)
+      for (T k=-1.0f; k<=1.001; k+=1.0f) {
+	T xnew = L[0][0]*(u0+i) + L[0][1]*(u1+j) + L[0][2]*(u2+k);
+	T ynew = L[1][0]*(u0+i) + L[1][1]*(u1+j) + L[1][2]*(u2+k);
+	T znew = L[2][0]*(u0+i) + L[2][1]*(u1+j) + L[2][2]*(u2+k);
+	
+	T d2 = xnew*xnew + ynew*ynew + znew*znew;
+	d2min = min (d2, d2min);
+	if (d2 < d2min) {
+	  d2min = d2;
+	  x = xnew;
+	  y = ynew;
+	  z = znew;
+	}
+      }
+  return d2min;
+}
+
+
+
 template<typename T, int BS>
 __global__ void
 coulomb_AA_kernel(T **R, int N, T rMax, int Ntex,
@@ -198,11 +261,9 @@ coulomb_AA_kernel(T **R, int N, T rMax, int Ntex,
   int tid = threadIdx.x;
   __shared__ T *myR;
 
-  __shared__ T lastsum;
-  if (tid == 0) {
+  if (tid == 0) 
     myR = R[blockIdx.x];
-    lastsum = sum[blockIdx.x];
-  }
+
   __shared__ T L[3][3], Linv[3][3];
   if (tid < 9) {
     L[0][tid] = lattice[tid];
@@ -311,6 +372,253 @@ CoulombAA_SR_Sum(double *R[], int N, double rMax, int Ntex,
 }
 
 
+__device__  float  recipSqrt (float x)  { return rsqrtf(x); }
+__device__  double recipSqrt (double x) { return rsqrt(x); }
+
+
+
+template<typename T, int BS>
+__global__ void
+MPC_SR_kernel(T **R, int N,
+	      T *lattice, T *latticeInv, T *sum)
+{
+  int tid = threadIdx.x;
+  __shared__ T *myR;
+
+  if (tid == 0) 
+    myR = R[blockIdx.x];
+
+  __shared__ T L[3][3], Linv[3][3];
+  if (tid < 9) {
+    L[0][tid] = lattice[tid];
+    Linv[0][tid] = latticeInv[tid];
+  }
+
+  __syncthreads();
+
+  __shared__ T r1[BS][3], r2[BS][3];
+  int NB = (N+BS-1)/BS;
+
+  T mysum = (T)0.0; 
+
+  // Do diagonal blocks first
+  for (int b=0; b<NB; b++) {
+    for (int i=0; i<3; i++)
+      if ((3*b+i)*BS + tid < 3*N)
+	r1[0][i*BS+tid] = myR[(3*b+i)*BS + tid];
+    int ptcl1 = b*BS + tid;
+    if (ptcl1 < N) {
+      int end = (b+1)*BS < N ? BS : N-b*BS;
+      for (int p2=0; p2<end; p2++) {
+	int ptcl2 = b*BS + p2;
+	T dx, dy, dz;
+	dx = r1[p2][0] - r1[tid][0];
+	dy = r1[p2][1] - r1[tid][1];
+	dz = r1[p2][2] - r1[tid][2];
+	T distinv = recipSqrt(min_dist2(dx, dy, dz, L, Linv));
+	if (ptcl1 != ptcl2) 
+	  mysum += distinv;
+      }
+    }
+  }
+  // Avoid double-counting on the diagonal blocks
+  mysum *= 0.5;
+  
+  // Now do off-diagonal blocks
+  for (int b1=0; b1<NB; b1++) {
+    for (int i=0; i<3; i++)
+      if ((3*b1+i)*BS + tid < 3*N)
+	r1[0][i*BS+tid] = myR[(3*b1+i)*BS + tid];
+    int ptcl1 = b1*BS + tid;
+    if (ptcl1 < N) {
+      for (int b2=b1+1; b2<NB; b2++) {
+	for (int i=0; i<3; i++)
+	  if ((3*b2+i)*BS + tid < 3*N)
+	    r2[0][i*BS+tid] = myR[(3*b2+i)*BS + tid];
+	int end = ((b2+1)*BS < N) ? BS : (N-b2*BS);
+	for (int j=0; j<end; j++) {
+	  T dx, dy, dz;
+	  dx = r2[j][0] - r1[tid][0];
+	  dy = r2[j][1] - r1[tid][1];
+	  dz = r2[j][2] - r1[tid][2];
+	  T distinv = recipSqrt(min_dist2(dx, dy, dz, L, Linv));
+	  mysum += distinv;
+	}
+      }
+    }
+  }
+  __shared__ T shared_sum[BS];
+  shared_sum[tid] = mysum;
+  __syncthreads();
+  for (int s=BS>>1; s>0; s >>=1) {
+    if (tid < s)
+      shared_sum[tid] += shared_sum[tid+s];
+    __syncthreads();
+  }
+  if (tid==0)
+    sum[blockIdx.x] = shared_sum[0];
+}
+
+
+void
+MPC_SR_Sum(float *R[], int N, float lattice[], float latticeInv[], 
+	   float sum[], int numWalkers)
+{
+  const int BS=32;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  MPC_SR_kernel<float,BS><<<dimGrid,dimBlock>>>
+    (R, N, lattice, latticeInv, sum);
+}
+
+
+void
+MPC_SR_Sum(double *R[], int N, double lattice[], double latticeInv[], 
+	   double sum[], int numWalkers)
+{
+  const int BS=32;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  MPC_SR_kernel<double,BS><<<dimGrid,dimBlock>>>
+    (R, N, lattice, latticeInv, sum);
+}
+
+template<typename T> struct Three{};
+template<> struct Three<float>  { typedef float3 type;  };
+template<> struct Three<double> { typedef double3 type; };
+
+
+template<typename T, int BS>
+__global__ void
+MPC_LR_kernel(T **R, int N, T* coefs, typename Three<T>::type gridInv, uint3 dim,
+	      uint3 strides, T *latticeInv, T *sum)
+{
+  int tid = threadIdx.x;
+  
+  __shared__ T r[BS][3], u[BS][3], Linv[3][3];
+  __shared__ int index[BS][3];
+  __shared__ T* myR;
+  if (tid < 9) 
+    Linv[0][tid] = latticeInv[tid];
+  
+  if (tid ==0)
+    myR = R[blockIdx.x];
+  __syncthreads();
+  
+  int numBlocks = (N+BS-1)/BS;
+  T myval = T();
+  for (int block=0; block<numBlocks; block++) {
+    for (int i=0; i<3; i++) {
+      int off = (3*block+i)*BS + tid;
+      if (off < 3*N)
+	r[0][i*BS+tid] = myR[off];
+    }
+    u[tid][0] = (Linv[0][0]*r[tid][0] + Linv[0][1]*r[tid][1] +  Linv[0][2]*r[tid][2]);
+    u[tid][1] = (Linv[1][0]*r[tid][0] + Linv[1][1]*r[tid][1] +  Linv[1][2]*r[tid][2]);
+    u[tid][2] = (Linv[2][0]*r[tid][0] + Linv[2][1]*r[tid][1] +  Linv[2][2]*r[tid][2]);
+    
+    u[tid][0] -= floor(u[tid][0]);
+    u[tid][1] -= floor(u[tid][1]);
+    u[tid][2] -= floor(u[tid][2]);
+    
+    // We don't need r anymore, so we can now reuse to store t.
+    T s, sf;
+    
+    s = u[tid][0] * gridInv.x;
+    sf = floor (s);
+    index[tid][0] = min (max(0,(int)sf), dim.x-1);
+    r[tid][0] = s - sf;
+    
+    s = u[tid][1] * gridInv.y;
+    sf = floor (s);
+    index[tid][1] = min (max(0,(int)sf), dim.y-1);
+    r[tid][1] = s - sf;
+    
+    s = u[tid][2] * gridInv.z;
+    sf = floor (s);
+    index[tid][2] = min (max(0,(int)sf), dim.z-1);
+    r[tid][2] = s - sf;
+    
+    int end = min (BS, N-block*BS);
+    // This loop assumes BS=32
+    for (int i=0; i<end; i++) {
+      __shared__ T a[4][3];
+      if (tid < 12) {
+	int j = tid>>2;
+	int k = tid&3;
+	T t = r[i][j];
+	a[k][j] = (Acuda[4*k+0]*t*t*t + Acuda[4*k+1]*t*t +
+		   Acuda[4*k+2]*t     + Acuda[4*k+3]);
+      }
+      
+      // There are 64 elements to sum.  With BS=32, we use 2 passes
+      // First 32 coefs
+      int ix = tid>>4;
+      int iy = (tid>>2) & 3;
+      int iz = (tid & 3);
+      T abc = a[ix][0]*a[iy][1]*a[iz][2];
+      int off = ((index[i][0]+ix)*strides.x +
+		 (index[i][1]+iy)*strides.y +
+		 (index[i][2]+iz));
+      myval += abc*coefs[off];
+      
+      // Second 32 coefs
+      ix+=2;
+      abc = a[ix][0]*a[iy][1]*a[iz][2];
+      off = ((index[i][0]+ix)*strides.x +
+	     (index[i][1]+iy)*strides.y +
+	     (index[i][2]+iz));
+      myval += abc*coefs[off];
+    }
+  }
+  __syncthreads();
+  // reuse u for reduction
+  u[0][tid] = myval;
+  for (int s=BS>>1; s>0; s>>=1) {
+    if (tid<s)
+      u[0][tid] += u[0][tid+s];
+    __syncthreads();
+  }
+  if (tid == 0)
+    sum[blockIdx.x] = u[0][0];
+}
+
+
+
+void
+MPC_LR_Sum(float *R[], int N, UBspline_3d_s_cuda *spline, 
+	   float latticeInv[], float sum[], int numWalkers)
+{
+  const int BS=32;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  MPC_LR_kernel<float,BS><<<dimGrid,dimBlock>>>\
+    (R, N, spline->coefs, spline->gridInv, spline->dim,
+     spline->stride, latticeInv, sum);
+}
+
+void
+MPC_LR_Sum(double *R[], int N, UBspline_3d_d_cuda *spline,
+	   double latticeInv[], double sum[], int numWalkers)
+{
+  const int BS=32;
+  dim3 dimBlock(BS);
+  dim3 dimGrid(numWalkers);
+
+  MPC_LR_kernel<double,BS><<<dimGrid,dimBlock>>>\
+    (R, N, spline->coefs, spline->gridInv, spline->dim,
+     spline->stride, latticeInv, sum);
+}
+
+
+
+
+
+
+
 
 
 template<typename T, int BS>
@@ -324,11 +632,9 @@ coulomb_AB_kernel(T **R, int Nelec, T *I, int Ifirst, int Ilast,
 
   int Nion = Ilast - Ifirst + 1;
 
- __shared__ T lastsum;
-  if (tid == 0) {
+  if (tid == 0) 
     myR = R[blockIdx.x];
-    lastsum = sum[blockIdx.x];
-  }
+
   __shared__ T L[3][3], Linv[3][3];
   if (tid < 9) {
     L[0][tid] = lattice[tid];
