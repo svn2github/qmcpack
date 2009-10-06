@@ -47,6 +47,10 @@ Another way to set this is,
 = Other useful parameters =
 Some other things you might find useful to put in your VMC and DMC blocks.
 == VMC ==
+{{{
+<parameter name="useDrift">yes</parameter>
+}}}
+ * useDrift = turn drift on or off in your VMC run.
 == DMC ==
 {{{
 <parameter name="MaxAge"> 2 </parameter>
