@@ -73,7 +73,8 @@ namespace qmcplusplus {
       
       CudaSpline<CudaReal> &spline = *(GPUSplines[cgroup]);
       if (GPUSplines[cgroup]) {
-	one_body_sum (C.data(), W.RList_GPU.data(), cfirst, clast, efirst, elast, 
+	one_body_sum (C.data(), W.RList_GPU.data(), 
+		      cfirst, clast, efirst, elast, 
 		      spline.coefs.data(), spline.coefs.size(),
 		      spline.rMax, L.data(), Linv.data(),
 		      SumGPU.data(), walkers.size());
@@ -347,4 +348,43 @@ namespace qmcplusplus {
     }
   }
   
+
+  void
+  OneBodyJastrowOrbitalBspline::evaluateDerivatives 
+  (MCWalkerConfiguration &W, const opt_variables_type& optvars,
+   ValueMatrix_t &d_logpsi, ValueMatrix_t &dlapl_over_psi)
+  {
+    CudaReal sim_cell_radius = W.Lattice.SimulationCellRadius;
+    vector<Walker_t*> &walkers = W.WalkerList;
+    int nw = walkers.size();
+    int maxCoefs = 0;
+    
+    if (DerivListGPU.size() < nw) {
+      for (int i=0; i<UniqueSplines.size(); i++)
+	maxCoefs = max (maxCoefs, (int)UniqueSplines[i]->coefs.size());
+      // Round up to nearest 16 to allow coallesced GPU reads
+      maxCoefs = ((maxCoefs+15)/16)*16;
+      SplineDerivsHost.resize(2*maxCoefs*nw);
+      SplineDerivsGPU.resize(2*maxCoefs*nw);
+      for (int iw=0; iw<nw; iw++)
+	DerivListHost[iw] = SplineDerivsGPU.data() + 2*iw*maxCoefs;
+      DerivListGPU = DerivListHost;
+    }
+    
+    int efirst = 0;
+    int elast = N-1;
+
+    for (int cgroup=0; cgroup < NumCenterGroups; cgroup++) {
+      int cfirst = CenterFirst[cgroup];
+      int clast  = CenterLast[cgroup];
+      CudaSpline<CudaReal> &spline = *(GPUSplines[cgroup]);
+
+      one_body_derivs (C.data(), W.RList_GPU.data(), W.GradList_GPU.data(),
+		       cfirst, clast, efirst, elast, 
+		       spline.coefs.size(), spline.rMax, L.data(), 
+		       Linv.data(), sim_cell_radius, DerivListGPU.data(),nw);
+      // Copy data back to CPU memory
+      SplineDerivsHost = SplineDerivsGPU;
+    }
+  }
 }

@@ -27,6 +27,10 @@ namespace qmcplusplus {
 
     host_vector<CudaReal*> UpdateListHost;
     host_vector<CudaReal> SumHost, GradLaplHost, OneGradHost;
+    host_vector<CudaReal> SplineDerivsHost;
+    cuda_vector<CudaReal> SplineDerivsGPU;
+    host_vector<CudaReal*> DerivListHost;
+    cuda_vector<CudaReal*> DerivListGPU;
 
     host_vector<CudaReal*> NL_SplineCoefsListHost;
     cuda_vector<CudaReal*> NL_SplineCoefsListGPU;
@@ -64,7 +68,15 @@ namespace qmcplusplus {
 		   ValueMatrix_t &lapl);
     void NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
 		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
-
+    
+    // Evaluates the derivatives of log psi and laplacian log psi w.r.t.
+    // the parameters for optimization.  First index of the ValueMatrix is
+    // the parameter.  The second is the walker.
+    void
+    evaluateDerivatives (MCWalkerConfiguration &W, 
+			 const opt_variables_type& optvars,
+			 ValueMatrix_t &dlogpsi, 
+			 ValueMatrix_t &dlapl_over_psi);
 
     TwoBodyJastrowOrbitalBspline(ParticleSet& pset) :
       TwoBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> > (pset),

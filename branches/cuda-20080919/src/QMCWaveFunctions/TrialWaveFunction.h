@@ -174,6 +174,11 @@ namespace qmcplusplus {
     void gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,
 	           ValueMatrix_t &lapl);
 
+    void evaluateDerivatives (MCWalkerConfiguration &W, 
+			      const opt_variables_type& optvars,
+			      ValueMatrix_t &dlogpsi,
+			      ValueMatrix_t &dhpsioverpsi);
+
 //    RealType logRatio(ParticleSet& P, int iat, 
 //		    ParticleSet::ParticleGradient_t& dG,
 //		    ParticleSet::ParticleLaplacian_t& dL);

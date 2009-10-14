@@ -382,5 +382,65 @@ namespace qmcplusplus {
       }
     }
   }
+
+
+  void
+  TwoBodyJastrowOrbitalBspline::evaluateDerivatives 
+  (MCWalkerConfiguration &W, const opt_variables_type& optvars,
+   ValueMatrix_t &d_logpsi, ValueMatrix_t &dlapl_over_psi)
+  {
+    CudaReal sim_cell_radius = W.Lattice.SimulationCellRadius;
+    vector<Walker_t*> &walkers = W.WalkerList;
+    int nw = walkers.size();
+    int maxCoefs = 0;
+    
+    if (DerivListGPU.size() < nw) {
+      for (int i=0; i<UniqueSplines.size(); i++)
+	maxCoefs = max (maxCoefs, (int)UniqueSplines[i]->coefs.size());
+      // Round up to nearest 16 to allow coallesced GPU reads
+      maxCoefs = ((maxCoefs+15)/16)*16;
+      SplineDerivsHost.resize(2*maxCoefs*nw);
+      SplineDerivsGPU.resize(2*maxCoefs*nw);
+      for (int iw=0; iw<nw; iw++)
+	DerivListHost[iw] = SplineDerivsGPU.data() + 2*iw*maxCoefs;
+      DerivListGPU = DerivListHost;
+    }
+
+    vector<TinyVector<RealType, 2> > derivs;
+    for (int group1=0; group1<PtclRef.groups(); group1++) {
+      int first1 = PtclRef.first(group1);
+      int last1  = PtclRef.last(group1) -1;
+      for (int group2=0; group2<PtclRef.groups(); group2++) {
+	int first2 = PtclRef.first(group2);
+	int last2  = PtclRef.last(group2) -1;
+	int ptype = group1*NumGroups+group2;
+	
+	CudaSpline<CudaReal> &spline = *(GPUSplines[group1*NumGroups+group2]);
+	two_body_derivs (W.RList_GPU.data(), W.GradList_GPU.data(),
+			 first1, last1, first2, last2, 
+	 		 spline.coefs.size(), spline.rMax, L.data(), 
+			 Linv.data(), sim_cell_radius, DerivListGPU.data(),nw);
+	// Copy data back to CPU memory
+	SplineDerivsHost = SplineDerivsGPU;
+	// Now, update parameters
+	// for(int p=OffSet[ptype].first,ip=0; p<OffSet[ptype].second; ++p,++ip) {
+	//   int kk = myVars.where(p);
+	//   for (int iw=0; iw<nw; iw++) {
+	//     int cindex = ip+1;
+	//     d_logpsi(kk,iw)       = SplineDerivsHost[2*(maxCoefs*iw+cindex)+0];
+	//     dlapl_over_psi(kk,iw) = SplineDerivsHost[2*(maxCoefs*iw+cindex)+1];
+	//   }
+	//   kk = myVars.where(Offset[ptype].first+1);
+	//   cindex = 0;
+	//   for (int iw=0; iw<nw; iw++) {
+	//     d_logpsi(kk,iw)       += SplineDerivsHost[2*(maxCoefs*iw+0)+0];
+	//     dlapl_over_psi(kk,iw) += SplineDerivsHost[2*(maxCoefs*iw+0)+1];
+	//   }
+	// }
+      }
+    }
+  }
+
+
   
 }

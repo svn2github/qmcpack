@@ -32,6 +32,10 @@ namespace qmcplusplus {
     host_vector<CudaReal> SumHost, GradLaplHost, OneGradHost;
     int NumCenterGroups, NumElecGroups;
     vector<int> CenterFirst, CenterLast;
+    host_vector<CudaReal> SplineDerivsHost;
+    cuda_vector<CudaReal> SplineDerivsGPU;
+    host_vector<CudaReal*> DerivListHost;
+    cuda_vector<CudaReal*> DerivListGPU;
 
     host_vector<CudaReal*> NL_SplineCoefsListHost;
     cuda_vector<CudaReal*> NL_SplineCoefsListGPU;
@@ -70,7 +74,10 @@ namespace qmcplusplus {
 		   ValueMatrix_t &lapl);
     void NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
 		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
-
+    void evaluateDerivatives (MCWalkerConfiguration &W, 
+			      const opt_variables_type& optvars,
+			      ValueMatrix_t &dlogpsi, 
+			      ValueMatrix_t &dlapl_over_psi);
     OneBodyJastrowOrbitalBspline(ParticleSet &centers, ParticleSet& elecs) :
       OneBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> > (centers,elecs),
       ElecRef(elecs)

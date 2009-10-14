@@ -412,6 +412,16 @@ namespace qmcplusplus {
       app_error() << "Need specialization of OrbitalBase::NLRatios.\n";
       abort();
     }
+
+    virtual void
+    evaluateDerivatives (MCWalkerConfiguration &W, 
+			 const opt_variables_type& optvars,
+			 ValueMatrix_t &dgrad_logpsi,
+			 ValueMatrix_t &dhpsi_over_psi)
+    {
+      app_error() << "Need specialization of OrbitalBase::evaluateDerivatives.\n";
+      abort();
+    }
   };
 }
 #endif

@@ -93,6 +93,20 @@ two_body_gradient (double *R[], int first, int last, int iat,
 		   double lattice[], double latticeInv[], bool zeroOut,
 		   double grad[], int numWalkers);
 
+void
+two_body_derivs(float *R[], float *gradLogPsi[], int e1_first, int e1_last, 
+		int e2_first, int e2_last,
+		int numCoefs, float rMax,  
+		float lattice[], float latticeInv[], float sim_cell_radius,
+		float *derivs[], int numWalkers);
+void
+two_body_derivs(double *R[], double *gradLogPsi[], int e1_first, int e1_last, 
+		int e2_first, int e2_last,
+		int numCoefs, double rMax,  
+		double lattice[], double latticeInv[], double sim_cell_radius,
+		double *derivs[], int numWalkers);
+
+
 ///////////////////////
 // One-Body routines //
 ///////////////////////
@@ -179,5 +193,22 @@ one_body_gradient (double *Rlist[], int iat, double C[], int first, int last,
 		   double spline_coefs[], int num_coefs, double rMax,
 		   double L[], double Linv[], bool zeroSum,
 		   double grad[], int numWalkers);
+
+
+void
+one_body_derivs(float C[], float *R[], float *gradLogPsi[], 
+		int cfirst, int clast, 
+		int efirst, int elast,
+		int numCoefs, float rMax,  
+		float lattice[], float latticeInv[], float sim_cell_radius,
+		float *derivs[], int numWalkers);
+
+void
+one_body_derivs(double C[], double *R[], double *gradLogPsi[], 
+		int cfirst, int clast, 
+		int efirst, int elast,
+		int numCoefs, double rMax,  
+		double lattice[], double latticeInv[], double sim_cell_radius,
+		double *derivs[], int numWalkers);
 
 #endif

@@ -24,7 +24,7 @@
 namespace qmcplusplus {
 
   typedef enum { V_TIMER, VGL_TIMER, ACCEPT_TIMER, NL_TIMER, 
-		 RECOMPUTE_TIMER, TIMER_SKIP} TimerEnum;
+		 RECOMPUTE_TIMER, DERIVS_TIMER, TIMER_SKIP} TimerEnum;
 
   TrialWaveFunction::TrialWaveFunction(Communicate* c): MPIObjectBase(c), OhmmsElementBase("psi0"), 
   Ordered(true), NumPtcls(0), PhaseValue(0.0),LogValue(0.0) 
@@ -63,17 +63,19 @@ namespace qmcplusplus {
 
     Z.push_back(aterm);
     //int n=Z.size();
-    char name1[64],name2[64],name3[64],name4[64], name5[64];
+    char name1[64],name2[64],name3[64],name4[64], name5[64], name6[64];
     sprintf(name1,"WaveFunction::%s_V",aname.c_str());
     sprintf(name2,"WaveFunction::%s_VGL",aname.c_str());
     sprintf(name3,"WaveFunction::%s_accept",aname.c_str());
     sprintf(name4,"WaveFunction::%s_NLratio",aname.c_str());
     sprintf(name5,"WaveFunction::%s_recompute",aname.c_str());
+    sprintf(name6,"WaveFunction::%s_derivs",aname.c_str());
     NewTimer *vtimer=new NewTimer(name1);
     NewTimer *vgltimer=new NewTimer(name2);
     NewTimer *accepttimer=new NewTimer(name3);
     NewTimer *NLtimer=new NewTimer(name4);
     NewTimer *recomputetimer=new NewTimer(name5);
+    NewTimer *derivstimer=new NewTimer(name6);
 
     myTimers.push_back(vtimer);
     myTimers.push_back(vgltimer);
@@ -85,6 +87,7 @@ namespace qmcplusplus {
     TimerManager.addTimer(accepttimer);
     TimerManager.addTimer(NLtimer);
     TimerManager.addTimer(recomputetimer);
+    TimerManager.addTimer(derivstimer);
   }
 
   
@@ -702,7 +705,18 @@ namespace qmcplusplus {
     } 
   }
 
-
+  void 
+  TrialWaveFunction::evaluateDerivatives (MCWalkerConfiguration &W, 
+					  const opt_variables_type& optvars,
+					  ValueMatrix_t &dlogpsi,
+					  ValueMatrix_t &dhpsioverpsi)
+  {
+    for (int i=0,ii=NL_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+      myTimers[ii]->start();
+      Z[i]->evaluateDerivatives(W, optvars, dlogpsi, dhpsioverpsi);
+      myTimers[ii]->stop();	
+    }
+  }
 }
 /***************************************************************************
  * $RCSfile$   $Author$
