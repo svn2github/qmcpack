@@ -206,7 +206,9 @@ namespace qmcplusplus {
 	    if (accepted.size())
 	      Psi.update(accepted,iat);
 	  }
-	  // cerr << "Rank = " << myComm->rank() <<
+	  if (Period4WalkerDump && (CurrentStep % myPeriod4WalkerDump)==0) 
+	     W.saveEnsemble();
+	   // cerr << "Rank = " << myComm->rank() <<
 	  //   "  CurrentStep = " << CurrentStep << "  isub = " << isub << endl;
 
 	}

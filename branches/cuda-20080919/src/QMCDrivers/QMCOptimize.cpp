@@ -28,6 +28,10 @@
 #include "QMCDrivers/VMC/VMCSingleOMP.h"
 #include "QMCDrivers/QMCCostFunctionOMP.h"
 #endif
+#if defined(QMC_CUDA)
+#include "QMCDrivers/VMC/VMCcuda.h"
+#include "QMCDrivers/QMCCostFunctionCUDA.h"
+#endif
 #include "QMCApp/HamiltonianPool.h"
 
 namespace qmcplusplus {
@@ -165,8 +169,10 @@ namespace qmcplusplus {
   QMCOptimize::put(xmlNodePtr q) {
 
     string vmcMove("pbyp");
+    string useGPU("no");
     OhmmsAttributeSet oAttrib;
-    oAttrib.add(vmcMove,"move");
+    oAttrib.add(vmcMove,"move");    
+    oAttrib.add(useGPU,"gpu");
     oAttrib.put(q);
 
     xmlNodePtr qsave=q;
@@ -193,8 +199,13 @@ namespace qmcplusplus {
     NumOfVMCWalkers=W.getActiveWalkers();
 
     //create VMC engine
-    if(vmcEngine ==0)
-    {
+    if(vmcEngine ==0) {
+#if defined (QMC_CUDA)
+      if (useGPU == "yes")
+	vmcEngine = new VMCcuda(W,Psi,H);
+      else
+#endif
+
 #if defined(ENABLE_OPENMP)
       if(omp_get_max_threads()>1)
         vmcEngine = new VMCSingleOMP(W,Psi,H,hamPool);
@@ -230,8 +241,12 @@ namespace qmcplusplus {
       optSolver->put(optNode);
 
     bool success=true;
-    if(optTarget == 0) 
-    {
+    if(optTarget == 0) {
+#if defined (QMC_CUDA)
+      if (useGPU == "yes")
+	optTarget = new QMCCostFunctionCUDA(W,Psi,H,hamPool);
+      else
+#endif
 #if defined(ENABLE_OPENMP)
       if(omp_get_max_threads()>1)
       {

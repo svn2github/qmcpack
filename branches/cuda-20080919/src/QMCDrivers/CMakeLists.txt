@@ -44,7 +44,8 @@ SET(QMCDRIVERS
 IF(QMC_CUDA)
    SET(QMCDRIVERS ${QMCDRIVERS}
    VMC/VMCcuda.cpp
-   DMC/DMCcuda.cpp)
+   DMC/DMCcuda.cpp
+   QMCCostFunctionCUDA.cpp)
 ENDIF(QMC_CUDA)
 
 #  ../Estimators/PairCorrEstimator.cpp
