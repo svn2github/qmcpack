@@ -572,8 +572,8 @@ namespace qmcplusplus {
   TrialWaveFunction::evaluateLog (MCWalkerConfiguration &W,
 				  vector<RealType> &logPsi)
   {
-    for (int wi=0; wi<logPsi.size(); wi++)
-      logPsi[wi] = RealType();
+    for (int iw=0; iw<logPsi.size(); iw++)
+      logPsi[iw] = RealType();
     for (int i=0; i<Z.size(); i++) 
       Z[i]->addLog (W, logPsi);
   }
@@ -583,8 +583,8 @@ namespace qmcplusplus {
   TrialWaveFunction::getGradient (MCWalkerConfiguration &W, int iat,
 				  vector<GradType> &grad)
   {
-    for (int wi=0; wi<grad.size(); wi++)
-      grad[wi] = GradType();
+    for (int iw=0; iw<grad.size(); iw++)
+      grad[iw] = GradType();
 
     for(int i=0; i<Z.size(); i++) 
       Z[i]->addGradient(W, iat, grad);
@@ -596,9 +596,9 @@ namespace qmcplusplus {
 			    vector<GradType> &newG)
   {
 
-    for (int wi=0; wi<W.WalkerList.size(); wi++) {
-      psi_ratios[wi] = 1.0;
-      newG[wi] = GradType();
+    for (int iw=0; iw<W.WalkerList.size(); iw++) {
+      psi_ratios[iw] = 1.0;
+      newG[iw] = GradType();
     }
     for (int i=0,ii=0; i<Z.size(); i++,ii+=TIMER_SKIP) {
       myTimers[ii]->start();
@@ -613,10 +613,10 @@ namespace qmcplusplus {
 			    vector<ValueType> &psi_ratios,
 			    vector<GradType> &newG, vector<ValueType> &newL)
   {
-    for (int wi=0; wi<W.WalkerList.size(); wi++) {
-      psi_ratios[wi] = 1.0;
-      newG[wi] = GradType();
-      newL[wi] = ValueType();
+    for (int iw=0; iw<W.WalkerList.size(); iw++) {
+      psi_ratios[iw] = 1.0;
+      newG[iw] = GradType();
+      newL[iw] = ValueType();
     }
 
     for (int i=0,ii=1; i<Z.size(); i++,ii+=TIMER_SKIP) {
@@ -631,10 +631,10 @@ namespace qmcplusplus {
 			    vector<PosType> &rNew, vector<ValueType> &psi_ratios,
 			    vector<GradType> &newG, vector<ValueType> &newL)
   {
-    for (int wi=0; wi<walkers.size(); wi++) {
-      psi_ratios[wi] = 1.0;
-      newG[wi] = GradType();
-      newL[wi] = ValueType();
+    for (int iw=0; iw<walkers.size(); iw++) {
+      psi_ratios[iw] = 1.0;
+      newG[iw] = GradType();
+      newL[iw] = ValueType();
     }
     for (int i=0,ii=1; i<Z.size(); i++,ii+=TIMER_SKIP) {
       myTimers[ii]->start();
@@ -647,8 +647,8 @@ namespace qmcplusplus {
   TrialWaveFunction::ratio (MCWalkerConfiguration &W, int iat,
 			    vector<ValueType> &psi_ratios)
   {
-    for (int wi=0; wi<W.WalkerList.size(); wi++) 
-      psi_ratios[wi] = 1.0;
+    for (int iw=0; iw<W.WalkerList.size(); iw++) 
+      psi_ratios[iw] = 1.0;
     for (int i=0,ii=V_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
       myTimers[ii]->start();
       Z[i]->ratio (W, iat, psi_ratios);
@@ -732,12 +732,74 @@ namespace qmcplusplus {
   }
 
   void 
+  TrialWaveFunction::evaluateDeltaLog(MCWalkerConfiguration &W, 
+				      vector<RealType>& logpsi_opt)
+  {
+    for (int iw=0; iw<logpsi_opt.size(); iw++)
+      logpsi_opt[iw] = RealType();
+    for (int i=0,ii=RECOMPUTE_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+      myTimers[ii]->start();
+      if (Z[i]->Optimizable)
+	Z[i]->addLog(W, logpsi_opt);
+      myTimers[ii]->stop();	
+    }
+  }
+ void 
+ TrialWaveFunction::evaluateDeltaLog (MCWalkerConfiguration &W,  
+				      vector<RealType>& logpsi_fixed,
+				      vector<RealType>& logpsi_opt,  
+				      GradMatrix_t&  fixedG,
+				      ValueMatrix_t& fixedL)
+ {
+   for (int iw=0; iw<logpsi_fixed.size(); iw++) {
+     logpsi_opt[iw] = RealType();
+     logpsi_fixed[iw] = RealType();
+   }
+   fixedG = GradType();
+   fixedL = RealType();
+
+   // First, sum optimizable part, using fixedG and fixedL as temporaries
+   for (int i=0,ii=RECOMPUTE_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+     myTimers[ii]->start();
+     if (Z[i]->Optimizable) {
+       Z[i]->addLog(W, logpsi_opt);
+       Z[i]->gradLapl(W, fixedG, fixedL);
+     }
+   }
+   for (int iw=0; iw<W.WalkerList.size(); iw++) 
+     for (int ptcl=0; ptcl<fixedG.cols(); ptcl++) {
+       W[iw]->Grad[ptcl] = fixedG(iw, ptcl);
+       W[iw]->Lap[ptcl]  = fixedL(iw, ptcl);
+     }
+   
+   // Reset them, then accumulate the fixe part
+   fixedG = GradType();
+   fixedL = RealType();
+  
+   for (int i=0,ii=NL_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+     if (!Z[i]->Optimizable) {
+       Z[i]->addLog(W, logpsi_fixed);
+       Z[i]->gradLapl(W, fixedG, fixedL);
+     }
+     myTimers[ii]->stop();	
+   }
+   
+   // Add on the fixed part to the total laplacian and gradient
+   for (int iw=0; iw<W.WalkerList.size(); iw++) 
+     for (int ptcl=0; ptcl<fixedG.cols(); ptcl++) {
+       W[iw]->Grad[ptcl] += fixedG(iw, ptcl);
+       W[iw]->Lap[ptcl]  += fixedL(iw, ptcl);
+     }
+ }
+
+
+  void 
   TrialWaveFunction::evaluateDerivatives (MCWalkerConfiguration &W, 
 					  const opt_variables_type& optvars,
 					  ValueMatrix_t &dlogpsi,
 					  ValueMatrix_t &dhpsioverpsi)
   {
-    for (int i=0,ii=NL_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+    for (int i=0,ii=DERIVS_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
       myTimers[ii]->start();
       Z[i]->evaluateDerivatives(W, optvars, dlogpsi, dhpsioverpsi);
       myTimers[ii]->stop();	

@@ -179,10 +179,22 @@ namespace qmcplusplus {
     void gradLapl (MCWalkerConfiguration &W, GradMatrix_t &grads,
 	           ValueMatrix_t &lapl);
 
+
+    void evaluateDeltaLog(MCWalkerConfiguration &W, 
+			  vector<RealType>& logpsi_opt);
+
+    void evaluateDeltaLog(MCWalkerConfiguration &W, 
+			  vector<RealType>& logpsi_fixed,
+			  vector<RealType>& logpsi_opt,
+			  GradMatrix_t&  fixedG,
+			  ValueMatrix_t& fixedL);
+
     void evaluateDerivatives (MCWalkerConfiguration &W, 
 			      const opt_variables_type& optvars,
 			      ValueMatrix_t &dlogpsi,
 			      ValueMatrix_t &dhpsioverpsi);
+
+    
 
 //    RealType logRatio(ParticleSet& P, int iat, 
 //		    ParticleSet::ParticleGradient_t& dG,
