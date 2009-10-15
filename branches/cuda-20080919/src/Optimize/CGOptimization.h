@@ -162,7 +162,7 @@ bool CGOptimization<T>::optimize() {
     bool success=TargetFunc->lineoptimization(Y,cgY,curCost,lambda_a,val_proj,lambda_max);
     if(success)
     {
-      if(lambda_a>0)
+      if(std::fabs(lambda_a)>0.0)
       {
         this->Lambda=lambda_a;
         curCost=val_proj;
@@ -174,7 +174,7 @@ bool CGOptimization<T>::optimize() {
     else
     {
       success = this->lineoptimization();
-      success &= (TargetFunc->IsValid && this->Lambda>0.0);
+      success &= (TargetFunc->IsValid && std::fabs(this->Lambda)>0.0);
       if(success) curCost= Func(this->Lambda);
     }
 
@@ -252,18 +252,19 @@ void
 CGOptimization<T>::evaluateGradients(std::vector<Return_t>& grad) {
 
   //use targetFunc evaluateGradients if it does it better
-  if(TargetFunc->evaluateGradients(grad)) return;
-
-  //do the finite difference method
-  Return_t dh=1.0/(2.0*Displacement);
-  for(int i=0; i<TargetFunc->NumParams() ; i++) {
-    for(int j=0; j<TargetFunc->NumParams(); j++) TargetFunc->Params(j)=Y[j];
-    TargetFunc->Params(i) = Y[i]+ Displacement;
-    Return_t CostPlus = TargetFunc->Cost();
-    TargetFunc->Params(i) = Y[i]- Displacement;
-    Return_t CostMinus = TargetFunc->Cost();
-    grad[i]=(CostMinus-CostPlus)*dh;
-  }
+  // if(TargetFunc->evaluateGradients(grad)) return;
+  TargetFunc->GradCost(grad, Y, Displacement);
+ 
+//   //do the finite difference method
+//   Return_t dh=1.0/(2.0*Displacement);
+//   for(int i=0; i<TargetFunc->NumParams() ; i++) {
+//     for(int j=0; j<TargetFunc->NumParams(); j++) TargetFunc->Params(j)=Y[j];
+//     TargetFunc->Params(i) = Y[i]+ Displacement;
+//     Return_t CostPlus = TargetFunc->Cost();
+//     TargetFunc->Params(i) = Y[i]- Displacement;
+//     Return_t CostMinus = TargetFunc->Cost();
+//     grad[i]=(CostMinus-CostPlus)*dh;
+//   }
 
 }
 

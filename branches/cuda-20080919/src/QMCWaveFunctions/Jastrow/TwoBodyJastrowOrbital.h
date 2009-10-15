@@ -17,10 +17,12 @@
 #define QMCPLUSPLUS_COMMON_TWOBODYJASTROW_H
 #include "Configuration.h"
 #include  <map>
+#include  <numeric>
 #include "QMCWaveFunctions/OrbitalBase.h"
-#include "QMCWaveFunctions/DiffOrbitalBase.h"
+#include "QMCWaveFunctions/Jastrow/DiffTwoBodyJastrowOrbital.h"
 #include "Particle/DistanceTableData.h"
 #include "Particle/DistanceTable.h"
+#include "LongRange/StructFact.h"
 //#include "QMCWaveFunctions/Jastrow/BsplineFunctor.h"
 
 namespace qmcplusplus {
@@ -42,10 +44,16 @@ namespace qmcplusplus {
     RealType DiffVal, DiffValSum;
     ParticleAttrib<RealType> U,d2U,curLap,curVal;
     ParticleAttrib<PosType> dU,curGrad;
+    ParticleAttrib<PosType> curGrad0;
     RealType *FirstAddressOfdU, *LastAddressOfdU;
     Matrix<int> PairID;
 
     std::map<std::string,FT*> J2Unique;
+    ParticleSet *PtclRef;
+    bool FirstTime;
+    RealType KEcorr;
+    //flag to prevent parallel output
+    bool Write_Chiesa_Correction;
 
   public:
 
@@ -68,6 +76,7 @@ namespace qmcplusplus {
       d2U.resize(NN);
       dU.resize(NN);
       curGrad.resize(N);
+      curGrad0.resize(N);
       curLap.resize(N);
       curVal.resize(N);
 
@@ -101,12 +110,16 @@ namespace qmcplusplus {
       }
 
       J2Unique[aname]=j;
+      ChiesaKEcorrection();
+      FirstTime = false;
     }
 
     //evaluate the distance table with els
     void resetTargetParticleSet(ParticleSet& P) 
     {
       d_table = DistanceTable::add(P);
+      PtclRef = &P;
+      if(dPsi) dPsi->resetTargetParticleSet(P);
     }
 
     /** check in an optimizable parameter
@@ -122,6 +135,8 @@ namespace qmcplusplus {
         (*it).second->checkInVariables(myVars);
         ++it;
       }
+      reportStatus(app_log());
+      
     }
 
     /** check out optimizable variables
@@ -135,7 +150,7 @@ namespace qmcplusplus {
       {
         (*it++).second->checkOutVariables(active);
       }
-      //if(dPsi) dPsi->checkOutVariables(active);
+      if(dPsi) dPsi->checkOutVariables(active);
     }
 
     ///reset the value of all the unique Two-Body Jastrow functions
@@ -147,7 +162,15 @@ namespace qmcplusplus {
       {
         (*it++).second->resetParameters(active); 
       }
-      //if(dPsi) dPsi->resetParameters(optVariables);
+      //if (FirstTime) {
+      // if(!IsOptimizing)
+      // {
+      //   app_log() << "  Chiesa kinetic energy correction = " 
+      //     << ChiesaKEcorrection() << endl;
+      //   //FirstTime = false;
+      // }
+
+      if(dPsi) dPsi->resetParameters( active );
       for(int i=0; i<myVars.size(); ++i)
       {
         int ii=myVars.Index[i];
@@ -164,6 +187,7 @@ namespace qmcplusplus {
         (*it).second->myVars.print(os);
         ++it;
       }
+      ChiesaKEcorrection();
     }
 
 
@@ -185,6 +209,11 @@ namespace qmcplusplus {
     ValueType evaluateLog(ParticleSet& P,
 		          ParticleSet::ParticleGradient_t& G, 
 		          ParticleSet::ParticleLaplacian_t& L) {
+      if (FirstTime) {
+	FirstTime = false;
+	ChiesaKEcorrection();
+      }
+
       LogValue=0.0;
       RealType dudr, d2udr2;
       PosType gr;
@@ -262,6 +291,8 @@ namespace qmcplusplus {
       }
       dG[iat] += sumg;
       dL[iat] += suml;     
+      curGrad0=curGrad;
+
       return std::exp(DiffVal);
     }
 
@@ -337,6 +368,11 @@ namespace qmcplusplus {
     inline void evaluateLogAndStore(ParticleSet& P, 
 		       ParticleSet::ParticleGradient_t& dG, 
 		       ParticleSet::ParticleLaplacian_t& dL) {
+      if (FirstTime) {
+	FirstTime = false;
+	ChiesaKEcorrection();
+      }
+
       RealType dudr, d2udr2,u;
       LogValue=0.0;
       GradType gr;
@@ -365,8 +401,8 @@ namespace qmcplusplus {
       }
     }
 
-    inline ValueType registerData(ParticleSet& P, PooledData<RealType>& buf){
-
+    inline RealType registerData(ParticleSet& P, PooledData<RealType>& buf){
+      // cerr<<"REGISTERING 2 BODY JASTROW"<<endl;
       evaluateLogAndStore(P,P.G,P.L);
       //LogValue=0.0;
       //RealType dudr, d2udr2,u;
@@ -409,7 +445,7 @@ namespace qmcplusplus {
       return LogValue;
     }
 
-    inline ValueType updateBuffer(ParticleSet& P, PooledData<RealType>& buf,
+    inline RealType updateBuffer(ParticleSet& P, PooledData<RealType>& buf,
         bool fromscratch=false){
       evaluateLogAndStore(P,P.G,P.L);
       //RealType dudr, d2udr2,u;
@@ -487,12 +523,74 @@ namespace qmcplusplus {
             fcmap[F[ij]]=fc;
           }
         }
+        
+      j2copy->Optimizable = Optimizable;
+        
       return j2copy;
     }
 
     void copyFrom(const OrbitalBase& old)
     {
       //nothing to do
+    }
+
+
+    RealType ChiesaKEcorrection()
+    {
+      return 0.0;
+
+      if (!PtclRef->Lattice.SuperCellEnum)
+	return 0.0;
+      const int numPoints = 1000;
+      RealType vol = PtclRef->Lattice.Volume;
+      RealType aparam = 0.0;
+      int nsp = PtclRef->groups();
+      FILE *fout=(Write_Chiesa_Correction)?fopen ("uk.dat", "w"):0;
+      for (int iG=0; iG<PtclRef->SK->KLists.ksq.size(); iG++) 
+      {
+        RealType Gmag = std::sqrt(PtclRef->SK->KLists.ksq[iG]);
+        RealType sum=0.0;
+        RealType uk = 0.0;
+	for (int i=0; i<PtclRef->groups(); i++) 
+        {
+	  int Ni = PtclRef->last(i) - PtclRef->first(i);
+	  RealType aparam = 0.0;
+	  for (int j=0; j<PtclRef->groups(); j++) 
+          {
+	    int Nj = PtclRef->last(j) - PtclRef->first(j);
+	    if (F[i*nsp+j]) 
+            {
+	      FT& ufunc = *(F[i*nsp+j]);
+	      RealType radius = ufunc.cutoff_radius;
+	      RealType k = Gmag;
+	      RealType dr = radius/(RealType)(numPoints-1);
+	      for (int ir=0; ir<numPoints; ir++) 
+              {
+		RealType r = dr * (RealType)ir;
+		RealType u = ufunc.evaluate(r);
+		aparam += (1.0/4.0)*k*k*
+		  4.0*M_PI*r*std::sin(k*r)/k*u*dr;
+		uk += 0.5*4.0*M_PI*r*std::sin(k*r)/k * u * dr *
+		  (RealType)Nj / (RealType)(Ni+Nj);
+		
+		//aparam += 0.25* 4.0*M_PI*r*r*u*dr;
+	      }
+	    }
+	  }
+	  //app_log() << "A = " << aparam << endl;
+	  sum += Ni * aparam / vol;
+	}
+	if (iG == 0) 
+        {
+	  RealType a = 1.0;
+	  for (int iter=0; iter<20; iter++) 
+	    a = uk / (4.0*M_PI*(1.0/(Gmag*Gmag) - 1.0/(Gmag*Gmag + 1.0/a)));
+	  KEcorr = 4.0*M_PI*a/(4.0*vol) * PtclRef->getTotalNum();
+	}
+	if(fout) fprintf (fout, "%1.8f %1.12e %1.12e\n", Gmag, uk, sum);
+      }
+      if(fout) fclose(fout);
+      return KEcorr;
     }
 
     /////////////////////////////////////////////////////

@@ -28,10 +28,9 @@ namespace qmcplusplus {
 
   QMCCostFunctionBase::QMCCostFunctionBase(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h): 
     MPIObjectBase(0),
-    W(w),Psi(psi),H(h),
-    UseWeight(false), Write2OneXml(true),
-    PowerE(2), NumCostCalls(0), NumSamples(0), MaxWeight(5),
-    w_en(0.0), w_var(0.0), w_abs(1.0),
+    W(w),H(h),Psi(psi),  Write2OneXml(true),
+    PowerE(2), NumCostCalls(0), NumSamples(0), MaxWeight(5), w_w(0.0),
+    w_en(0.0), w_var(0.0), w_abs(0.0), MinKE(-100.0),samplePsi2(true),
     CorrelationFactor(0.0), m_wfPtr(NULL), m_doc_out(NULL), msg_stream(0), debug_stream(0)
   { 
 
@@ -74,16 +73,16 @@ namespace qmcplusplus {
 
     app_log() << "Effective Target Energy = " << EtargetEff << endl;
     app_log() << "Cost Function = " << w_en << "*<E> + " 
-      << w_var << "*<Var> + " << w_abs << "*|E-E_T|^" << PowerE << endl;
-    if(UseWeight) 
-      app_log() << "Correlated sampling is used." << endl;
-    else
-      app_log() << "Weight is set to one." << endl;
+      << w_var << "*<Var> + " << w_w << "*<Var(unreweighted)> " << endl;
+    //if(UseWeight) 
+      //app_log() << "Correlated sampling is used." << endl;
+    //else
+      //app_log() << "Weight is set to one." << endl;
 
     if(msg_stream) {
       *msg_stream << "  Total number of walkers          = " << NumSamples << endl;
       *msg_stream << "  Effective Target Energy = " << EtargetEff << endl;
-      *msg_stream << "  Cost Function = " << w_en << "*<E> + " << w_var << "*<Var> + " << w_abs << "*|E-E_T|^" << PowerE << endl;
+      *msg_stream << "  Cost Function = " << w_en << "*<E> + " << w_var << "*<Var> + " << w_w << "*<Var(unreweighted)> " << endl;
       *msg_stream << "  Optimization report = ";
       *msg_stream << "cost, walkers, eavg/wgt, eavg/walkers, evar/wgt, evar/walkers, evar_abs\n";
       *msg_stream << "  Optimized variables = ";
@@ -92,44 +91,61 @@ namespace qmcplusplus {
     }
   }
 
-  QMCCostFunctionBase::Return_t QMCCostFunctionBase::Cost() {
+QMCCostFunctionBase::Return_t QMCCostFunctionBase::Cost() {
+  
+  NumCostCalls++;
+  
+  //if(checkParameters()) {
+ 
+ //reset the wave function
+ resetPsi();
+ 
+ //evaluate new local energies
+ NumWalkersEff=correlatedSampling();
+ 
+ //Estimators::accumulate has been called by correlatedSampling
+ curAvg_w = SumValue[SUM_E_WGT]/SumValue[SUM_WGT];
+ curVar_w = SumValue[SUM_ESQ_WGT]/SumValue[SUM_WGT]-curAvg_w*curAvg_w;
+ 
+ Return_t wgtinv=1.0/static_cast<Return_t>(NumSamples);
+ // app_log() << "wgtinv = " << wgtinv << endl;
+ curAvg = SumValue[SUM_E_BARE]*wgtinv;
+ curVar = SumValue[SUM_ESQ_BARE]*wgtinv-curAvg*curAvg; 
+ 
+ curVar_abs = SumValue[SUM_ABSE_WGT]/SumValue[SUM_WGT];
+ // app_log() << "curVar     = " << curVar 
+ // 	   << "   curAvg     = " << curAvg << endl;
+ // app_log() << "SumValue[SUM_WGT] = " << SumValue[SUM_WGT] << endl;
+ // app_log() << "SumValue[SUM_WGTSQ] = " << SumValue[SUM_WGTSQ] << endl;
+ // app_log() << "SumValue[SUM_ABSE_WGT] = " << SumValue[SUM_ABSE_WGT] << endl;
+ // app_log() << "SumValue[SUM_E_WGT] = " << SumValue[SUM_E_WGT] << endl;
+ // app_log() << "SumValue[SUM_ESQ_WGT] = " << SumValue[SUM_ESQ_WGT] << endl;
 
-    NumCostCalls++;
+ Return_t wgt_var = SumValue[SUM_WGTSQ]-SumValue[SUM_WGT]*SumValue[SUM_WGT];
+ wgt_var *=wgtinv;
 
-    //if(checkParameters()) {
+ CostValue = 0.0;
+ if (std::fabs(w_abs) > 1.0e-10)
+   CostValue += w_abs*curVar_abs;
+ if (std::fabs(w_var) > 1.0e-10)
+   CostValue += w_var*curVar_w;
+ if (std::fabs(w_en) > 1.0e-10)
+   CostValue += w_en*curAvg_w;
+ if (std::fabs(w_w) > 1.0e-10)
+   CostValue += w_w*curVar;
 
-      //reset the wave function
-      resetPsi();
-
-      //evaluate new local energies
-      NumWalkersEff=correlatedSampling();
-
-      //Estimators::accumulate has been called by correlatedSampling
-      curAvg_w = SumValue[SUM_E_WGT]/SumValue[SUM_WGT];
-      curVar_w = SumValue[SUM_ESQ_WGT]/SumValue[SUM_WGT]-curAvg_w*curAvg_w;
-
-      Return_t wgtinv=1.0/static_cast<Return_t>(NumSamples);
-      curAvg = SumValue[SUM_E_BARE]*wgtinv;
-      curVar = SumValue[SUM_ESQ_BARE]*wgtinv-curAvg*curAvg; 
-
-      curVar_abs = SumValue[SUM_ABSE_WGT]/SumValue[SUM_WGT];
-
-      CostValue = w_abs*curVar_abs+w_var*curVar+w_en*curAvg;
-
-      //DIFFERENT COST FUNCTIOn
-      //CostValue = w_en*eavg+w_var*0.5*Tau*evar;
-      //CostValue = w_abs*SumValue[SUM_ABSE_BARE]*wgtinv+w_var*evar;
-      //CostValue = w_abs*evar_abs+w_var*evar;
-      //Return_t evar_abs = SumValue[SUM_ABSE_WGT]/SumValue[SUM_WGT];
-
-      if(NumWalkersEff < NumSamples*MinNumWalkers) {
-        ERRORMSG("CostFunction-> Number of Effective Walkers is too small " << NumWalkersEff)
-        ERRORMSG("Going to stop now.")
-        IsValid=false;
-      } 
-    //}
-    return CostValue;
-  }
+ //CostValue = w_abs*curVar_abs + w_var*curVar_w + w_en*curAvg_w + w_w*curVar;
+ // app_log() << "CostValue = " << CostValue << endl << endl;
+ 
+ IsValid=true;
+ //       if(NumWalkersEff < NumSamples*MinNumWalkers) {
+ if(NumWalkersEff < MinNumWalkers) {
+   ERRORMSG("CostFunction-> Number of Effective Walkers is too small " << NumWalkersEff)
+   ERRORMSG("Going to stop now.")
+   IsValid=false;
+ } 
+ return CostValue;
+}
 
 //  /**  Perform the correlated sampling algorthim.
 //   */
@@ -395,7 +411,8 @@ namespace qmcplusplus {
 
   void QMCCostFunctionBase::reportParameters() {
 
-    resetPsi();
+    //final reset, restoring the OrbitalBase::IsOptimizing to false
+    resetPsi(true);
 
     if(!myComm->rank())
     {
@@ -454,6 +471,8 @@ namespace qmcplusplus {
     m_param.add(MinNumWalkers,"min_walkers","scalar");
     m_param.add(MinNumWalkers,"minWalkers","scalar");
     m_param.add(MaxWeight,"maxWeight","scalar");
+    m_param.add(MinKE,"MinKE","scalar");
+    m_param.add(useWeightStr,"reweight","string");
     m_param.put(q);
 
     UseWeight = (useWeightStr == "yes");
@@ -591,15 +610,15 @@ namespace qmcplusplus {
       APP_ABORT("QMCCostFunctionBase::put No valid optimizable variables are found.");
     }
 
-    app_log() << "  Active Optimizable Variables" << endl;
+    app_log() << "<active-optimizables> " << endl;
     OptVariables.print(app_log());
-    app_log() << "======================= " << endl;
+    app_log() << "</active-optimizables>" << endl;
 
     if(msg_stream) msg_stream->setf(ios::scientific, ios::floatfield);
 
     resetPsi();
 
-    Psi.reportStatus(app_log());
+//     Psi.reportStatus(app_log());
 
     //set the cost function
     if(cset.empty())
@@ -608,18 +627,21 @@ namespace qmcplusplus {
     } 
     else 
     {
-      for(int i=0; i<cset.size(); i++){
-	string pname;
-	Return_t wgt=1.0;
-        OhmmsAttributeSet pAttrib;
-        pAttrib.add(pname,"name");
-        pAttrib.put(cset[i]);
-	if(pname == "energy") 
-	  putContent(w_en,cset[i]);
-	else if(pname == "variance") 
-	  putContent(w_var,cset[i]);
-        else if(pname == "difference")
-	  putContent(w_abs,cset[i]);
+      for(int i=0; i<cset.size(); i++)
+      {
+				string pname;
+				Return_t wgt=1.0;
+				OhmmsAttributeSet pAttrib;
+				pAttrib.add(pname,"name");
+				pAttrib.put(cset[i]);
+				if(pname == "energy") 
+					putContent(w_en,cset[i]);
+				else if((pname == "variance")|| (pname == "unreweightedvariance") ) 
+					putContent(w_w,cset[i]);
+				else if(pname == "difference")
+					putContent(w_abs,cset[i]);
+				else if((pname == "reweightedVariance") ||(pname == "reweightedvariance"))
+					putContent(w_var,cset[i]);
       }
     }  
 
@@ -686,7 +708,7 @@ namespace qmcplusplus {
       xmlXPathFreeContext(acontext);
     }
 
-    Psi.reportStatus(app_log());
+//     Psi.reportStatus(app_log());
 
     map<string,xmlNodePtr>::iterator pit(paramNodes.begin()), pit_end(paramNodes.end());
     while(pit != pit_end)

@@ -60,6 +60,8 @@ namespace qmcplusplus {
     Return_t Params(int i) const { return OptVariables[i]; }
     ///return the cost value for CGMinimization
     Return_t Cost();
+    ///return the gradient of cost value for CGMinimization
+    virtual void GradCost(vector<Return_t>& PGradient, vector<Return_t> PM, Return_t FiniteDiff=0) {};
     ///return the number of optimizable parameters
     inline int NumParams() { return OptVariables.size(); }
     ///return the number of optimizable parameters
@@ -96,8 +98,10 @@ namespace qmcplusplus {
      * If successful, any optimization object updates the parameters by x0 + dl*gr
      * and proceeds with a new step.
      */
-    bool lineoptimization(const vector<double>& x0, const vector<double>& gr, Return_t val0, 
+    bool lineoptimization(const vector<Return_t>& x0, const vector<Return_t>& gr, Return_t val0, 
         Return_t& dl, Return_t& val_proj, Return_t& lambda_max);
+        
+    virtual Return_t fillOverlapHamiltonianMatrix(Matrix<Return_t>& Hamiltonian, Matrix<Return_t>& Overlap )=0;
 
     virtual void getConfigurations(const string& aroot)=0;
 
@@ -136,7 +140,7 @@ namespace qmcplusplus {
     ///counter for output
     int ReportCounter;
     ///weights for energy and variance in the cost function
-    Return_t w_en, w_var, w_abs;
+    Return_t w_en, w_var, w_abs, w_w;
     ///value of the cost function
     Return_t CostValue;
     ///target energy
@@ -149,6 +153,8 @@ namespace qmcplusplus {
     Return_t MinNumWalkers;
     ///maximum weight beyond which the weight is set to 1
     Return_t MaxWeight;
+    Return_t MinWeight;
+    Return_t MinKE;
 
     ///current Average
     Return_t curAvg;
@@ -205,6 +211,7 @@ namespace qmcplusplus {
     string RootName;
     ///Hamiltonians that depend on the optimization: KE
     QMCHamiltonian H_KE;
+    bool samplePsi2;
 
     /** Sum of energies and weights for averages
      *
@@ -229,7 +236,7 @@ namespace qmcplusplus {
     bool checkParameters();
     void updateXmlNodes();
 
-    virtual void resetPsi()=0;
+    virtual void resetPsi(bool final_reset=false)=0;
     virtual Return_t correlatedSampling()=0;
   };
 }

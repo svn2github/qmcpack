@@ -53,6 +53,16 @@ namespace qmcplusplus {
     for(int i=0; i<Z.size(); i++) Z[i]->resetTargetParticleSet(P);
   }
 
+  void TrialWaveFunction::startOptimization()
+  {
+    for(int i=0; i<Z.size(); i++) Z[i]->IsOptimizing=true;
+  }
+
+  void TrialWaveFunction::stopOptimization()
+  {
+    for(int i=0; i<Z.size(); i++) Z[i]->IsOptimizing=false;
+  }
+
   /** add an ObritalBase
    *@param aterm a many-body wavefunction 
    */
@@ -82,6 +92,7 @@ namespace qmcplusplus {
     myTimers.push_back(accepttimer);
     myTimers.push_back(NLtimer);
     myTimers.push_back(recomputetimer);
+    myTimers.push_back(derivstimer);
     TimerManager.addTimer(vtimer);
     TimerManager.addTimer(vgltimer);
     TimerManager.addTimer(accepttimer);
@@ -518,6 +529,21 @@ namespace qmcplusplus {
     return myclone;
 
   }
+
+
+  void TrialWaveFunction::evaluateDerivatives(ParticleSet& P, RealType ke0, 
+					      const opt_variables_type& optvars,
+					      vector<RealType>& dlogpsi,
+					      vector<RealType>& dhpsioverpsi)
+  {
+    for(int i=0; i<Z.size(); i++) {
+      if (Z[i]->dPsi) (Z[i]->dPsi)->evaluateDerivatives( P, ke0, optvars, dlogpsi, dhpsioverpsi); 
+      else Z[i]->evaluateDerivatives( P, ke0, optvars, dlogpsi, dhpsioverpsi);
+    }
+    //orbitals do not know about mass of particle.
+    for(int i=0;i<dhpsioverpsi.size();i++) dhpsioverpsi[i]*=OneOverM;
+  }
+
 
   ////////////////////////////////
   // Vectorized member fuctions //

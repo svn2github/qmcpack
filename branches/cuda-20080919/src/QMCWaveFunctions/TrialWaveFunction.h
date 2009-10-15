@@ -21,6 +21,7 @@
 
 #include "Message/MPIObjectBase.h"
 #include "QMCWaveFunctions/OrbitalBase.h"
+#include "QMCWaveFunctions/DiffOrbitalBase.h"
 #include "Utilities/NewTimer.h"
 /**@defgroup MBWfs Many-body wave function group
  * @brief Classes to handle many-body trial wave functions
@@ -84,6 +85,10 @@ namespace qmcplusplus {
     bool put(xmlNodePtr cur);
     ///implement the virtual function
     void reset();
+    /** set OrbitalBase::IsOptimizing to true */
+    void startOptimization();
+    /** set OrbitalBase::IsOptimizing to flase */
+    void stopOptimization();
     /** check in an optimizable parameter
      * * @param o a super set of optimizable variables
      *
@@ -195,12 +200,27 @@ namespace qmcplusplus {
     void dumpToBuffer(ParticleSet& P, BufferType& buf);
     void dumpFromBuffer(ParticleSet& P, BufferType& buf);
 
+    RealType KECorrection() const;
+    
+    void evaluateDerivatives(ParticleSet& P, RealType ke0, 
+        const opt_variables_type& optvars,
+        vector<RealType>& dlogpsi,
+        vector<RealType>& dhpsioverpsi);
+
     /** evalaute the values of the wavefunction, gradient and laplacian  for all the walkers */
     //void evaluate(WalkerSetRef& W, OrbitalBase::ValueVectorType& psi);
 
     void reverse();
 
     TrialWaveFunction* makeClone(ParticleSet& tqp) const;
+
+    void setMassTerm(ParticleSet& P)
+    {
+        SpeciesSet tspecies(P.getSpeciesSet());
+        int massind=tspecies.addAttribute("mass");
+        RealType mass = tspecies(massind,0);
+        OneOverM = 1.0/mass;
+    }
 
   private:
 
@@ -220,6 +240,9 @@ namespace qmcplusplus {
 
     ///log of the trial wave function
     RealType LogValue;
+
+    ///One over mass of target particleset, needed for Local Energy Derivatives
+    RealType OneOverM;
 
     ///a list of OrbitalBases constituting many-body wave functions
     vector<OrbitalBase*> Z;

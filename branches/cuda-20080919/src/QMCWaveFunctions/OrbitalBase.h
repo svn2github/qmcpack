@@ -80,11 +80,11 @@ namespace qmcplusplus {
     typedef ParticleAttrib<GradType>  GradVectorType;
     typedef PooledData<RealType>      BufferType;
     typedef ParticleSet::Walker_t     Walker_t;
-
     typedef OrbitalSetTraits<ValueType>::ValueMatrix_t ValueMatrix_t;
     typedef OrbitalSetTraits<ValueType>::GradMatrix_t  GradMatrix_t;
 
-
+    /** flag to set the optimization mode */
+    bool IsOptimizing;
     /** boolean to set optimization
      *
      * If true, this object is actively modified during optimization
@@ -129,7 +129,7 @@ namespace qmcplusplus {
     inline void setOptimizable(bool optimizeit) { Optimizable = optimizeit;}
 
     ///assign a differential orbital
-    void setDiffOrbital(DiffOrbitalBasePtr d);
+    virtual void setDiffOrbital(DiffOrbitalBasePtr d);
 
     /** check in optimizable parameters
      * @param active a super set of optimizable variables
@@ -244,13 +244,13 @@ namespace qmcplusplus {
 
 
     /** equivalent to evaluateLog(P,G,L) with write-back function */
-    virtual ValueType evaluateLog(ParticleSet& P,BufferType& buf)=0;
+    virtual RealType evaluateLog(ParticleSet& P,BufferType& buf)=0;
 
     /** add temporary data reserved for particle-by-particle move.
      *
      * Return the log|psi|  like evalaute evaluateLog
      */
-    virtual ValueType registerData(ParticleSet& P, BufferType& buf) =0;
+    virtual RealType registerData(ParticleSet& P, BufferType& buf) =0;
 
     /** re-evaluate the content and buffer data
      * @param P particle set
@@ -258,7 +258,7 @@ namespace qmcplusplus {
      *
      * This function is introduced to update the data periodically for particle-by-particle move.
      */
-    virtual ValueType updateBuffer(ParticleSet& P, BufferType& buf, bool fromscratch=false) =0;
+    virtual RealType updateBuffer(ParticleSet& P, BufferType& buf, bool fromscratch=false) =0;
 
     /** copy the internal data saved for particle-by-particle move.*/
     virtual void copyFromBuffer(ParticleSet& P, BufferType& buf)=0;
@@ -285,6 +285,17 @@ namespace qmcplusplus {
      * If not true, return a proxy class
      */
     virtual OrbitalBasePtr makeClone(ParticleSet& tqp) const;
+    /** Return the Chiesa kinetic energy correction 
+     */
+    virtual RealType KECorrection();
+    
+    virtual void evaluateDerivatives(ParticleSet& P, RealType ke0, 
+        const opt_variables_type& optvars,
+        vector<RealType>& dlogpsi,
+        vector<RealType>& dhpsioverpsi) ;
+
+    
+
     ///** copy data members from old
     // * @param old existing OrbitalBase from which all the data members are copied.
     // *
