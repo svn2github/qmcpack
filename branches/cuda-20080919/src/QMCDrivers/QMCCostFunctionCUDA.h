@@ -45,13 +45,12 @@ namespace qmcplusplus {
     void GradCost(vector<Return_t>& PGradient, vector<Return_t> PM, Return_t FiniteDiff=0);
     Return_t fillOverlapHamiltonianMatrix(Matrix<Return_t>& Hamiltonian, Matrix<Return_t>& Overlap);
   protected:
-    vector<QMCHamiltonian*> H_KE_Node;
-    vector<Matrix<Return_t>*> RecordsOnNode;
+    Matrix<Return_t> Records;
     
      /** Temp derivative properties and Hderivative properties of all the walkers
      */
-    vector<vector<vector<Return_t> >* > TempDerivRecords;
-    vector<vector<vector<Return_t> >* > TempHDerivRecords;
+    vector<vector<Return_t> >  TempDerivRecords;
+    vector<vector<Return_t> >  TempHDerivRecords;
     Return_t CSWeight;
     void resetPsi(bool final_reset=false);
     Return_t correlatedSampling();

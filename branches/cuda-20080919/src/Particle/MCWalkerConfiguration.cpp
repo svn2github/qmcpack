@@ -260,7 +260,8 @@ void MCWalkerConfiguration::saveEnsemble()
 {
   iterator it(WalkerList.begin()),it_end(WalkerList.end());
   while(it != it_end) {
-    SampleStack.push_back(new ParticlePos_t((*it)->R));
+    //    SampleStack.push_back(new ParticlePos_t((*it)->R));
+    SampleStack.push_back(MCSample((*it)->R, (*it)->Grad, (*it)->Lap));
     ++it;
   }
 }
@@ -269,7 +270,8 @@ void MCWalkerConfiguration::saveEnsemble(iterator first, iterator last)
 {
   while(first != last) 
   {
-    SampleStack.push_back(new ParticlePos_t((*first)->R));
+    //SampleStack.push_back(new ParticlePos_t((*first)->R));
+    SampleStack.push_back(MCSample((*first)->R, (*first)->Grad, (*first)->Lap));
     ++first;
   }
 }
@@ -285,11 +287,14 @@ void MCWalkerConfiguration::loadEnsemble()
   for(int i=0; i<nsamples; ++i)
   {
     Walker_t* awalker=new Walker_t(GlobalNum);
-    awalker->R = *(SampleStack[i]);
-    awalker->Drift = 0.0;
+    // awalker->R = *(SampleStack[i]);
+    // awalker->Drift = 0.0;
+    awalker->R    = SampleStack[i].R;
+    awalker->Grad = SampleStack[i].G;
+    awalker->Lap  = SampleStack[i].L;
     awalker->Properties.copy(prop);
     WalkerList[i]=awalker;
-    delete SampleStack[i];
+    //delete SampleStack[i];
   }
   SampleStack.clear();
 }
@@ -302,11 +307,14 @@ void MCWalkerConfiguration::loadEnsemble(MCWalkerConfiguration& other)
   for(int i=0; i<nsamples; ++i)
   {
     Walker_t* awalker=new Walker_t(GlobalNum);
-    awalker->R = *(SampleStack[i]);
-    awalker->Drift = 0.0;
+    // awalker->R = *(SampleStack[i]);
+    // awalker->Drift = 0.0;
+    awalker->R    = SampleStack[i].R;
+    awalker->Grad = SampleStack[i].G;
+    awalker->Lap  = SampleStack[i].L;
     awalker->Properties.copy(prop);
     other.WalkerList.push_back(awalker);
-    delete SampleStack[i];
+    //    delete SampleStack[i];
   }
   SampleStack.clear();
 }
@@ -440,7 +448,7 @@ void MCWalkerConfiguration::NLMove_GPU(vector<Walker_t*> &walkers,
 
 void MCWalkerConfiguration::clearEnsemble()
 {
-  delete_iter(SampleStack.begin(),SampleStack.end());
+  //delete_iter(SampleStack.begin(),SampleStack.end());
   SampleStack.clear();
 }
 }

@@ -106,6 +106,10 @@ namespace qmcplusplus {
 	  //   "  CurrentStep = " << CurrentStep << 
 	  //   "  isub = " << isub << endl;
 	}
+	if (myPeriod4WalkerDump && (CurrentStep % myPeriod4WalkerDump)==0) {
+	  cerr << "  ** Saving ensemble.\n";
+	  W.saveEnsemble();
+	}
 	
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
@@ -206,8 +210,10 @@ namespace qmcplusplus {
 	    if (accepted.size())
 	      Psi.update(accepted,iat);
 	  }
-	  if (myPeriod4WalkerDump && (CurrentStep % myPeriod4WalkerDump)==0) 
+	  if (myPeriod4WalkerDump && (CurrentStep % myPeriod4WalkerDump)==0) {
+	    cerr << "Saving ensemble.\n";
 	     W.saveEnsemble();
+	  }
 	   // cerr << "Rank = " << myComm->rank() <<
 	  //   "  CurrentStep = " << CurrentStep << "  isub = " << isub << endl;
 
@@ -263,6 +269,18 @@ namespace qmcplusplus {
     //Psi.evaluateLog(W, logPsi);
     Psi.recompute(W, true);
     Estimators->start(nBlocks, true);
+
+    // Compute sample dumping frequency
+    if (nTargetSamples) {
+      int nnodes = myComm->size();
+      int nw = W.WalkerList.size();
+      int samples_per_node = (nTargetSamples+nnodes-1)/nnodes; 
+      int dumps_per_node   = (samples_per_node+nw-1) / nw;
+      myPeriod4WalkerDump = Period4WalkerDump;
+      app_log() << "  Dumping walker ensemble every " << myPeriod4WalkerDump
+		<< " steps.\n";
+    }
+    
   }
 
   bool 

@@ -27,6 +27,17 @@ namespace qmcplusplus {
   //Forward declaration
   struct MultiChain;
 
+  struct MCSample {
+    ParticleSet::ParticlePos_t R;
+    ParticleSet::ParticleGradient_t G;
+    ParticleSet::ParticleLaplacian_t L;
+    MCSample(ParticleSet::ParticlePos_t r,
+	     ParticleSet::ParticleGradient_t g,
+	     ParticleSet::ParticleLaplacian_t l) :
+      R(r), G(g), L(l) 
+    { }
+  };
+
   /** A set of walkers that are to be advanced by Metropolis Monte Carlo.  
    *
    *As a derived class from ParticleSet, MCWalkerConfiguration interacts with
@@ -310,7 +321,7 @@ namespace qmcplusplus {
      int MaxSamples;
      int CurSampleCount;
      //add samples
-     vector<ParticlePos_t*> SampleStack;
+     vector<MCSample> SampleStack;
 
     /** initialize the PropertyList
      *
