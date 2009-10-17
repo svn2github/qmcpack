@@ -178,7 +178,8 @@ namespace qmcplusplus {
     lambda=1.0/(2.0*MSS);
     assert(lambda==0.5); //6.059;
     MaxLevel=6;
-    int num_bisection_slices=std::pow(2.0,(double)MaxLevel);
+    int num_bisection_slices= 1 << MaxLevel;
+      //std::pow(2.0,(double)MaxLevel);
     tempReptile.resize(num_bisection_slices+1);
     //    tempReptile_slow.resize(num_bisection_slices+1);
     psiReptile.resize(num_bisection_slices+1);
@@ -239,7 +240,7 @@ namespace qmcplusplus {
     int numSlice=1;
     for (int i=0;i<MaxLevel;i++)
       numSlice*=2;
-    startSlice=std::floor(Random()*(ReptileLength-numSlice));
+    startSlice=(int)std::floor(Random()*(ReptileLength-numSlice));
     endSlice=startSlice+numSlice;
     assert(endSlice<ReptileLength);
   }
@@ -455,7 +456,7 @@ RQMCMultiplePbyP::RealType RQMCMultiplePbyP::LogSampleProb(vector<Bead_ParticleS
 	myTimers[7]->start();
 	myTimers[5]->start();
         DeltaG=0.0;
-        DeltaSign=0.0;
+        DeltaSign=0;
 
 	//old is added
 	///calculate the old action
@@ -763,7 +764,7 @@ RQMCMultiplePbyP::RealType RQMCMultiplePbyP::LogSampleProb(vector<Bead_ParticleS
 	myTimers[7]->start();
 	myTimers[5]->start();
         DeltaG=0.0;
-        DeltaSign=0.0;
+        DeltaSign=0;
 
 	//old is added
 	///calculate the old action

@@ -38,10 +38,10 @@ namespace qmcplusplus {
    */
   QMCCostFunctionCUDA::Return_t QMCCostFunctionCUDA::correlatedSampling() 
   {
-    
     Return_t wgt_tot=0.0;
     Return_t wgt_tot2=0.0;
     Return_t NSm1 = 1.0/NumSamples;
+    int nw = W.getActiveWalkers();
 
     //#pragma omp parallel reduction(+:wgt_tot)
     Return_t eloc_new;
@@ -49,6 +49,16 @@ namespace qmcplusplus {
     MCWalkerConfiguration::iterator it(W.begin());
     MCWalkerConfiguration::iterator it_end(W.end());
     int iw=0;
+    int numParams = OptVariablesForPsi.size();
+    int numPtcl   = W.getTotalNum();
+
+    vector<RealType> logpsi_opt(nw), logpsi_fixed(nw);
+    TrialWaveFunction::ValueMatrix_t dlogpsi(nw, numParams), dhpsioverpsi(nw, numParams);
+    TrialWaveFunction::GradMatrix_t  fixedG(nw, numPtcl);
+    TrialWaveFunction::ValueMatrix_t fixedL(nw, numPtcl);
+    Psi.evaluateDeltaLog(W, logpsi_opt, logpsi_fixed, fixedG, fixedL);
+    Psi.evaluateDerivatives(W, OptVariablesForPsi,dlogpsi, dhpsioverpsi);
+
     for (; it!= it_end;++it,++iw) {
       ParticleSet::Walker_t& thisWalker(**it);
       W.R=thisWalker.R;
@@ -59,7 +69,7 @@ namespace qmcplusplus {
       
       Return_t* restrict saved = &(Records(iw,0));
       
-      RealType KEtemp = H.evaluate(W);
+      RealType KEtemp = H_KE.evaluate(W);
       eloc_new = KEtemp + saved[ENERGY_FIXED];
       Return_t weight;
       if (samplePsi2) weight = std::exp(2.0*(logpsi-saved[LOGPSI_FREE])) ;
@@ -85,19 +95,15 @@ namespace qmcplusplus {
 
     Return_t wgtnorm = (1.0*NumSamples)/wgt_tot;
     wgt_tot=0.0;
-    for (int ip=0; ip<NumThreads; ip++) {
-      int nw=wClones[ip]->getActiveWalkers();
-      for (int iw=0; iw<nw;iw++) {
-	Return_t* restrict saved = Records[iw];
-	saved[REWEIGHT] = std::min(saved[REWEIGHT]*wgtnorm,MaxWeight) ;
-	wgt_tot+= saved[REWEIGHT];
-      }
+    for (int iw=0; iw<nw;iw++) {
+      Return_t* restrict saved = Records[iw];
+      saved[REWEIGHT] = std::min(saved[REWEIGHT]*wgtnorm,MaxWeight) ;
+      wgt_tot+= saved[REWEIGHT];
     }
     myComm->allreduce(wgt_tot);
 
     for (int i=0; i<SumValue.size(); i++) SumValue[i]=0.0;
     CSWeight=wgt_tot=1.0/wgt_tot;
-    int nw=W.getActiveWalkers();
     for (int iw=0; iw<nw;iw++) {
       const Return_t* restrict saved = &(Records(iw,0));
       Return_t weight=saved[REWEIGHT]*wgt_tot;
@@ -137,12 +143,22 @@ namespace qmcplusplus {
       delete_iter(dLogPsi.begin(),dLogPsi.end());
       delete_iter(d2LogPsi.begin(),d2LogPsi.end());
       int nptcl=W.getTotalNum();
-      int nwtot=wPerNode[NumThreads];
+      int nwtot=W.getActiveWalkers();
       dLogPsi.resize(nwtot,0);
       d2LogPsi.resize(nwtot,0);
       for(int i=0; i<nwtot; ++i) dLogPsi[i] =new ParticleGradient_t (nptcl);
       for(int i=0; i<nwtot; ++i) d2LogPsi[i]=new ParticleLaplacian_t(nptcl);
     }
+    PointerPool<Walker_t::cuda_Buffer_t > pool;
+    // Reserve memory only for optimizable parts of the wavefunction
+    Psi.reserve (pool, true);
+    app_log() << "Each walker requires " << pool.getTotalSize() * sizeof(CudaRealType)
+	      << " bytes in GPU memory.\n";
+    for (int iw=0; iw<W.WalkerList.size(); iw++) {
+      Walker_t &walker = *(W.WalkerList[iw]);
+      pool.allocate(walker.cuda_DataSet);
+    }
+    app_log() << "Successfully allocated walkers.\n";
   }
 
 
@@ -152,32 +168,51 @@ namespace qmcplusplus {
   QMCCostFunctionCUDA::checkConfigurations() {
     RealType et_tot=0.0;
     RealType e2_tot=0.0;
-    
-    ParticleSet::ParticleLaplacian_t pdL(W.getTotalNum());
-    ParticleSet::ParticleGradient_t pdG(W.getTotalNum());
+
     int numWalkers=W.getActiveWalkers();
-    
     Records.resize(numWalkers,6);
     
+    TempHDerivRecords.resize(numWalkers,vector<Return_t>(NumOptimizables,0));
+    TempDerivRecords.resize(numWalkers,vector<Return_t>(NumOptimizables,0));
+    LogPsi_Derivs.resize(numWalkers, NumOptimizables);
+    LocE_Derivs.resize  (numWalkers, NumOptimizables);
+
     typedef MCWalkerConfiguration::Walker_t Walker_t;
-    //int nat = W.getTotalNum();
-    //int totalElements=W.getTotalNum()*OHMMS_DIM;
     Return_t e0=0.0;
     Return_t e2=0.0;
+    vector<RealType> logPsi_free(numWalkers), d2logPsi_free(numWalkers);
+    vector<GradType> dlogPsi_free(numWalkers);
+    Psi.evaluateDeltaLog(W, logPsi_free);
+    Psi.evaluateOptimizableLog (W, logPsi_free, dlogPsi_opt, d2logPsi_opt);
+    int nat = W.getTotalNum();
     MCWalkerConfiguration::iterator it(W.begin()); 
     MCWalkerConfiguration::iterator it_end(W.end()); 
-    int iw=0;
-    for(; it!=it_end; ++it,++iw)  {
-      Walker_t& thisWalker(**it);
-      W.R=thisWalker.R;
-      W.update();
+    for(int iw=0; it!=it_end; ++it,++iw)  {
+      Walker_t& w(**it);
+      RealType *prop = w.getPropertyBase();
       Return_t* restrict saved= &(Records(iw,0));
-      Psi.evaluateDeltaLog(W, saved[LOGPSI_FIXED], saved[LOGPSI_FREE], *dLogPsi[iw],*d2LogPsi[iw]);
-      Return_t x= H.evaluate(W);
-      e0 += saved[ENERGY_TOT] = x;
-      e2 += x*x;
-      saved[ENERGY_FIXED] = H.getLocalPotential();
+      saved[ENERGY_TOT]   = prop[LOCALENERGY];
+      saved[ENERGY_FIXED] = prop[LOCALPOTENTIAL];
+      saved[LOGPSI_FIXED] = prop[LOGPSI] - logPsi_free[iw];
+      saved[LOGPSI_FREE]  = logPsi_free[iw];
+      e0 += prop[LOCALENERGY];
+      e2 += prop[LOCALENERGY] * prop[LOCALENERGY];
+      for (int iat=0; iat<nat; iat++) {
+	dlogPsi_fixed(iw, iat)  = w.Grad[iat] - dlogPsi_opt(iw,nat);
+	d2logPsi_fixed(iw, iat) = w.Lap[iat] - d2logPsi_opt(iw,nat);
+      }
     }
+//     for(int iw=0; it!=it_end; ++it,++iw)  {
+//       Walker_t& thisWalker(**it);
+//       W.R=thisWalker.R;
+//       W.update();
+//       Return_t* restrict saved= &(Records(iw,0));
+//       Psi.evaluateDeltaLog(W, saved[LOGPSI_FIXED], saved[LOGPSI_FREE], *dLogPsi[iw],*d2LogPsi[iw]);
+//       Return_t x= H.evaluate(W);
+//       e0 += saved[ENERGY_TOT] = x;
+//       e2 += x*x;
+//       saved[ENERGY_FIXED] = H.getLocalPotential();
+//     }
     et_tot+=e0;
     e2_tot+=e2;
     

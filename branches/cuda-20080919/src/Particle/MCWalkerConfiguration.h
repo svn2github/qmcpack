@@ -31,10 +31,14 @@ namespace qmcplusplus {
     ParticleSet::ParticlePos_t R;
     ParticleSet::ParticleGradient_t G;
     ParticleSet::ParticleLaplacian_t L;
+    ParticleSet::RealType LogPsi, KE, PE;
     MCSample(ParticleSet::ParticlePos_t r,
 	     ParticleSet::ParticleGradient_t g,
-	     ParticleSet::ParticleLaplacian_t l) :
-      R(r), G(g), L(l) 
+	     ParticleSet::ParticleLaplacian_t l,
+	     ParticleSet::RealType logpsi, 
+	     ParticleSet::RealType ke, 
+	     ParticleSet::RealType pe) :
+      R(r), G(g), L(l), LogPsi(logpsi), KE(ke), PE(pe)
     { }
   };
 

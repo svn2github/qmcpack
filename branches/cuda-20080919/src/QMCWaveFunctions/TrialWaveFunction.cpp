@@ -562,10 +562,12 @@ namespace qmcplusplus {
 
   void
   TrialWaveFunction::reserve
-  (PointerPool<cuda_vector<CudaRealType> > &pool)
+  (PointerPool<cuda_vector<CudaRealType> > &pool,
+   bool onlyOptimizable)
   {
-    for(int i=0; i<Z.size(); i++)  
-      Z[i]->reserve(pool);
+    for(int i=0; i<Z.size(); i++) 
+      if (!onlyOptimizable || Z[i]->Optimizable)
+	Z[i]->reserve(pool);
   }
 
   void 
@@ -744,6 +746,8 @@ namespace qmcplusplus {
       myTimers[ii]->stop();	
     }
   }
+
+
  void 
  TrialWaveFunction::evaluateDeltaLog (MCWalkerConfiguration &W,  
 				      vector<RealType>& logpsi_fixed,
@@ -791,6 +795,28 @@ namespace qmcplusplus {
        W[iw]->Lap[ptcl]  += fixedL(iw, ptcl);
      }
  }
+
+ void 
+ TrialWaveFunction::evaluateOptimizableLog (MCWalkerConfiguration &W,  
+					    vector<RealType>& logpsi_opt,  
+					    GradMatrix_t&  optG,
+					    ValueMatrix_t& optL)
+ {
+   for (int iw=0; iw<W.getActiveWalkers(); iw++) 
+     logpsi_opt[iw] = RealType();
+   optG = GradType();
+   optL = RealType();
+   
+   // Sum optimizable part of log Psi
+   for (int i=0,ii=RECOMPUTE_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
+     myTimers[ii]->start();
+     if (Z[i]->Optimizable) {
+       Z[i]->addLog(W, logpsi_opt);
+       Z[i]->gradLapl(W, optG, optL);
+     }
+   }
+ }
+  
 
 
   void 

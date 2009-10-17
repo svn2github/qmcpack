@@ -32,6 +32,7 @@ namespace qmcplusplus {
   class QMCCostFunctionCUDA: public QMCCostFunctionBase, public CloneManager
   {
   public:
+    typedef MCWalkerConfiguration::Walker_t Walker_t;
 
     ///Constructor.
     QMCCostFunctionCUDA( MCWalkerConfiguration& w, TrialWaveFunction& psi, 
@@ -46,11 +47,15 @@ namespace qmcplusplus {
     Return_t fillOverlapHamiltonianMatrix(Matrix<Return_t>& Hamiltonian, Matrix<Return_t>& Overlap);
   protected:
     Matrix<Return_t> Records;
-    
+    typedef TrialWaveFunction::ValueMatrix_t ValueMatrix_t;
+    typedef TrialWaveFunction::GradMatrix_t  GradMatrix_t;
      /** Temp derivative properties and Hderivative properties of all the walkers
      */
     vector<vector<Return_t> >  TempDerivRecords;
     vector<vector<Return_t> >  TempHDerivRecords;
+    ValueMatrix_t LogPsi_Derivs, LocE_Derivs;
+    ValueMatrix_t d2logPsi_opt, d2logPsi_fixed;
+    GradMatrix_t   dlogPsi_opt,  dlogPsi_fixed;
     Return_t CSWeight;
     void resetPsi(bool final_reset=false);
     Return_t correlatedSampling();

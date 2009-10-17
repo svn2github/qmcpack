@@ -142,7 +142,8 @@ namespace qmcplusplus {
     /////////////////////////
     void recompute (MCWalkerConfiguration &W, bool firstTime=true);
 
-    void reserve (PointerPool<cuda_vector<CudaRealType> > &pool);
+    void reserve (PointerPool<cuda_vector<CudaRealType> > &pool,
+		  bool onlyOptimizable=false);
 
     void getGradient (MCWalkerConfiguration &W, int iat,
 		      vector<GradType> &grad);
@@ -188,6 +189,12 @@ namespace qmcplusplus {
 			  vector<RealType>& logpsi_opt,
 			  GradMatrix_t&  fixedG,
 			  ValueMatrix_t& fixedL);
+
+ void evaluateOptimizableLog (MCWalkerConfiguration &W,  
+			      vector<RealType>& logpsi_opt,  
+			      GradMatrix_t&  optG,
+			      ValueMatrix_t& optL);
+
 
     void evaluateDerivatives (MCWalkerConfiguration &W, 
 			      const opt_variables_type& optvars,
