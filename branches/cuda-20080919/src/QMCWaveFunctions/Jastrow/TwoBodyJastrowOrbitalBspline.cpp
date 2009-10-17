@@ -401,6 +401,8 @@ namespace qmcplusplus {
       maxCoefs = ((maxCoefs+15)/16)*16;
       SplineDerivsHost.resize(2*maxCoefs*nw);
       SplineDerivsGPU.resize(2*maxCoefs*nw);
+      DerivListHost.resize(nw);
+      DerivListGPU.resize(nw);
       for (int iw=0; iw<nw; iw++)
 	DerivListHost[iw] = SplineDerivsGPU.data() + 2*iw*maxCoefs;
       DerivListGPU = DerivListHost;

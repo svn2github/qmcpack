@@ -827,7 +827,8 @@ namespace qmcplusplus {
   {
     for (int i=0,ii=DERIVS_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {
       myTimers[ii]->start();
-      Z[i]->evaluateDerivatives(W, optvars, dlogpsi, dhpsioverpsi);
+      if (Z[i]->Optimizable)
+	Z[i]->evaluateDerivatives(W, optvars, dlogpsi, dhpsioverpsi);
       myTimers[ii]->stop();	
     }
   }

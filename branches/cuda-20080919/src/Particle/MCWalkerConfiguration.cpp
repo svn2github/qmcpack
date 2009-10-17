@@ -262,7 +262,7 @@ void MCWalkerConfiguration::saveEnsemble()
   while(it != it_end) {
     //    SampleStack.push_back(new ParticlePos_t((*it)->R));
     RealType *prop = (*it)->getPropertyBase();
-    RealType logpsi = prop[LOCALENERGY];
+    RealType logpsi = prop[LOGPSI];
     RealType PE     = prop[LOCALPOTENTIAL];
     RealType KE     = prop[LOCALENERGY] - PE;
     SampleStack.push_back(MCSample((*it)->R, (*it)->Grad, (*it)->Lap,
@@ -277,7 +277,7 @@ void MCWalkerConfiguration::saveEnsemble(iterator first, iterator last)
   {
     //SampleStack.push_back(new ParticlePos_t((*first)->R));
     RealType *prop = (*first)->getPropertyBase();
-    RealType logpsi = prop[LOCALENERGY];
+    RealType logpsi = prop[LOGPSI];
     RealType PE     = prop[LOCALPOTENTIAL];
     RealType KE     = prop[LOCALENERGY] - PE;
     SampleStack.push_back(MCSample((*first)->R, (*first)->Grad, (*first)->Lap,
@@ -302,8 +302,13 @@ void MCWalkerConfiguration::loadEnsemble()
     awalker->R    = SampleStack[i].R;
     awalker->Grad = SampleStack[i].G;
     awalker->Lap  = SampleStack[i].L;
-    awalker->Properties.copy(prop);
+    RealType *prop = awalker->getPropertyBase();
+    prop[LOGPSI]         = SampleStack[i].LogPsi;
+    prop[LOCALENERGY]    = SampleStack[i].KE + SampleStack[i].PE;
+    //    cerr << "Loadin LOCALENERGY = " << prop[LOCALENERGY] << endl;
+    prop[LOCALPOTENTIAL] = SampleStack[i].PE;
     WalkerList[i]=awalker;
+    //    awalker->Properties.copy(prop);
     //delete SampleStack[i];
   }
   SampleStack.clear();
@@ -326,6 +331,7 @@ void MCWalkerConfiguration::loadEnsemble(MCWalkerConfiguration& other)
     RealType *prop = awalker->getPropertyBase();
     prop[LOGPSI]         = SampleStack[i].LogPsi;
     prop[LOCALENERGY]    = SampleStack[i].KE + SampleStack[i].PE;
+    cerr << "Loadin LOCALENERGY = " << prop[LOCALENERGY] << endl;
     prop[LOCALPOTENTIAL] = SampleStack[i].PE;
     other.WalkerList.push_back(awalker);
     //    delete SampleStack[i];

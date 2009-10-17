@@ -50,13 +50,16 @@ namespace qmcplusplus {
     MCWalkerConfiguration::iterator it_end(W.end());
     int iw=0;
     int numParams = OptVariablesForPsi.size();
+    cerr << "numParams = " << numParams << endl;
     int numPtcl   = W.getTotalNum();
 
-    vector<RealType> logpsi_opt(nw), logpsi_fixed(nw);
+    vector<RealType> logpsi_new(nw), logpsi_fixed(nw);
     TrialWaveFunction::ValueMatrix_t dlogpsi(nw, numParams), dhpsioverpsi(nw, numParams);
     TrialWaveFunction::GradMatrix_t  fixedG(nw, numPtcl);
     TrialWaveFunction::ValueMatrix_t fixedL(nw, numPtcl);
-    Psi.evaluateDeltaLog(W, logpsi_opt, logpsi_fixed, fixedG, fixedL);
+    TrialWaveFunction::GradMatrix_t  newG(nw, numPtcl);
+    TrialWaveFunction::ValueMatrix_t newL(nw, numPtcl);
+    Psi.evaluateOptimizableLog(W, logpsi_new, newG, newL);
     Psi.evaluateDerivatives(W, OptVariablesForPsi,dlogpsi, dhpsioverpsi);
 
     for (; it!= it_end;++it,++iw) {
@@ -158,6 +161,8 @@ namespace qmcplusplus {
       Walker_t &walker = *(W.WalkerList[iw]);
       pool.allocate(walker.cuda_DataSet);
     }
+    W.copyWalkersToGPU();
+    W.updateLists_GPU();
     app_log() << "Successfully allocated walkers.\n";
   }
 
@@ -171,13 +176,17 @@ namespace qmcplusplus {
 
     int numWalkers=W.getActiveWalkers();
     Records.resize(numWalkers,6);
+    int nptcl = W.getTotalNum();
+    dlogPsi_opt.resize (numWalkers, nptcl);
+    d2logPsi_opt.resize(numWalkers, nptcl);
+    dlogPsi_fixed.resize (numWalkers, nptcl);
+    d2logPsi_fixed.resize(numWalkers, nptcl);
     
     TempHDerivRecords.resize(numWalkers,vector<Return_t>(NumOptimizables,0));
     TempDerivRecords.resize(numWalkers,vector<Return_t>(NumOptimizables,0));
     LogPsi_Derivs.resize(numWalkers, NumOptimizables);
     LocE_Derivs.resize  (numWalkers, NumOptimizables);
 
-    typedef MCWalkerConfiguration::Walker_t Walker_t;
     Return_t e0=0.0;
     Return_t e2=0.0;
     vector<RealType> logPsi_free(numWalkers), d2logPsi_free(numWalkers);
