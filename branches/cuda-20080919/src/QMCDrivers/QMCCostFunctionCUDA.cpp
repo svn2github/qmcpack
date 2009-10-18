@@ -43,6 +43,8 @@ namespace qmcplusplus {
     Return_t NSm1 = 1.0/NumSamples;
     int nw = W.getActiveWalkers();
 
+
+
     //#pragma omp parallel reduction(+:wgt_tot)
     Return_t eloc_new;
     //int totalElements=W.getTotalNum()*OHMMS_DIM;
@@ -50,49 +52,76 @@ namespace qmcplusplus {
     MCWalkerConfiguration::iterator it_end(W.end());
     int iw=0;
     int numParams = OptVariablesForPsi.size();
-    cerr << "numParams = " << numParams << endl;
     int numPtcl   = W.getTotalNum();
 
-    vector<RealType> logpsi_new(nw), logpsi_fixed(nw);
+    vector<RealType> logpsi_new(nw), logpsi_fixed(nw), KE(nw);
     TrialWaveFunction::ValueMatrix_t dlogpsi(nw, numParams), dhpsioverpsi(nw, numParams);
     TrialWaveFunction::GradMatrix_t  fixedG(nw, numPtcl);
     TrialWaveFunction::ValueMatrix_t fixedL(nw, numPtcl);
     TrialWaveFunction::GradMatrix_t  newG(nw, numPtcl);
     TrialWaveFunction::ValueMatrix_t newL(nw, numPtcl);
     Psi.evaluateOptimizableLog(W, logpsi_new, newG, newL);
-    Psi.evaluateDerivatives(W, OptVariablesForPsi,dlogpsi, dhpsioverpsi);
+    RealType factor = samplePsi2 ? 2.0 : 1.0;
+    // Add optimizable and non-optimizable gradients and Laplacians
 
-    for (; it!= it_end;++it,++iw) {
-      ParticleSet::Walker_t& thisWalker(**it);
-      W.R=thisWalker.R;
-      W.update();
-      Return_t logpsi = Psi.evaluateDeltaLog(W);
-      W.G += *dLogPsi[iw];
-      W.L += *d2LogPsi[iw];
-      
-      Return_t* restrict saved = &(Records(iw,0));
-      
-      RealType KEtemp = H_KE.evaluate(W);
-      eloc_new = KEtemp + saved[ENERGY_FIXED];
-      Return_t weight;
-      if (samplePsi2) weight = std::exp(2.0*(logpsi-saved[LOGPSI_FREE])) ;
-      else weight = std::exp( logpsi-saved[LOGPSI_FREE] ) ;
-      if (KEtemp<MinKE) weight=0.0;
-      saved[ENERGY_NEW]=eloc_new;
-      saved[REWEIGHT]=weight;
-      
-      vector<Return_t> &Dsaved=  TempDerivRecords[iw];
-      vector<Return_t> &HDsaved= TempHDerivRecords[iw];
-      Psi.evaluateDerivatives
-	(W,KEtemp,OptVariablesForPsi,Dsaved,HDsaved);
-      
-      wgt_tot+=weight;
-      wgt_tot2+=weight*weight;
+
+
+    for (int iw=0; iw<nw; iw++)
+      for (int iat=0; iat<numPtcl; iat++) {
+	ParticleSet::Walker_t& walker = *(W[iw]);
+	walker.Grad[iat] = newG(iw, iat) + dlogPsi_fixed(iw, iat);
+	walker.Lap[iat] = newL(iw, iat) + d2logPsi_fixed(iw, iat);
+      }
+
+    H_KE.evaluate (W, KE);
+    Psi.evaluateDerivatives(W, OptVariablesForPsi,dlogpsi, dhpsioverpsi);
+    for (int iw=0; iw<nw; iw++) {
+      ParticleSet::Walker_t& walker = *(W[iw]);
+      Return_t* restrict saved= &(Records(iw,0));
+      RealType weight = std::exp(factor*(logpsi_new[iw] - saved[LOGPSI_FREE]));
+      RealType eloc_new = KE[iw] + saved[ENERGY_FIXED];
+      saved[ENERGY_NEW] = eloc_new;
+      saved[REWEIGHT]   = weight;
+      for (int ip=0; ip<NumOptimizables; ip++) {
+	TempDerivRecords[iw][ip] = dlogpsi(iw,ip);
+	TempHDerivRecords[iw][ip] = dhpsioverpsi(iw,ip);
+      }
     }
+
+//     for (; it!= it_end;++it,++iw) {
+//       ParticleSet::Walker_t& thisWalker(**it);
+//       W.R=thisWalker.R;
+//       W.update();
+//       Return_t logpsi = Psi.evaluateDeltaLog(W);
+//       W.G += *dLogPsi[iw];
+//       W.L += *d2LogPsi[iw];
+      
+//       Return_t* restrict saved = &(Records(iw,0));
+      
+//       RealType KEtemp = H_KE.evaluate(W);
+//       eloc_new = KEtemp + saved[ENERGY_FIXED];
+//       Return_t weight;
+//       if (samplePsi2) weight = std::exp(2.0*(logpsi-saved[LOGPSI_FREE])) ;
+//       else weight = std::exp( logpsi-saved[LOGPSI_FREE] ) ;
+//       if (KEtemp<MinKE) weight=0.0;
+//       saved[ENERGY_NEW]=eloc_new;
+//       saved[REWEIGHT]=weight;
+      
+//       vector<Return_t> &Dsaved=  TempDerivRecords[iw];
+//       vector<Return_t> &HDsaved= TempHDerivRecords[iw];
+//        Psi.evaluateDerivatives
+// 	 (W,KEtemp,OptVariablesForPsi,Dsaved,HDsaved);
+      
+//       wgt_tot+=weight;
+//       wgt_tot2+=weight*weight;
+//     }
     
     //this is MPI barrier
     //OHMMS::Controller->barrier();
     //collect the total weight for normalization and apply maximum weight
+
+
+
     myComm->allreduce(wgt_tot);
     myComm->allreduce(wgt_tot2);
 
@@ -104,7 +133,7 @@ namespace qmcplusplus {
       wgt_tot+= saved[REWEIGHT];
     }
     myComm->allreduce(wgt_tot);
-
+    
     for (int i=0; i<SumValue.size(); i++) SumValue[i]=0.0;
     CSWeight=wgt_tot=1.0/wgt_tot;
     for (int iw=0; iw<nw;iw++) {
@@ -123,7 +152,8 @@ namespace qmcplusplus {
     }
     //collect everything
     myComm->allreduce(SumValue);
-
+    
+    RealType effective_walkers = SumValue[SUM_WGT]*SumValue[SUM_WGT]/SumValue[SUM_WGTSQ];
     return SumValue[SUM_WGT]*SumValue[SUM_WGT]/SumValue[SUM_WGTSQ];
   }
 
@@ -280,7 +310,10 @@ namespace qmcplusplus {
       resetPsi();
 
       //evaluate new local energies and derivatives
+      cerr << "Before correlatedSampling.\n";
       NumWalkersEff=correlatedSampling();
+      return;
+      cerr << "After correlatedSampling.\n";
       //Estimators::accumulate has been called by correlatedSampling
     
     

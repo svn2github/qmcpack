@@ -17,6 +17,7 @@
 #define QMCPLUSPLUS_GENERIC_ONEBODYJASTROW_H
 #include "Configuration.h"
 #include "QMCWaveFunctions/OrbitalBase.h"
+#include "QMCWaveFunctions/Jastrow/DiffOneBodyJastrowOrbital.h"
 #include "Particle/DistanceTableData.h"
 #include "Particle/DistanceTable.h"
 
@@ -140,7 +141,7 @@ namespace qmcplusplus {
       for(int i=0; i<Funique.size(); ++i)
         if(Funique[i]) Funique[i]->checkOutVariables(active);
 
-      //if(dPsi) dPsi->checkOutVariables(active);
+      if(dPsi) dPsi->checkOutVariables(active);
     }
 
     ///reset the value of all the unique Two-Body Jastrow functions
@@ -405,6 +406,10 @@ namespace qmcplusplus {
       {
         if(Funique[i]) j1copy->addFunc(i,new FT(*Funique[i]));
       }
+      if (dPsi) {
+	j1copy->dPsi =  dPsi->makeClone(tqp);
+      }
+
       //j1copy->OrbitalName=OrbitalName+"_clone";
       return j1copy;
     }

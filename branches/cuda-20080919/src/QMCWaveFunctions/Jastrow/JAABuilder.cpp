@@ -21,6 +21,7 @@
 #include "QMCWaveFunctions/Jastrow/McMillanJ2Functor.h"
 #include "QMCWaveFunctions/Jastrow/GaussianFunctor.h"
 #include "QMCWaveFunctions/Jastrow/TwoBodyJastrowOrbital.h"
+#include "QMCWaveFunctions/Jastrow/DiffTwoBodyJastrowOrbital.h"
 #include "OhmmsData/AttributeSet.h"
 
 namespace qmcplusplus {
@@ -50,6 +51,8 @@ namespace qmcplusplus {
     const SpeciesSet& species(targetPtcl.getSpeciesSet());
     typedef TwoBodyJastrowOrbital<FN> JeeType;
     JeeType *J2 = new JeeType(targetPtcl);
+    typedef DiffTwoBodyJastrowOrbital<FN> dJ2Type;
+    dJ2Type *dJ2 = new dJ2Type(targetPtcl);
 
     RealType rc=targetPtcl.Lattice.WignerSeitzRadius;
     int pairs=0;
@@ -79,6 +82,7 @@ namespace qmcplusplus {
         j->cutoff_radius=rc;
         j->put(cur);
         J2->addFunc(pairID,ia,ib,j);
+	dJ2->addFunc(pairID,ia,ib,j);
         ++pairs;
       }
       cur = cur->next;
@@ -86,6 +90,7 @@ namespace qmcplusplus {
 
     if(pairs)
     {
+      J2->dPsi=dJ2;
       string j2name="J2_"+jname;
       targetPsi.addOrbital(J2,j2name);
       return true;

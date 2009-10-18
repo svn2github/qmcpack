@@ -526,6 +526,7 @@ namespace qmcplusplus {
     }
     for(int i=0; i<myTimers.size(); i++)
       myclone->myTimers[i]->set_name(myTimers[i]->get_name());
+    myclone->OneOverM=OneOverM;
     return myclone;
 
   }
@@ -537,8 +538,11 @@ namespace qmcplusplus {
 					      vector<RealType>& dhpsioverpsi)
   {
     for(int i=0; i<Z.size(); i++) {
-      if (Z[i]->dPsi) (Z[i]->dPsi)->evaluateDerivatives( P, ke0, optvars, dlogpsi, dhpsioverpsi); 
-      else Z[i]->evaluateDerivatives( P, ke0, optvars, dlogpsi, dhpsioverpsi);
+      if (Z[i]->dPsi) 
+	(Z[i]->dPsi)->evaluateDerivatives( P, ke0, optvars, dlogpsi, dhpsioverpsi); 
+      else 
+	Z[i]->evaluateDerivatives( P, ke0, optvars, dlogpsi, dhpsioverpsi);
+
     }
     //orbitals do not know about mass of particle.
     for(int i=0;i<dhpsioverpsi.size();i++) dhpsioverpsi[i]*=OneOverM;

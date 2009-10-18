@@ -33,14 +33,16 @@ namespace qmcplusplus {
     w_en(0.0), w_var(0.0), w_abs(0.0), MinKE(-100.0),samplePsi2(true),
     CorrelationFactor(0.0), m_wfPtr(NULL), m_doc_out(NULL), msg_stream(0), debug_stream(0)
   { 
+    
 
     //paramList.resize(10); 
     //costList.resize(10,0.0); 
 
-    //default: when walkers below 90% stop
-    MinNumWalkers = 0.9;
+    //default: when walkers below 50% stop
+    MinNumWalkers = 0.5;
 
     H_KE.addOperator(H.getHamiltonian("Kinetic"),"Kinetic");
+    //H_KE.addObservables(W);
     H_KE.addObservables(W.PropertyList);
 
     SumValue.resize(SUM_INDEX_SIZE,0.0);
@@ -52,7 +54,6 @@ namespace qmcplusplus {
     debug_stream->setf(ios::scientific, ios::floatfield);
     debug_stream->precision(8);
 #endif
-
   }
 
   /** Clean up the vector */
@@ -461,10 +462,11 @@ QMCCostFunctionBase::Return_t QMCCostFunctionBase::Cost() {
   bool
   QMCCostFunctionBase::put(xmlNodePtr q) {
 
-    string useWeightStr("no");
+    string useWeightStr("yes");
     string writeXmlPerStep("no");
+    
     ParameterSet m_param;
-    m_param.add(useWeightStr,"useWeight","string");
+    //m_param.add(useWeightStr,"useWeight","string");
     m_param.add(writeXmlPerStep,"dumpXML","string");
     m_param.add(PowerE,"power","int");
     m_param.add(CorrelationFactor,"correlation","scalar");
@@ -475,7 +477,8 @@ QMCCostFunctionBase::Return_t QMCCostFunctionBase::Cost() {
     m_param.add(useWeightStr,"reweight","string");
     m_param.put(q);
 
-    UseWeight = (useWeightStr == "yes");
+    samplePsi2 = (useWeightStr != "psi");
+    app_log()<<"  samplePsi2 is "<<samplePsi2<<endl;
     Write2OneXml = (writeXmlPerStep == "no");
 
     xmlNodePtr qsave=q;
@@ -839,6 +842,8 @@ QMCCostFunctionBase::Return_t QMCCostFunctionBase::Cost() {
     QMCCostFunctionBase::lineoptimization(const vector<Return_t>& x0, const vector<Return_t>& gr, Return_t val0,
         Return_t&  dl, Return_t& val_proj, Return_t& lambda_max)
     {
+      return false;
+
       const int maxclones=3;
       const int max_poly=3;
       //Matrix<Return_t> js(maxclones+1,x0.size());
@@ -915,7 +920,8 @@ QMCCostFunctionBase::Return_t QMCCostFunctionBase::Cost() {
       //Psi.reportStatus(app_log());
       //return false;
       return true;
-    }
+    }    
+
 }
 /***************************************************************************
  * $RCSfile$   $Author: jnkim $

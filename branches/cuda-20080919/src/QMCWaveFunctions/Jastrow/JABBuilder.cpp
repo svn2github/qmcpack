@@ -23,6 +23,8 @@
 #include "QMCWaveFunctions/Jastrow/ModPadeFunctor.h"
 #include "QMCWaveFunctions/Jastrow/BsplineFunctor.h"
 #include "QMCWaveFunctions/Jastrow/OneBodyJastrowOrbital.h"
+#include "QMCWaveFunctions/Jastrow/DiffOneBodyJastrowOrbital.h"
+
 
 namespace qmcplusplus {
 
@@ -78,9 +80,13 @@ namespace qmcplusplus {
 
     typedef OneBodyJastrowOrbital<FN> JneType;
     JneType* J1 = new JneType(*sourcePtcl,targetPtcl);
+    typedef DiffOneBodyJastrowOrbital<FN> dJ1Type;
+    dJ1Type *dJ1 = new dJ1Type(*sourcePtcl, targetPtcl);
     for(int ig=0; ig<ng; ig++) {
       J1->addFunc(ig,jastrow[ig]);
+      dJ1->addFunc(ig,jastrow[ig]);
     }
+    J1->dPsi=dJ1;
 
     string j1name="J1_"+jname;
     targetPsi.addOrbital(J1,j1name);

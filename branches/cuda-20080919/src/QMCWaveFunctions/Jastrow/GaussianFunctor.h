@@ -132,6 +132,53 @@ namespace qmcplusplus {
       else return 0.0;
     }
 
+    inline bool
+    evaluateDerivatives(real_type r, vector<TinyVector<real_type,3> >& derivs)
+    {
+      if (r >= RC) return false;
+      else {
+	real_type rcmr =(c1-r);
+	real_type rcmr2 =rcmr*rcmr;
+	real_type r2   =r*r;
+	real_type expart = std::exp(c0*r2);
+	real_type expartRC = std::exp(c0*rcmr2);
+	real_type Am1 = 1.0/(A);
+	real_type cm2 = 1.0/(C*C);
+	real_type cm3 = 1.0/(C*C*C);
+	real_type cm4 = cm2*cm2;
+	real_type cm5 = cm2*cm3;
+	//Derivs of function
+	//
+	//  df_dA
+	derivs[0][0]= (expart+expartRC)+c2*Am1 ;
+	//  df_dC
+	derivs[1][0]= 2*A*expart*r2*cm3 - 2.0*c2*RC*RC*cm3 + 
+	  2*A*expartRC*rcmr2*cm3 ;
+	//  df_dRC
+	derivs[2][0]= 2.0*c2*RC*cm2 - 2.0*expartRC*rcmr*cm2 ;
+	//grad derivs
+	//  dr_df_dA
+	derivs[0][1]= Am1*c3*(r*expart - rcmr*expartRC) ;
+	//  dr_df_dC
+	derivs[1][1]= 4.0*A*(expart*r*cm3*(1.0-r2*cm2)-
+			     expartRC*rcmr*cm3*(1.0-rcmr2*cm2)) ;
+	//  dr_df_dRC
+	derivs[2][1]= 4.0*A*expartRC*cm2*(1.0-2.0*rcmr2*cm2) ;
+	//lap derivs
+	//  dr2_df_dA
+	derivs[0][2]= Am1*((c4*r2+c3)*expart + (c4*rcmr2 + c3)*expartRC);
+	//  dr2_df_dC
+	derivs[1][2]= 4.0*A*cm3*
+	  (expart*(1.0-5.0*r2*cm2+2.0*r2*r2*cm4)+
+	   expartRC*(1.0-5.0*rcmr2*cm2+2.0*rcmr2*rcmr2*cm4)) ;
+	//  dr2_df_dRC
+	derivs[2][2]= 24*A*expartRC*rcmr*cm4 - 
+	  16.0*A*rcmr*rcmr2*expartRC*cm3*cm3;
+	return true;
+      }
+      }
+
+
       /** Read in the parameter from the xml input file.
      * @param cur current xmlNode from which the data members are reset
        */
