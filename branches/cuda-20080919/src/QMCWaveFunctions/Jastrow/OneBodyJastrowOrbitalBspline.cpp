@@ -347,7 +347,14 @@ namespace qmcplusplus {
       }
     }
   }
-  
+
+  void 
+  OneBodyJastrowOrbitalBspline::resetParameters(const opt_variables_type& active) 
+  {
+    OneBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> >::resetParameters(active);
+    for (int i=0; i<NumCenterGroups; i++)
+      GPUSplines[i]->set(*Fs[i]);
+  }  
 
   void
   OneBodyJastrowOrbitalBspline::evaluateDerivatives 

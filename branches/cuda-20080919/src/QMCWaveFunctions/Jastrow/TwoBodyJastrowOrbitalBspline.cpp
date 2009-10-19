@@ -384,6 +384,14 @@ namespace qmcplusplus {
   }
 
 
+  void 
+  TwoBodyJastrowOrbitalBspline::resetParameters(const opt_variables_type& active) 
+  {
+    TwoBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> >::resetParameters(active);
+    for (int i=0; i<NumGroups*NumGroups; i++)
+      GPUSplines[i]->set(*F[i]);
+  }
+
   void
   TwoBodyJastrowOrbitalBspline::evaluateDerivatives 
   (MCWalkerConfiguration &W, const opt_variables_type& optvars,

@@ -52,7 +52,7 @@ namespace qmcplusplus {
     typedef BsplineFunctor<OrbitalBase::RealType> FT;
     typedef ParticleSet::Walker_t     Walker_t;
 
-    
+    void resetParameters(const opt_variables_type& active);
     void checkInVariables(opt_variables_type& active);
     void addFunc(int ib, FT* j);
     void recompute(MCWalkerConfiguration &W, bool firstTime);

@@ -196,6 +196,7 @@ namespace qmcplusplus {
     myComm->allreduce(SumValue);
     
     RealType effective_walkers = SumValue[SUM_WGT]*SumValue[SUM_WGT]/SumValue[SUM_WGTSQ];
+    cerr << "EffectiveWalker = " << effective_walkers << endl;
     return SumValue[SUM_WGT]*SumValue[SUM_WGT]/SumValue[SUM_WGTSQ];
   }
 

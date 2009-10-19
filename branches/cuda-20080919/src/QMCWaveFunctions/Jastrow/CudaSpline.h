@@ -18,7 +18,7 @@ namespace qmcplusplus {
       host_vector<T> coefs_h(num_coefs);
       for (int i=0; i<num_coefs; i++) {
 	coefs_h[i] = func.SplineCoefs[i];
-	app_log() << "coefs_h[" << i << "] = " << coefs_h[i] << endl;
+	// app_log() << "coefs_h[" << i << "] = " << coefs_h[i] << endl;
       }
       coefs = coefs_h;
       rMax = func.Rcut;

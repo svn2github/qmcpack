@@ -70,6 +70,8 @@ namespace qmcplusplus {
     void NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
 		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);
     
+    void resetParameters(const opt_variables_type& active);
+    
     // Evaluates the derivatives of log psi and laplacian log psi w.r.t.
     // the parameters for optimization.  First index of the ValueMatrix is
     // the parameter.  The second is the walker.
