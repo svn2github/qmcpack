@@ -66,23 +66,50 @@ namespace qmcplusplus {
 
 
 
-    for (int iw=0; iw<nw; iw++)
+    for (int iw=0; iw<nw; iw++) {
+      ParticleSet::Walker_t& walker = *(W[iw]);
       for (int iat=0; iat<numPtcl; iat++) {
-	ParticleSet::Walker_t& walker = *(W[iw]);
 	walker.Grad[iat] = newG(iw, iat) + dlogPsi_fixed(iw, iat);
-	walker.Lap[iat] = newL(iw, iat) + d2logPsi_fixed(iw, iat);
+	walker.Lap[iat]  = newL(iw, iat) + d2logPsi_fixed(iw, iat);	
       }
+      // W.R = walker.R;
+      // W.update();
+      // Return_t logpsi=Psi.evaluateDeltaLog(W);
+      // fprintf (stderr, "iw=%4d deltaLog CPU = %12.6e  deltaLog GPU = %12.6e\n",
+      // 	       iw, logpsi, logpsi_new[iw]);
+    }
 
     H_KE.evaluate (W, KE);
-    Psi.evaluateDerivatives(W, OptVariablesForPsi,d_logpsi_dalpha, d_hpsioverpsi_dalpha);
-    FILE *fout = fopen ("VarDerivs.dat", "w");
+    Psi.evaluateDerivatives(W, OptVariablesForPsi,
+			    d_logpsi_dalpha, d_hpsioverpsi_dalpha);
+    
     for (int iw=0; iw<nw; iw++) {
-      for (int iv=0; iv<numParams; iv++)
-	fprintf (fout, "%12.6e %12.6e ", d_logpsi_dalpha(iw,iv), d_hpsioverpsi_dalpha(iw,iv));
-      fprintf (fout, "\n");
+      ParticleSet::Walker_t& walker = *(W[iw]);
+      W.R = walker.R;
+      W.update();
+      //Return_t logpsi=Psi.evaluateDeltaLog(W);
+      vector<RealType> d_alpha_logpsi_CPU(numParams);
+      vector<RealType> d_alpha_hpsioverpsi_CPU(numParams);
+
+      Psi.evaluateDerivatives(W,0.0,OptVariablesForPsi,d_alpha_logpsi_CPU,
+			      d_alpha_hpsioverpsi_CPU);
+      fprintf (stderr, "iw=%4d GPU:  ", iw);
+      for (int ip=0; ip<numParams; ip++)
+	fprintf (stderr, "%10.4f ", d_logpsi_dalpha(iw, ip));
+      fprintf (stderr, "\niw=%4d CPU:  ", iw);
+      for (int ip=0; ip<numParams; ip++)
+	fprintf (stderr, "%10.4f ", d_alpha_logpsi_CPU[ip]);
+      fprintf (stderr, "\n");
+      
     }
-    fclose(fout);
-    abort();
+
+//     FILE *fout = fopen ("VarDerivs.dat", "w");
+//     for (int iw=0; iw<nw; iw++) {
+//       for (int iv=0; iv<numParams; iv++)
+// 	fprintf (fout, "%12.6e %12.6e ", d_logpsi_dalpha(iw,iv), d_hpsioverpsi_dalpha(iw,iv));
+//       fprintf (fout, "\n");
+//     }
+//     fclose(fout);
     for (int iw=0; iw<nw; iw++) {
       ParticleSet::Walker_t& walker = *(W[iw]);
       Return_t* restrict saved= &(Records(iw,0));
@@ -318,10 +345,7 @@ namespace qmcplusplus {
       resetPsi();
 
       //evaluate new local energies and derivatives
-      cerr << "Before correlatedSampling.\n";
       NumWalkersEff=correlatedSampling();
-      return;
-      cerr << "After correlatedSampling.\n";
       //Estimators::accumulate has been called by correlatedSampling
     
     

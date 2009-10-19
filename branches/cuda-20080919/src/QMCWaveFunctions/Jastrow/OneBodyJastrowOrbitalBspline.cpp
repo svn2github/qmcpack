@@ -400,7 +400,7 @@ namespace qmcplusplus {
 	      SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+1];
 	  }
 	}
-	int varIndex = splineVars.Index[0];
+	int varIndex = splineVars.Index[1];
 	int coefIndex = 0;
 	for (int iw=0; iw<nw; iw++) {
 	  d_logpsi(iw,varIndex) += 

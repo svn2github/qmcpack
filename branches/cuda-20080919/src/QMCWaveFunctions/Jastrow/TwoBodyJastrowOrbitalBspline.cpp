@@ -437,7 +437,7 @@ namespace qmcplusplus {
 	      SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+1];
 	  }
 	}
-	int varIndex = splineVars.Index[0];
+	int varIndex = splineVars.Index[1];
 	int coefIndex = 0;
 	for (int iw=0; iw<nw; iw++) {
 	  d_logpsi(iw,varIndex) += 
@@ -445,7 +445,6 @@ namespace qmcplusplus {
 	  dlapl_over_psi(iw,varIndex) +=
 	    SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+1];
 	}
-	
 	
 	// Now, update parameters
 	// for(int p=OffSet[ptype].first,ip=0; p<OffSet[ptype].second; ++p,++ip) {

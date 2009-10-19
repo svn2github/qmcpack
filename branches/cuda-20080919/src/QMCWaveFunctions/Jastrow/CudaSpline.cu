@@ -1753,58 +1753,56 @@ two_body_derivs_kernel(T **R, T **gradLogPsi,
   	dz = r2[j][2] - r1[tid][2];
   	T dist = min_dist(dx, dy, dz, L, Linv);
 
-	if (dist < rMax)  {
-	  T s = dist * drInv;
-	  T sf = floorf (s);
-	  int index = (int)sf;
-	  T t = s - sf;
-	  T t2 = t*t;
-	  T t3 = t*t2;
-	  
-	  if (ptcl1 != ptcl2 && ptcl1 <= e1_last) {
-	    sderivs[index+0][0] += (A[0][0]*t3 + A[0][1]*t2 + A[0][2]*t + A[0][3]);
-	    sderivs[index+1][0] += (A[1][0]*t3 + A[1][1]*t2 + A[1][2]*t + A[1][3]);
-	    sderivs[index+2][0] += (A[2][0]*t3 + A[2][1]*t2 + A[2][2]*t + A[2][3]);
-	    sderivs[index+3][0] += (A[3][0]*t3 + A[3][1]*t2 + A[3][2]*t + A[3][3]);
-	  
-	    T prefact = (dx*sGrad[tid][0] + dy*sGrad[tid][1] + dz*sGrad[tid][2])/dist;
-	    T du0 = drInv * (A[4][0]*t3 + A[4][1]*t2 + A[4][2]*t + A[4][3]);
-	    T du1 = drInv * (A[5][0]*t3 + A[5][1]*t2 + A[5][2]*t + A[5][3]);
-	    T du2 = drInv * (A[6][0]*t3 + A[6][1]*t2 + A[6][2]*t + A[6][3]);
-	    T du3 = drInv * (A[7][0]*t3 + A[7][1]*t2 + A[7][2]*t + A[7][3]);
-	    // This is the dot (gradu, grad_log_psi) term.
-	    sderivs[index+0][1] += 2.0f* prefact * du0;
-	    sderivs[index+1][1] += 2.0f* prefact * du1;
-	    sderivs[index+2][1] += 2.0f* prefact * du2;
-	    sderivs[index+3][1] += 2.0f* prefact * du3;
-	    // This is the lapl u term
-	    sderivs[index+0][1] -= drInv*drInv*(A[ 8][0]*t3 + A[ 8][1]*t2 + A[ 8][2]*t + A[ 8][3]) + 2.0f*du0;
-	    sderivs[index+1][1] -= drInv*drInv*(A[ 9][0]*t3 + A[ 9][1]*t2 + A[ 9][2]*t + A[ 9][3]) + 2.0f*du1;
-	    sderivs[index+2][1] -= drInv*drInv*(A[10][0]*t3 + A[10][1]*t2 + A[10][2]*t + A[10][3]) + 2.0f*du2;
-	    sderivs[index+3][1] -= drInv*drInv*(A[11][0]*t3 + A[11][1]*t2 + A[11][2]*t + A[11][3]) + 2.0f*du3;
+	T s = dist * drInv;
+	T sf = floorf (s);
+	int index = (int)sf;
+	T t = s - sf;
+	T t2 = t*t;
+	T t3 = t*t2;
+	T v0, v1, v2, v3;
+	
+	    // sderivs[index+0][0] += (A[0][0]*t3 + A[0][1]*t2 + A[0][2]*t + A[0][3]);
+	    // sderivs[index+1][0] += (A[1][0]*t3 + A[1][1]*t2 + A[1][2]*t + A[1][3]);
+	    // sderivs[index+2][0] += (A[2][0]*t3 + A[2][1]*t2 + A[2][2]*t + A[2][3]);
+	    // sderivs[index+3][0] += (A[3][0]*t3 + A[3][1]*t2 + A[3][2]*t + A[3][3]);
+	v0 = (A[0][0]*t3 + A[0][1]*t2 + A[0][2]*t + A[0][3]);
+	v1 = (A[1][0]*t3 + A[1][1]*t2 + A[1][2]*t + A[1][3]);
+	v2 = (A[2][0]*t3 + A[2][1]*t2 + A[2][2]*t + A[2][3]);
+	v3 = (A[3][0]*t3 + A[3][1]*t2 + A[3][2]*t + A[3][3]);
+	for (int id=0; id<BS; id++) 
+	  if (tid == id && ptcl1 != ptcl2 && ptcl1 <= e1_last && (dist < rMax)) {
+	    sderivs[index+0][0] += v0;
+	    sderivs[index+1][0] += v1;
+	    sderivs[index+2][0] += v2;
+	    sderivs[index+3][0] += v3;
 	  }
-	  // du = drInv *    
-	  //   (coefs[index+0]*(A[4][0]*t3 + A[4][1]*t2 + A[4][2]*t + A[4][3]) +
-	  //    coefs[index+1]*(A[5][0]*t3 + A[5][1]*t2 + A[5][2]*t + A[5][3]) +
-	  //    coefs[index+2]*(A[6][0]*t3 + A[6][1]*t2 + A[6][2]*t + A[6][3]) +
-	  //    coefs[index+3]*(A[7][0]*t3 + A[7][1]*t2 + A[7][2]*t + A[7][3]));
 	  
-	  // d2u = drInv*drInv * 
-	  //   (coefs[index+0]*(A[ 8][0]*t3 + A[ 8][1]*t2 + A[ 8][2]*t + A[ 8][3]) +
-	  //    coefs[index+1]*(A[ 9][0]*t3 + A[ 9][1]*t2 + A[ 9][2]*t + A[ 9][3]) +
-	  //    coefs[index+2]*(A[10][0]*t3 + A[10][1]*t2 + A[10][2]*t + A[10][3]) +
-	  //    coefs[index+3]*(A[11][0]*t3 + A[11][1]*t2 + A[11][2]*t + A[11][3]));
+      // 	T prefact = (dx*sGrad[tid][0] + dy*sGrad[tid][1] + dz*sGrad[tid][2])/dist;
+      // 	T du0 = drInv * (A[4][0]*t3 + A[4][1]*t2 + A[4][2]*t + A[4][3]);
+      // 	T du1 = drInv * (A[5][0]*t3 + A[5][1]*t2 + A[5][2]*t + A[5][3]);
+      // 	T du2 = drInv * (A[6][0]*t3 + A[6][1]*t2 + A[6][2]*t + A[6][3]);
+      // 	T du3 = drInv * (A[7][0]*t3 + A[7][1]*t2 + A[7][2]*t + A[7][3]);
+      // 	// This is the dot (gradu, grad_log_psi) term.
+      // 	sderivs[index+0][1] += 2.0f* prefact * du0;
+      // 	sderivs[index+1][1] += 2.0f* prefact * du1;
+      // 	sderivs[index+2][1] += 2.0f* prefact * du2;
+      // 	sderivs[index+3][1] += 2.0f* prefact * du3;
+      // 	// This is the lapl u term
+      // 	sderivs[index+0][1] -= drInv*drInv*(A[ 8][0]*t3 + A[ 8][1]*t2 + A[ 8][2]*t + A[ 8][3]) + 2.0f*du0;
+      // 	sderivs[index+1][1] -= drInv*drInv*(A[ 9][0]*t3 + A[ 9][1]*t2 + A[ 9][2]*t + A[ 9][3]) + 2.0f*du1;
+      // 	sderivs[index+2][1] -= drInv*drInv*(A[10][0]*t3 + A[10][1]*t2 + A[10][2]*t + A[10][3]) + 2.0f*du2;
+      // 	sderivs[index+3][1] -= drInv*drInv*(A[11][0]*t3 + A[11][1]*t2 + A[11][2]*t + A[11][3]) + 2.0f*du3;
+      // }
 	  
-	}	  
-      }
+      }	  
       __syncthreads();
     }
   }
-  if (e1_first == e2_first)
+  //  if (e1_first == e2_first)
     sderivs[tid][0] *= 0.5f;
-
+  
   if (tid < 2*numCoefs) 
-    myDerivs[tid] = sderivs[0][tid];
+    myDerivs[tid] = -sderivs[0][tid];
   if (tid+BS < 2*numCoefs)
     myDerivs[tid+BS] = sderivs[0][tid+BS];
   
@@ -3331,46 +3329,49 @@ one_body_derivs_kernel(T* C, T **R, T **gradLogPsi,
   	dz = c[j][2] - r[tid][2];
   	T dist = min_dist(dx, dy, dz, L, Linv);
 
-	if (dist < rMax)  {
-	  T s = dist * drInv;
-	  T sf = floorf (s);
-	  int index = (int)sf;
-	  T t = s - sf;
-	  T t2 = t*t;
-	  T t3 = t*t2;
-	  
-	  if (eptcl <= elast) {
-	    sderivs[index+0][0] += (A[0][0]*t3 + A[0][1]*t2 + A[0][2]*t + A[0][3]);
-	    sderivs[index+1][0] += (A[1][0]*t3 + A[1][1]*t2 + A[1][2]*t + A[1][3]);
-	    sderivs[index+2][0] += (A[2][0]*t3 + A[2][1]*t2 + A[2][2]*t + A[2][3]);
-	    sderivs[index+3][0] += (A[3][0]*t3 + A[3][1]*t2 + A[3][2]*t + A[3][3]);
-	  
-	    T prefact = (dx*sGrad[tid][0] + dy*sGrad[tid][1] + dz*sGrad[tid][2])/dist;
-	    T du0 = drInv * (A[4][0]*t3 + A[4][1]*t2 + A[4][2]*t + A[4][3]);
-	    T du1 = drInv * (A[5][0]*t3 + A[5][1]*t2 + A[5][2]*t + A[5][3]);
-	    T du2 = drInv * (A[6][0]*t3 + A[6][1]*t2 + A[6][2]*t + A[6][3]);
-	    T du3 = drInv * (A[7][0]*t3 + A[7][1]*t2 + A[7][2]*t + A[7][3]);
-	    // This is the dot (gradu, grad_log_psi) term.
-	    sderivs[index+0][1] += 2.0f* prefact * du0;
-	    sderivs[index+1][1] += 2.0f* prefact * du1;
-	    sderivs[index+2][1] += 2.0f* prefact * du2;
-	    sderivs[index+3][1] += 2.0f* prefact * du3;
-	    // This is the lapl u term
-	    sderivs[index+0][1] -= drInv*drInv*(A[ 8][0]*t3 + A[ 8][1]*t2 + A[ 8][2]*t + A[ 8][3]) + 2.0f*du0;
-	    sderivs[index+1][1] -= drInv*drInv*(A[ 9][0]*t3 + A[ 9][1]*t2 + A[ 9][2]*t + A[ 9][3]) + 2.0f*du1;
-	    sderivs[index+2][1] -= drInv*drInv*(A[10][0]*t3 + A[10][1]*t2 + A[10][2]*t + A[10][3]) + 2.0f*du2;
-	    sderivs[index+3][1] -= drInv*drInv*(A[11][0]*t3 + A[11][1]*t2 + A[11][2]*t + A[11][3]) + 2.0f*du3;
+	T s = dist * drInv;
+	T sf = floorf (s);
+	int index = (int)sf;
+	T t = s - sf;
+	T t2 = t*t;
+	T t3 = t*t2;
+	
+	T v0 = (A[0][0]*t3 + A[0][1]*t2 + A[0][2]*t + A[0][3]);
+	T v1 = (A[1][0]*t3 + A[1][1]*t2 + A[1][2]*t + A[1][3]);
+	T v2 = (A[2][0]*t3 + A[2][1]*t2 + A[2][2]*t + A[2][3]);
+	T v3 = (A[3][0]*t3 + A[3][1]*t2 + A[3][2]*t + A[3][3]);
+
+	for (int id=0; id<BS; id++)
+	  if (tid == id && eptcl <= elast && (dist < rMax)) {
+	    sderivs[index+0][0] += v0;
+	    sderivs[index+1][0] += v1;
+	    sderivs[index+2][0] += v2;
+	    sderivs[index+3][0] += v3;
 	  }
-	}	  
+	  // T prefact = (dx*sGrad[tid][0] + dy*sGrad[tid][1] + dz*sGrad[tid][2])/dist;
+	  // T du0 = drInv * (A[4][0]*t3 + A[4][1]*t2 + A[4][2]*t + A[4][3]);
+	  // T du1 = drInv * (A[5][0]*t3 + A[5][1]*t2 + A[5][2]*t + A[5][3]);
+	  // T du2 = drInv * (A[6][0]*t3 + A[6][1]*t2 + A[6][2]*t + A[6][3]);
+	  // T du3 = drInv * (A[7][0]*t3 + A[7][1]*t2 + A[7][2]*t + A[7][3]);
+	  // // This is the dot (gradu, grad_log_psi) term.
+	  // sderivs[index+0][1] += 2.0f* prefact * du0;
+	  // sderivs[index+1][1] += 2.0f* prefact * du1;
+	  // sderivs[index+2][1] += 2.0f* prefact * du2;
+	  // sderivs[index+3][1] += 2.0f* prefact * du3;
+	  // // This is the lapl u term
+	  // sderivs[index+0][1] -= drInv*drInv*(A[ 8][0]*t3 + A[ 8][1]*t2 + A[ 8][2]*t + A[ 8][3]) + 2.0f*du0;
+	  // sderivs[index+1][1] -= drInv*drInv*(A[ 9][0]*t3 + A[ 9][1]*t2 + A[ 9][2]*t + A[ 9][3]) + 2.0f*du1;
+	  // sderivs[index+2][1] -= drInv*drInv*(A[10][0]*t3 + A[10][1]*t2 + A[10][2]*t + A[10][3]) + 2.0f*du2;
+	  // sderivs[index+3][1] -= drInv*drInv*(A[11][0]*t3 + A[11][1]*t2 + A[11][2]*t + A[11][3]) + 2.0f*du3;
       }
       __syncthreads();
     }
   }
 
   if (tid < 2*numCoefs) 
-    myDerivs[tid] = sderivs[0][tid];
+    myDerivs[tid] = -sderivs[0][tid];
   if (tid+BS < 2*numCoefs)
-    myDerivs[tid+BS] = sderivs[0][tid+BS];
+    myDerivs[tid+BS] = -sderivs[0][tid+BS];
   
 }
 
