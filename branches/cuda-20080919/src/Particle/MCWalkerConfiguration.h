@@ -101,7 +101,7 @@ namespace qmcplusplus {
     vector<PosType>                                    Rnew;
     cuda_vector<int> AcceptList_GPU;
     host_vector<int> AcceptList_host;
-    void copyWalkersToGPU();
+    void copyWalkersToGPU(bool copyGrad=false);
     void updateLists_GPU();
     int CurrentParticle;
     void proposeMove_GPU 

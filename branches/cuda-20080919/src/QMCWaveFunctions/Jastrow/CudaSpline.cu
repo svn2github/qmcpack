@@ -3364,10 +3364,10 @@ one_body_derivs_kernel(T* C, T **R, T **gradLogPsi,
 	T du2 = drInv * (A[6][0]*t3 + A[6][1]*t2 + A[6][2]*t + A[6][3]);
 	T du3 = drInv * (A[7][0]*t3 + A[7][1]*t2 + A[7][2]*t + A[7][3]);
 	// This is the dot (gradu, grad_log_psi) term.
-	v0 = -2.0f* prefact * du0;
-	v1 = -2.0f* prefact * du1;
-	v2 = -2.0f* prefact * du2;
-	v3 = -2.0f* prefact * du3;
+	v0 = 2.0f* prefact * du0;
+	v1 = 2.0f* prefact * du1;
+	v2 = 2.0f* prefact * du2;
+	v3 = 2.0f* prefact * du3;
 	// This is the lapl u term
 	v0 -= drInv*drInv*(A[ 8][0]*t3 + A[ 8][1]*t2 + A[ 8][2]*t + A[ 8][3]) + 2.0f*du0*distInv;
 	v1 -= drInv*drInv*(A[ 9][0]*t3 + A[ 9][1]*t2 + A[ 9][2]*t + A[ 9][3]) + 2.0f*du1*distInv;

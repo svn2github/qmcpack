@@ -19,6 +19,7 @@ namespace qmcplusplus {
     //typedef double CudaReal;
 
     vector<CudaSpline<CudaReal>*> GPUSplines, UniqueSplines;
+    int MaxCoefs;
     ParticleSet &ElecRef;
     cuda_vector<CudaReal> L, Linv;
 

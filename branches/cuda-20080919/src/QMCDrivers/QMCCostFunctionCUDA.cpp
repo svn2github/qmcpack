@@ -43,8 +43,6 @@ namespace qmcplusplus {
     Return_t NSm1 = 1.0/NumSamples;
     int nw = W.getActiveWalkers();
 
-
-
     //#pragma omp parallel reduction(+:wgt_tot)
     Return_t eloc_new;
     //int totalElements=W.getTotalNum()*OHMMS_DIM;
@@ -78,14 +76,16 @@ namespace qmcplusplus {
       // fprintf (stderr, "iw=%4d deltaLog CPU = %12.6e  deltaLog GPU = %12.6e\n",
       // 	       iw, logpsi, logpsi_new[iw]);
     }
+    W.copyWalkersToGPU(true);
 
     H_KE.evaluate (W, KE);
     Psi.evaluateDerivatives(W, OptVariablesForPsi,
 			    d_logpsi_dalpha, d_hpsioverpsi_dalpha);
     
-    for (int iw=0; iw<nw; iw++) {
+    /*    for (int iw=0; iw<nw; iw++) {
       ParticleSet::Walker_t& walker = *(W[iw]);
       W.R = walker.R;
+      W.G = walker.Grad;  
       W.update();
       //Return_t logpsi=Psi.evaluateDeltaLog(W);
       vector<RealType> d_alpha_logpsi_CPU(numParams);
@@ -108,9 +108,7 @@ namespace qmcplusplus {
       // for (int ip=0; ip<numParams; ip++)
       // 	fprintf (stderr, "%10.4f ", d_alpha_logpsi_CPU[ip]);
       // fprintf (stderr, "\n");
-
-      
-    }
+      }*/
 
 //     FILE *fout = fopen ("VarDerivs.dat", "w");
 //     for (int iw=0; iw<nw; iw++) {
@@ -127,7 +125,7 @@ namespace qmcplusplus {
       saved[ENERGY_NEW] = eloc_new;
       saved[REWEIGHT]   = weight;
       for (int ip=0; ip<NumOptimizables; ip++) {
-	TempDerivRecords[iw][ip] = d_logpsi_dalpha(iw,ip);
+	TempDerivRecords[iw][ip]  =      d_logpsi_dalpha(iw,ip);
 	TempHDerivRecords[iw][ip] = d_hpsioverpsi_dalpha(iw,ip);
       }
     }

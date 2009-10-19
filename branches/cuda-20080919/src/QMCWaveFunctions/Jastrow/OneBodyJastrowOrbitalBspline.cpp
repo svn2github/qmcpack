@@ -357,19 +357,20 @@ namespace qmcplusplus {
     CudaReal sim_cell_radius = W.Lattice.SimulationCellRadius;
     vector<Walker_t*> &walkers = W.WalkerList;
     int nw = walkers.size();
-    int maxCoefs = 0;
     
+
     if (DerivListGPU.size() < nw) {
+      MaxCoefs = 0;
       for (int i=0; i<UniqueSplines.size(); i++)
-	maxCoefs = max (maxCoefs, (int)UniqueSplines[i]->coefs.size());
+	MaxCoefs = max (MaxCoefs, (int)UniqueSplines[i]->coefs.size());
       // Round up to nearest 16 to allow coallesced GPU reads
-      maxCoefs = ((maxCoefs+15)/16)*16;
-      SplineDerivsHost.resize(2*maxCoefs*nw);
-      SplineDerivsGPU.resize(2*maxCoefs*nw);
+      MaxCoefs = ((MaxCoefs+15)/16)*16;
+      SplineDerivsHost.resize(2*MaxCoefs*nw);
+      SplineDerivsGPU.resize(2*MaxCoefs*nw);
       DerivListHost.resize(nw);
       DerivListGPU.resize(nw);
       for (int iw=0; iw<nw; iw++)
-	DerivListHost[iw] = SplineDerivsGPU.data() + 2*iw*maxCoefs;
+	DerivListHost[iw] = SplineDerivsGPU.data() + 2*iw*MaxCoefs;
       DerivListGPU = DerivListHost;
     }
     
@@ -395,18 +396,18 @@ namespace qmcplusplus {
 	  int coefIndex = iv+1;
 	  for (int iw=0; iw<nw; iw++) {
 	    d_logpsi(iw,varIndex) += 
-	      SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+0];
+	      SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+0];
 	    dlapl_over_psi(iw,varIndex) +=
-	      SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+1];
+	      SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+1];
 	  }
 	}
 	int varIndex = splineVars.Index[1];
 	int coefIndex = 0;
 	for (int iw=0; iw<nw; iw++) {
 	  d_logpsi(iw,varIndex) += 
-	    SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+0];
+	    SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+0];
 	  dlapl_over_psi(iw,varIndex) +=
-	    SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+1];
+	    SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+1];
 	}
     }
   }

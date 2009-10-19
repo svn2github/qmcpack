@@ -392,19 +392,19 @@ namespace qmcplusplus {
     CudaReal sim_cell_radius = W.Lattice.SimulationCellRadius;
     vector<Walker_t*> &walkers = W.WalkerList;
     int nw = walkers.size();
-    int maxCoefs = 0;
-    
+    for (int i=0; i<UniqueSplines.size(); i++) 
     if (DerivListGPU.size() < nw) {
-      for (int i=0; i<UniqueSplines.size(); i++)
-	maxCoefs = max (maxCoefs, (int)UniqueSplines[i]->coefs.size());
+      MaxCoefs = 0;
+      for (int i=0; i<UniqueSplines.size(); i++) 
+	MaxCoefs = max (MaxCoefs, (int)UniqueSplines[i]->coefs.size());
       // Round up to nearest 16 to allow coallesced GPU reads
-      maxCoefs = ((maxCoefs+7)/8)*8;
-      SplineDerivsHost.resize(2*maxCoefs*nw);
-      SplineDerivsGPU.resize(2*maxCoefs*nw);
+      MaxCoefs = ((MaxCoefs+7)/8)*8;
+      SplineDerivsHost.resize(2*MaxCoefs*nw);
+      SplineDerivsGPU.resize(2*MaxCoefs*nw);
       DerivListHost.resize(nw);
       DerivListGPU.resize(nw);
       for (int iw=0; iw<nw; iw++)
-	DerivListHost[iw] = SplineDerivsGPU.data() + 2*iw*maxCoefs;
+	DerivListHost[iw] = SplineDerivsGPU.data() + 2*iw*MaxCoefs;
       DerivListGPU = DerivListHost;
     }
 
@@ -426,41 +426,25 @@ namespace qmcplusplus {
 	SplineDerivsHost = SplineDerivsGPU;
 	opt_variables_type splineVars = F[ptype]->myVars;
 	for (int iv=0; iv<splineVars.size(); iv++) {
-// 	  cerr << "groups = (" << group1 << "," << group2 
-// 	       << ") Index=" << splineVars.Index[iv] << endl;
+ 	  // cerr << "groups = (" << group1 << "," << group2 
+ 	  //      << ") Index=" << splineVars.Index[iv] << endl;
 	  int varIndex = splineVars.Index[iv];
 	  int coefIndex = iv+1;
 	  for (int iw=0; iw<nw; iw++) {
 	    d_logpsi(iw,varIndex) += 
-	      SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+0];
+	      SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+0];
 	    dlapl_over_psi(iw,varIndex) +=
-	      SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+1];
+	      SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+1];
 	  }
 	}
 	int varIndex = splineVars.Index[1];
 	int coefIndex = 0;
 	for (int iw=0; iw<nw; iw++) {
 	  d_logpsi(iw,varIndex) += 
-	    SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+0];
+	    SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+0];
 	  dlapl_over_psi(iw,varIndex) +=
-	    SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+1];
+	    SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+1];
 	}
-	
-	// Now, update parameters
-	// for(int p=OffSet[ptype].first,ip=0; p<OffSet[ptype].second; ++p,++ip) {
-	//   int kk = myVars.where(p);
-	//   for (int iw=0; iw<nw; iw++) {
-	//     int cindex = ip+1;
-	//     d_logpsi(kk,iw)       = SplineDerivsHost[2*(maxCoefs*iw+cindex)+0];
-	//     dlapl_over_psi(kk,iw) = SplineDerivsHost[2*(maxCoefs*iw+cindex)+1];
-	//   }
-	//   kk = myVars.where(Offset[ptype].first+1);
-	//   cindex = 0;
-	//   for (int iw=0; iw<nw; iw++) {
-	//     d_logpsi(kk,iw)       += SplineDerivsHost[2*(maxCoefs*iw+0)+0];
-	//     dlapl_over_psi(kk,iw) += SplineDerivsHost[2*(maxCoefs*iw+0)+1];
-	//   }
-	// }
       }
     }
   }
