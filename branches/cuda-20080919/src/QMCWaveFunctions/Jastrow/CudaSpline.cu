@@ -1752,6 +1752,7 @@ two_body_derivs_kernel(T **R, T **gradLogPsi,
   	dy = r2[j][1] - r1[tid][1];
   	dz = r2[j][2] - r1[tid][2];
   	T dist = min_dist(dx, dy, dz, L, Linv);
+	T distInv = 1.0f/dist;
 
 	T s = dist * drInv;
 	T sf = floorf (s);
@@ -1777,29 +1778,37 @@ two_body_derivs_kernel(T **R, T **gradLogPsi,
 	    sderivs[index+3][0] += v3;
 	  }
 	  
-      // 	T prefact = (dx*sGrad[tid][0] + dy*sGrad[tid][1] + dz*sGrad[tid][2])/dist;
-      // 	T du0 = drInv * (A[4][0]*t3 + A[4][1]*t2 + A[4][2]*t + A[4][3]);
-      // 	T du1 = drInv * (A[5][0]*t3 + A[5][1]*t2 + A[5][2]*t + A[5][3]);
-      // 	T du2 = drInv * (A[6][0]*t3 + A[6][1]*t2 + A[6][2]*t + A[6][3]);
-      // 	T du3 = drInv * (A[7][0]*t3 + A[7][1]*t2 + A[7][2]*t + A[7][3]);
-      // 	// This is the dot (gradu, grad_log_psi) term.
-      // 	sderivs[index+0][1] += 2.0f* prefact * du0;
-      // 	sderivs[index+1][1] += 2.0f* prefact * du1;
-      // 	sderivs[index+2][1] += 2.0f* prefact * du2;
-      // 	sderivs[index+3][1] += 2.0f* prefact * du3;
-      // 	// This is the lapl u term
-      // 	sderivs[index+0][1] -= drInv*drInv*(A[ 8][0]*t3 + A[ 8][1]*t2 + A[ 8][2]*t + A[ 8][3]) + 2.0f*du0;
-      // 	sderivs[index+1][1] -= drInv*drInv*(A[ 9][0]*t3 + A[ 9][1]*t2 + A[ 9][2]*t + A[ 9][3]) + 2.0f*du1;
-      // 	sderivs[index+2][1] -= drInv*drInv*(A[10][0]*t3 + A[10][1]*t2 + A[10][2]*t + A[10][3]) + 2.0f*du2;
-      // 	sderivs[index+3][1] -= drInv*drInv*(A[11][0]*t3 + A[11][1]*t2 + A[11][2]*t + A[11][3]) + 2.0f*du3;
-      // }
+      	T prefact = (dx*sGrad[tid][0] + dy*sGrad[tid][1] + dz*sGrad[tid][2])*distInv;
+      	T du0 = drInv * (A[4][0]*t3 + A[4][1]*t2 + A[4][2]*t + A[4][3]);
+      	T du1 = drInv * (A[5][0]*t3 + A[5][1]*t2 + A[5][2]*t + A[5][3]);
+      	T du2 = drInv * (A[6][0]*t3 + A[6][1]*t2 + A[6][2]*t + A[6][3]);
+      	T du3 = drInv * (A[7][0]*t3 + A[7][1]*t2 + A[7][2]*t + A[7][3]);
+      	// This is the dot (gradu, grad_log_psi) term.
+      	v0 = 2.0f* prefact * du0;
+      	v1 = 2.0f* prefact * du1;
+      	v2 = 2.0f* prefact * du2;
+      	v3 = 2.0f* prefact * du3;
+      	// This is the lapl u term
+      	v0 -= drInv*drInv*(A[ 8][0]*t3 + A[ 8][1]*t2 + A[ 8][2]*t + A[ 8][3]) + 2.0f*du0*distInv;
+      	v1 -= drInv*drInv*(A[ 9][0]*t3 + A[ 9][1]*t2 + A[ 9][2]*t + A[ 9][3]) + 2.0f*du1*distInv;
+      	v2 -= drInv*drInv*(A[10][0]*t3 + A[10][1]*t2 + A[10][2]*t + A[10][3]) + 2.0f*du2*distInv;
+      	v3 -= drInv*drInv*(A[11][0]*t3 + A[11][1]*t2 + A[11][2]*t + A[11][3]) + 2.0f*du3*distInv;
+
+	for (int id=0; id<BS; id++) 
+	  if (tid == id && ptcl1 != ptcl2 && ptcl1 <= e1_last && (dist < rMax)) {
+	    sderivs[index+0][1] += v0;
+	    sderivs[index+1][1] += v1;
+	    sderivs[index+2][1] += v2;
+	    sderivs[index+3][1] += v3;
+	  }
+      }
 	  
-      }	  
       __syncthreads();
     }
   }
   //  if (e1_first == e2_first)
-    sderivs[tid][0] *= 0.5f;
+  sderivs[tid][0] *= 0.5f;
+  sderivs[tid][1] *= 0.5f;
   
   if (tid < 2*numCoefs) 
     myDerivs[tid] = -sderivs[0][tid];
@@ -3328,6 +3337,7 @@ one_body_derivs_kernel(T* C, T **R, T **gradLogPsi,
   	dy = c[j][1] - r[tid][1];
   	dz = c[j][2] - r[tid][2];
   	T dist = min_dist(dx, dy, dz, L, Linv);
+	T distInv = 1.0f/dist;
 
 	T s = dist * drInv;
 	T sf = floorf (s);
@@ -3348,25 +3358,34 @@ one_body_derivs_kernel(T* C, T **R, T **gradLogPsi,
 	    sderivs[index+2][0] += v2;
 	    sderivs[index+3][0] += v3;
 	  }
-	  // T prefact = (dx*sGrad[tid][0] + dy*sGrad[tid][1] + dz*sGrad[tid][2])/dist;
-	  // T du0 = drInv * (A[4][0]*t3 + A[4][1]*t2 + A[4][2]*t + A[4][3]);
-	  // T du1 = drInv * (A[5][0]*t3 + A[5][1]*t2 + A[5][2]*t + A[5][3]);
-	  // T du2 = drInv * (A[6][0]*t3 + A[6][1]*t2 + A[6][2]*t + A[6][3]);
-	  // T du3 = drInv * (A[7][0]*t3 + A[7][1]*t2 + A[7][2]*t + A[7][3]);
-	  // // This is the dot (gradu, grad_log_psi) term.
-	  // sderivs[index+0][1] += 2.0f* prefact * du0;
-	  // sderivs[index+1][1] += 2.0f* prefact * du1;
-	  // sderivs[index+2][1] += 2.0f* prefact * du2;
-	  // sderivs[index+3][1] += 2.0f* prefact * du3;
-	  // // This is the lapl u term
-	  // sderivs[index+0][1] -= drInv*drInv*(A[ 8][0]*t3 + A[ 8][1]*t2 + A[ 8][2]*t + A[ 8][3]) + 2.0f*du0;
-	  // sderivs[index+1][1] -= drInv*drInv*(A[ 9][0]*t3 + A[ 9][1]*t2 + A[ 9][2]*t + A[ 9][3]) + 2.0f*du1;
-	  // sderivs[index+2][1] -= drInv*drInv*(A[10][0]*t3 + A[10][1]*t2 + A[10][2]*t + A[10][3]) + 2.0f*du2;
-	  // sderivs[index+3][1] -= drInv*drInv*(A[11][0]*t3 + A[11][1]*t2 + A[11][2]*t + A[11][3]) + 2.0f*du3;
+	T prefact = (dx*sGrad[tid][0] + dy*sGrad[tid][1] + dz*sGrad[tid][2])*distInv;
+	T du0 = drInv * (A[4][0]*t3 + A[4][1]*t2 + A[4][2]*t + A[4][3]);
+	T du1 = drInv * (A[5][0]*t3 + A[5][1]*t2 + A[5][2]*t + A[5][3]);
+	T du2 = drInv * (A[6][0]*t3 + A[6][1]*t2 + A[6][2]*t + A[6][3]);
+	T du3 = drInv * (A[7][0]*t3 + A[7][1]*t2 + A[7][2]*t + A[7][3]);
+	// This is the dot (gradu, grad_log_psi) term.
+	v0 = -2.0f* prefact * du0;
+	v1 = -2.0f* prefact * du1;
+	v2 = -2.0f* prefact * du2;
+	v3 = -2.0f* prefact * du3;
+	// This is the lapl u term
+	v0 -= drInv*drInv*(A[ 8][0]*t3 + A[ 8][1]*t2 + A[ 8][2]*t + A[ 8][3]) + 2.0f*du0*distInv;
+	v1 -= drInv*drInv*(A[ 9][0]*t3 + A[ 9][1]*t2 + A[ 9][2]*t + A[ 9][3]) + 2.0f*du1*distInv;
+	v2 -= drInv*drInv*(A[10][0]*t3 + A[10][1]*t2 + A[10][2]*t + A[10][3]) + 2.0f*du2*distInv;
+	v3 -= drInv*drInv*(A[11][0]*t3 + A[11][1]*t2 + A[11][2]*t + A[11][3]) + 2.0f*du3*distInv;
+	for (int id=0; id<BS; id++)
+	  if (tid == id && eptcl <= elast && (dist < rMax)) {
+	    sderivs[index+0][1] += v0;
+	    sderivs[index+1][1] += v1;
+	    sderivs[index+2][1] += v2;
+	    sderivs[index+3][1] += v3;
+	  }
       }
       __syncthreads();
     }
   }
+  
+  sderivs[tid][1] *= 0.5f;
 
   if (tid < 2*numCoefs) 
     myDerivs[tid] = -sderivs[0][tid];

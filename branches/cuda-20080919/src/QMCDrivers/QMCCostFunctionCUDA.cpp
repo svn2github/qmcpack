@@ -95,11 +95,20 @@ namespace qmcplusplus {
 			      d_alpha_hpsioverpsi_CPU);
       fprintf (stderr, "iw=%4d GPU:  ", iw);
       for (int ip=0; ip<numParams; ip++)
-	fprintf (stderr, "%10.4f ", d_logpsi_dalpha(iw, ip));
+	fprintf (stderr, "%10.4f ", d_hpsioverpsi_dalpha(iw, ip));
       fprintf (stderr, "\niw=%4d CPU:  ", iw);
       for (int ip=0; ip<numParams; ip++)
-	fprintf (stderr, "%10.4f ", d_alpha_logpsi_CPU[ip]);
+	fprintf (stderr, "%10.4f ", d_alpha_hpsioverpsi_CPU[ip]);
       fprintf (stderr, "\n");
+
+      // fprintf (stderr, "iw=%4d GPU:  ", iw);
+      // for (int ip=0; ip<numParams; ip++)
+      // 	fprintf (stderr, "%10.4f ", d_logpsi_dalpha(iw, ip));
+      // fprintf (stderr, "\niw=%4d CPU:  ", iw);
+      // for (int ip=0; ip<numParams; ip++)
+      // 	fprintf (stderr, "%10.4f ", d_alpha_logpsi_CPU[ip]);
+      // fprintf (stderr, "\n");
+
       
     }
 
