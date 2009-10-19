@@ -55,7 +55,7 @@ namespace qmcplusplus {
     int numPtcl   = W.getTotalNum();
 
     vector<RealType> logpsi_new(nw), logpsi_fixed(nw), KE(nw);
-    TrialWaveFunction::ValueMatrix_t dlogpsi(nw, numParams), dhpsioverpsi(nw, numParams);
+    TrialWaveFunction::ValueMatrix_t d_logpsi_dalpha(nw, numParams), d_hpsioverpsi_dalpha(nw, numParams);
     TrialWaveFunction::GradMatrix_t  fixedG(nw, numPtcl);
     TrialWaveFunction::ValueMatrix_t fixedL(nw, numPtcl);
     TrialWaveFunction::GradMatrix_t  newG(nw, numPtcl);
@@ -74,7 +74,15 @@ namespace qmcplusplus {
       }
 
     H_KE.evaluate (W, KE);
-    Psi.evaluateDerivatives(W, OptVariablesForPsi,dlogpsi, dhpsioverpsi);
+    Psi.evaluateDerivatives(W, OptVariablesForPsi,d_logpsi_dalpha, d_hpsioverpsi_dalpha);
+    FILE *fout = fopen ("VarDerivs.dat", "w");
+    for (int iw=0; iw<nw; iw++) {
+      for (int iv=0; iv<numParams; iv++)
+	fprintf (fout, "%12.6e %12.6e ", d_logpsi_dalpha(iw,iv), d_hpsioverpsi_dalpha(iw,iv));
+      fprintf (fout, "\n");
+    }
+    fclose(fout);
+    abort();
     for (int iw=0; iw<nw; iw++) {
       ParticleSet::Walker_t& walker = *(W[iw]);
       Return_t* restrict saved= &(Records(iw,0));
@@ -83,8 +91,8 @@ namespace qmcplusplus {
       saved[ENERGY_NEW] = eloc_new;
       saved[REWEIGHT]   = weight;
       for (int ip=0; ip<NumOptimizables; ip++) {
-	TempDerivRecords[iw][ip] = dlogpsi(iw,ip);
-	TempHDerivRecords[iw][ip] = dhpsioverpsi(iw,ip);
+	TempDerivRecords[iw][ip] = d_logpsi_dalpha(iw,ip);
+	TempHDerivRecords[iw][ip] = d_hpsioverpsi_dalpha(iw,ip);
       }
     }
 

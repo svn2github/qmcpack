@@ -1686,7 +1686,7 @@ two_body_derivs_kernel(T **R, T **gradLogPsi,
 		       T **derivs)
 {
   T dr = rMax/(T)(numCoefs-3);
-  T drInv = 1.0/dr;
+  T drInv = 1.0f/dr;
   
   int tid = threadIdx.x;
   __shared__ T *myR, *myGrad, *myDerivs;
@@ -1803,9 +1803,9 @@ two_body_derivs_kernel(T **R, T **gradLogPsi,
   if (e1_first == e2_first)
     sderivs[tid][0] *= 0.5f;
 
-  if (tid < numCoefs) 
+  if (tid < 2*numCoefs) 
     myDerivs[tid] = sderivs[0][tid];
-  if (tid+BS < numCoefs)
+  if (tid+BS < 2*numCoefs)
     myDerivs[tid+BS] = sderivs[0][tid+BS];
   
 }
@@ -3367,9 +3367,9 @@ one_body_derivs_kernel(T* C, T **R, T **gradLogPsi,
     }
   }
 
-  if (tid < numCoefs) 
+  if (tid < 2*numCoefs) 
     myDerivs[tid] = sderivs[0][tid];
-  if (tid+BS < numCoefs)
+  if (tid+BS < 2*numCoefs)
     myDerivs[tid+BS] = sderivs[0][tid+BS];
   
 }

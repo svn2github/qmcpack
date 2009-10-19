@@ -305,7 +305,6 @@ void MCWalkerConfiguration::loadEnsemble()
     RealType *prop = awalker->getPropertyBase();
     prop[LOGPSI]         = SampleStack[i].LogPsi;
     prop[LOCALENERGY]    = SampleStack[i].KE + SampleStack[i].PE;
-    //    cerr << "Loadin LOCALENERGY = " << prop[LOCALENERGY] << endl;
     prop[LOCALPOTENTIAL] = SampleStack[i].PE;
     WalkerList[i]=awalker;
     //    awalker->Properties.copy(prop);
@@ -331,7 +330,6 @@ void MCWalkerConfiguration::loadEnsemble(MCWalkerConfiguration& other)
     RealType *prop = awalker->getPropertyBase();
     prop[LOGPSI]         = SampleStack[i].LogPsi;
     prop[LOCALENERGY]    = SampleStack[i].KE + SampleStack[i].PE;
-    cerr << "Loadin LOCALENERGY = " << prop[LOCALENERGY] << endl;
     prop[LOCALPOTENTIAL] = SampleStack[i].PE;
     other.WalkerList.push_back(awalker);
     //    delete SampleStack[i];

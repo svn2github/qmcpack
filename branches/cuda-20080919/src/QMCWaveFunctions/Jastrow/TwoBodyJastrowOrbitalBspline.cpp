@@ -398,7 +398,7 @@ namespace qmcplusplus {
       for (int i=0; i<UniqueSplines.size(); i++)
 	maxCoefs = max (maxCoefs, (int)UniqueSplines[i]->coefs.size());
       // Round up to nearest 16 to allow coallesced GPU reads
-      maxCoefs = ((maxCoefs+15)/16)*16;
+      maxCoefs = ((maxCoefs+7)/8)*8;
       SplineDerivsHost.resize(2*maxCoefs*nw);
       SplineDerivsGPU.resize(2*maxCoefs*nw);
       DerivListHost.resize(nw);
@@ -424,6 +424,29 @@ namespace qmcplusplus {
 			 Linv.data(), sim_cell_radius, DerivListGPU.data(),nw);
 	// Copy data back to CPU memory
 	SplineDerivsHost = SplineDerivsGPU;
+	opt_variables_type splineVars = F[ptype]->myVars;
+	for (int iv=0; iv<splineVars.size(); iv++) {
+// 	  cerr << "groups = (" << group1 << "," << group2 
+// 	       << ") Index=" << splineVars.Index[iv] << endl;
+	  int varIndex = splineVars.Index[iv];
+	  int coefIndex = iv+1;
+	  for (int iw=0; iw<nw; iw++) {
+	    d_logpsi(iw,varIndex) += 
+	      SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+0];
+	    dlapl_over_psi(iw,varIndex) +=
+	      SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+1];
+	  }
+	}
+	int varIndex = splineVars.Index[0];
+	int coefIndex = 0;
+	for (int iw=0; iw<nw; iw++) {
+	  d_logpsi(iw,varIndex) += 
+	    SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+0];
+	  dlapl_over_psi(iw,varIndex) +=
+	    SplineDerivsHost[2*(maxCoefs*iw+coefIndex)+1];
+	}
+	
+	
 	// Now, update parameters
 	// for(int p=OffSet[ptype].first,ip=0; p<OffSet[ptype].second; ++p,++ip) {
 	//   int kk = myVars.where(p);
