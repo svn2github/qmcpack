@@ -106,10 +106,10 @@ namespace qmcplusplus {
 	  //   "  CurrentStep = " << CurrentStep << 
 	  //   "  isub = " << isub << endl;
 	}
+	Psi.gradLapl(W, grad, lapl);
 	if (myPeriod4WalkerDump && (CurrentStep % myPeriod4WalkerDump)==0) 
 	  W.saveEnsemble();
-	
-	Psi.gradLapl(W, grad, lapl);
+
 	H.evaluate (W, LocalEnergy);
 	Estimators->accumulate(W);
       } while(step<nSteps);
@@ -208,13 +208,12 @@ namespace qmcplusplus {
 	    if (accepted.size())
 	      Psi.update(accepted,iat);
 	  }
-	  if (myPeriod4WalkerDump && (CurrentStep % myPeriod4WalkerDump)==0) 
-	     W.saveEnsemble();
-	   // cerr << "Rank = " << myComm->rank() <<
+	  // cerr << "Rank = " << myComm->rank() <<
 	  //   "  CurrentStep = " << CurrentStep << "  isub = " << isub << endl;
-
 	}
 	Psi.gradLapl(W, grad, lapl);
+	if (myPeriod4WalkerDump && (CurrentStep % myPeriod4WalkerDump)==0) 
+	  W.saveEnsemble();
 	H.evaluate (W, LocalEnergy);
 	Estimators->accumulate(W);
       } while(step<nSteps);
