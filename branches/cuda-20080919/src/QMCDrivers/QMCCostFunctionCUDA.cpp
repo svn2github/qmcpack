@@ -94,48 +94,11 @@ namespace qmcplusplus {
       Psi.evaluateDerivatives(W, OptVariablesForPsi,
 			      d_logpsi_dalpha, d_hpsioverpsi_dalpha);
     
-    // for (int iw=0; iw<nw; iw++) {
-    //   ParticleSet::Walker_t& walker = *(W[iw]);
-    //   W.R = walker.R;
-    //   W.G = walker.Grad;  
-    //   W.update();
-    //   //Return_t logpsi=Psi.evaluateDeltaLog(W);
-    //   vector<RealType> d_alpha_logpsi_CPU(numParams);
-    //   vector<RealType> d_alpha_hpsioverpsi_CPU(numParams);
-
-    //   Psi.evaluateDerivatives(W,0.0,OptVariablesForPsi,d_alpha_logpsi_CPU,
-    // 			      d_alpha_hpsioverpsi_CPU);
-    //   fprintf (stderr, "iw=%4d GPU:  ", iw);
-    //   for (int ip=0; ip<numParams; ip++)
-    // 	fprintf (stderr, "%10.4f ", d_hpsioverpsi_dalpha(iw, ip));
-    //   fprintf (stderr, "\niw=%4d CPU:  ", iw);
-    //   for (int ip=0; ip<numParams; ip++)
-    // 	fprintf (stderr, "%10.4f ", d_alpha_hpsioverpsi_CPU[ip]);
-    //   fprintf (stderr, "\n");
-
-    //   fprintf (stderr, "iw=%4d GPU:  ", iw);
-    //   for (int ip=0; ip<numParams; ip++)
-    //   	fprintf (stderr, "%10.4f ", d_logpsi_dalpha(iw, ip));
-    //   fprintf (stderr, "\niw=%4d CPU:  ", iw);
-    //   for (int ip=0; ip<numParams; ip++)
-    //   	fprintf (stderr, "%10.4f ", d_alpha_logpsi_CPU[ip]);
-    //   fprintf (stderr, "\n");
-    //   }
-
-//     FILE *fout = fopen ("VarDerivs.dat", "w");
-//     for (int iw=0; iw<nw; iw++) {
-//       for (int iv=0; iv<numParams; iv++)
-// 	fprintf (fout, "%12.6e %12.6e ", d_logpsi_dalpha(iw,iv), d_hpsioverpsi_dalpha(iw,iv));
-//       fprintf (fout, "\n");
-//     }
-//     fclose(fout);
     wgt_tot = 0.0;
     for (int iw=0; iw<nw; iw++) {
       ParticleSet::Walker_t& walker = *(W[iw]);
       Return_t* restrict saved= &(Records(iw,0));
       RealType weight = std::exp(factor*(logpsi_new[iw] - saved[LOGPSI_FREE]));
-//       fprintf (stderr, "iw=%4d  new=%10.6e  old=%12.6e\n",
-// 	       iw, logpsi_new[iw], saved[LOGPSI_FREE]);
       if (KE[iw]<MinKE) weight=0.0;
       RealType eloc_new = KE[iw] + saved[ENERGY_FIXED];
       saved[ENERGY_NEW] = eloc_new;
@@ -148,41 +111,10 @@ namespace qmcplusplus {
 	  TempHDerivRecords[iw][ip] = d_hpsioverpsi_dalpha(iw,ip);
 	}
     }
-
-//     for (; it!= it_end;++it,++iw) {
-//       ParticleSet::Walker_t& thisWalker(**it);
-//       W.R=thisWalker.R;
-//       W.update();
-//       Return_t logpsi = Psi.evaluateDeltaLog(W);
-//       W.G += *dLogPsi[iw];
-//       W.L += *d2LogPsi[iw];
-      
-//       Return_t* restrict saved = &(Records(iw,0));
-      
-//       RealType KEtemp = H_KE.evaluate(W);
-//       eloc_new = KEtemp + saved[ENERGY_FIXED];
-//       Return_t weight;
-//       if (samplePsi2) weight = std::exp(2.0*(logpsi-saved[LOGPSI_FREE])) ;
-//       else weight = std::exp( logpsi-saved[LOGPSI_FREE] ) ;
-//       if (KEtemp<MinKE) weight=0.0;
-//       saved[ENERGY_NEW]=eloc_new;
-//       saved[REWEIGHT]=weight;
-      
-//       vector<Return_t> &Dsaved=  TempDerivRecords[iw];
-//       vector<Return_t> &HDsaved= TempHDerivRecords[iw];
-//        Psi.evaluateDerivatives
-// 	 (W,KEtemp,OptVariablesForPsi,Dsaved,HDsaved);
-      
-//       wgt_tot+=weight;
-//       wgt_tot2+=weight*weight;
-//     }
     
     //this is MPI barrier
     //OHMMS::Controller->barrier();
     //collect the total weight for normalization and apply maximum weight
-
-
-
 
     Return_t wgtnorm = (1.0*NumSamples)/wgt_tot;
     wgt_tot=0.0;
@@ -190,7 +122,6 @@ namespace qmcplusplus {
       Return_t* restrict saved = Records[iw];
       saved[REWEIGHT] = std::min(saved[REWEIGHT]*wgtnorm,MaxWeight) ;
       wgt_tot+= saved[REWEIGHT];
-      //      cerr << "Weight = " << saved[REWEIGHT] << endl;
     }
     myComm->allreduce(wgt_tot);
 
@@ -200,8 +131,6 @@ namespace qmcplusplus {
       const Return_t* restrict saved = &(Records(iw,0));
       Return_t weight=saved[REWEIGHT]*wgt_tot;
       Return_t eloc_new=saved[ENERGY_NEW];
-//       fprintf (stderr, "Old energy = %1.8f  New energy = %1.8f\n",
-// 	       saved[ENERGY_TOT], saved[ENERGY_NEW]);
       Return_t delE=std::pow(abs(eloc_new-EtargetEff),PowerE);
       SumValue[SUM_E_BARE]    += eloc_new;
       SumValue[SUM_ESQ_BARE]  += eloc_new*eloc_new;
