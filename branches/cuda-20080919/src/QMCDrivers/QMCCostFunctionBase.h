@@ -237,7 +237,7 @@ namespace qmcplusplus {
     void updateXmlNodes();
 
     virtual void resetPsi(bool final_reset=false)=0;
-    virtual Return_t correlatedSampling()=0;
+    virtual Return_t correlatedSampling(bool needDerivs)=0;
   };
 }
 #endif

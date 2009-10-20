@@ -36,7 +36,7 @@ namespace qmcplusplus {
 
   /**  Perform the correlated sampling algorthim.
    */
-  QMCCostFunctionCUDA::Return_t QMCCostFunctionCUDA::correlatedSampling() 
+  QMCCostFunctionCUDA::Return_t QMCCostFunctionCUDA::correlatedSampling(bool needDerivs) 
   {
     Return_t wgt_tot=0.0;
     Return_t wgt_tot2=0.0;
@@ -90,8 +90,9 @@ namespace qmcplusplus {
     W.copyWalkersToGPU(true);
 
     H_KE.evaluate (W, KE);
-    Psi.evaluateDerivatives(W, OptVariablesForPsi,
-			    d_logpsi_dalpha, d_hpsioverpsi_dalpha);
+    if (needDerivs) 
+      Psi.evaluateDerivatives(W, OptVariablesForPsi,
+			      d_logpsi_dalpha, d_hpsioverpsi_dalpha);
     
     // for (int iw=0; iw<nw; iw++) {
     //   ParticleSet::Walker_t& walker = *(W[iw]);
@@ -141,10 +142,11 @@ namespace qmcplusplus {
       saved[REWEIGHT]   = weight;
       wgt_tot += weight;
       wgt_tot2 += weight*weight;
-      for (int ip=0; ip<NumOptimizables; ip++) {
-	TempDerivRecords[iw][ip]  =      d_logpsi_dalpha(iw,ip);
-	TempHDerivRecords[iw][ip] = d_hpsioverpsi_dalpha(iw,ip);
-      }
+      if (needDerivs)
+	for (int ip=0; ip<NumOptimizables; ip++) {
+	  TempDerivRecords[iw][ip]  =      d_logpsi_dalpha(iw,ip);
+	  TempHDerivRecords[iw][ip] = d_hpsioverpsi_dalpha(iw,ip);
+	}
     }
 
 //     for (; it!= it_end;++it,++iw) {
@@ -214,7 +216,6 @@ namespace qmcplusplus {
     myComm->allreduce(SumValue);
     
     RealType effective_walkers = SumValue[SUM_WGT]*SumValue[SUM_WGT]/SumValue[SUM_WGTSQ];
-    cerr << "EffectiveWalker = " << effective_walkers << endl;
     return SumValue[SUM_WGT]*SumValue[SUM_WGT]/SumValue[SUM_WGTSQ];
   }
 
@@ -403,7 +404,7 @@ namespace qmcplusplus {
       resetPsi();
 
       //evaluate new local energies and derivatives
-      NumWalkersEff=correlatedSampling();
+      NumWalkersEff=correlatedSampling(true);
       //Estimators::accumulate has been called by correlatedSampling
     
     
@@ -494,7 +495,7 @@ namespace qmcplusplus {
   {
 
     resetPsi();
-    Return_t NWE = NumWalkersEff=correlatedSampling();
+    Return_t NWE = NumWalkersEff=correlatedSampling(true);
     curAvg_w = SumValue[SUM_E_WGT]/SumValue[SUM_WGT];
     vector<Return_t> D_avg(NumParams(),0);
     Return_t wgtinv = 1.0/SumValue[SUM_WGT];

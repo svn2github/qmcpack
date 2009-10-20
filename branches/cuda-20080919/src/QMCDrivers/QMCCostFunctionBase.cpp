@@ -102,7 +102,7 @@ QMCCostFunctionBase::Return_t QMCCostFunctionBase::Cost() {
  resetPsi();
  
  //evaluate new local energies
- NumWalkersEff=correlatedSampling();
+ NumWalkersEff=correlatedSampling(false);
  
  //Estimators::accumulate has been called by correlatedSampling
  curAvg_w = SumValue[SUM_E_WGT]/SumValue[SUM_WGT];

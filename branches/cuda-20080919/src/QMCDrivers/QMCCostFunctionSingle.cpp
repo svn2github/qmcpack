@@ -39,7 +39,7 @@ namespace qmcplusplus {
 
   /**  Perform the correlated sampling algorthim.
    */
-  QMCCostFunctionSingle::Return_t QMCCostFunctionSingle::correlatedSampling() {
+  QMCCostFunctionSingle::Return_t QMCCostFunctionSingle::correlatedSampling(bool needDerivs) {
 
     typedef MCWalkerConfiguration::Walker_t Walker_t;
     //Return_t eloc_new;
@@ -258,7 +258,7 @@ namespace qmcplusplus {
       resetPsi();
 
       //evaluate new local energies and derivatives
-      NumWalkersEff=correlatedSampling( );
+      NumWalkersEff=correlatedSampling(true);
       //Estimators::accumulate has been called by correlatedSampling
 
 
@@ -353,7 +353,7 @@ namespace qmcplusplus {
   {
 
     resetPsi();
-    Return_t NWE = NumWalkersEff=correlatedSampling();
+    Return_t NWE = NumWalkersEff=correlatedSampling(true);
     curAvg_w = SumValue[SUM_E_WGT]/SumValue[SUM_WGT];
     Return_t wgtinv = 1.0/SumValue[SUM_WGT];
     vector<Return_t> D_avg(NumParams(),0);
