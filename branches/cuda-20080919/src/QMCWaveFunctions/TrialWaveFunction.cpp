@@ -818,6 +818,7 @@ namespace qmcplusplus {
        Z[i]->addLog(W, logpsi_opt);
        Z[i]->gradLapl(W, optG, optL);
      }
+     myTimers[ii]->stop();
    }
  }
   

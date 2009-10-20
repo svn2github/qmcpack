@@ -61,9 +61,6 @@ namespace qmcplusplus {
     Psi.evaluateOptimizableLog(W, logpsi_new, newG, newL);
     RealType factor = samplePsi2 ? 2.0 : 1.0;
     // Add optimizable and non-optimizable gradients and Laplacians
-
-
-
     for (int iw=0; iw<nw; iw++) {
       ParticleSet::Walker_t& walker = *(W[iw]);
       for (int iat=0; iat<numPtcl; iat++) {
@@ -72,9 +69,23 @@ namespace qmcplusplus {
       }
       // W.R = walker.R;
       // W.update();
-      // Return_t logpsi=Psi.evaluateDeltaLog(W);
-      // fprintf (stderr, "iw=%4d deltaLog CPU = %12.6e  deltaLog GPU = %12.6e\n",
-      // 	       iw, logpsi, logpsi_new[iw]);
+      // Return_t* restrict saved= &(Records(iw,0));
+      // Psi.evaluateDeltaLog(W, saved[LOGPSI_FIXED], saved[LOGPSI_FREE], 
+      // 			   *dLogPsi[iw],*d2LogPsi[iw]);
+      // Psi.evaluateDeltaLog(W);
+      // fprintf (stderr, "iw=%4d CPU deltaLog = %12.6e  dLog = [%12.6e %12.6e %12.6e]  d2Log=%12.6e\n",
+      // 	       iw, saved[LOGPSI_FREE], W.G[0][0], W.G[0][1], W.G[0][2],
+      // 	       W.L[0]);
+      // fprintf (stderr, "iw=%4d GPU deltaLog = %12.6e  dLog = [%12.6e %12.6e %12.6e]  d2Log=%12.6e\n",
+      // 	       iw, logpsi_new[iw], newG(iw,0)[0], newG(iw,0)[1], newG(iw,0)[2],
+      // 	       newL(iw,0));
+      // fprintf (stderr, "iw=%4d CPU deltaLog = %12.6e  dLog = [%12.6e %12.6e %12.6e]  d2Log=%12.6e\n",
+      // 	       iw, saved[LOGPSI_FREE], (*dLogPsi[iw])[0][0],(*dLogPsi[iw])[0][1],(*dLogPsi[iw])[0][2], 
+      // 	       (*d2LogPsi[iw])[0]);
+      // fprintf (stderr, "iw=%4d GPU deltaLog = %12.6e  dLog = [%12.6e %12.6e %12.6e]  d2Log=%12.6e\n",
+      // 	       iw, logpsi_new[iw],dlogPsi_fixed(iw,0)[0],dlogPsi_fixed(iw,0)[1],dlogPsi_fixed(iw,0)[2],
+      // 	       d2logPsi_fixed(iw,0));
+      
     }
     W.copyWalkersToGPU(true);
 
@@ -82,33 +93,33 @@ namespace qmcplusplus {
     Psi.evaluateDerivatives(W, OptVariablesForPsi,
 			    d_logpsi_dalpha, d_hpsioverpsi_dalpha);
     
-    /*    for (int iw=0; iw<nw; iw++) {
-      ParticleSet::Walker_t& walker = *(W[iw]);
-      W.R = walker.R;
-      W.G = walker.Grad;  
-      W.update();
-      //Return_t logpsi=Psi.evaluateDeltaLog(W);
-      vector<RealType> d_alpha_logpsi_CPU(numParams);
-      vector<RealType> d_alpha_hpsioverpsi_CPU(numParams);
+    // for (int iw=0; iw<nw; iw++) {
+    //   ParticleSet::Walker_t& walker = *(W[iw]);
+    //   W.R = walker.R;
+    //   W.G = walker.Grad;  
+    //   W.update();
+    //   //Return_t logpsi=Psi.evaluateDeltaLog(W);
+    //   vector<RealType> d_alpha_logpsi_CPU(numParams);
+    //   vector<RealType> d_alpha_hpsioverpsi_CPU(numParams);
 
-      Psi.evaluateDerivatives(W,0.0,OptVariablesForPsi,d_alpha_logpsi_CPU,
-			      d_alpha_hpsioverpsi_CPU);
-      fprintf (stderr, "iw=%4d GPU:  ", iw);
-      for (int ip=0; ip<numParams; ip++)
-	fprintf (stderr, "%10.4f ", d_hpsioverpsi_dalpha(iw, ip));
-      fprintf (stderr, "\niw=%4d CPU:  ", iw);
-      for (int ip=0; ip<numParams; ip++)
-	fprintf (stderr, "%10.4f ", d_alpha_hpsioverpsi_CPU[ip]);
-      fprintf (stderr, "\n");
+    //   Psi.evaluateDerivatives(W,0.0,OptVariablesForPsi,d_alpha_logpsi_CPU,
+    // 			      d_alpha_hpsioverpsi_CPU);
+    //   fprintf (stderr, "iw=%4d GPU:  ", iw);
+    //   for (int ip=0; ip<numParams; ip++)
+    // 	fprintf (stderr, "%10.4f ", d_hpsioverpsi_dalpha(iw, ip));
+    //   fprintf (stderr, "\niw=%4d CPU:  ", iw);
+    //   for (int ip=0; ip<numParams; ip++)
+    // 	fprintf (stderr, "%10.4f ", d_alpha_hpsioverpsi_CPU[ip]);
+    //   fprintf (stderr, "\n");
 
-      // fprintf (stderr, "iw=%4d GPU:  ", iw);
-      // for (int ip=0; ip<numParams; ip++)
-      // 	fprintf (stderr, "%10.4f ", d_logpsi_dalpha(iw, ip));
-      // fprintf (stderr, "\niw=%4d CPU:  ", iw);
-      // for (int ip=0; ip<numParams; ip++)
-      // 	fprintf (stderr, "%10.4f ", d_alpha_logpsi_CPU[ip]);
-      // fprintf (stderr, "\n");
-      }*/
+    //   fprintf (stderr, "iw=%4d GPU:  ", iw);
+    //   for (int ip=0; ip<numParams; ip++)
+    //   	fprintf (stderr, "%10.4f ", d_logpsi_dalpha(iw, ip));
+    //   fprintf (stderr, "\niw=%4d CPU:  ", iw);
+    //   for (int ip=0; ip<numParams; ip++)
+    //   	fprintf (stderr, "%10.4f ", d_alpha_logpsi_CPU[ip]);
+    //   fprintf (stderr, "\n");
+    //   }
 
 //     FILE *fout = fopen ("VarDerivs.dat", "w");
 //     for (int iw=0; iw<nw; iw++) {
@@ -117,13 +128,19 @@ namespace qmcplusplus {
 //       fprintf (fout, "\n");
 //     }
 //     fclose(fout);
+    wgt_tot = 0.0;
     for (int iw=0; iw<nw; iw++) {
       ParticleSet::Walker_t& walker = *(W[iw]);
       Return_t* restrict saved= &(Records(iw,0));
       RealType weight = std::exp(factor*(logpsi_new[iw] - saved[LOGPSI_FREE]));
+//       fprintf (stderr, "iw=%4d  new=%10.6e  old=%12.6e\n",
+// 	       iw, logpsi_new[iw], saved[LOGPSI_FREE]);
+      if (KE[iw]<MinKE) weight=0.0;
       RealType eloc_new = KE[iw] + saved[ENERGY_FIXED];
       saved[ENERGY_NEW] = eloc_new;
       saved[REWEIGHT]   = weight;
+      wgt_tot += weight;
+      wgt_tot2 += weight*weight;
       for (int ip=0; ip<NumOptimizables; ip++) {
 	TempDerivRecords[iw][ip]  =      d_logpsi_dalpha(iw,ip);
 	TempHDerivRecords[iw][ip] = d_hpsioverpsi_dalpha(iw,ip);
@@ -164,8 +181,6 @@ namespace qmcplusplus {
 
 
 
-    myComm->allreduce(wgt_tot);
-    myComm->allreduce(wgt_tot2);
 
     Return_t wgtnorm = (1.0*NumSamples)/wgt_tot;
     wgt_tot=0.0;
@@ -173,15 +188,18 @@ namespace qmcplusplus {
       Return_t* restrict saved = Records[iw];
       saved[REWEIGHT] = std::min(saved[REWEIGHT]*wgtnorm,MaxWeight) ;
       wgt_tot+= saved[REWEIGHT];
+      //      cerr << "Weight = " << saved[REWEIGHT] << endl;
     }
     myComm->allreduce(wgt_tot);
-    
+
     for (int i=0; i<SumValue.size(); i++) SumValue[i]=0.0;
     CSWeight=wgt_tot=1.0/wgt_tot;
     for (int iw=0; iw<nw;iw++) {
       const Return_t* restrict saved = &(Records(iw,0));
       Return_t weight=saved[REWEIGHT]*wgt_tot;
       Return_t eloc_new=saved[ENERGY_NEW];
+//       fprintf (stderr, "Old energy = %1.8f  New energy = %1.8f\n",
+// 	       saved[ENERGY_TOT], saved[ENERGY_NEW]);
       Return_t delE=std::pow(abs(eloc_new-EtargetEff),PowerE);
       SumValue[SUM_E_BARE]    += eloc_new;
       SumValue[SUM_ESQ_BARE]  += eloc_new*eloc_new;
@@ -264,8 +282,9 @@ namespace qmcplusplus {
     Return_t e2=0.0;
     vector<RealType> logPsi_free(numWalkers), d2logPsi_free(numWalkers);
     vector<GradType> dlogPsi_free(numWalkers);
-    Psi.evaluateDeltaLog(W, logPsi_free);
+    //Psi.evaluateDeltaLog(W, logPsi_free);
     Psi.evaluateOptimizableLog (W, logPsi_free, dlogPsi_opt, d2logPsi_opt);
+    Psi.evaluateDerivatives (W, OptVariables, LogPsi_Derivs, LocE_Derivs);
     int nat = W.getTotalNum();
     MCWalkerConfiguration::iterator it(W.begin()); 
     MCWalkerConfiguration::iterator it_end(W.end()); 
@@ -278,23 +297,54 @@ namespace qmcplusplus {
       saved[LOGPSI_FIXED] = prop[LOGPSI] - logPsi_free[iw];
       saved[LOGPSI_FREE]  = logPsi_free[iw];
       e0 += prop[LOCALENERGY];
-      e2 += prop[LOCALENERGY] * prop[LOCALENERGY];
-      for (int iat=0; iat<nat; iat++) {
-	dlogPsi_fixed(iw, iat)  = w.Grad[iat] - dlogPsi_opt(iw,nat);
-	d2logPsi_fixed(iw, iat) = w.Lap[iat] - d2logPsi_opt(iw,nat);
+      e2 += prop[LOCALENERGY] * prop[LOCALENERGY];	
+      for (int ip=0; ip<OptVariables.size(); ip++) {
+	TempDerivRecords[iw][ip] = LogPsi_Derivs(iw,ip);
+	TempHDerivRecords[iw][ip] = LocE_Derivs(iw,ip);
       }
+      for (int iat=0; iat<nat; iat++) {
+	dlogPsi_fixed(iw, iat)  = w.Grad[iat] - dlogPsi_opt(iw,iat);
+	d2logPsi_fixed(iw, iat) = w.Lap[iat] - d2logPsi_opt(iw,iat);
+      }
+      w.Weight = 1.0;
+
+      // DEBUG
+      // W.R = w.R;
+      // W.update();
+      // Psi.evaluateDeltaLog (W);
+      // for (int iat=0; iat<nat; iat++) {
+      // 	fprintf (stderr, "CPU: Grad=[%12.6e, %12.6e, %12.6e]  Lap=%12.6e\n",
+      // 		 W.G[iat][0],W.G[iat][1],W.G[iat][2],W.L[iat]);
+      // 	fprintf (stderr, "GPU: Grad=[%12.6e, %12.6e, %12.6e]  Lap=%12.6e\n",
+      // 		 dlogPsi_opt(iw, iat)[0], dlogPsi_opt(iw, iat)[1],  dlogPsi_opt(iw, iat)[2], 
+      // 		 d2logPsi_opt(iw, iat));
+      // 	// dlogPsi_fixed(iw, iat)  = (*dLogPsi[iw])[iat];
+      // 	// d2logPsi_fixed(iw, iat) = (*d2LogPsi[iw])[iat];
+      // }
+
     }
-//     for(int iw=0; it!=it_end; ++it,++iw)  {
-//       Walker_t& thisWalker(**it);
-//       W.R=thisWalker.R;
-//       W.update();
-//       Return_t* restrict saved= &(Records(iw,0));
-//       Psi.evaluateDeltaLog(W, saved[LOGPSI_FIXED], saved[LOGPSI_FREE], *dLogPsi[iw],*d2LogPsi[iw]);
-//       Return_t x= H.evaluate(W);
-//       e0 += saved[ENERGY_TOT] = x;
-//       e2 += x*x;
-//       saved[ENERGY_FIXED] = H.getLocalPotential();
-//     }
+    // it=W.begin();
+    // for(int iw=0; it!=it_end; ++it,++iw)  {
+    //   Walker_t& thisWalker(**it);
+    //   W.R=thisWalker.R;
+    //   W.update();
+    //   Return_t* restrict saved= &(Records(iw,0));
+    //   Psi.evaluateDeltaLog(W, saved[LOGPSI_FIXED], saved[LOGPSI_FREE], *dLogPsi[iw],*d2LogPsi[iw]);
+    //   // Return_t x= H.evaluate(W);
+    //   // e0 += saved[ENERGY_TOT] = x;
+    //   // e2 += x*x;
+    //   // saved[ENERGY_FIXED] = H.getLocalPotential();
+    //   for (int iat=0; iat<nat; iat++) {
+    // 	fprintf (stderr, "CPU: Grad=[%12.6e, %12.6e, %12.6e]  Lap=%12.6e\n",
+    // 		 (*dLogPsi[iw])[iat][0],  (*dLogPsi[iw])[iat][1], (*dLogPsi[iw])[iat][2],
+    // 		 (*d2LogPsi[iw])[iat]);
+    // 	fprintf (stderr, "GPU: Grad=[%12.6e, %12.6e, %12.6e]  Lap=%12.6e\n",
+    // 		 dlogPsi_fixed(iw, iat)[0], dlogPsi_fixed(iw, iat)[1],  dlogPsi_fixed(iw, iat)[2], 
+    // 		 d2logPsi_fixed(iw, iat));
+    // 	// dlogPsi_fixed(iw, iat)  = (*dLogPsi[iw])[iat];
+    // 	// d2logPsi_fixed(iw, iat) = (*d2LogPsi[iw])[iat];
+    //   }
+    // }
     et_tot+=e0;
     e2_tot+=e2;
     

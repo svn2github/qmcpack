@@ -100,7 +100,6 @@ namespace qmcplusplus {
       SumValue[SUM_ABSE_WGT] += delE*saved[REWEIGHT];
       SumValue[SUM_WGT] += saved[REWEIGHT];
       SumValue[SUM_WGTSQ] += saved[REWEIGHT]*saved[REWEIGHT];
-      SumValue[SUM_WGTSQ] += weight*weight;
     }
 
     //collect everything
