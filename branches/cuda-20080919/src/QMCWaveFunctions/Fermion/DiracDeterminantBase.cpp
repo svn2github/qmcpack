@@ -1385,7 +1385,7 @@ namespace qmcplusplus {
       
       for (int iq=0; iq < numQuad; iq++) {
 	posBuffer.push_back(quadPoints[posIndex]);
-	ratio_pointers.push_back(&(psi_ratios.data()[posIndex]));
+	ratio_pointers.push_back(&(psi_ratios[posIndex]));
 	posIndex++;
       }
       rowIndex += numQuad;
