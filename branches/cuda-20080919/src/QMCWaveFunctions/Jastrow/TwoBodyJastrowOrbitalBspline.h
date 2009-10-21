@@ -21,26 +21,26 @@ namespace qmcplusplus {
     vector<CudaSpline<CudaReal>*> GPUSplines, UniqueSplines;
     int MaxCoefs;
     ParticleSet &PtclRef;
-    cuda_vector<CudaReal> L, Linv;
+    thrust::device_vector<CudaReal> L, Linv;
 
-    cuda_vector<CudaReal*> UpdateListGPU;
-    cuda_vector<CudaReal> SumGPU, GradLaplGPU, OneGradGPU;
+    thrust::device_vector<CudaReal*> UpdateListGPU;
+    thrust::device_vector<CudaReal> SumGPU, GradLaplGPU, OneGradGPU;
 
-    host_vector<CudaReal*> UpdateListHost;
-    host_vector<CudaReal> SumHost, GradLaplHost, OneGradHost;
-    host_vector<CudaReal> SplineDerivsHost;
-    cuda_vector<CudaReal> SplineDerivsGPU;
-    host_vector<CudaReal*> DerivListHost;
-    cuda_vector<CudaReal*> DerivListGPU;
+    thrust::host_vector<CudaReal*> UpdateListHost;
+    thrust::host_vector<CudaReal> SumHost, GradLaplHost, OneGradHost;
+    thrust::host_vector<CudaReal> SplineDerivsHost;
+    thrust::device_vector<CudaReal> SplineDerivsGPU;
+    thrust::host_vector<CudaReal*> DerivListHost;
+    thrust::device_vector<CudaReal*> DerivListGPU;
 
-    host_vector<CudaReal*> NL_SplineCoefsListHost;
-    cuda_vector<CudaReal*> NL_SplineCoefsListGPU;
-    host_vector<NLjobGPU<CudaReal> > NL_JobListHost;
-    cuda_vector<NLjobGPU<CudaReal> > NL_JobListGPU;
-    host_vector<int> NL_NumCoefsHost, NL_NumQuadPointsHost;
-    cuda_vector<int> NL_NumCoefsGPU,  NL_NumQuadPointsGPU;
-    host_vector<CudaReal> NL_rMaxHost, NL_QuadPointsHost, NL_RatiosHost;
-    cuda_vector<CudaReal> NL_rMaxGPU,  NL_QuadPointsGPU,  NL_RatiosGPU;
+    thrust::host_vector<CudaReal*> NL_SplineCoefsListHost;
+    thrust::device_vector<CudaReal*> NL_SplineCoefsListGPU;
+    thrust::host_vector<NLjobGPU<CudaReal> > NL_JobListHost;
+    thrust::device_vector<NLjobGPU<CudaReal> > NL_JobListGPU;
+    thrust::host_vector<int> NL_NumCoefsHost, NL_NumQuadPointsHost;
+    thrust::device_vector<int> NL_NumCoefsGPU,  NL_NumQuadPointsGPU;
+    thrust::host_vector<CudaReal> NL_rMaxHost, NL_QuadPointsHost, NL_RatiosHost;
+    thrust::device_vector<CudaReal> NL_rMaxGPU,  NL_QuadPointsGPU,  NL_RatiosGPU;
   public:
     typedef BsplineFunctor<OrbitalBase::RealType> FT;
     typedef ParticleSet::Walker_t     Walker_t;
@@ -49,7 +49,7 @@ namespace qmcplusplus {
     void checkInVariables(opt_variables_type& active);
     void addFunc(const string& aname, int ia, int ib, FT* j);
     void recompute(MCWalkerConfiguration &W, bool firstTime);
-    void reserve (PointerPool<cuda_vector<CudaRealType> > &pool);
+    void reserve (PointerPool<thrust::device_vector<CudaRealType> > &pool);
     void addLog (MCWalkerConfiguration &W, vector<RealType> &logPsi);
     void update (vector<Walker_t*> &walkers, int iat);
     void update (const vector<Walker_t*> &walkers, const vector<int> &iatList) 
@@ -87,7 +87,7 @@ namespace qmcplusplus {
     {
       int nsp = NumGroups = pset.groups();
       GPUSplines.resize(nsp*nsp,0);
-      host_vector<CudaReal> LHost(OHMMS_DIM*OHMMS_DIM), 
+      thrust::host_vector<CudaReal> LHost(OHMMS_DIM*OHMMS_DIM), 
 	LinvHost(OHMMS_DIM*OHMMS_DIM);
       for (int i=0; i<OHMMS_DIM; i++)
 	for (int j=0; j<OHMMS_DIM; j++) {

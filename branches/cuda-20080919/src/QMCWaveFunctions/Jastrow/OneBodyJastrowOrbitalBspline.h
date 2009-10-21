@@ -21,31 +21,31 @@ namespace qmcplusplus {
     vector<CudaSpline<CudaReal>*> GPUSplines, UniqueSplines;
     int MaxCoefs;
     ParticleSet &ElecRef;
-    cuda_vector<CudaReal> L, Linv;
+    thrust::device_vector<CudaReal> L, Linv;
 
     // Holds center positions
-    cuda_vector<CudaReal> C;
+    thrust::device_vector<CudaReal> C;
 
-    cuda_vector<CudaReal*> UpdateListGPU;
-    cuda_vector<CudaReal> SumGPU, GradLaplGPU, OneGradGPU;
+    thrust::device_vector<CudaReal*> UpdateListGPU;
+    thrust::device_vector<CudaReal> SumGPU, GradLaplGPU, OneGradGPU;
 
-    host_vector<CudaReal*> UpdateListHost;
-    host_vector<CudaReal> SumHost, GradLaplHost, OneGradHost;
+    thrust::host_vector<CudaReal*> UpdateListHost;
+    thrust::host_vector<CudaReal> SumHost, GradLaplHost, OneGradHost;
     int NumCenterGroups, NumElecGroups;
     vector<int> CenterFirst, CenterLast;
-    host_vector<CudaReal> SplineDerivsHost;
-    cuda_vector<CudaReal> SplineDerivsGPU;
-    host_vector<CudaReal*> DerivListHost;
-    cuda_vector<CudaReal*> DerivListGPU;
+    thrust::host_vector<CudaReal> SplineDerivsHost;
+    thrust::device_vector<CudaReal> SplineDerivsGPU;
+    thrust::host_vector<CudaReal*> DerivListHost;
+    thrust::device_vector<CudaReal*> DerivListGPU;
 
-    host_vector<CudaReal*> NL_SplineCoefsListHost;
-    cuda_vector<CudaReal*> NL_SplineCoefsListGPU;
-    host_vector<NLjobGPU<CudaReal> > NL_JobListHost;
-    cuda_vector<NLjobGPU<CudaReal> > NL_JobListGPU;
-    host_vector<int> NL_NumCoefsHost, NL_NumQuadPointsHost;
-    cuda_vector<int> NL_NumCoefsGPU,  NL_NumQuadPointsGPU;
-    host_vector<CudaReal> NL_rMaxHost, NL_QuadPointsHost, NL_RatiosHost;
-    cuda_vector<CudaReal> NL_rMaxGPU,  NL_QuadPointsGPU,  NL_RatiosGPU;
+    thrust::host_vector<CudaReal*> NL_SplineCoefsListHost;
+    thrust::device_vector<CudaReal*> NL_SplineCoefsListGPU;
+    thrust::host_vector<NLjobGPU<CudaReal> > NL_JobListHost;
+    thrust::device_vector<NLjobGPU<CudaReal> > NL_JobListGPU;
+    thrust::host_vector<int> NL_NumCoefsHost, NL_NumQuadPointsHost;
+    thrust::device_vector<int> NL_NumCoefsGPU,  NL_NumQuadPointsGPU;
+    thrust::host_vector<CudaReal> NL_rMaxHost, NL_QuadPointsHost, NL_RatiosHost;
+    thrust::device_vector<CudaReal> NL_rMaxGPU,  NL_QuadPointsGPU,  NL_RatiosGPU;
 
     int N;
   public:
@@ -56,7 +56,7 @@ namespace qmcplusplus {
     void checkInVariables(opt_variables_type& active);
     void addFunc(int ib, FT* j);
     void recompute(MCWalkerConfiguration &W, bool firstTime);
-    void reserve (PointerPool<cuda_vector<CudaRealType> > &pool);
+    void reserve (PointerPool<thrust::device_vector<CudaRealType> > &pool);
     void addLog (MCWalkerConfiguration &W, vector<RealType> &logPsi);
     void update (vector<Walker_t*> &walkers, int iat);
     void update (const vector<Walker_t*> &walkers, const vector<int> &iatList) 
@@ -89,7 +89,7 @@ namespace qmcplusplus {
       //      NumCenterGroups = centers.groups();
       // cerr << "NumCenterGroups = " << NumCenterGroups << endl;
       GPUSplines.resize(NumCenterGroups,0);
-      host_vector<CudaReal> LHost(OHMMS_DIM*OHMMS_DIM), 
+      thrust::host_vector<CudaReal> LHost(OHMMS_DIM*OHMMS_DIM), 
 	LinvHost(OHMMS_DIM*OHMMS_DIM);
       for (int i=0; i<OHMMS_DIM; i++)
 	for (int j=0; j<OHMMS_DIM; j++) {
@@ -101,7 +101,7 @@ namespace qmcplusplus {
       N = elecs.getTotalNum();
 
       // Copy center positions to GPU, sorting by GroupID
-      host_vector<CudaReal> C_host(OHMMS_DIM*centers.getTotalNum());
+      thrust::host_vector<CudaReal> C_host(OHMMS_DIM*centers.getTotalNum());
       int index=0;
       for (int cgroup=0; cgroup<NumCenterGroups; cgroup++) {
 	CenterFirst.push_back(index);
@@ -115,7 +115,7 @@ namespace qmcplusplus {
 	CenterLast.push_back(index-1);
       }
 
-      // host_vector<CudaReal> C_host(OHMMS_DIM*centers.getTotalNum());
+      // thrust::host_vector<CudaReal> C_host(OHMMS_DIM*centers.getTotalNum());
       // for (int i=0; i<centers.getTotalNum(); i++) 
       // 	for (int dim=0; dim<OHMMS_DIM; dim++)
       // 	  C_host[OHMMS_DIM*i+dim] = centers.R[i][dim];

@@ -34,10 +34,16 @@ namespace qmcplusplus {
    *\param els the positions of the electrons
    *\param psi trial wavefunction
    */
-  NonLocalECPotential::NonLocalECPotential(ParticleSet& ions, ParticleSet& els,
-					   TrialWaveFunction& psi) : 
-    IonConfig(ions), d_table(0), Psi(psi), CurrentNumWalkers(0)
-								    
+  NonLocalECPotential::NonLocalECPotential
+  (ParticleSet& ions, ParticleSet& els,
+   TrialWaveFunction& psi) : 
+   IonConfig(ions), d_table(0), Psi(psi), CurrentNumWalkers(0)
+   // ,
+   // Ions_GPU("Ions_GPU"), Elecs_GPU("Elecs_GPU"), Dist_GPU("Dist_GPU"),
+   // Eleclist_GPU("Eleclist_GPU"), NumPairs_GPU("NumPairs_GPU"),
+   // RatioPos_GPU("RatioPos_GPU"), CosTheta_GPU("CosTheta_GPU"),
+   // RatioPoslist_GPU("RatioPoslist_GPU")
+   
   { 
     d_table = DistanceTable::add(ions,els);
     NumIons=ions.getTotalNum();
@@ -132,7 +138,7 @@ namespace qmcplusplus {
   {
     SpeciesSet &sSet = IonConfig.getSpeciesSet();
     NumIonGroups = sSet.getTotalNum();
-    host_vector<CUDA_PRECISION> LHost(OHMMS_DIM*OHMMS_DIM), 
+    thrust::host_vector<CUDA_PRECISION> LHost(OHMMS_DIM*OHMMS_DIM), 
       LinvHost(OHMMS_DIM*OHMMS_DIM);
     for (int i=0; i<OHMMS_DIM; i++)
       for (int j=0; j<OHMMS_DIM; j++) {
@@ -144,7 +150,7 @@ namespace qmcplusplus {
     NumElecs = elecs.getTotalNum();
     
     // Copy ion positions to GPU, sorting by GroupID
-    host_vector<CUDA_PRECISION> Ion_host(OHMMS_DIM*IonConfig.getTotalNum());
+    thrust::host_vector<CUDA_PRECISION> Ion_host(OHMMS_DIM*IonConfig.getTotalNum());
     int index=0;
     for (int group=0; group<NumIonGroups; group++) {
       IonFirst.push_back(index);
@@ -170,14 +176,14 @@ namespace qmcplusplus {
     // the cores overlap
     Elecs_GPU.resize(MaxPairs*nw);
     Dist_GPU.resize(MaxPairs*nw);
-    host_vector<int*> Eleclist_host(nw);
-    host_vector<CUDA_PRECISION*> Distlist_host(nw);
+    thrust::host_vector<int*> Eleclist_host(nw);
+    thrust::host_vector<CUDA_PRECISION*> Distlist_host(nw);
     Eleclist_GPU.resize(nw);
     Distlist_GPU.resize(nw);
     NumPairs_GPU.resize(nw);
     for (int iw=0; iw<nw; iw++) {
-      Eleclist_host[iw] = &(Elecs_GPU[MaxPairs*iw]);
-      Distlist_host[iw] = &(Dist_GPU[MaxPairs*iw]);
+      Eleclist_host[iw] = &(Elecs_GPU.data()[MaxPairs*iw]);
+      Distlist_host[iw] = &(Dist_GPU.data()[MaxPairs*iw]);
     }
     Eleclist_GPU = Eleclist_host;
     Distlist_GPU = Distlist_host;
@@ -193,13 +199,13 @@ namespace qmcplusplus {
     RatiosPerWalker = MaxPairs * MaxKnots;
     RatioPos_GPU.resize(OHMMS_DIM * RatiosPerWalker * nw);
     CosTheta_GPU.resize(RatiosPerWalker * nw);
-    host_vector<CUDA_PRECISION*> RatioPoslist_host(nw);
-    host_vector<CUDA_PRECISION*> Ratiolist_host(nw);
-    host_vector<CUDA_PRECISION*> CosThetalist_host(nw);
+    thrust::host_vector<CUDA_PRECISION*> RatioPoslist_host(nw);
+    thrust::host_vector<CUDA_PRECISION*> Ratiolist_host(nw);
+    thrust::host_vector<CUDA_PRECISION*> CosThetalist_host(nw);
     for (int iw=0; iw<nw; iw++) {
       RatioPoslist_host[iw] = 
-	&(RatioPos_GPU[OHMMS_DIM * RatiosPerWalker * iw]);
-      CosThetalist_host[iw] = &(CosTheta_GPU[RatiosPerWalker*iw]);
+	RatioPos_GPU.data() + OHMMS_DIM * RatiosPerWalker * iw;
+      CosThetalist_host[iw] = CosTheta_GPU.data()+RatiosPerWalker*iw;
     }
     RatioPoslist_GPU = RatioPoslist_host;
     CosThetalist_GPU = CosThetalist_host;
@@ -277,9 +283,9 @@ namespace qmcplusplus {
 
 
 #ifdef CUDA_DEBUG
-	host_vector<int> Elecs_host;
-	host_vector<int> NumPairs_host;
-	host_vector<CUDA_PRECISION> RatioPos_host;
+	thrust::host_vector<int> Elecs_host;
+	thrust::host_vector<int> NumPairs_host;
+	thrust::host_vector<CUDA_PRECISION> RatioPos_host;
 	RatioPos_host = RatioPos_GPU;
 	NumPairs_host = NumPairs_GPU;
 	Elecs_host    = Elecs_GPU;
@@ -488,7 +494,7 @@ namespace qmcplusplus {
 // 		   RatioPos_host[3*i+2]);
 //	}
 
-	// host_vector<CUDA_PRECISION> Dist_host;
+	// thrust::host_vector<CUDA_PRECISION> Dist_host;
 	// NumPairs_host = NumPairs_GPU;
 	// Dist_host = Dist_GPU;
 

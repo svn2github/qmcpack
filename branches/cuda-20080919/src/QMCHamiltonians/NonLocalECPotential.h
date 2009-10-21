@@ -67,27 +67,27 @@ namespace qmcplusplus {
     //////////////////////////////////
     int NumIonGroups;
     vector<int> IonFirst, IonLast;
-    cuda_vector<CUDA_PRECISION> Ions_GPU, L, Linv;
-    cuda_vector<int> Elecs_GPU;
-    host_vector<int> Elecs_host;
-    cuda_vector<CUDA_PRECISION> Dist_GPU;
-    host_vector<CUDA_PRECISION> Dist_host;
-    cuda_vector<int*> Eleclist_GPU;
-    cuda_vector<CUDA_PRECISION*> Distlist_GPU;
-    cuda_vector<int> NumPairs_GPU;
-    host_vector<int> NumPairs_host;
+    thrust::device_vector<CUDA_PRECISION> Ions_GPU, L, Linv;
+    thrust::device_vector<int> Elecs_GPU;
+    thrust::host_vector<int> Elecs_host;
+    thrust::device_vector<CUDA_PRECISION> Dist_GPU;
+    thrust::host_vector<CUDA_PRECISION> Dist_host;
+    thrust::device_vector<int*> Eleclist_GPU;
+    thrust::device_vector<CUDA_PRECISION*> Distlist_GPU;
+    thrust::device_vector<int> NumPairs_GPU;
+    thrust::host_vector<int> NumPairs_host;
     int NumElecs;
     // The maximum number of quadrature points over all the ions species
     int MaxKnots, MaxPairs, RatiosPerWalker;
     // These are the positions at which we have to evalate the WF ratios
     // It has size OHMMS_DIM * MaxPairs * MaxKnots * NumWalkers
-    cuda_vector<CUDA_PRECISION> RatioPos_GPU, CosTheta_GPU;
-    host_vector<CUDA_PRECISION> RatioPos_host, CosTheta_host;
-    cuda_vector<CUDA_PRECISION*> RatioPoslist_GPU, CosThetalist_GPU;
+    thrust::device_vector<CUDA_PRECISION> RatioPos_GPU, CosTheta_GPU;
+    thrust::host_vector<CUDA_PRECISION> RatioPos_host, CosTheta_host;
+    thrust::device_vector<CUDA_PRECISION*> RatioPoslist_GPU, CosThetalist_GPU;
 
     // Quadrature points
-    vector<cuda_vector<CUDA_PRECISION> > QuadPoints_GPU;
-    vector<host_vector<CUDA_PRECISION> > QuadPoints_host;
+    vector<thrust::device_vector<CUDA_PRECISION> > QuadPoints_GPU;
+    vector<thrust::host_vector<CUDA_PRECISION> > QuadPoints_host;
     int CurrentNumWalkers;
 
     // These are used in calling Psi->NLratios

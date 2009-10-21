@@ -99,9 +99,9 @@ namespace qmcplusplus {
     UBspline_3d_s_cuda *CudaSpline;
     vector<int> IonFirst, IonLast;
     // This is indexed by the ion species
-    cuda_vector<CUDA_PRECISION>  SumGPU;
-    host_vector<CUDA_PRECISION>  SumHost;
-    cuda_vector<CUDA_PRECISION>  L, Linv;
+    thrust::device_vector<CUDA_PRECISION>  SumGPU;
+    thrust::host_vector<CUDA_PRECISION>  SumHost;
+    thrust::device_vector<CUDA_PRECISION>  L, Linv;
     void addEnergy(MCWalkerConfiguration &W, 
 		   vector<RealType> &LocalEnergy);
   };

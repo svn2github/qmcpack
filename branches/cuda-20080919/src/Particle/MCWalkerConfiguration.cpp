@@ -353,7 +353,7 @@ void MCWalkerConfiguration::updateLists_GPU()
     LapList_GPU.resize(nw);
   }
 
-  host_vector<CUDA_PRECISION*> hostlist(nw);
+  thrust::host_vector<CUDA_PRECISION*> hostlist(nw);
   for (int iw=0; iw<nw; iw++) {
     if (WalkerList[iw]->R_GPU.size() != R.size())
       cerr << "Error in R_GPU size for iw = " << iw << "!\n";
@@ -379,7 +379,7 @@ void MCWalkerConfiguration::updateLists_GPU()
 
 void MCWalkerConfiguration::copyWalkersToGPU(bool copyGrad)
 {
-  host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > 
+  thrust::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > 
     R_host(WalkerList[0]->R.size());
 
   for (int iw=0; iw<WalkerList.size(); iw++) {

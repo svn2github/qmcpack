@@ -145,27 +145,27 @@ namespace qmcplusplus {
     // This is indexed by the ion species
     vector<TextureSpline*> SRSplines;
     TextureSpline *V0Spline;
-    cuda_vector<CUDA_PRECISION>  SumGPU;
-    host_vector<CUDA_PRECISION>  SumHost;
-    cuda_vector<CUDA_PRECISION>  IGPU;
-    cuda_vector<CUDA_PRECISION>  L, Linv;
+    thrust::device_vector<CUDA_PRECISION>  SumGPU;
+    thrust::host_vector<CUDA_PRECISION>  SumHost;
+    thrust::device_vector<CUDA_PRECISION>  IGPU;
+    thrust::device_vector<CUDA_PRECISION>  L, Linv;
     //// Long-range part
     int Numk;
-    cuda_vector<CUDA_PRECISION> kpointsGPU;
-    cuda_vector<int>            kshellGPU;
+    thrust::device_vector<CUDA_PRECISION> kpointsGPU;
+    thrust::device_vector<int>            kshellGPU;
     // This has the same lengths as KshellGPU
-    cuda_vector<CUDA_PRECISION> FkGPU;
+    thrust::device_vector<CUDA_PRECISION> FkGPU;
     // The first vector index is the species number
     // Complex, stored as float2
     // This is for the electrons -- one per walker
-    cuda_vector<CUDA_PRECISION*>  RhoklistGPU;
-    host_vector<CUDA_PRECISION*>  RhoklistHost;
+    thrust::device_vector<CUDA_PRECISION*>  RhoklistGPU;
+    thrust::host_vector<CUDA_PRECISION*>  RhoklistHost;
     // This stores rho_k for the electrons in one big array
-    cuda_vector<CUDA_PRECISION> RhokElecGPU;
+    thrust::device_vector<CUDA_PRECISION> RhokElecGPU;
 
     vector<PosType> SortedIons;
     // This stores rho_k for the ions.  Index is species number
-    vector<cuda_vector<CUDA_PRECISION> > RhokIonsGPU;
+    vector<thrust::device_vector<CUDA_PRECISION> > RhokIonsGPU;
     void setupLongRangeGPU();
     void addEnergy(MCWalkerConfiguration &W, 
 		   vector<RealType> &LocalEnergy);

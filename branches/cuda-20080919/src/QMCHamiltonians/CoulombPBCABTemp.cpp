@@ -41,7 +41,7 @@ namespace qmcplusplus {
 
       // CUDA setup
 #ifdef QMC_CUDA
-      host_vector<CUDA_PRECISION> LHost(9), LinvHost(9);
+      thrust::host_vector<CUDA_PRECISION> LHost(9), LinvHost(9);
       for (int i=0; i<3; i++)
 	for (int j=0; j<3; j++) {
 	  LHost[3*i+j]    = elns.Lattice.a(j)[i];
@@ -51,7 +51,7 @@ namespace qmcplusplus {
       Linv = LinvHost;
       
       // Copy center positions to GPU, sorting by GroupID
-      host_vector<CUDA_PRECISION> I_host(OHMMS_DIM*NumIons);
+      thrust::host_vector<CUDA_PRECISION> I_host(OHMMS_DIM*NumIons);
       int index=0;
       for (int cgroup=0; cgroup<NumIonSpecies; cgroup++) {
 	IonFirst.push_back(index);
@@ -394,20 +394,20 @@ namespace qmcplusplus {
   {
     StructFact &SK = *(ElecRef.SK);
     Numk = SK.KLists.numk;
-    host_vector<CUDA_PRECISION> kpointsHost(OHMMS_DIM*Numk);
+    thrust::host_vector<CUDA_PRECISION> kpointsHost(OHMMS_DIM*Numk);
     for (int ik=0; ik<Numk; ik++)
       for (int dim=0; dim<OHMMS_DIM; dim++)
 	kpointsHost[ik*OHMMS_DIM+dim] = SK.KLists.kpts_cart[ik][dim];
     kpointsGPU = kpointsHost;
     
-    host_vector<CUDA_PRECISION> FkHost(Numk);
+    thrust::host_vector<CUDA_PRECISION> FkHost(Numk);
     for (int ik=0; ik<Numk; ik++)
       FkHost[ik] = AB->Fk[ik];
     FkGPU = FkHost;
 
     // Now compute Rhok for the ions
     RhokIonsGPU.resize(NumIonSpecies);
-    host_vector<CUDA_PRECISION> RhokIons_host(2*Numk);
+    thrust::host_vector<CUDA_PRECISION> RhokIons_host(2*Numk);
     for (int sp=0; sp<NumIonSpecies; sp++) {
       for (int ik=0; ik < Numk; ik++) {
 	PosType k = SK.KLists.kpts_cart[ik];
@@ -455,7 +455,7 @@ namespace qmcplusplus {
       RhoklistHost.resize(nw);
     }
     for (int iw=0; iw<nw; iw++) {
-      RhoklistHost[iw] = &(RhokElecGPU[2*Numk*iw]);
+      RhoklistHost[iw] = &(RhokElecGPU.data()[2*Numk*iw]);
       SumHost[iw] = 0.0;
     }
     RhoklistGPU = RhoklistHost;
@@ -493,7 +493,7 @@ namespace qmcplusplus {
     }
 
 // #ifdef DEBUG_CUDA_RHOK
-//     host_vector<CUDA_PRECISION> RhokHost;
+//     thrust::host_vector<CUDA_PRECISION> RhokHost;
 //     RhokHost = RhokGPU;
 //     for (int ik=0; ik<Numk; ik++) {
 //       complex<double> rhok(0.0, 0.0);

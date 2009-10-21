@@ -19,7 +19,10 @@
 #include "OhmmsPETE/OhmmsMatrix.h"
 #include "Utilities/PooledData.h"
 #include "Utilities/PointerPool.h"
-#include "Utilities/cuda_allocator.h"
+//#include "Utilities/cuda_allocator.h"
+#include "thrust/device_vector.h"
+#include "thrust/host_vector.h"
+#include <cstdio>
 
 namespace qmcplusplus {
 
@@ -98,12 +101,12 @@ namespace qmcplusplus {
     /// Data for GPU-vectorized versions
 #ifdef QMC_CUDA
     static int cuda_DataSize;
-    typedef cuda_vector<CUDA_PRECISION> cuda_Buffer_t;
+    typedef thrust::device_vector<CUDA_PRECISION> cuda_Buffer_t;
     cuda_Buffer_t cuda_DataSet;
     // Note that R_GPU has size N+1.  The last element contains the
     // proposed position for single-particle moves.
-    cuda_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_GPU, Grad_GPU;
-    cuda_vector<CUDA_PRECISION> Lap_GPU;
+    thrust::device_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_GPU, Grad_GPU;
+    thrust::device_vector<CUDA_PRECISION> Lap_GPU;
     inline void resizeCuda(int size) {
       if (cuda_DataSize != size)
 	cuda_DataSize = size;
@@ -115,7 +118,12 @@ namespace qmcplusplus {
 
     ///default constructor
     inline Walker() : ID(0),ParentID(0), Generation(0),Age(0),
-    Weight(1.0e0),Multiplicity(1.0e0) 
+		      Weight(1.0e0),Multiplicity(1.0e0)
+		    // , 
+		    //   cuda_DataSet("walker_buffer"),
+		    //   R_GPU("R_GPU"), Grad_GPU("Grad_GPU"),
+		    //   Lap_GPU("Lap_GPU")
+		      
     {
       Properties.resize(1,NUMPROPERTIES);
       reset();
@@ -123,14 +131,19 @@ namespace qmcplusplus {
 
     ///create a walker for n-particles
     inline explicit Walker(int nptcl) : ID(0),ParentID(0), Generation(0),Age(0),
-        Weight(1.0e0),Multiplicity(1.0e0)
+					Weight(1.0e0),Multiplicity(1.0e0)
+				      // , 
+				      // 	cuda_DataSet("walker_buffer"),
+				      // 	R_GPU("R_GPU"), Grad_GPU("Grad_GPU"),
+				      // 	Lap_GPU("Lap_GPU")
     {
       Properties.resize(1,NUMPROPERTIES);
       resize(nptcl);
       reset();
     }
 
-    inline ~Walker() { }
+    inline ~Walker() { 
+    }
     
     ///assignment operator
     inline Walker& operator=(const Walker& a) {
@@ -283,9 +296,9 @@ namespace qmcplusplus {
       DataSet.putMessage(m);
 #ifdef QMC_CUDA
       // Pack GPU data
-      host_vector<CUDA_PRECISION> host_data;
-      host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
-      host_vector<CUDA_PRECISION> host_lapl;
+      thrust::host_vector<CUDA_PRECISION> host_data;
+      thrust::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
+      thrust::host_vector<CUDA_PRECISION> host_lapl;
 
       host_data = cuda_DataSet;
       R_host = R_GPU;
@@ -316,9 +329,9 @@ namespace qmcplusplus {
       DataSet.getMessage(m);
 #ifdef QMC_CUDA
       // Pack GPU data
-      host_vector<CUDA_PRECISION> host_data;
-      host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
-      host_vector<CUDA_PRECISION> host_lapl;
+      thrust::host_vector<CUDA_PRECISION> host_data;
+      thrust::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
+      thrust::host_vector<CUDA_PRECISION> host_lapl;
 
       int size, N;
       m.Unpack(size);

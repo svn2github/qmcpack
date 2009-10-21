@@ -114,7 +114,7 @@ namespace qmcplusplus {
     }
 
     void 
-    reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
+    reserve (PointerPool<thrust::device_vector<CudaRealType> > &pool)
     {
       for (int id=0; id<Dets.size(); id++)
 	Dets[id]->reserve(pool);

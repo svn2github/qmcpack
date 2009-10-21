@@ -1201,7 +1201,7 @@ namespace qmcplusplus {
   template<> void 
   EinsplineSetExtended<double>::evaluate 
   (vector<Walker_t*> &walkers, int iat,
-   cuda_vector<CudaRealType*> &phi)
+   thrust::device_vector<CudaRealType*> &phi)
   {
     // app_log() << "Start EinsplineSet CUDA evaluation\n";
     int N = walkers.size();
@@ -1238,7 +1238,7 @@ namespace qmcplusplus {
   template<> void 
   EinsplineSetExtended<complex<double> >::evaluate 
   (vector<Walker_t*> &walkers, int iat,
-   cuda_vector<CudaRealType*> &phi)
+   thrust::device_vector<CudaRealType*> &phi)
   {
     //    app_log() << "Eval 1.\n";
     int N = walkers.size();
@@ -1281,7 +1281,7 @@ namespace qmcplusplus {
   template<> void 
   EinsplineSetExtended<double>::evaluate 
   (vector<Walker_t*> &walkers, vector<PosType> &newpos,
-   cuda_vector<CudaRealType*> &phi)
+   thrust::device_vector<CudaRealType*> &phi)
   {
     // app_log() << "Start EinsplineSet CUDA evaluation\n";
     int N = newpos.size();
@@ -1327,25 +1327,25 @@ namespace qmcplusplus {
     int N = CudaMultiSpline->num_splines;
     CudaValueVector.resize(N*numWalkers);
     CudaGradLaplVector.resize(4*N*numWalkers);
-    host_vector<CudaStorageType*> hostValuePointers(numWalkers);
-    host_vector<CudaStorageType*> hostGradLaplPointers(numWalkers);
+    thrust::host_vector<CudaStorageType*> hostValuePointers(numWalkers);
+    thrust::host_vector<CudaStorageType*> hostGradLaplPointers(numWalkers);
     for (int i=0; i<numWalkers; i++) {
-      hostValuePointers[i]    = &(CudaValueVector[i*N]);
-      hostGradLaplPointers[i] = &(CudaGradLaplVector[4*i*N]);
+      hostValuePointers[i]    = &(CudaValueVector.data()[i*N]);
+      hostGradLaplPointers[i] = &(CudaGradLaplVector.data()[4*i*N]);
     }
     CudaValuePointers    = hostValuePointers;
     CudaGradLaplPointers = hostGradLaplPointers;
 
     int M = MakeTwoCopies.size();
     CudaMakeTwoCopies.resize(M);
-    host_vector<int> hostMakeTwoCopies(M);
+    thrust::host_vector<int> hostMakeTwoCopies(M);
     for (int i=0; i<M; i++)
       hostMakeTwoCopies[i] = MakeTwoCopies[i];
     CudaMakeTwoCopies = hostMakeTwoCopies;
 
     CudakPoints.resize(M);
     CudakPoints_reduced.resize(M);
-    host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > hostkPoints(M),
+    thrust::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > hostkPoints(M),
       hostkPoints_reduced(M);
     for (int i=0; i<M; i++) {
       PosType k_red = PrimLattice.toCart(kPoints[i]);
@@ -1361,7 +1361,7 @@ namespace qmcplusplus {
   template<> void 
   EinsplineSetExtended<complex<double> >::evaluate 
   (vector<Walker_t*> &walkers, vector<PosType> &newpos,
-   cuda_vector<CudaRealType*> &phi)
+   thrust::device_vector<CudaRealType*> &phi)
   {
     //    app_log() << "Eval 2.\n";
     int N = walkers.size();
@@ -1403,7 +1403,7 @@ namespace qmcplusplus {
   template<> void
   EinsplineSetExtended<double>::evaluate
   (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-   cuda_vector<CudaRealType*> &phi, cuda_vector<CudaRealType*> &grad_lapl,
+   thrust::device_vector<CudaRealType*> &phi, thrust::device_vector<CudaRealType*> &grad_lapl,
    int row_stride)
   {
     int N = walkers.size();
@@ -1438,7 +1438,7 @@ namespace qmcplusplus {
       (CudaMultiSpline, (CudaRealType*)cudapos.data(), cudaSign.data(), 
        Linv_cuda.data(), phi.data(), grad_lapl.data(), N, row_stride);
 
-    // host_vector<CudaRealType*> pointers;
+    // thrust::host_vector<CudaRealType*> pointers;
     // pointers = phi;
     // CudaRealType data[N];
     // cudaMemcpy (data, pointers[0], N*sizeof(CudaRealType), cudaMemcpyDeviceToHost);
@@ -1450,7 +1450,7 @@ namespace qmcplusplus {
   template<> void
   EinsplineSetExtended<complex<double> >::evaluate
   (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-   cuda_vector<CudaRealType*> &phi, cuda_vector<CudaRealType*> &grad_lapl,
+   thrust::device_vector<CudaRealType*> &phi, thrust::device_vector<CudaRealType*> &grad_lapl,
    int row_stride)
   {
     //    app_log() << "Eval 3.\n";
@@ -1493,7 +1493,7 @@ namespace qmcplusplus {
   //   // eval_multi_UBspline_3d_z_vgh (MultiSpline, hostPos[0][0], hostPos[0][1], hostPos[0][2],
   //   // 				  cpuSpline);
 
-  //   host_vector<CudaStorageType*> pointers;
+  //   thrust::host_vector<CudaStorageType*> pointers;
   //   pointers = CudaGradLaplPointers;
   //   complex<float> gpuSpline[4*M];
   //   cudaMemcpy(gpuSpline, pointers[0], 
@@ -1520,7 +1520,7 @@ namespace qmcplusplus {
 
   template<> void 
   EinsplineSetExtended<double>::evaluate 
-  (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
+  (vector<PosType> &pos, thrust::device_vector<CudaRealType*> &phi)
   { 
     int N = pos.size();
     CudaRealType plus_minus[2] = {1.0, -1.0};
@@ -1558,7 +1558,7 @@ namespace qmcplusplus {
 
   template<> void 
   EinsplineSetExtended<double>::evaluate 
-  (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
+  (vector<PosType> &pos, thrust::device_vector<CudaComplexType*> &phi)
   { 
     app_error() << "EinsplineSetExtended<complex<double> >::evaluate "
 		<< "not yet implemented.\n";
@@ -1569,7 +1569,7 @@ namespace qmcplusplus {
 
   template<> void 
   EinsplineSetExtended<complex<double> >::evaluate 
-  (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
+  (vector<PosType> &pos, thrust::device_vector<CudaRealType*> &phi)
   { 
     //    app_log() << "Eval 4.\n";
     int N = pos.size();
@@ -1609,7 +1609,7 @@ namespace qmcplusplus {
 
   template<> void 
   EinsplineSetExtended<complex<double> >::evaluate 
-  (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
+  (vector<PosType> &pos, thrust::device_vector<CudaComplexType*> &phi)
   { 
     app_error() << "EinsplineSetExtended<complex<double> >::evaluate "
 		<< "not yet implemented.\n";
@@ -1778,9 +1778,9 @@ namespace qmcplusplus {
     HybridData_GPU.resize(numwalkers);
 
     for (int iw=0; iw<numwalkers; iw++) {
-      Ylm_ptr_CPU[iw]         = &(Ylm_GPU[0]) + (3*iw+0)*Ylm_BS;
-      dYlm_dtheta_ptr_CPU[iw] = &(Ylm_GPU[0]) + (3*iw+1)*Ylm_BS;
-      dYlm_dphi_ptr_CPU[iw]   = &(Ylm_GPU[0]) + (3*iw+2)*Ylm_BS;
+      Ylm_ptr_CPU[iw]         = Ylm_GPU.data() + (3*iw+0)*Ylm_BS;
+      dYlm_dtheta_ptr_CPU[iw] = Ylm_GPU.data() + (3*iw+1)*Ylm_BS;
+      dYlm_dphi_ptr_CPU[iw]   = Ylm_GPU.data() + (3*iw+2)*Ylm_BS;
     }
     
     Ylm_ptr_GPU         = Ylm_ptr_CPU;
@@ -1819,9 +1819,9 @@ namespace qmcplusplus {
     HybridData_GPU.resize(numwalkers);
 
     for (int iw=0; iw<numwalkers; iw++) {
-      Ylm_ptr_CPU[iw]         = &(Ylm_GPU[0]) + (3*iw+0)*Ylm_BS;
-      dYlm_dtheta_ptr_CPU[iw] = &(Ylm_GPU[0]) + (3*iw+1)*Ylm_BS;
-      dYlm_dphi_ptr_CPU[iw]   = &(Ylm_GPU[0]) + (3*iw+2)*Ylm_BS;
+      Ylm_ptr_CPU[iw]         = Ylm_GPU.data() + (3*iw+0)*Ylm_BS;
+      dYlm_dtheta_ptr_CPU[iw] = Ylm_GPU.data() + (3*iw+1)*Ylm_BS;
+      dYlm_dphi_ptr_CPU[iw]   = Ylm_GPU.data() + (3*iw+2)*Ylm_BS;
     }
     
     Ylm_ptr_GPU         = Ylm_ptr_CPU;
@@ -1837,41 +1837,41 @@ namespace qmcplusplus {
   // Vectorized evaluation functions
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, int iat,
-					cuda_vector<CudaRealType*> &phi)
+					thrust::device_vector<CudaRealType*> &phi)
   {
     app_error() << "EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, int iat,\n"
-		<< " cuda_vector<CudaRealType*> &phi) not implemented.\n";
+		<< " thrust::device_vector<CudaRealType*> &phi) not implemented.\n";
     abort();
   }
 
   
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, int iat,
-				cuda_vector<CudaComplexType*> &phi)
+				thrust::device_vector<CudaComplexType*> &phi)
   {
     app_error() << "EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, int iat,\n"
-		<< " cuda_vector<CudaComplexType*> &phi) not implemented.\n";
+		<< " thrust::device_vector<CudaComplexType*> &phi) not implemented.\n";
     abort();
   }
 
   
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-					cuda_vector<CudaRealType*> &phi)
+					thrust::device_vector<CudaRealType*> &phi)
   { 
     app_error() << "EinsplineSetHybrid<double>::evaluate \n"
 		<< " (vector<Walker_t*> &walkers, vector<PosType> &newpos, \n"
-		<< " cuda_vector<CudaRealType*> &phi) not implemented.\n";
+		<< " thrust::device_vector<CudaRealType*> &phi) not implemented.\n";
     abort();
   }
 
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,
-  		 cuda_vector<CudaComplexType*> &phi)
+  		 thrust::device_vector<CudaComplexType*> &phi)
   {
     app_error() << "EinsplineSetHybrid<double>::evaluate \n"
 		<< "  (vector<Walker_t*> &walkers, vector<PosType> &newpos,\n"
-		<< "   cuda_vector<CudaComplexType*> &phi) not implemented.\n";
+		<< "   thrust::device_vector<CudaComplexType*> &phi) not implemented.\n";
     abort();
   }
 
@@ -1879,8 +1879,8 @@ namespace qmcplusplus {
 
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-					cuda_vector<CudaRealType*> &phi,
-					cuda_vector<CudaRealType*> &grad_lapl,
+					thrust::device_vector<CudaRealType*> &phi,
+					thrust::device_vector<CudaRealType*> &grad_lapl,
 					int row_stride)
   { 
     int N = newpos.size();
@@ -1897,7 +1897,7 @@ namespace qmcplusplus {
     // for (int i=0; i<newpos.size(); i++)
     //   cerr << "newPos[" << i << "] = " << newpos[i] << endl;
 
-    // host_vector<CudaRealType> IonPos_CPU(IonPos_GPU.size());
+    // thrust::host_vector<CudaRealType> IonPos_CPU(IonPos_GPU.size());
     // IonPos_CPU = IonPos_GPU;
     // for (int i=0; i<IonPos_CPU.size()/3; i++)
     //   fprintf (stderr, "ion[%d] = [%10.6f %10.6f %10.6f]\n",
@@ -1936,13 +1936,13 @@ namespace qmcplusplus {
 #ifdef HYBRID_DEBUG
 
 
-    host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
+    thrust::host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
     phi_CPU = phi;
     grad_lapl_CPU = grad_lapl;
-    host_vector<CudaRealType> vals_CPU(NumOrbitals), GL_CPU(4*row_stride);
-    host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    thrust::host_vector<CudaRealType> vals_CPU(NumOrbitals), GL_CPU(4*row_stride);
+    thrust::host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
     HybridJobs_CPU = HybridJobs_GPU;
-    host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
+    thrust::host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
     HybridData_CPU = HybridData_GPU;
     
     rhats_CPU = rhats_GPU;
@@ -2052,7 +2052,7 @@ namespace qmcplusplus {
   
 
 
-    host_vector<float> Ylm_CPU(Ylm_GPU.size());
+    thrust::host_vector<float> Ylm_CPU(Ylm_GPU.size());
     Ylm_CPU = Ylm_GPU;
     
     rhats_CPU = rhats_GPU;
@@ -2060,10 +2060,10 @@ namespace qmcplusplus {
       fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f]\n",
 	       i, rhats_CPU[3*i+0], rhats_CPU[3*i+1], rhats_CPU[3*i+2]);
 
-    host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    thrust::host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
     HybridJobs_CPU = HybridJobs_GPU;
         
-    host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
+    thrust::host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
     HybridData_CPU = HybridData_GPU;
 
     cerr << "Before loop.\n";
@@ -2227,21 +2227,21 @@ namespace qmcplusplus {
 
   template<> void
   EinsplineSetHybrid<double>::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-					cuda_vector<CudaComplexType*> &phi,
-					cuda_vector<CudaComplexType*> &grad_lapl,
+					thrust::device_vector<CudaComplexType*> &phi,
+					thrust::device_vector<CudaComplexType*> &grad_lapl,
 					int row_stride)
   {
     app_error() << "EinsplineSetHybrid<double>::evaluate \n"
 		<< "(vector<Walker_t*> &walkers, vector<PosType> &newpos, \n"
-		<< " cuda_vector<CudaComplexType*> &phi,\n"
-		<< " cuda_vector<CudaComplexType*> &grad_lapl, int row_stride)\n"
+		<< " thrust::device_vector<CudaComplexType*> &phi,\n"
+		<< " thrust::device_vector<CudaComplexType*> &grad_lapl, int row_stride)\n"
 		<< "     is not yet implemented.\n";
     abort();
   }
 
   template<> void
   EinsplineSetHybrid<double>::evaluate 
-  (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
+  (vector<PosType> &pos, thrust::device_vector<CudaRealType*> &phi)
   {
     int N = pos.size();
     if (cudapos.size() < N) {
@@ -2274,10 +2274,10 @@ namespace qmcplusplus {
   }
 
   template<> void
-  EinsplineSetHybrid<double>::evaluate (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
+  EinsplineSetHybrid<double>::evaluate (vector<PosType> &pos, thrust::device_vector<CudaComplexType*> &phi)
   {
     app_error() << "EinsplineSetHybrid<double>::evaluate \n"
-		 << "(vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)\n"
+		 << "(vector<PosType> &pos, thrust::device_vector<CudaComplexType*> &phi)\n"
 		 << "     is not yet implemented.\n";
     abort();
   }
@@ -2304,46 +2304,46 @@ namespace qmcplusplus {
 
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, int iat,
-					cuda_vector<CudaRealType*> &phi)
+					thrust::device_vector<CudaRealType*> &phi)
   {
     app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, int iat,\n"
-		<< "			                            cuda_vector<CudaRealType*> &phi)\n"
+		<< "			                            thrust::device_vector<CudaRealType*> &phi)\n"
 		<< "not yet implemented.\n";
   }
 
   
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, int iat,
-						  cuda_vector<CudaComplexType*> &phi)
+						  thrust::device_vector<CudaComplexType*> &phi)
   {
    app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, int iat,\n"
-		<< "			                            cuda_vector<CudaComplexType*> &phi)\n"
+		<< "			                            thrust::device_vector<CudaComplexType*> &phi)\n"
 	       << "not yet implemented.\n";
   }
 
   
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-						  cuda_vector<CudaRealType*> &phi)
+						  thrust::device_vector<CudaRealType*> &phi)
   { 
    app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,\n"
-		<< "			                            cuda_vector<CudaRealType*> &phi)\n"
+		<< "			                            thrust::device_vector<CudaRealType*> &phi)\n"
 		<< "not yet implemented.\n";
   }
 
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,
-						  cuda_vector<CudaComplexType*> &phi)
+						  thrust::device_vector<CudaComplexType*> &phi)
   {
    app_error() << "EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> ,\n"
-		<< "			                            cuda_vector<CudaComplexType*> &phi)\n"
+		<< "			                            thrust::device_vector<CudaComplexType*> &phi)\n"
 		<< "not yet implemented.\n";
   }
 
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate 
     (vector<Walker_t*> &walkers,  vector<PosType> &newpos, 
-     cuda_vector<CudaRealType*> &phi, cuda_vector<CudaRealType*> &grad_lapl,
+     thrust::device_vector<CudaRealType*> &phi, thrust::device_vector<CudaRealType*> &grad_lapl,
      int row_stride)
   { 
     static int numAtomic=0;
@@ -2391,7 +2391,7 @@ namespace qmcplusplus {
 
 #ifdef HYBRID_DEBUG
 
-    // host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    // thrust::host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
     // HybridJobs_CPU = HybridJobs_GPU;
 
     // int M = MakeTwoCopies.size();
@@ -2428,13 +2428,13 @@ namespace qmcplusplus {
     //   numAtomic = num3D = 0;
     // }
 
-    host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
+    thrust::host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
     phi_CPU = phi;
     grad_lapl_CPU = grad_lapl;
-    host_vector<CudaRealType> vals_CPU(NumOrbitals), GL_CPU(4*row_stride);
-    host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    thrust::host_vector<CudaRealType> vals_CPU(NumOrbitals), GL_CPU(4*row_stride);
+    thrust::host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
     HybridJobs_CPU = HybridJobs_GPU;
-    host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
+    thrust::host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
     HybridData_CPU = HybridData_GPU;
     
     rhats_CPU = rhats_GPU;
@@ -2615,7 +2615,7 @@ namespace qmcplusplus {
 
 
 
-    host_vector<float> Ylm_CPU(Ylm_GPU.size());
+    thrust::host_vector<float> Ylm_CPU(Ylm_GPU.size());
     Ylm_CPU = Ylm_GPU;
     
     rhats_CPU = rhats_GPU;
@@ -2623,10 +2623,10 @@ namespace qmcplusplus {
       fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f]\n",
 	       i, rhats_CPU[3*i+0], rhats_CPU[3*i+1], rhats_CPU[3*i+2]);
 
-    host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    thrust::host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
     HybridJobs_CPU = HybridJobs_GPU;
         
-    host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
+    thrust::host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
     HybridData_CPU = HybridData_GPU;
 
     cerr << "Before loop.\n";
@@ -2656,14 +2656,14 @@ namespace qmcplusplus {
 
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-  		 cuda_vector<CudaComplexType*> &phi,
-  		 cuda_vector<CudaComplexType*> &grad_lapl,
+  		 thrust::device_vector<CudaComplexType*> &phi,
+  		 thrust::device_vector<CudaComplexType*> &grad_lapl,
   		 int row_stride)
   {
     app_error() << "EinsplineSetHybrid<complex<double> >::evaluate \n"
 		<< "(vector<Walker_t*> &walkers, vector<PosType> &newpos, \n"
-		<< " cuda_vector<CudaComplexType*> &phi,\n"
-		<< " cuda_vector<CudaComplexType*> &grad_lapl,\n"
+		<< " thrust::device_vector<CudaComplexType*> &phi,\n"
+		<< " thrust::device_vector<CudaComplexType*> &grad_lapl,\n"
 		<< " int row_stride)\n"
 		<< "not yet implemented.\n";
     abort();
@@ -2671,7 +2671,7 @@ namespace qmcplusplus {
 
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate 
-  (vector<PosType> &pos, cuda_vector<CudaRealType*> &phi)
+  (vector<PosType> &pos, thrust::device_vector<CudaRealType*> &phi)
   {
     int N = pos.size();
     if (cudapos.size() < N) {
@@ -2706,7 +2706,7 @@ namespace qmcplusplus {
        CudaMakeTwoCopies.data(), (CudaRealType**)phi.data(), 
        CudaMakeTwoCopies.size(), pos.size(), lMax);
 
-    // host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    // thrust::host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
     // HybridJobs_CPU = HybridJobs_GPU;
 
     // int M = CudaMakeTwoCopies.size();
@@ -2747,10 +2747,10 @@ namespace qmcplusplus {
 
   template<> void
   EinsplineSetHybrid<complex<double> >::evaluate 
-  (vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)
+  (vector<PosType> &pos, thrust::device_vector<CudaComplexType*> &phi)
   {
     app_error() << "EinsplineSetHybrid<complex<double> >::evaluate \n"
-		<< "(vector<PosType> &pos, cuda_vector<CudaComplexType*> &phi)\n"
+		<< "(vector<PosType> &pos, thrust::device_vector<CudaComplexType*> &phi)\n"
 		<< "not yet implemented.\n";
   }
   
@@ -2805,7 +2805,7 @@ namespace qmcplusplus {
     // Setup B-spline Acuda matrix in constant memory
     init_atomic_cuda();
 
-    host_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_CPU;
+    thrust::host_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_CPU;
     const int BS=16;
     NumOrbitals = getOrbitalSetSize();
     // Bump up the stride to be a multiple of 512-bit bus width
@@ -2833,9 +2833,9 @@ namespace qmcplusplus {
       atom_cuda.spline_dr_inv = cpu_spline.x_grid.delta_inv;
       int Ngrid = cpu_spline.x_grid.num;
       int spline_size = 2*atom_cuda.spline_stride * (Ngrid+2);
-      host_vector<float> spline_coefs(spline_size);
+      thrust::host_vector<float> spline_coefs(spline_size);
       AtomicSplineCoefs_GPU[iat].resize(spline_size);
-      atom_cuda.spline_coefs = &AtomicSplineCoefs_GPU[iat][0];
+      atom_cuda.spline_coefs = AtomicSplineCoefs_GPU[iat].data();
       // Reorder and copy splines to GPU memory
       for (int igrid=0; igrid<Ngrid; igrid++)
 	for (int lm=0; lm<numlm; lm++)
@@ -2864,9 +2864,9 @@ namespace qmcplusplus {
       atom_cuda.poly_stride = numlm*atom_cuda.lm_stride;
       atom_cuda.poly_order = atom.PolyOrder;
       int poly_size = (atom.PolyOrder+1)*atom_cuda.poly_stride;
-      host_vector<float> poly_coefs(poly_size);
+      thrust::host_vector<float> poly_coefs(poly_size);
       AtomicPolyCoefs_GPU[iat].resize(poly_size);
-      atom_cuda.poly_coefs = &AtomicPolyCoefs_GPU[iat][0];
+      atom_cuda.poly_coefs = AtomicPolyCoefs_GPU[iat].data();
       for (int lm=0; lm<numlm; lm++)
 	for (int n=0; n<atom.PolyOrder; n++)
 	  for (int orb=0; orb<NumOrbitals; orb++)
@@ -2887,7 +2887,7 @@ namespace qmcplusplus {
     // Setup B-spline Acuda matrix in constant memory
     init_atomic_cuda();
 
-    host_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_CPU;
+    thrust::host_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_CPU;
     const int BS=16;
     NumOrbitals = getOrbitalSetSize();
     // Bump up the stride to be a multiple of 512-bit bus width
@@ -2915,9 +2915,9 @@ namespace qmcplusplus {
       atom_cuda.spline_dr_inv = cpu_spline.x_grid.delta_inv;
       int Ngrid = cpu_spline.x_grid.num;
       int spline_size = 2*atom_cuda.spline_stride * (Ngrid+2);
-      host_vector<float> spline_coefs(spline_size);
+      thrust::host_vector<float> spline_coefs(spline_size);
       AtomicSplineCoefs_GPU[iat].resize(spline_size);
-      atom_cuda.spline_coefs = &AtomicSplineCoefs_GPU[iat][0];
+      atom_cuda.spline_coefs = AtomicSplineCoefs_GPU[iat].data();
       // Reorder and copy splines to GPU memory
       for (int igrid=0; igrid<Ngrid; igrid++)
 	for (int lm=0; lm<numlm; lm++)
@@ -2950,9 +2950,9 @@ namespace qmcplusplus {
       atom_cuda.poly_stride = numlm*atom_cuda.lm_stride;
       atom_cuda.poly_order = atom.PolyOrder;
       int poly_size = (atom.PolyOrder+1)*atom_cuda.poly_stride;
-      host_vector<float> poly_coefs(poly_size);
+      thrust::host_vector<float> poly_coefs(poly_size);
       AtomicPolyCoefs_GPU[iat].resize(poly_size);
-      atom_cuda.poly_coefs = &AtomicPolyCoefs_GPU[iat][0];
+      atom_cuda.poly_coefs = &AtomicPolyCoefs_GPU[iat].data()[0];
       for (int lm=0; lm<numlm; lm++)
 	for (int n=0; n<atom.PolyOrder; n++)
 	  for (int orb=0; orb<NumOrbitals; orb++){

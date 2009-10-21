@@ -6,9 +6,9 @@
 #endif
 #include <malloc.h>
 #include <iostream>
+#include <string>
 
 template<typename T> class cuda_allocator;
-
 template<>
 class cuda_allocator<void>
 {
@@ -24,6 +24,10 @@ public:
 };
 
 
+
+extern size_t total_allocated;
+
+
 template<typename T> 
 class cuda_allocator 
 {
@@ -36,6 +40,7 @@ public:
   typedef const T&  const_reference;
   typedef T         value_type;
   template<typename U> struct rebind { typedef cuda_allocator<U> other; };
+
   
   cuda_allocator() throw() { }
   cuda_allocator(const cuda_allocator&) throw() { }
@@ -61,6 +66,11 @@ public:
 		 s*sizeof(T), cudaGetErrorString(err));
 	abort();
       }
+      else {
+	total_allocated += s;
+	fprintf (stderr, "Total GPU mem usage=%ldk\n",
+		 total_allocated>>10);
+      }
       return mem;
     }
     else
@@ -73,8 +83,10 @@ public:
   void deallocate(pointer p, size_type n)
   {
 #ifdef QMC_CUDA
-    //fprintf (stderr, "Freeing pointer on GPU card.\n");
+    fprintf (stderr, "Freeing %ld on GPU card.  Total = %ldk\n",
+	     n, total_allocated>>10);
     cudaFree (p);
+    total_allocated -= n;
 #endif
   }
 
@@ -100,8 +112,15 @@ class cuda_vector : public std::vector<T, cuda_allocator<T> >
 {
 private:
   size_t mySize;
+  std::string myName;
 
 public:
+  cuda_vector(std::string name) : std::vector<T, cuda_allocator<T> >()
+  {
+    mySize = 0;
+    myName = name;
+  }
+
   cuda_vector() : std::vector<T, cuda_allocator<T> >()
   {
     mySize = 0;
@@ -115,6 +134,7 @@ public:
 
   void resize (size_t size)
   {
+    fprintf (stderr, "Resizing %s to %ld\n", myName.c_str(), size);
     //std::vector<T,cuda_allocator<T> >::resize(size);
     std::vector<T,cuda_allocator<T> >::reserve(size);
     mySize = size;

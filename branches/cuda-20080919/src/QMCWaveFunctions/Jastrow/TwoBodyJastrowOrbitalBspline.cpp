@@ -12,7 +12,7 @@ namespace qmcplusplus {
   
   void
   TwoBodyJastrowOrbitalBspline::reserve 
-  (PointerPool<cuda_vector<CudaRealType> > &pool)
+  (PointerPool<thrust::device_vector<CudaRealType> > &pool)
   {
   }
 
@@ -219,9 +219,9 @@ namespace qmcplusplus {
       NLjobGPU<CudaReal> &jobGPU = NL_JobListHost[ijob];
       jobGPU.R             = (CudaReal*)walkers[job.walker]->R_GPU.data();
       jobGPU.Elec          = job.elec;
-      jobGPU.QuadPoints    = &(NL_QuadPointsGPU[OHMMS_DIM*iratio]);
+      jobGPU.QuadPoints    = &(NL_QuadPointsGPU.data()[OHMMS_DIM*iratio]);
       jobGPU.NumQuadPoints = job.numQuadPoints;
-      jobGPU.Ratios        = &(NL_RatiosGPU[iratio]);
+      jobGPU.Ratios        = &(NL_RatiosGPU.data()[iratio]);
       iratio += job.numQuadPoints;
     }
     NL_JobListGPU         = NL_JobListHost;

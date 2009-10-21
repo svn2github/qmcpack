@@ -142,7 +142,7 @@ namespace qmcplusplus {
     /////////////////////////
     void recompute (MCWalkerConfiguration &W, bool firstTime=true);
 
-    void reserve (PointerPool<cuda_vector<CudaRealType> > &pool,
+    void reserve (PointerPool<thrust::device_vector<CudaRealType> > &pool,
 		  bool onlyOptimizable=false);
 
     void getGradient (MCWalkerConfiguration &W, int iat,
@@ -164,11 +164,11 @@ namespace qmcplusplus {
 		vector<GradType> &newG,
 		vector<ValueType> &newL);
     void NLratios (MCWalkerConfiguration &W,
-		   cuda_vector<CUDA_PRECISION*> &Rlist,
-		   cuda_vector<int*>            &ElecList,
-		   cuda_vector<int>             &NumCoreElecs,
-		   cuda_vector<CUDA_PRECISION*> &QuadPosList,
-		   cuda_vector<CUDA_PRECISION*> &RatioList,
+		   thrust::device_vector<CUDA_PRECISION*> &Rlist,
+		   thrust::device_vector<int*>            &ElecList,
+		   thrust::device_vector<int>             &NumCoreElecs,
+		   thrust::device_vector<CUDA_PRECISION*> &QuadPosList,
+		   thrust::device_vector<CUDA_PRECISION*> &RatioList,
 		   int numQuadPoints);
     void NLratios (MCWalkerConfiguration &W,  vector<NLjob> &jobList,
 		   vector<PosType> &quadPoints, vector<ValueType> &psi_ratios);

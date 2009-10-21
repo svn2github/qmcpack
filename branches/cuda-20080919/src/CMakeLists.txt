@@ -28,7 +28,9 @@ SET(UTILITIES
 )
 
 IF(QMC_CUDA)
-   SET(UTILITIES ${UTILITIES} Numerics/CUDA/cuda_inverse.cu )
+   SET(UTILITIES ${UTILITIES} 
+       Numerics/CUDA/cuda_inverse.cu 
+       Utilities/cuda_allocator.cpp)
 ENDIF(QMC_CUDA)
 
 

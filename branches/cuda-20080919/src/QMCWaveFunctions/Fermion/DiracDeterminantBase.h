@@ -174,39 +174,39 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     size_t AOffset, AinvOffset, newRowOffset, AinvDeltaOffset, 
       AinvColkOffset, gradLaplOffset, newGradLaplOffset, workOffset;
-    host_vector<updateJob> UpdateJobList;
-    cuda_vector<updateJob> UpdateJobList_d;
+    thrust::host_vector<updateJob> UpdateJobList;
+    thrust::device_vector<updateJob> UpdateJobList_d;
     vector<CudaRealType*> srcList, destList, AList, AinvList, newRowList, AinvDeltaList, 
       AinvColkList, gradLaplList, newGradLaplList, workList, GLList;
-    cuda_vector<CudaRealType*> srcList_d, destList_d, AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d, gradLaplList_d, newGradLaplList_d, workList_d, GLList_d;
-    cuda_vector<CudaRealType> ratio_d;
-    host_vector<CudaRealType> ratio_host;
-    cuda_vector<CudaRealType> gradLapl_d;
-    host_vector<CudaRealType> gradLapl_host;
-    cuda_vector<int> iatList_d;
-    host_vector<int> iatList;
+    thrust::device_vector<CudaRealType*> srcList_d, destList_d, AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d, gradLaplList_d, newGradLaplList_d, workList_d, GLList_d;
+    thrust::device_vector<CudaRealType> ratio_d;
+    thrust::host_vector<CudaRealType> ratio_host;
+    thrust::device_vector<CudaRealType> gradLapl_d;
+    thrust::host_vector<CudaRealType> gradLapl_host;
+    thrust::device_vector<int> iatList_d;
+    thrust::host_vector<int> iatList;
     
     // Data members for nonlocal psuedopotential ratio evaluation
     static const int NLrowBufferRows = 4800;
-    cuda_vector<CudaRealType> NLrowBuffer_d;
-    host_vector<CudaRealType> NLrowBuffer_host;
+    thrust::device_vector<CudaRealType> NLrowBuffer_d;
+    thrust::host_vector<CudaRealType> NLrowBuffer_host;
 
-    cuda_vector<CudaRealType*> SplineRowList_d;
-    host_vector<CudaRealType*> SplineRowList_host;
-    cuda_vector<CudaRealType*> RatioRowList_d;
-    host_vector<CudaRealType*> RatioRowList_host;
-    cuda_vector<CudaRealType> NLposBuffer_d;
-    host_vector<CudaRealType> NLposBuffer_host;
-    cuda_vector<CudaRealType*> NLAinvList_d;
-    host_vector<CudaRealType*> NLAinvList_host;
-    cuda_vector<int> NLnumRatioList_d;
-    host_vector<int> NLnumRatioList_host;
-    cuda_vector<int> NLelecList_d;
-    host_vector<int> NLelecList_host;
-    cuda_vector<CudaRealType> NLratios_d;
-    host_vector<CudaRealType> NLratios_host;
-    cuda_vector<CudaRealType*> NLratioList_d;
-    host_vector<CudaRealType*> NLratioList_host;
+    thrust::device_vector<CudaRealType*> SplineRowList_d;
+    thrust::host_vector<CudaRealType*> SplineRowList_host;
+    thrust::device_vector<CudaRealType*> RatioRowList_d;
+    thrust::host_vector<CudaRealType*> RatioRowList_host;
+    thrust::device_vector<CudaRealType> NLposBuffer_d;
+    thrust::host_vector<CudaRealType> NLposBuffer_host;
+    thrust::device_vector<CudaRealType*> NLAinvList_d;
+    thrust::host_vector<CudaRealType*> NLAinvList_host;
+    thrust::device_vector<int> NLnumRatioList_d;
+    thrust::host_vector<int> NLnumRatioList_host;
+    thrust::device_vector<int> NLelecList_d;
+    thrust::host_vector<int> NLelecList_host;
+    thrust::device_vector<CudaRealType> NLratios_d;
+    thrust::host_vector<CudaRealType> NLratios_host;
+    thrust::device_vector<CudaRealType*> NLratioList_d;
+    thrust::host_vector<CudaRealType*> NLratioList_host;
 
     void resizeLists(int numWalkers)
     {
@@ -234,7 +234,7 @@ namespace qmcplusplus {
       SplineRowList_d.resize(NLrowBufferRows);
       SplineRowList_host.resize(NLrowBufferRows);
       for (int i=0; i<NLrowBufferRows; i++)
-	SplineRowList_host[i] = &(NLrowBuffer_d[i*RowStride]);
+	SplineRowList_host[i] = &(NLrowBuffer_d.data()[i*RowStride]);
       SplineRowList_d = SplineRowList_host;
       NLposBuffer_d.resize   (OHMMS_DIM * NLrowBufferRows);
       NLposBuffer_host.resize(OHMMS_DIM * NLrowBufferRows);
@@ -245,7 +245,7 @@ namespace qmcplusplus {
     void update (vector<Walker_t*> &walkers, int iat);
     void update (const vector<Walker_t*> &walkers, const vector<int> &iatList);
 
-    void reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
+    void reserve (PointerPool<thrust::device_vector<CudaRealType> > &pool)
     {
       RowStride = ((NumOrbitals + 31)/32) * 32;
 

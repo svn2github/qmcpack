@@ -86,6 +86,7 @@ namespace qmcplusplus {
 
     void randomize_grid(ParticleSet::ParticlePos_t& sphere, bool randomize);
     template<typename T> void randomize_grid(vector<T> &sphere);
+    template<typename T> void randomize_grid(thrust::host_vector<T> &sphere);
 
     RealType 
       evaluate(ParticleSet& W, int iat, TrialWaveFunction& Psi);

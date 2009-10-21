@@ -427,7 +427,7 @@ namespace qmcplusplus {
       app_error() << "OneBodyJastrowOrbital only works with Bsplines on the GPU.\n";
     }
 
-    void reserve (PointerPool<cuda_vector<CudaRealType> > &pool)
+    void reserve (PointerPool<thrust::device_vector<CudaRealType> > &pool)
     {
       app_error() << "OneBodyJastrowOrbital only works with Bsplines on the GPU.\n";
     }
