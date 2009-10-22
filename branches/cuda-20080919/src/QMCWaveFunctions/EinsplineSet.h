@@ -380,7 +380,10 @@ namespace qmcplusplus {
       CudaValueVector("EinsplineSetExtended::CudaValueVector"),
       CudaGradLaplVector("EinsplineSetExtended::CudaGradLaplVector"),
       CudaValuePointers("EinsplineSetExtended::CudaValuePointers"),
-      CudaGradLaplPointers("EinsplineSetExtended::CudaGradLaplPointers")
+      CudaGradLaplPointers("EinsplineSetExtended::CudaGradLaplPointers"),
+      CudaMakeTwoCopies("EinsplineSetExtended::CudaMakeTwoCopies"),
+      CudakPoints("EinsplineSetExtended::CudakPoints"),
+      CudakPoints_reduced("EinsplineSetExtended::CudakPoints_reduced")
     {
       className = "EinsplineSetExtended";
       TimerManager.addTimer (&ValueTimer);

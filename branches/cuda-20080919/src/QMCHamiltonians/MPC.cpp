@@ -13,7 +13,9 @@ namespace qmcplusplus {
 
   MPC::MPC(ParticleSet& ptcl, double cutoff) :
     PtclRef(&ptcl), Ecut(cutoff), FirstTime(true),
-    VlongSpline(0), DensitySpline(0)
+    VlongSpline(0), DensitySpline(0),
+    SumGPU("MPC::SumGPU"),
+    L("MPC::L"), Linv("MPC::Linv")
   {
     d_aa = DistanceTable::add(ptcl);
     initBreakup();

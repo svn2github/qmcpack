@@ -37,12 +37,14 @@ namespace qmcplusplus {
   NonLocalECPotential::NonLocalECPotential
   (ParticleSet& ions, ParticleSet& els,
    TrialWaveFunction& psi) : 
-   IonConfig(ions), d_table(0), Psi(psi), CurrentNumWalkers(0)
-   ,
+   IonConfig(ions), d_table(0), Psi(psi), CurrentNumWalkers(0),
    Ions_GPU("NonLocalECPotential::Ions_GPU"), 
+   L("NonLocalECPotential::L"), 
+   Linv("NonLocalECPotential::Linv"), 
    Elecs_GPU("NonLocalECPotential::Elecs_GPU"), 
    Dist_GPU("NonLocalECPotential::Dist_GPU"),
    Eleclist_GPU("NonLocalECPotential::Eleclist_GPU"), 
+   Distlist_GPU("NonLocalECPotential::Distlist_GPU"), 
    NumPairs_GPU("NonLocalECPotential::NumPairs_GPU"),
    RatioPos_GPU("NonLocalECPotential::RatioPos_GPU"), 
    CosTheta_GPU("NonLocalECPotential::CosTheta_GPU"),
@@ -217,6 +219,7 @@ namespace qmcplusplus {
     QuadPoints_host.resize(NumIonGroups);
     for (int i=0; i<NumIonGroups; i++) 
       if (PPset[i]) {
+	QuadPoints_GPU[i].set_name("NonLocalECPotential::QuadPoints_GPU");
 	QuadPoints_GPU[i].resize(OHMMS_DIM*PPset[i]->nknot);
 	QuadPoints_host[i].resize(OHMMS_DIM*PPset[i]->nknot);
       }

@@ -36,7 +36,8 @@ namespace qmcplusplus {
   LapList_GPU("MCWalkerConfiguration::LapList_GPU"),
   Rnew_GPU("MCWalkerConfiguration::Rnew_GPU"),
   NLlist_GPU ("MCWalkerConfiguration::NLlist_GPU"),
-  AcceptList_GPU("MCWalkerConfiguration::AcceptList_GPU")
+  AcceptList_GPU("MCWalkerConfiguration::AcceptList_GPU"),
+  iatList_GPU("iatList_GPU")
   {
   //move to ParticleSet
   //initPropertyList();

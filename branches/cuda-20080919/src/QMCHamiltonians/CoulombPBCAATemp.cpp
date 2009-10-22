@@ -30,7 +30,9 @@ namespace qmcplusplus {
     kpointsGPU("CoulombPBCAATemp::kpointsGPU"), 
     kshellGPU("CoulombPBCAATemp::kshellGPU"),
     FkGPU("CoulombPBCAATemp::FkGPU"), 
-    RhokGPU("CoulombPBCAATemp::RhokGPU")
+    RhokGPU("CoulombPBCAATemp::RhokGPU"),
+    L("CoulombPBCAATemp::L"),
+    Linv("CoulombPBCAATemp::Linv")
   {
     ReportEngine PRE("CoulombPBCAATemp","CoulombPBCAATemp");
 
@@ -398,6 +400,7 @@ namespace qmcplusplus {
       RhoklistsGPU.resize(NumSpecies);
       RhoklistsHost.resize(NumSpecies);
       for (int sp=0; sp<NumSpecies; sp++) {
+	RhoklistsGPU[sp].set_name("CoulombPBCAATemp::RhoklistsGPU");
 	RhoklistsGPU[sp].resize(nw);
 	RhoklistsHost[sp].resize(nw);
       }

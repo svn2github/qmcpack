@@ -85,6 +85,8 @@ namespace qmcplusplus {
       TwoBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> > (pset),
       PtclRef(pset),
       UpdateListGPU        ("TwoBodyJastrowOrbitalBspline::UpdateListGPU"),
+      L                    ("TwoBodyJastrowOrbitalBspline::L"),
+      Linv                 ("TwoBodyJastrowOrbitalBspline::Linv"),
       SumGPU               ("TwoBodyJastrowOrbitalBspline::SumGPU"), 
       GradLaplGPU          ("TwoBodyJastrowOrbitalBspline::GradLaplGPU"),
       OneGradGPU           ("TwoBodyJastrowOrbitalBspline::OneGradGPU"),
