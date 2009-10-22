@@ -29,7 +29,8 @@ SET(UTILITIES
 
 IF(QMC_CUDA)
    SET(UTILITIES ${UTILITIES} 
-       Numerics/CUDA/cuda_inverse.cu )
+       Numerics/CUDA/cuda_inverse.cu 
+       CUDA/gpu_vector.cpp)
 ENDIF(QMC_CUDA)
 
 
