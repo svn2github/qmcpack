@@ -227,6 +227,7 @@ namespace qmcplusplus {
       recordBlock(block);
     } while(block<nBlocks);
     //finalize a qmc section
+    gpu::cuda_memory_manager.report();
     return finalize(block);
   }
 

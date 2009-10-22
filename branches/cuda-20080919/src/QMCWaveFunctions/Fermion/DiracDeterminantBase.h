@@ -174,39 +174,39 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     size_t AOffset, AinvOffset, newRowOffset, AinvDeltaOffset, 
       AinvColkOffset, gradLaplOffset, newGradLaplOffset, workOffset;
-    thrust::host_vector<updateJob> UpdateJobList;
-    thrust::device_vector<updateJob> UpdateJobList_d;
+    gpu::host_vector<updateJob> UpdateJobList;
+    gpu::device_vector<updateJob> UpdateJobList_d;
     vector<CudaRealType*> srcList, destList, AList, AinvList, newRowList, AinvDeltaList, 
       AinvColkList, gradLaplList, newGradLaplList, workList, GLList;
-    thrust::device_vector<CudaRealType*> srcList_d, destList_d, AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d, gradLaplList_d, newGradLaplList_d, workList_d, GLList_d;
-    thrust::device_vector<CudaRealType> ratio_d;
-    thrust::host_vector<CudaRealType> ratio_host;
-    thrust::device_vector<CudaRealType> gradLapl_d;
-    thrust::host_vector<CudaRealType> gradLapl_host;
-    thrust::device_vector<int> iatList_d;
-    thrust::host_vector<int> iatList;
+    gpu::device_vector<CudaRealType*> srcList_d, destList_d, AList_d, AinvList_d, newRowList_d, AinvDeltaList_d, AinvColkList_d, gradLaplList_d, newGradLaplList_d, workList_d, GLList_d;
+    gpu::device_vector<CudaRealType> ratio_d;
+    gpu::host_vector<CudaRealType> ratio_host;
+    gpu::device_vector<CudaRealType> gradLapl_d;
+    gpu::host_vector<CudaRealType> gradLapl_host;
+    gpu::device_vector<int> iatList_d;
+    gpu::host_vector<int> iatList;
     
     // Data members for nonlocal psuedopotential ratio evaluation
     static const int NLrowBufferRows = 4800;
-    thrust::device_vector<CudaRealType> NLrowBuffer_d;
-    thrust::host_vector<CudaRealType> NLrowBuffer_host;
+    gpu::device_vector<CudaRealType> NLrowBuffer_d;
+    gpu::host_vector<CudaRealType> NLrowBuffer_host;
 
-    thrust::device_vector<CudaRealType*> SplineRowList_d;
-    thrust::host_vector<CudaRealType*> SplineRowList_host;
-    thrust::device_vector<CudaRealType*> RatioRowList_d;
-    thrust::host_vector<CudaRealType*> RatioRowList_host;
-    thrust::device_vector<CudaRealType> NLposBuffer_d;
-    thrust::host_vector<CudaRealType> NLposBuffer_host;
-    thrust::device_vector<CudaRealType*> NLAinvList_d;
-    thrust::host_vector<CudaRealType*> NLAinvList_host;
-    thrust::device_vector<int> NLnumRatioList_d;
-    thrust::host_vector<int> NLnumRatioList_host;
-    thrust::device_vector<int> NLelecList_d;
-    thrust::host_vector<int> NLelecList_host;
-    thrust::device_vector<CudaRealType> NLratios_d;
-    thrust::host_vector<CudaRealType> NLratios_host;
-    thrust::device_vector<CudaRealType*> NLratioList_d;
-    thrust::host_vector<CudaRealType*> NLratioList_host;
+    gpu::device_vector<CudaRealType*> SplineRowList_d;
+    gpu::host_vector<CudaRealType*> SplineRowList_host;
+    gpu::device_vector<CudaRealType*> RatioRowList_d;
+    gpu::host_vector<CudaRealType*> RatioRowList_host;
+    gpu::device_vector<CudaRealType> NLposBuffer_d;
+    gpu::host_vector<CudaRealType> NLposBuffer_host;
+    gpu::device_vector<CudaRealType*> NLAinvList_d;
+    gpu::host_vector<CudaRealType*> NLAinvList_host;
+    gpu::device_vector<int> NLnumRatioList_d;
+    gpu::host_vector<int> NLnumRatioList_host;
+    gpu::device_vector<int> NLelecList_d;
+    gpu::host_vector<int> NLelecList_host;
+    gpu::device_vector<CudaRealType> NLratios_d;
+    gpu::host_vector<CudaRealType> NLratios_host;
+    gpu::device_vector<CudaRealType*> NLratioList_d;
+    gpu::host_vector<CudaRealType*> NLratioList_host;
 
     void resizeLists(int numWalkers)
     {
@@ -245,7 +245,7 @@ namespace qmcplusplus {
     void update (vector<Walker_t*> &walkers, int iat);
     void update (const vector<Walker_t*> &walkers, const vector<int> &iatList);
 
-    void reserve (PointerPool<thrust::device_vector<CudaRealType> > &pool)
+    void reserve (PointerPool<gpu::device_vector<CudaRealType> > &pool)
     {
       RowStride = ((NumOrbitals + 31)/32) * 32;
 

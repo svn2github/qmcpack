@@ -28,32 +28,31 @@ namespace qmcplusplus {
    *@param first index of the first particle
    */
   DiracDeterminantBase::DiracDeterminantBase(SPOSetBasePtr const &spos, int first): 
-    NP(0), Phi(spos), FirstIndex(first)
-    // ,
-    // UpdateJobList_d("UpdateJobList_d"),
-    // srcList_d("srcList_d"),
-    // destList_d("destList_d"),
-    // AList_d("AList_d"),
-    // AinvList_d("AinvList_d"),
-    // newRowList_d("newRowList_d"),
-    // AinvDeltaList_d("AinvDeltaList_d"),
-    // AinvColkList_d("AinvColkList_d"),
-    // gradLaplList_d("gradLaplList_d"),
-    // newGradLaplList_d("newGradLaplList_d"),
-    // workList_d("workList_d"),
-    // GLList_d("GLList_d"),
-    // ratio_d("ratio_d"),
-    // gradLapl_d("gradLapl_d"),
-    // iatList_d("iatList_d"),
-    // NLrowBuffer_d("NLrowBuffer_d"),
-    // SplineRowList_d("SplineRowList_d"),
-    // RatioRowList_d("RatioRowList_d"),
-    // NLposBuffer_d("NLposBuffer_d"),
-    // NLAinvList_d("NLAinvList_d"),
-    // NLnumRatioList_d("NLnumRatioList_d"),
-    // NLelecList_d("NLelecList_d"),
-    // NLratios_d("NLratios_d"),
-    // NLratioList_d("NLratioList_d")
+    NP(0), Phi(spos), FirstIndex(first),
+    UpdateJobList_d("DiracDeterminantBase::UpdateJobList_d"),
+    srcList_d("DiracDeterminantBase::srcList_d"),
+    destList_d("DiracDeterminantBase::destList_d"),
+    AList_d("DiracDeterminantBase::AList_d"),
+    AinvList_d("DiracDeterminantBase::AinvList_d"),
+    newRowList_d("DiracDeterminantBase::newRowList_d"),
+    AinvDeltaList_d("DiracDeterminantBase::AinvDeltaList_d"),
+    AinvColkList_d("DiracDeterminantBase::AinvColkList_d"),
+    gradLaplList_d("DiracDeterminantBase::gradLaplList_d"),
+    newGradLaplList_d("DiracDeterminantBase::newGradLaplList_d"),
+    workList_d("DiracDeterminantBase::workList_d"),
+    GLList_d("DiracDeterminantBase::GLList_d"),
+    ratio_d("DiracDeterminantBase::ratio_d"),
+    gradLapl_d("DiracDeterminantBase::gradLapl_d"),
+    iatList_d("DiracDeterminantBase::iatList_d"),
+    NLrowBuffer_d("DiracDeterminantBase::NLrowBuffer_d"),
+    SplineRowList_d("DiracDeterminantBase::SplineRowList_d"),
+    RatioRowList_d("DiracDeterminantBase::RatioRowList_d"),
+    NLposBuffer_d("DiracDeterminantBase::NLposBuffer_d"),
+    NLAinvList_d("DiracDeterminantBase::NLAinvList_d"),
+    NLnumRatioList_d("DiracDeterminantBase::NLnumRatioList_d"),
+    NLelecList_d("DiracDeterminantBase::NLelecList_d"),
+    NLratios_d("DiracDeterminantBase::NLratios_d"),
+    NLratioList_d("DiracDeterminantBase::NLratioList_d")
   {
     Optimizable=false;
     OrbitalName="DiracDeterminantBase";
@@ -748,7 +747,7 @@ namespace qmcplusplus {
 
     // HACK HACK HACK
 //     app_log() << "Before recompute:\n";
-//     thrust::host_vector<CUDA_PRECISION> host_data;
+//     gpu::host_vector<CUDA_PRECISION> host_data;
 //     for (int iw=0; iw<walkers.size(); iw++) {
 //        Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
 //        host_data = data;
@@ -773,7 +772,7 @@ namespace qmcplusplus {
     // Only reevalute the orbitals if this is the first time
     if (firstTime) {
 //       int iwsave = walkers.size()-1;
-//       thrust::host_vector<float> old_data, new_data;
+//       gpu::host_vector<float> old_data, new_data;
 //       old_data = walkers[iwsave]->cuda_DataSet;
       // Recompute A matrices;
       vector<PosType> R(walkers.size());
@@ -892,7 +891,7 @@ namespace qmcplusplus {
     // Now, compute determinant
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
-      thrust::host_vector<CUDA_PRECISION> host_data;
+      gpu::host_vector<CUDA_PRECISION> host_data;
       host_data = data;
       //Vector<double> A(NumPtcls*NumOrbitals);
       Vector<CUDA_PRECISION> A(NumPtcls*NumOrbitals);
@@ -965,7 +964,7 @@ namespace qmcplusplus {
     
 #ifdef CUDA_DEBUG3
     if (NumOrbitals == 31) {
-      thrust::host_vector<CudaRealType> host_data;
+      gpu::host_vector<CudaRealType> host_data;
       vector<CudaRealType> cpu_ratios(walkers.size(), 0.0f);
       for (int iw=0; iw<walkers.size(); iw++) {
 	host_data = walkers[iw]->cuda_DataSet;
@@ -1058,7 +1057,7 @@ namespace qmcplusplus {
     Vector<GradType> testGrad(NumOrbitals);
     ParticleSet P;
     P.R.resize(NumPtcls);
-    thrust::host_vector<CudaValueType> host_vec;
+    gpu::host_vector<CudaValueType> host_vec;
     for (int iw=0; iw<walkers.size(); iw++) {
       host_vec = walkers[iw]->cuda_DataSet;
       P.R[iat-FirstIndex] = W.Rnew[iw];
@@ -1081,7 +1080,7 @@ namespace qmcplusplus {
 
 #ifdef CUDA_DEBUG
     // Now, check against CPU
-    thrust::host_vector<CudaRealType> host_data;
+    gpu::host_vector<CudaRealType> host_data;
     vector<CudaRealType> cpu_ratios(walkers.size(), 0.0f);
     for (int iw=0; iw<walkers.size(); iw++) {
       host_data = walkers[iw]->cuda_DataSet;
@@ -1106,7 +1105,7 @@ namespace qmcplusplus {
     }
 #ifdef CUDA_DEBUG
     if (NumOrbitals == 31) {
-      thrust::host_vector<CudaRealType> host_data;
+      gpu::host_vector<CudaRealType> host_data;
       vector<CudaRealType> cpu_ratios(walkers.size(), 0.0f);
       for (int iw=0; iw<walkers.size(); iw++) {
 	host_data = walkers[iw]->cuda_DataSet;
@@ -1210,7 +1209,7 @@ namespace qmcplusplus {
 	  int dev;
 	  cudaGetDevice(&dev);
 	  fprintf (stderr, "Offending device = %d\n", dev);
-	  thrust::host_vector<CUDA_PRECISION> host_data;
+	  gpu::host_vector<CUDA_PRECISION> host_data;
 	  host_data = walkers[iw]->cuda_DataSet;
 	  FILE *Amat = fopen ("Amat.dat", "w");
 	  FILE *Ainv = fopen ("Ainv.dat", "w");
@@ -1251,7 +1250,7 @@ namespace qmcplusplus {
     
 #ifdef CUDA_DEBUG
     // Now do it on the CPU
-    thrust::host_vector<CudaRealType> host_data;
+    gpu::host_vector<CudaRealType> host_data;
     GradMatrix_t cpu_grads(grads.rows(), grads.cols());
     ValueMatrix_t cpu_lapl(grads.rows(), grads.cols());
     for (int iw=0; iw<walkers.size(); iw++) {

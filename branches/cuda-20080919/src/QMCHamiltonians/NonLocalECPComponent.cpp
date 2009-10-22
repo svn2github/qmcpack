@@ -256,7 +256,7 @@ namespace qmcplusplus {
 
   ///Randomly rotate sgrid_m
   template<typename T>
-  void NonLocalECPComponent::randomize_grid(thrust::host_vector<T> &sphere)
+  void NonLocalECPComponent::randomize_grid(gpu::host_vector<T> &sphere)
   {
     RealType phi(TWOPI*((*myRNG)())), psi(TWOPI*((*myRNG)())), cth(((*myRNG)())-0.5);
     RealType sph(std::sin(phi)),cph(std::cos(phi)),
@@ -279,8 +279,8 @@ namespace qmcplusplus {
 
   template void NonLocalECPComponent::randomize_grid(vector<float> &sphere);
   template void NonLocalECPComponent::randomize_grid(vector<double> &sphere);
-  template void NonLocalECPComponent::randomize_grid(thrust::host_vector<float> &sphere);
-  template void NonLocalECPComponent::randomize_grid(thrust::host_vector<double> &sphere);
+  template void NonLocalECPComponent::randomize_grid(gpu::host_vector<float> &sphere);
+  template void NonLocalECPComponent::randomize_grid(gpu::host_vector<double> &sphere);
 
 }
 /***************************************************************************

@@ -138,7 +138,7 @@ namespace qmcplusplus {
   {
     SpeciesSet &sSet = IonConfig.getSpeciesSet();
     NumIonGroups = sSet.getTotalNum();
-    thrust::host_vector<CUDA_PRECISION> LHost(OHMMS_DIM*OHMMS_DIM), 
+    gpu::host_vector<CUDA_PRECISION> LHost(OHMMS_DIM*OHMMS_DIM), 
       LinvHost(OHMMS_DIM*OHMMS_DIM);
     for (int i=0; i<OHMMS_DIM; i++)
       for (int j=0; j<OHMMS_DIM; j++) {
@@ -150,7 +150,7 @@ namespace qmcplusplus {
     NumElecs = elecs.getTotalNum();
     
     // Copy ion positions to GPU, sorting by GroupID
-    thrust::host_vector<CUDA_PRECISION> Ion_host(OHMMS_DIM*IonConfig.getTotalNum());
+    gpu::host_vector<CUDA_PRECISION> Ion_host(OHMMS_DIM*IonConfig.getTotalNum());
     int index=0;
     for (int group=0; group<NumIonGroups; group++) {
       IonFirst.push_back(index);
@@ -176,8 +176,8 @@ namespace qmcplusplus {
     // the cores overlap
     Elecs_GPU.resize(MaxPairs*nw);
     Dist_GPU.resize(MaxPairs*nw);
-    thrust::host_vector<int*> Eleclist_host(nw);
-    thrust::host_vector<CUDA_PRECISION*> Distlist_host(nw);
+    gpu::host_vector<int*> Eleclist_host(nw);
+    gpu::host_vector<CUDA_PRECISION*> Distlist_host(nw);
     Eleclist_GPU.resize(nw);
     Distlist_GPU.resize(nw);
     NumPairs_GPU.resize(nw);
@@ -199,9 +199,9 @@ namespace qmcplusplus {
     RatiosPerWalker = MaxPairs * MaxKnots;
     RatioPos_GPU.resize(OHMMS_DIM * RatiosPerWalker * nw);
     CosTheta_GPU.resize(RatiosPerWalker * nw);
-    thrust::host_vector<CUDA_PRECISION*> RatioPoslist_host(nw);
-    thrust::host_vector<CUDA_PRECISION*> Ratiolist_host(nw);
-    thrust::host_vector<CUDA_PRECISION*> CosThetalist_host(nw);
+    gpu::host_vector<CUDA_PRECISION*> RatioPoslist_host(nw);
+    gpu::host_vector<CUDA_PRECISION*> Ratiolist_host(nw);
+    gpu::host_vector<CUDA_PRECISION*> CosThetalist_host(nw);
     for (int iw=0; iw<nw; iw++) {
       RatioPoslist_host[iw] = 
 	RatioPos_GPU.data() + OHMMS_DIM * RatiosPerWalker * iw;
@@ -283,9 +283,9 @@ namespace qmcplusplus {
 
 
 #ifdef CUDA_DEBUG
-	thrust::host_vector<int> Elecs_host;
-	thrust::host_vector<int> NumPairs_host;
-	thrust::host_vector<CUDA_PRECISION> RatioPos_host;
+	gpu::host_vector<int> Elecs_host;
+	gpu::host_vector<int> NumPairs_host;
+	gpu::host_vector<CUDA_PRECISION> RatioPos_host;
 	RatioPos_host = RatioPos_GPU;
 	NumPairs_host = NumPairs_GPU;
 	Elecs_host    = Elecs_GPU;
@@ -494,7 +494,7 @@ namespace qmcplusplus {
 // 		   RatioPos_host[3*i+2]);
 //	}
 
-	// thrust::host_vector<CUDA_PRECISION> Dist_host;
+	// gpu::host_vector<CUDA_PRECISION> Dist_host;
 	// NumPairs_host = NumPairs_GPU;
 	// Dist_host = Dist_GPU;
 

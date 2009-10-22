@@ -20,8 +20,7 @@
 #include "Utilities/PooledData.h"
 #include "Utilities/PointerPool.h"
 //#include "Utilities/cuda_allocator.h"
-#include "thrust/device_vector.h"
-#include "thrust/host_vector.h"
+#include "CUDA/gpu_vector.h"
 #include <cstdio>
 
 namespace qmcplusplus {
@@ -101,12 +100,12 @@ namespace qmcplusplus {
     /// Data for GPU-vectorized versions
 #ifdef QMC_CUDA
     static int cuda_DataSize;
-    typedef thrust::device_vector<CUDA_PRECISION> cuda_Buffer_t;
+    typedef gpu::device_vector<CUDA_PRECISION> cuda_Buffer_t;
     cuda_Buffer_t cuda_DataSet;
     // Note that R_GPU has size N+1.  The last element contains the
     // proposed position for single-particle moves.
-    thrust::device_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_GPU, Grad_GPU;
-    thrust::device_vector<CUDA_PRECISION> Lap_GPU;
+    gpu::device_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_GPU, Grad_GPU;
+    gpu::device_vector<CUDA_PRECISION> Lap_GPU;
     inline void resizeCuda(int size) {
       if (cuda_DataSize != size)
 	cuda_DataSize = size;
@@ -118,11 +117,10 @@ namespace qmcplusplus {
 
     ///default constructor
     inline Walker() : ID(0),ParentID(0), Generation(0),Age(0),
-		      Weight(1.0e0),Multiplicity(1.0e0)
-		    // , 
-		    //   cuda_DataSet("walker_buffer"),
-		    //   R_GPU("R_GPU"), Grad_GPU("Grad_GPU"),
-		    //   Lap_GPU("Lap_GPU")
+		      Weight(1.0e0),Multiplicity(1.0e0), 
+		      cuda_DataSet("Walker::walker_buffer"),
+		      R_GPU("Walker::R_GPU"), Grad_GPU("Walker::Grad_GPU"),
+		      Lap_GPU("Walker::Lap_GPU")
 		      
     {
       Properties.resize(1,NUMPROPERTIES);
@@ -131,11 +129,11 @@ namespace qmcplusplus {
 
     ///create a walker for n-particles
     inline explicit Walker(int nptcl) : ID(0),ParentID(0), Generation(0),Age(0),
-					Weight(1.0e0),Multiplicity(1.0e0)
-				      // , 
-				      // 	cuda_DataSet("walker_buffer"),
-				      // 	R_GPU("R_GPU"), Grad_GPU("Grad_GPU"),
-				      // 	Lap_GPU("Lap_GPU")
+					Weight(1.0e0),Multiplicity(1.0e0), 
+				      	cuda_DataSet("Walker::walker_buffer"),
+				      	R_GPU("Walker::R_GPU"), 
+					Grad_GPU("Walker::Grad_GPU"),
+				      	Lap_GPU("Walker::Lap_GPU")
     {
       Properties.resize(1,NUMPROPERTIES);
       resize(nptcl);
@@ -169,7 +167,6 @@ namespace qmcplusplus {
     ///copy the content of a walker
     inline void makeCopy(const Walker& a) 
     {    
-      cerr << "Start makeCopy.\n";
       ID=a.ID;
       ParentID=a.ParentID;
       Generation=a.Generation;
@@ -185,7 +182,6 @@ namespace qmcplusplus {
       R_GPU = a.R_GPU;
       Grad_GPU = a.Grad_GPU;
       Lap_GPU = a.Lap_GPU;
-      cerr << "End makeCopy.\n";
     }
 
     //return the address of the values of Hamiltonian terms
@@ -296,9 +292,9 @@ namespace qmcplusplus {
       DataSet.putMessage(m);
 #ifdef QMC_CUDA
       // Pack GPU data
-      thrust::host_vector<CUDA_PRECISION> host_data;
-      thrust::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
-      thrust::host_vector<CUDA_PRECISION> host_lapl;
+      gpu::host_vector<CUDA_PRECISION> host_data;
+      gpu::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
+      gpu::host_vector<CUDA_PRECISION> host_lapl;
 
       host_data = cuda_DataSet;
       R_host = R_GPU;
@@ -329,9 +325,9 @@ namespace qmcplusplus {
       DataSet.getMessage(m);
 #ifdef QMC_CUDA
       // Pack GPU data
-      thrust::host_vector<CUDA_PRECISION> host_data;
-      thrust::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
-      thrust::host_vector<CUDA_PRECISION> host_lapl;
+      gpu::host_vector<CUDA_PRECISION> host_data;
+      gpu::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
+      gpu::host_vector<CUDA_PRECISION> host_lapl;
 
       int size, N;
       m.Unpack(size);

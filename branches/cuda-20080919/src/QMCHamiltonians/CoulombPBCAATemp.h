@@ -97,20 +97,20 @@ namespace qmcplusplus {
     //////////////////////////////////
     //// Short-range part
     TextureSpline *SRSpline;
-    thrust::device_vector<CUDA_PRECISION>  SumGPU;
-    thrust::host_vector<CUDA_PRECISION>  SumHost;
-    thrust::device_vector<CUDA_PRECISION>  L, Linv;
+    gpu::device_vector<CUDA_PRECISION>  SumGPU;
+    gpu::host_vector<CUDA_PRECISION>  SumHost;
+    gpu::device_vector<CUDA_PRECISION>  L, Linv;
     //// Long-range part
     int Numk;
-    thrust::device_vector<CUDA_PRECISION> kpointsGPU;
-    thrust::device_vector<int>            kshellGPU;
+    gpu::device_vector<CUDA_PRECISION> kpointsGPU;
+    gpu::device_vector<int>            kshellGPU;
     // This has the same lengths as KshellGPU
-    thrust::device_vector<CUDA_PRECISION> FkGPU;
+    gpu::device_vector<CUDA_PRECISION> FkGPU;
     // The first vector index is the species number
     // Complex, stored as float2
-    vector<thrust::device_vector<CUDA_PRECISION*> > RhoklistsGPU;
-    vector<thrust::host_vector<CUDA_PRECISION*> > RhoklistsHost;
-    thrust::device_vector<CUDA_PRECISION> RhokGPU;
+    vector<gpu::device_vector<CUDA_PRECISION*> > RhoklistsGPU;
+    vector<gpu::host_vector<CUDA_PRECISION*> > RhoklistsHost;
+    gpu::device_vector<CUDA_PRECISION> RhokGPU;
     void setupLongRangeGPU(ParticleSet &P);
     void addEnergy(MCWalkerConfiguration &W, 
 		   vector<RealType> &LocalEnergy);

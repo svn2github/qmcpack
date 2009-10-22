@@ -310,7 +310,7 @@ namespace qmcplusplus {
     virtual void recompute(MCWalkerConfiguration &W, bool firstTime)
     { }
 
-    virtual void reserve (PointerPool<thrust::device_vector<CudaRealType> > &pool)
+    virtual void reserve (PointerPool<gpu::device_vector<CudaRealType> > &pool)
     { }
 
     /** Evaluate the log of the WF for all walkers
@@ -414,10 +414,10 @@ namespace qmcplusplus {
     }
 
     virtual void 
-    NLratios (MCWalkerConfiguration &W,  thrust::device_vector<CUDA_PRECISION*> &Rlist,
-	      thrust::device_vector<int*> &ElecList, thrust::device_vector<int>             &NumCoreElecs,
-	      thrust::device_vector<CUDA_PRECISION*> &QuadPosList,
-	      thrust::device_vector<CUDA_PRECISION*> &RatioList,
+    NLratios (MCWalkerConfiguration &W,  gpu::device_vector<CUDA_PRECISION*> &Rlist,
+	      gpu::device_vector<int*> &ElecList, gpu::device_vector<int>             &NumCoreElecs,
+	      gpu::device_vector<CUDA_PRECISION*> &QuadPosList,
+	      gpu::device_vector<CUDA_PRECISION*> &RatioList,
 	      int numQuadPoints)
     {
       app_error() << "Need specialization of OrbitalBase::NLRatios.\n";

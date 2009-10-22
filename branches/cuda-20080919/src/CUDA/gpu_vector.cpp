@@ -2,8 +2,11 @@
 #include "gpu_vector.h"
 #include <cassert>
 
+
 namespace gpu
 {
+  cuda_memory_manager_type cuda_memory_manager; 
+
   void* 
   cuda_memory_manager_type::allocate(size_t bytes, std::string name)
   {
@@ -68,14 +71,21 @@ namespace gpu
   void 
   cuda_memory_manager_type::report()
   {
-    fprintf (stderr, "GPU memory map contents:\n");
-    fprintf (stderr, "Object name                            Num objects            Total bytes\n");
+    fprintf (stderr, "\n\nGPU memory map contents:\n");
+    fprintf (stderr, "Object name                                                    Num objects       Total bytes\n");
     std::map<std::string,gpu_mem_object>::iterator iter;
-    for (iter=gpu_mem_map.begin(); iter != gpu_mem_map.end(); iter++) 
-      fprintf (stderr, "%40s %8ld            %10ld\n",
+    size_t total_bytes = 0, total_num=0;
+    for (iter=gpu_mem_map.begin(); iter != gpu_mem_map.end(); iter++) {
+      fprintf (stderr, "%60s %8ld            %10ld\n",
 	       iter->first.c_str(), 
 	       iter->second.num_objects, 
 	       iter->second.total_bytes);
+      total_bytes += iter->second.total_bytes;
+      total_num += iter->second.num_objects;
+    }
+    fprintf (stderr, "%60s %8ld            %10ld\n", "Total", 
+	     total_num, total_bytes);
+    
   }
 }
 

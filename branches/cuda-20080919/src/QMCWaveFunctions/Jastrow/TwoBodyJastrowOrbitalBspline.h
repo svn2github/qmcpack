@@ -21,26 +21,26 @@ namespace qmcplusplus {
     vector<CudaSpline<CudaReal>*> GPUSplines, UniqueSplines;
     int MaxCoefs;
     ParticleSet &PtclRef;
-    thrust::device_vector<CudaReal> L, Linv;
+    gpu::device_vector<CudaReal> L, Linv;
 
-    thrust::device_vector<CudaReal*> UpdateListGPU;
-    thrust::device_vector<CudaReal> SumGPU, GradLaplGPU, OneGradGPU;
+    gpu::device_vector<CudaReal*> UpdateListGPU;
+    gpu::device_vector<CudaReal> SumGPU, GradLaplGPU, OneGradGPU;
 
-    thrust::host_vector<CudaReal*> UpdateListHost;
-    thrust::host_vector<CudaReal> SumHost, GradLaplHost, OneGradHost;
-    thrust::host_vector<CudaReal> SplineDerivsHost;
-    thrust::device_vector<CudaReal> SplineDerivsGPU;
-    thrust::host_vector<CudaReal*> DerivListHost;
-    thrust::device_vector<CudaReal*> DerivListGPU;
+    gpu::host_vector<CudaReal*> UpdateListHost;
+    gpu::host_vector<CudaReal> SumHost, GradLaplHost, OneGradHost;
+    gpu::host_vector<CudaReal> SplineDerivsHost;
+    gpu::device_vector<CudaReal> SplineDerivsGPU;
+    gpu::host_vector<CudaReal*> DerivListHost;
+    gpu::device_vector<CudaReal*> DerivListGPU;
 
-    thrust::host_vector<CudaReal*> NL_SplineCoefsListHost;
-    thrust::device_vector<CudaReal*> NL_SplineCoefsListGPU;
-    thrust::host_vector<NLjobGPU<CudaReal> > NL_JobListHost;
-    thrust::device_vector<NLjobGPU<CudaReal> > NL_JobListGPU;
-    thrust::host_vector<int> NL_NumCoefsHost, NL_NumQuadPointsHost;
-    thrust::device_vector<int> NL_NumCoefsGPU,  NL_NumQuadPointsGPU;
-    thrust::host_vector<CudaReal> NL_rMaxHost, NL_QuadPointsHost, NL_RatiosHost;
-    thrust::device_vector<CudaReal> NL_rMaxGPU,  NL_QuadPointsGPU,  NL_RatiosGPU;
+    gpu::host_vector<CudaReal*> NL_SplineCoefsListHost;
+    gpu::device_vector<CudaReal*> NL_SplineCoefsListGPU;
+    gpu::host_vector<NLjobGPU<CudaReal> > NL_JobListHost;
+    gpu::device_vector<NLjobGPU<CudaReal> > NL_JobListGPU;
+    gpu::host_vector<int> NL_NumCoefsHost, NL_NumQuadPointsHost;
+    gpu::device_vector<int> NL_NumCoefsGPU,  NL_NumQuadPointsGPU;
+    gpu::host_vector<CudaReal> NL_rMaxHost, NL_QuadPointsHost, NL_RatiosHost;
+    gpu::device_vector<CudaReal> NL_rMaxGPU,  NL_QuadPointsGPU,  NL_RatiosGPU;
   public:
     typedef BsplineFunctor<OrbitalBase::RealType> FT;
     typedef ParticleSet::Walker_t     Walker_t;
@@ -49,7 +49,7 @@ namespace qmcplusplus {
     void checkInVariables(opt_variables_type& active);
     void addFunc(const string& aname, int ia, int ib, FT* j);
     void recompute(MCWalkerConfiguration &W, bool firstTime);
-    void reserve (PointerPool<thrust::device_vector<CudaRealType> > &pool);
+    void reserve (PointerPool<gpu::device_vector<CudaRealType> > &pool);
     void addLog (MCWalkerConfiguration &W, vector<RealType> &logPsi);
     void update (vector<Walker_t*> &walkers, int iat);
     void update (const vector<Walker_t*> &walkers, const vector<int> &iatList) 
@@ -83,11 +83,24 @@ namespace qmcplusplus {
 
     TwoBodyJastrowOrbitalBspline(ParticleSet& pset) :
       TwoBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> > (pset),
-      PtclRef(pset)
+      PtclRef(pset),
+      UpdateListGPU        ("TwoBodyJastrowOrbitalBspline::UpdateListGPU"),
+      SumGPU               ("TwoBodyJastrowOrbitalBspline::SumGPU"), 
+      GradLaplGPU          ("TwoBodyJastrowOrbitalBspline::GradLaplGPU"),
+      OneGradGPU           ("TwoBodyJastrowOrbitalBspline::OneGradGPU"),
+      SplineDerivsGPU      ("TwoBodyJastrowOrbitalBspline::SplineDerivsGPU"),
+      DerivListGPU         ("TwoBodyJastrowOrbitalBspline::DerivListGPU"),
+      NL_SplineCoefsListGPU("TwoBodyJastrowOrbitalBspline::NL_SplineCoefsListGPU"),
+      NL_JobListGPU        ("TwoBodyJastrowOrbitalBspline::NL_JobListGPU"),
+      NL_NumCoefsGPU       ("TwoBodyJastrowOrbitalBspline::NL_NumCoefsGPU"),
+      NL_NumQuadPointsGPU  ("TwoBodyJastrowOrbitalBspline::NL_NumQuadPointsGPU"),
+      NL_rMaxGPU           ("TwoBodyJastrowOrbitalBspline::NL_rMaxGPU"),
+      NL_QuadPointsGPU     ("TwoBodyJastrowOrbitalBspline::NL_QuadPointsGPU"),
+      NL_RatiosGPU         ("TwoBodyJastrowOrbitalBspline::NL_RatiosGPU")
     {
       int nsp = NumGroups = pset.groups();
       GPUSplines.resize(nsp*nsp,0);
-      thrust::host_vector<CudaReal> LHost(OHMMS_DIM*OHMMS_DIM), 
+      gpu::host_vector<CudaReal> LHost(OHMMS_DIM*OHMMS_DIM), 
 	LinvHost(OHMMS_DIM*OHMMS_DIM);
       for (int i=0; i<OHMMS_DIM; i++)
 	for (int j=0; j<OHMMS_DIM; j++) {

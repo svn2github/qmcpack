@@ -41,7 +41,7 @@ namespace qmcplusplus {
 
       // CUDA setup
 #ifdef QMC_CUDA
-      thrust::host_vector<CUDA_PRECISION> LHost(9), LinvHost(9);
+      gpu::host_vector<CUDA_PRECISION> LHost(9), LinvHost(9);
       for (int i=0; i<3; i++)
 	for (int j=0; j<3; j++) {
 	  LHost[3*i+j]    = elns.Lattice.a(j)[i];
@@ -51,7 +51,7 @@ namespace qmcplusplus {
       Linv = LinvHost;
       
       // Copy center positions to GPU, sorting by GroupID
-      thrust::host_vector<CUDA_PRECISION> I_host(OHMMS_DIM*NumIons);
+      gpu::host_vector<CUDA_PRECISION> I_host(OHMMS_DIM*NumIons);
       int index=0;
       for (int cgroup=0; cgroup<NumIonSpecies; cgroup++) {
 	IonFirst.push_back(index);
@@ -394,20 +394,20 @@ namespace qmcplusplus {
   {
     StructFact &SK = *(ElecRef.SK);
     Numk = SK.KLists.numk;
-    thrust::host_vector<CUDA_PRECISION> kpointsHost(OHMMS_DIM*Numk);
+    gpu::host_vector<CUDA_PRECISION> kpointsHost(OHMMS_DIM*Numk);
     for (int ik=0; ik<Numk; ik++)
       for (int dim=0; dim<OHMMS_DIM; dim++)
 	kpointsHost[ik*OHMMS_DIM+dim] = SK.KLists.kpts_cart[ik][dim];
     kpointsGPU = kpointsHost;
     
-    thrust::host_vector<CUDA_PRECISION> FkHost(Numk);
+    gpu::host_vector<CUDA_PRECISION> FkHost(Numk);
     for (int ik=0; ik<Numk; ik++)
       FkHost[ik] = AB->Fk[ik];
     FkGPU = FkHost;
 
     // Now compute Rhok for the ions
     RhokIonsGPU.resize(NumIonSpecies);
-    thrust::host_vector<CUDA_PRECISION> RhokIons_host(2*Numk);
+    gpu::host_vector<CUDA_PRECISION> RhokIons_host(2*Numk);
     for (int sp=0; sp<NumIonSpecies; sp++) {
       for (int ik=0; ik < Numk; ik++) {
 	PosType k = SK.KLists.kpts_cart[ik];
@@ -493,7 +493,7 @@ namespace qmcplusplus {
     }
 
 // #ifdef DEBUG_CUDA_RHOK
-//     thrust::host_vector<CUDA_PRECISION> RhokHost;
+//     gpu::host_vector<CUDA_PRECISION> RhokHost;
 //     RhokHost = RhokGPU;
 //     for (int ik=0; ik<Numk; ik++) {
 //       complex<double> rhok(0.0, 0.0);

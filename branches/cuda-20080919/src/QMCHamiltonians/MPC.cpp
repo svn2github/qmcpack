@@ -319,7 +319,7 @@ namespace qmcplusplus {
     fclose(fout);
 
 #ifdef QMC_CUDA
-      thrust::host_vector<CUDA_PRECISION> LHost(9), LinvHost(9);
+      gpu::host_vector<CUDA_PRECISION> LHost(9), LinvHost(9);
       for (int i=0; i<3; i++)
 	for (int j=0; j<3; j++) {
 	  LHost[3*i+j]    = PtclRef->Lattice.a(j)[i];

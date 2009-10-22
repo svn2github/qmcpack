@@ -8,14 +8,14 @@ namespace qmcplusplus {
   template<typename T>
   struct CudaSpline
   {
-    thrust::device_vector<T> coefs;
+    gpu::device_vector<T> coefs;
     T rMax;
 
     template<typename T2>
     void set (BsplineFunctor<T2> &func)
     {
       int num_coefs = func.SplineCoefs.size();
-      thrust::host_vector<T> coefs_h(num_coefs);
+      gpu::host_vector<T> coefs_h(num_coefs);
       for (int i=0; i<num_coefs; i++) {
 	coefs_h[i] = func.SplineCoefs[i];
 	//app_log() << "coefs_h[" << i << "] = " << coefs_h[i] << endl;

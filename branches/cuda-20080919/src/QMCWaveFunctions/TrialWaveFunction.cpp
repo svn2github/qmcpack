@@ -566,7 +566,7 @@ namespace qmcplusplus {
 
   void
   TrialWaveFunction::reserve
-  (PointerPool<thrust::device_vector<CudaRealType> > &pool,
+  (PointerPool<gpu::device_vector<CudaRealType> > &pool,
    bool onlyOptimizable)
   {
     for(int i=0; i<Z.size(); i++) 
@@ -722,11 +722,11 @@ namespace qmcplusplus {
 
   void 
   TrialWaveFunction::NLratios (MCWalkerConfiguration &W,
-			       thrust::device_vector<CUDA_PRECISION*> &Rlist,
-			       thrust::device_vector<int*>            &ElecList,
-			       thrust::device_vector<int>             &NumCoreElecs,
-			       thrust::device_vector<CUDA_PRECISION*> &QuadPosList,
-			       thrust::device_vector<CUDA_PRECISION*> &RatioList,
+			       gpu::device_vector<CUDA_PRECISION*> &Rlist,
+			       gpu::device_vector<int*>            &ElecList,
+			       gpu::device_vector<int>             &NumCoreElecs,
+			       gpu::device_vector<CUDA_PRECISION*> &QuadPosList,
+			       gpu::device_vector<CUDA_PRECISION*> &RatioList,
 			       int numQuadPoints)
   {
     for (int i=0,ii=NL_TIMER; i<Z.size(); i++,ii+=TIMER_SKIP) {

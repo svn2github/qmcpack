@@ -40,7 +40,7 @@ namespace qmcplusplus {
     app_log() << "  Number of k vectors " << AA->Fk.size() << endl;
 
 #ifdef QMC_CUDA
-    thrust::host_vector<CUDA_PRECISION> LHost(9), LinvHost(9);
+    gpu::host_vector<CUDA_PRECISION> LHost(9), LinvHost(9);
     for (int i=0; i<3; i++)
       for (int j=0; j<3; j++) {
 	LHost[3*i+j]    = ref.Lattice.a(j)[i];
@@ -360,13 +360,13 @@ namespace qmcplusplus {
     if (is_active) {
       StructFact &SK = *(P.SK);
       Numk = SK.KLists.numk;
-      thrust::host_vector<CUDA_PRECISION> kpointsHost(OHMMS_DIM*Numk);
+      gpu::host_vector<CUDA_PRECISION> kpointsHost(OHMMS_DIM*Numk);
       for (int ik=0; ik<Numk; ik++)
 	for (int dim=0; dim<OHMMS_DIM; dim++)
 	  kpointsHost[ik*OHMMS_DIM+dim] = SK.KLists.kpts_cart[ik][dim];
       kpointsGPU = kpointsHost;
 
-      thrust::host_vector<CUDA_PRECISION> FkHost(Numk);
+      gpu::host_vector<CUDA_PRECISION> FkHost(Numk);
       for (int ik=0; ik<Numk; ik++)
 	FkHost[ik] = AA->Fk[ik];
       FkGPU = FkHost;
@@ -422,7 +422,7 @@ namespace qmcplusplus {
     }
 
 #ifdef DEBUG_CUDA_RHOK
-    thrust::host_vector<CUDA_PRECISION> RhokHost;
+    gpu::host_vector<CUDA_PRECISION> RhokHost;
     RhokHost = RhokGPU;
     for (int ik=0; ik<Numk; ik++) {
       complex<double> rhok(0.0, 0.0);

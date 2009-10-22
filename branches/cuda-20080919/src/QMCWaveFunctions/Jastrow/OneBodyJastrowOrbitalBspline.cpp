@@ -12,7 +12,7 @@ namespace qmcplusplus {
   
   void
   OneBodyJastrowOrbitalBspline::reserve 
-  (PointerPool<thrust::device_vector<CudaRealType> > &pool)
+  (PointerPool<gpu::device_vector<CudaRealType> > &pool)
   {
   }
 

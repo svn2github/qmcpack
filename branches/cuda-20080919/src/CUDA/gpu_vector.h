@@ -52,6 +52,8 @@ namespace gpu
     size_t current_size, alloc_size;
     std::string name;
   public:
+    typedef T* pointer;
+
     inline
     device_vector() : data_pointer(NULL), current_size(0), alloc_size(0)
     { }
@@ -77,7 +79,7 @@ namespace gpu
     inline
     device_vector(const host_vector<T> &vec);
   
-    inline T& operator[](size_t i)
+    inline T& operator[](size_t i) const
     { return data_pointer[i]; }
 
     inline void
@@ -85,12 +87,12 @@ namespace gpu
     {
       size_t byte_size = sizeof(T)*size;
       if (alloc_size == 0) {
-	data_pointer = cuda_memory_manager.allocate(byte_size);
+	data_pointer = (T*)cuda_memory_manager.allocate(byte_size, name);
 	current_size = alloc_size = size;
       }
       else if (size > alloc_size) {
 	cuda_memory_manager.deallocate (data_pointer);
-	data_pointer = cuda_memory_manager.allocate(byte_size);
+	data_pointer = (T*)cuda_memory_manager.allocate(byte_size, name);
 	current_size = alloc_size = size;
       }
       else
@@ -108,7 +110,7 @@ namespace gpu
     }
 
     inline size_t 
-    size() { return current_size; }
+    size() const { return current_size; }
     
     
     inline device_vector& 
@@ -150,25 +152,6 @@ namespace gpu
     }
 
     device_vector& 
-    operator=(const device_vector<T> &vec)
-    {
-      if (this->size() != vec.size())
-	resize(vec.size());
-#ifdef QMC_CUDA
-      cudaMemcpy (data_pointer, &(vec[0]), this->size()*sizeof(T), 
-		  cudaMemcpyDeviceToDevice);
-      cudaError_t err = cudaGetLastError();
-      if (err != cudaSuccess) {
-	fprintf (stderr, 
-		 "CUDA error in device_vector::operator=(device_vector):\n  %s\n",
-		 cudaGetErrorString(err));
-	abort();
-      }
-#endif
-      return *this;
-    }
-
-    device_vector& 
     operator=(const std::vector<T,std::allocator<T> > &vec)
     {
       if (this->size() != vec.size())
@@ -205,7 +188,7 @@ namespace gpu
     }
     
     inline T* 
-    data()
+    data() const 
     { return data_pointer; }
     
   };

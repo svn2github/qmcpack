@@ -147,12 +147,12 @@ namespace qmcplusplus {
     // Walker-parallel vectorized functions //
     //////////////////////////////////////////
     virtual void
-    reserve (PointerPool<thrust::device_vector<CudaRealType> > &pool)
+    reserve (PointerPool<gpu::device_vector<CudaRealType> > &pool)
     { }
 
     virtual void
     evaluate (vector<Walker_t*> &walkers, int iat,
-	      thrust::device_vector<CudaValueType*> &phi)
+	      gpu::device_vector<CudaValueType*> &phi)
     {
       app_error() << "Need specialization of vectorized evaluate in SPOSetBase.\n";
       abort();
@@ -160,7 +160,7 @@ namespace qmcplusplus {
 
     virtual void
     evaluate (vector<Walker_t*> &walkers, vector<PosType> &new_pos, 
-	      thrust::device_vector<CudaValueType*> &phi)
+	      gpu::device_vector<CudaValueType*> &phi)
     {
       app_error() << "Need specialization of vectorized evaluate in SPOSetBase.\n";
       abort();
@@ -169,8 +169,8 @@ namespace qmcplusplus {
     virtual void
     evaluate (vector<Walker_t*> &walkers,
 	      vector<PosType> &new_pos,
-	      thrust::device_vector<CudaValueType*> &phi,
-	      thrust::device_vector<CudaValueType*> &grad_lapl_list, 
+	      gpu::device_vector<CudaValueType*> &phi,
+	      gpu::device_vector<CudaValueType*> &grad_lapl_list, 
 	      int row_stride)
     {
       app_error() << "Need specialization of vectorized eval_grad_lapl in SPOSetBase.\n";
@@ -178,7 +178,7 @@ namespace qmcplusplus {
     }
 
     virtual void 
-    evaluate (vector<PosType> &pos, thrust::device_vector<CudaRealType*> &phi)
+    evaluate (vector<PosType> &pos, gpu::device_vector<CudaRealType*> &phi)
     { 
       app_error() << "Need specialization of vectorized evaluate "
 		  << "in SPOSetBase.\n";
@@ -186,7 +186,7 @@ namespace qmcplusplus {
     }
 
     virtual void 
-    evaluate (vector<PosType> &pos, thrust::device_vector<CudaComplexType*> &phi)
+    evaluate (vector<PosType> &pos, gpu::device_vector<CudaComplexType*> &phi)
     { 
       app_error() << "Need specialization of vectorized evaluate "
 		  << "in SPOSetBase.\n";

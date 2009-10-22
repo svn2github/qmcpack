@@ -258,8 +258,8 @@ namespace qmcplusplus {
     StorageGradVector_t  StorageGradVector;
     StorageHessVector_t  StorageHessVector;
     // Cuda equivalents of the above
-    thrust::device_vector<CudaStorageType> CudaValueVector, CudaGradLaplVector;
-    thrust::device_vector<CudaStorageType*> CudaValuePointers, CudaGradLaplPointers;
+    gpu::device_vector<CudaStorageType> CudaValueVector, CudaGradLaplVector;
+    gpu::device_vector<CudaStorageType*> CudaValuePointers, CudaGradLaplPointers;
     void resize_cuda(int numWalkers);
     // Temporary storage used when blending functions        
     StorageValueVector_t BlendValueVector, BlendLaplVector;   
@@ -268,11 +268,11 @@ namespace qmcplusplus {
     // True if we should unpack this orbital into two copies
     vector<bool>         MakeTwoCopies;
     // Cuda equivalent
-    thrust::device_vector<int> CudaMakeTwoCopies;
+    gpu::device_vector<int> CudaMakeTwoCopies;
     // k-points for each orbital
     Vector<TinyVector<RealType,OHMMS_DIM> > kPoints;
     // Cuda equivalent
-    thrust::device_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM > > CudakPoints,
+    gpu::device_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM > > CudakPoints,
       CudakPoints_reduced;
 
     ///////////////////
@@ -285,8 +285,8 @@ namespace qmcplusplus {
     // 0 if the twist is zero, 1 if the twist is G/2.
     TinyVector<int,OHMMS_DIM> HalfG;
 
-    void applyPhaseFactors (thrust::device_vector<CudaStorageType*> &storageVector,
-			    thrust::device_vector<CudaRealType*> &phi);
+    void applyPhaseFactors (gpu::device_vector<CudaStorageType*> &storageVector,
+			    gpu::device_vector<CudaRealType*> &phi);
     ////////////
     // Timers //
     ////////////
@@ -294,13 +294,13 @@ namespace qmcplusplus {
     NewTimer EinsplineTimer;
 
     // Data for vectorized evaluations
-    thrust::host_vector<CudaPosType> hostPos, NLhostPos;
-    thrust::device_vector<CudaPosType> cudapos, NLcudapos;
-    thrust::host_vector<CudaRealType> hostSign, NLhostSign;
-    thrust::device_vector<CudaRealType> cudaSign, NLcudaSign;
+    gpu::host_vector<CudaPosType> hostPos, NLhostPos;
+    gpu::device_vector<CudaPosType> cudapos, NLcudapos;
+    gpu::host_vector<CudaRealType> hostSign, NLhostSign;
+    gpu::device_vector<CudaRealType> cudaSign, NLcudaSign;
     // This stores the inverse of the lattice vector matrix in
     // GPU memory.
-    thrust::device_vector<CudaRealType> Linv_cuda, L_cuda;
+    gpu::device_vector<CudaRealType> Linv_cuda, L_cuda;
 
   public:
     void registerTimers();
@@ -340,23 +340,23 @@ namespace qmcplusplus {
 
     // Vectorized evaluation functions
     void evaluate (vector<Walker_t*> &walkers, int iat,
-		   thrust::device_vector<CudaRealType*> &phi);
+		   gpu::device_vector<CudaRealType*> &phi);
     void evaluate (vector<Walker_t*> &walkers, int iat,
-		   thrust::device_vector<CudaComplexType*> &phi);
+		   gpu::device_vector<CudaComplexType*> &phi);
     void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-		   thrust::device_vector<CudaRealType*> &phi);
+		   gpu::device_vector<CudaRealType*> &phi);
     void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,
-		   thrust::device_vector<CudaComplexType*> &phi);
+		   gpu::device_vector<CudaComplexType*> &phi);
     void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-		   thrust::device_vector<CudaRealType*> &phi,
-		   thrust::device_vector<CudaRealType*> &grad_lapl,
+		   gpu::device_vector<CudaRealType*> &phi,
+		   gpu::device_vector<CudaRealType*> &grad_lapl,
 		   int row_stride);
     void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-		   thrust::device_vector<CudaComplexType*> &phi,
-		   thrust::device_vector<CudaComplexType*> &grad_lapl,
+		   gpu::device_vector<CudaComplexType*> &phi,
+		   gpu::device_vector<CudaComplexType*> &grad_lapl,
 		   int row_stride);
-    void evaluate (vector<PosType> &pos, thrust::device_vector<CudaRealType*> &phi);
-    void evaluate (vector<PosType> &pos, thrust::device_vector<CudaComplexType*> &phi);
+    void evaluate (vector<PosType> &pos, gpu::device_vector<CudaRealType*> &phi);
+    void evaluate (vector<PosType> &pos, gpu::device_vector<CudaComplexType*> &phi);
     
     void resetParameters(const opt_variables_type& active);
     void resetTargetParticleSet(ParticleSet& e);
@@ -422,32 +422,32 @@ namespace qmcplusplus {
     typedef typename EinsplineSetExtended<StorageType>::CudaComplexType CudaComplexType;
     typedef typename EinsplineSetExtended<StorageType>::CudaStorageType CudaStorageType;
 
-    vector<thrust::device_vector<CudaRealType> > AtomicSplineCoefs_GPU,
+    vector<gpu::device_vector<CudaRealType> > AtomicSplineCoefs_GPU,
       AtomicPolyCoefs_GPU;
-    thrust::device_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_GPU;
+    gpu::device_vector<AtomicOrbitalCuda<CudaRealType> > AtomicOrbitals_GPU;
 
-    // thrust::host_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_CPU;
-    // thrust::device_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_GPU;
-    // thrust::host_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_CPU;
-    // thrust::device_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_GPU;
+    // gpu::host_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_CPU;
+    // gpu::device_vector<AtomicPolyJob<CudaRealType> >   AtomicPolyJobs_GPU;
+    // gpu::host_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_CPU;
+    // gpu::device_vector<AtomicSplineJob<CudaRealType> > AtomicSplineJobs_GPU;
 
-    thrust::device_vector<HybridJobType> HybridJobs_GPU;
-    thrust::device_vector<CudaRealType>  IonPos_GPU;
-    thrust::device_vector<CudaRealType>  CutoffRadii_GPU, PolyRadii_GPU;
-    thrust::device_vector<HybridDataFloat> HybridData_GPU;
+    gpu::device_vector<HybridJobType> HybridJobs_GPU;
+    gpu::device_vector<CudaRealType>  IonPos_GPU;
+    gpu::device_vector<CudaRealType>  CutoffRadii_GPU, PolyRadii_GPU;
+    gpu::device_vector<HybridDataFloat> HybridData_GPU;
 
-    thrust::device_vector<CudaRealType> Ylm_GPU;
-    thrust::device_vector<CudaRealType*> Ylm_ptr_GPU, dYlm_dtheta_ptr_GPU, dYlm_dphi_ptr_GPU;
-    thrust::host_vector<CudaRealType*> Ylm_ptr_CPU, dYlm_dtheta_ptr_CPU, dYlm_dphi_ptr_CPU;
-    thrust::device_vector<CudaRealType> rhats_GPU;
-    thrust::host_vector<CudaRealType> rhats_CPU;
-    thrust::device_vector<int> JobType;
+    gpu::device_vector<CudaRealType> Ylm_GPU;
+    gpu::device_vector<CudaRealType*> Ylm_ptr_GPU, dYlm_dtheta_ptr_GPU, dYlm_dphi_ptr_GPU;
+    gpu::host_vector<CudaRealType*> Ylm_ptr_CPU, dYlm_dtheta_ptr_CPU, dYlm_dphi_ptr_CPU;
+    gpu::device_vector<CudaRealType> rhats_GPU;
+    gpu::host_vector<CudaRealType> rhats_CPU;
+    gpu::device_vector<int> JobType;
     
     // Vectors for 3D Bspline evaluation
-    thrust::device_vector<CudaRealType> BsplinePos_GPU;
-    thrust::host_vector<CudaRealType> BsplinePos_CPU;
-    thrust::device_vector<CudaStorageType*> BsplineVals_GPU, BsplineGradLapl_GPU;
-    thrust::host_vector<CudaStorageType*> BsplineVals_CPU, BsplineGradLapl_CPU;
+    gpu::device_vector<CudaRealType> BsplinePos_GPU;
+    gpu::host_vector<CudaRealType> BsplinePos_CPU;
+    gpu::device_vector<CudaStorageType*> BsplineVals_GPU, BsplineGradLapl_GPU;
+    gpu::host_vector<CudaStorageType*> BsplineVals_CPU, BsplineGradLapl_CPU;
 
     // The maximum lMax across all atomic orbitals
     int lMax;
@@ -476,23 +476,23 @@ namespace qmcplusplus {
 
     // Vectorized evaluation functions
     void evaluate (vector<Walker_t*> &walkers, int iat,
-		   thrust::device_vector<CudaRealType*> &phi);
+		   gpu::device_vector<CudaRealType*> &phi);
     void evaluate (vector<Walker_t*> &walkers, int iat,
-		   thrust::device_vector<CudaComplexType*> &phi);
+		   gpu::device_vector<CudaComplexType*> &phi);
     void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-		   thrust::device_vector<CudaRealType*> &phi);
+		   gpu::device_vector<CudaRealType*> &phi);
     void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos,
-		   thrust::device_vector<CudaComplexType*> &phi);
+		   gpu::device_vector<CudaComplexType*> &phi);
     void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-		   thrust::device_vector<CudaRealType*> &phi,
-		   thrust::device_vector<CudaRealType*> &grad_lapl,
+		   gpu::device_vector<CudaRealType*> &phi,
+		   gpu::device_vector<CudaRealType*> &grad_lapl,
 		   int row_stride);
     void evaluate (vector<Walker_t*> &walkers, vector<PosType> &newpos, 
-		   thrust::device_vector<CudaComplexType*> &phi,
-		   thrust::device_vector<CudaComplexType*> &grad_lapl,
+		   gpu::device_vector<CudaComplexType*> &phi,
+		   gpu::device_vector<CudaComplexType*> &grad_lapl,
 		   int row_stride);
-    void evaluate (vector<PosType> &pos, thrust::device_vector<CudaRealType*> &phi);
-    void evaluate (vector<PosType> &pos, thrust::device_vector<CudaComplexType*> &phi);
+    void evaluate (vector<PosType> &pos, gpu::device_vector<CudaRealType*> &phi);
+    void evaluate (vector<PosType> &pos, gpu::device_vector<CudaComplexType*> &phi);
     
     string Type();
     
