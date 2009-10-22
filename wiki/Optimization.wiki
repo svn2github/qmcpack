@@ -36,7 +36,7 @@ These are options you probably want to leave alone.
  * exp0 = 10^exp0 is added to the diagonal for added stability in the algorithm.
  * conditionhamiltonian = tricks to condition the Hamiltonian/Hessian matrix. adding 10^exp0 and subtracting the smallest element from the diagonal.
  * maxWeight = maximum weight a walker can have. 
- * rescaleparameters = rescale parameters accoring to Urmigar/Sorella formulatioon. xi=0.5
+ * rescaleparameters = rescale parameters according to Urmigar/Sorella formulation. xi=0.5
  * allowedincrease = allowed increase in cost function for accepting parameter changes.
  * alloweddifference = allowed difference in cost function while doing the line minimization.
 
