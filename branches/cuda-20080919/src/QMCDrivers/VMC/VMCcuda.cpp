@@ -227,7 +227,8 @@ namespace qmcplusplus {
       recordBlock(block);
     } while(block<nBlocks);
     //finalize a qmc section
-    gpu::cuda_memory_manager.report();
+    if (!myComm->rank())
+      gpu::cuda_memory_manager.report();
     return finalize(block);
   }
 

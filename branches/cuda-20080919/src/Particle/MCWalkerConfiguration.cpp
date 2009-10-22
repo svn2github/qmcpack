@@ -303,9 +303,7 @@ void MCWalkerConfiguration::loadEnsemble()
 
   Walker_t::PropertyContainer_t prop(1,PropertyList.size());
   int nsamples=SampleStack.size();
-  cerr << "Before delete_iter(WalkerList.begin(),WalkerList.end());.\n";
   delete_iter(WalkerList.begin(),WalkerList.end());
-  cerr << "After delete_iter(WalkerList.begin(),WalkerList.end());.\n";
   WalkerList.resize(nsamples);
   for(int i=0; i<nsamples; ++i)
   {

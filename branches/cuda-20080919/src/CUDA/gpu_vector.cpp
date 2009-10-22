@@ -10,7 +10,7 @@ namespace gpu
   void* 
   cuda_memory_manager_type::allocate(size_t bytes, std::string name)
   {
-    fprintf (stderr, "Allocating %ld bytes for %s\n", bytes, name.c_str());
+    //    fprintf (stderr, "Allocating %ld bytes for %s\n", bytes, name.c_str());
     // Make sure size is a multiple of 16
     bytes = (((bytes+15)/16)*16);
     void *p;
@@ -49,7 +49,7 @@ namespace gpu
     }
     std::string name = piter->second.first;
     size_t bytes = piter->second.second;
-    fprintf (stderr, "Deallocating %s from GPU memory.\n", name.c_str());
+    //    fprintf (stderr, "Deallocating %s from GPU memory.\n", name.c_str());
     gpu_pointer_map.erase(piter);
 
     cudaFree (p);

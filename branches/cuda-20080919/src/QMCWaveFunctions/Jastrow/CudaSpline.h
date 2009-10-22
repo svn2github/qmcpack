@@ -25,7 +25,7 @@ namespace qmcplusplus {
     }
 
     template<typename T2>
-    CudaSpline (BsplineFunctor<T2> &func)
+    CudaSpline (BsplineFunctor<T2> &func) : coefs("CudaSpline::coefs")
     {
       set (func);
     }
