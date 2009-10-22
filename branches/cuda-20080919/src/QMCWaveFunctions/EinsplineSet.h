@@ -370,7 +370,17 @@ namespace qmcplusplus {
       VGLTimer    ("EinsplineSetExtended::VGL"),
       VGLMatTimer ("EinsplineSetExtended::VGLMatrix"),
       EinsplineTimer("libeinspline"),
-      MultiSpline(NULL), CudaMultiSpline(NULL)
+      MultiSpline(NULL), CudaMultiSpline(NULL),
+      cudapos("EinsplineSetExtended::cudapos"),
+      NLcudapos("EinsplineSetExtended::NLcudapos"),
+      cudaSign("EinsplineSetExtended::cudaSign"),
+      NLcudaSign("EinsplineSetExtended::NLcudaSign"),
+      Linv_cuda("EinsplineSetExtended::Linv_cuda"),
+      L_cuda("EinsplineSetExtended::L_cuda"),
+      CudaValueVector("EinsplineSetExtended::CudaValueVector"),
+      CudaGradLaplVector("EinsplineSetExtended::CudaGradLaplVector"),
+      CudaValuePointers("EinsplineSetExtended::CudaValuePointers"),
+      CudaGradLaplPointers("EinsplineSetExtended::CudaGradLaplPointers")
     {
       className = "EinsplineSetExtended";
       TimerManager.addTimer (&ValueTimer);

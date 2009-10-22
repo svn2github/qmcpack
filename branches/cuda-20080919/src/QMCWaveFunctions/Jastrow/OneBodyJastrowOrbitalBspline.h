@@ -81,7 +81,23 @@ namespace qmcplusplus {
 			      ValueMatrix_t &dlapl_over_psi);
     OneBodyJastrowOrbitalBspline(ParticleSet &centers, ParticleSet& elecs) :
       OneBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> > (centers,elecs),
-      ElecRef(elecs)
+      ElecRef(elecs),
+      L("OneBodyJastrowOrbitalBspline::L"),
+      Linv("OneBodyJastrowOrbitalBspline::Linv"),
+      C("OneBodyJastrowOrbitalBspline::C"),
+      UpdateListGPU("OneBodyJastrowOrbitalBspline::UpdateListGPU"),
+      SumGPU("OneBodyJastrowOrbitalBspline::SumGPU"),
+      GradLaplGPU("OneBodyJastrowOrbitalBspline::GradLaplGPU"),
+      OneGradGPU("OneBodyJastrowOrbitalBspline::OneGradGPU"),
+      SplineDerivsGPU("OneBodyJastrowOrbitalBspline::SplineDerivsGPU"),
+      DerivListGPU("OneBodyJastrowOrbitalBspline::DerivListGPU"),
+      NL_SplineCoefsListGPU("OneBodyJastrowOrbitalBspline::NL_SplineCoefsListGPU"),
+      NL_JobListGPU("OneBodyJastrowOrbitalBspline::NL_JobListGPU"),
+      NL_NumCoefsGPU("OneBodyJastrowOrbitalBspline::NL_NumCoefsGPU"),
+      NL_NumQuadPointsGPU("OneBodyJastrowOrbitalBspline::NL_NumQuadPointsGPU"),
+      NL_rMaxGPU("OneBodyJastrowOrbitalBspline::NL_rMaxGPU"), 
+      NL_QuadPointsGPU("OneBodyJastrowOrbitalBspline::NL_QuadPointsGPU"),
+      NL_RatiosGPU("OneBodyJastrowOrbitalBspline::NL_RatiosGPU")
     {
       NumElecGroups = elecs.groups();
       SpeciesSet &sSet = centers.getSpeciesSet();

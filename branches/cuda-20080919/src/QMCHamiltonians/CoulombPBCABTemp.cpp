@@ -23,7 +23,16 @@ namespace qmcplusplus {
 
   CoulombPBCABTemp::CoulombPBCABTemp(ParticleSet& ions, ParticleSet& elns,
 				     bool cloning): 
-    PtclA(ions), myConst(0.0), myGrid(0),V0(0), ElecRef(elns), IonRef(ions)
+    PtclA(ions), myConst(0.0), myGrid(0),V0(0), ElecRef(elns), IonRef(ions),
+    SumGPU("CoulombPBCABTemp::SumGPU"),
+    IGPU("CoulombPBCABTemp::IGPU"),
+    L("CoulombPBCABTemp::L"),
+    Linv("CoulombPBCABTemp::Linv"),
+    kpointsGPU("CoulombPBCABTemp::kpointsGPU"),
+    kshellGPU("CoulombPBCABTemp::kshellGPU"),
+    FkGPU("CoulombPBCABTemp::FkGPU"),
+    RhoklistGPU("CoulombPBCABTemp::RhoklistGPU"),
+    RhokElecGPU("CoulombPBCABTemp::RhokElecGPU")
     {
       ReportEngine PRE("CoulombPBCABTemp","CoulombPBCABTemp");
       //Use singleton pattern 
@@ -407,6 +416,7 @@ namespace qmcplusplus {
 
     // Now compute Rhok for the ions
     RhokIonsGPU.resize(NumIonSpecies);
+    
     gpu::host_vector<CUDA_PRECISION> RhokIons_host(2*Numk);
     for (int sp=0; sp<NumIonSpecies; sp++) {
       for (int ik=0; ik < Numk; ik++) {
@@ -422,6 +432,7 @@ namespace qmcplusplus {
 	  RhokIons_host[2*ik+1] += s;
 	}
       }
+      RhokIonsGPU[sp].set_name ("CoulombPBCABTemp::RhokIonsGPU");
       RhokIonsGPU[sp] = RhokIons_host;
     }
   }

@@ -28,18 +28,30 @@
 
 namespace qmcplusplus {
 
-MCWalkerConfiguration::MCWalkerConfiguration(): 
-OwnWalkers(true),ReadyForPbyP(false),UpdateMode(Update_Walker),Polymer(0),
-  MaxSamples(10),CurSampleCount(0)
+  MCWalkerConfiguration::MCWalkerConfiguration(): 
+  OwnWalkers(true),ReadyForPbyP(false),UpdateMode(Update_Walker),Polymer(0),
+  MaxSamples(10),CurSampleCount(0),
+  RList_GPU("MCWalkerConfiguration::RList_GPU"),
+  GradList_GPU("MCWalkerConfiguration::GradList_GPU"),
+  LapList_GPU("MCWalkerConfiguration::LapList_GPU"),
+  Rnew_GPU("MCWalkerConfiguration::Rnew_GPU"),
+  NLlist_GPU ("MCWalkerConfiguration::NLlist_GPU"),
+  AcceptList_GPU("MCWalkerConfiguration::AcceptList_GPU")
   {
   //move to ParticleSet
   //initPropertyList();
-}
+  }
 
 MCWalkerConfiguration::MCWalkerConfiguration(const MCWalkerConfiguration& mcw)
 : ParticleSet(mcw), OwnWalkers(true), GlobalNumWalkers(mcw.GlobalNumWalkers),
   UpdateMode(Update_Walker), ReadyForPbyP(false), Polymer(0), 
-  MaxSamples(mcw.MaxSamples), CurSampleCount(0)
+  MaxSamples(mcw.MaxSamples), CurSampleCount(0),
+  RList_GPU("MCWalkerConfiguration::RList_GPU"),
+  GradList_GPU("MCWalkerConfiguration::GradList_GPU"),
+  LapList_GPU("MCWalkerConfiguration::LapList_GPU"),
+  Rnew_GPU("MCWalkerConfiguration::Rnew_GPU"),
+  NLlist_GPU ("MCWalkerConfiguration::NLlist_GPU"),
+  AcceptList_GPU("MCWalkerConfiguration::AcceptList_GPU")
 {
   GlobalNumWalkers=mcw.GlobalNumWalkers;
   WalkerOffsets=mcw.WalkerOffsets;
@@ -291,8 +303,9 @@ void MCWalkerConfiguration::loadEnsemble()
 
   Walker_t::PropertyContainer_t prop(1,PropertyList.size());
   int nsamples=SampleStack.size();
-
+  cerr << "Before delete_iter(WalkerList.begin(),WalkerList.end());.\n";
   delete_iter(WalkerList.begin(),WalkerList.end());
+  cerr << "After delete_iter(WalkerList.begin(),WalkerList.end());.\n";
   WalkerList.resize(nsamples);
   for(int i=0; i<nsamples; ++i)
   {

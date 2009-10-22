@@ -141,6 +141,7 @@ namespace qmcplusplus {
     }
 
     inline ~Walker() { 
+      cerr << "Walker destructor called.\n";
     }
     
     ///assignment operator

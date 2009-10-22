@@ -54,6 +54,8 @@ namespace gpu
   public:
     typedef T* pointer;
 
+    void set_name(std::string n) { name = n; }
+
     inline
     device_vector() : data_pointer(NULL), current_size(0), alloc_size(0)
     { }
@@ -78,6 +80,12 @@ namespace gpu
   
     inline
     device_vector(const host_vector<T> &vec);
+
+    ~device_vector() 
+    {
+      if (data_pointer)
+	cuda_memory_manager.deallocate (data_pointer);
+    }
   
     inline T& operator[](size_t i) const
     { return data_pointer[i]; }
@@ -85,6 +93,10 @@ namespace gpu
     inline void
     resize(size_t size)
     {
+      if (!size) {
+	current_size = 0; 
+	return;
+      }
       size_t byte_size = sizeof(T)*size;
       if (alloc_size == 0) {
 	data_pointer = (T*)cuda_memory_manager.allocate(byte_size, name);

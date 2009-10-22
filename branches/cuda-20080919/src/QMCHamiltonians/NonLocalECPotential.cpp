@@ -38,12 +38,15 @@ namespace qmcplusplus {
   (ParticleSet& ions, ParticleSet& els,
    TrialWaveFunction& psi) : 
    IonConfig(ions), d_table(0), Psi(psi), CurrentNumWalkers(0)
-   // ,
-   // Ions_GPU("Ions_GPU"), Elecs_GPU("Elecs_GPU"), Dist_GPU("Dist_GPU"),
-   // Eleclist_GPU("Eleclist_GPU"), NumPairs_GPU("NumPairs_GPU"),
-   // RatioPos_GPU("RatioPos_GPU"), CosTheta_GPU("CosTheta_GPU"),
-   // RatioPoslist_GPU("RatioPoslist_GPU")
-   
+   ,
+   Ions_GPU("NonLocalECPotential::Ions_GPU"), 
+   Elecs_GPU("NonLocalECPotential::Elecs_GPU"), 
+   Dist_GPU("NonLocalECPotential::Dist_GPU"),
+   Eleclist_GPU("NonLocalECPotential::Eleclist_GPU"), 
+   NumPairs_GPU("NonLocalECPotential::NumPairs_GPU"),
+   RatioPos_GPU("NonLocalECPotential::RatioPos_GPU"), 
+   CosTheta_GPU("NonLocalECPotential::CosTheta_GPU"),
+   RatioPoslist_GPU("NonLocalECPotential::RatioPoslist_GPU")
   { 
     d_table = DistanceTable::add(ions,els);
     NumIons=ions.getTotalNum();

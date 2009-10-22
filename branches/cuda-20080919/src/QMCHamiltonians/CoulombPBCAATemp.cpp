@@ -25,10 +25,12 @@ namespace qmcplusplus {
 				     bool cloning): 
     AA(0), myGrid(0), rVs(0), 
     is_active(active), FirstTime(true), myConst(0.0),
-    PtclRef(ref)
-    // ,
-    // SumGPU("SumGPU"), kpointsGPU("kpointsGPU"), kshellGPU("kshellGPU"),
-    // FkGPU("FkGPU"), RhokGPU("RhokGPU")
+    PtclRef(ref),
+    SumGPU("CoulombPBCAATemp::SumGPU"), 
+    kpointsGPU("CoulombPBCAATemp::kpointsGPU"), 
+    kshellGPU("CoulombPBCAATemp::kshellGPU"),
+    FkGPU("CoulombPBCAATemp::FkGPU"), 
+    RhokGPU("CoulombPBCAATemp::RhokGPU")
   {
     ReportEngine PRE("CoulombPBCAATemp","CoulombPBCAATemp");
 
