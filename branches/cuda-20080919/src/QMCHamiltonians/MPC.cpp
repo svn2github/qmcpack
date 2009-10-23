@@ -414,8 +414,7 @@ namespace qmcplusplus {
     int nw = walkers.size();
     int N = NParticles;
     if (SumGPU.size() < nw) {
-      SumGPU.resize(nw);
-      SumHost.resize(nw);
+      SumGPU.resize(nw, 1.25);
       SumHost.resize(nw);
     }
     for (int iw=0; iw<nw; iw++) 
