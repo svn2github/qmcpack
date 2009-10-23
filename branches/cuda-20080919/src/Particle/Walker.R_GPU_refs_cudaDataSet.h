@@ -99,20 +99,29 @@ namespace qmcplusplus {
 
     /// Data for GPU-vectorized versions
 #ifdef QMC_CUDA
-    static int cuda_DataSize;
+    int cuda_DataSize;
     typedef gpu::device_vector<CUDA_PRECISION> cuda_Buffer_t;
     cuda_Buffer_t cuda_DataSet;
     // Note that R_GPU has size N+1.  The last element contains the
     // proposed position for single-particle moves.
     gpu::device_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_GPU, Grad_GPU;
     gpu::device_vector<CUDA_PRECISION> Lap_GPU;
-    inline void resizeCuda(int size) {
-      cuda_DataSize = size;
-      cuda_DataSet.resize(size);
+    inline void resizeCuda(size_t size) {
       int N = R.size();
-      R_GPU.resize(N);      
-      Grad_GPU.resize(N);      
-      Lap_GPU.resize(N);
+      // Reserve some extra space for Walkers data:  R_GPU, Grad_GPU,
+      // and Lap_GPU
+      size_t vec_size    = (((OHMMS_DIM * N)+15)/16)*16;
+      size_t scalar_size = ((N+15)/16)*16;
+      size_t alloc_size = size+2*vec_size + scalar_size;
+      if (cuda_DataSet.size() != alloc_size) {
+	cuda_DataSize = alloc_size;
+	cuda_DataSet.resize(alloc_size);
+      }
+      R_GPU.reference((TinyVector<CUDA_PRECISION,OHMMS_DIM>*) 
+		      (cuda_DataSet.data()+size), N);
+      Grad_GPU.reference((TinyVector<CUDA_PRECISION,OHMMS_DIM>*) 
+			 (cuda_DataSet.data()+size+vec_size), N);
+      Lap_GPU.reference((CUDA_PRECISION*) (cuda_DataSet.data()+size+2*vec_size), N);
     }
 
 #endif
@@ -160,9 +169,9 @@ namespace qmcplusplus {
     {
       R.resize(nptcl); Grad.resize(nptcl),Lap.resize(nptcl),Drift.resize(nptcl); 
 #ifdef QMC_CUDA
-      R_GPU.resize(nptcl);
-      Grad_GPU.resize(nptcl);
-      Lap_GPU.resize(nptcl);
+//       R_GPU.resize(nptcl);
+//       Grad_GPU.resize(nptcl);
+//       Lap_GPU.resize(nptcl);
 #endif
       // R.resize(nptcl); Drift.resize(nptcl); 
     }
@@ -182,9 +191,21 @@ namespace qmcplusplus {
       Properties.copy(a.Properties);
       DataSet=a.DataSet;
       cuda_DataSet = a.cuda_DataSet;
-      R_GPU = a.R_GPU;
-      Grad_GPU = a.Grad_GPU;
-      Lap_GPU = a.Lap_GPU;
+      
+
+      int N = R.size();
+      // Reserve some extra space for Walkers data:  R_GPU, Grad_GPU,
+      // and Lap_GPU
+      size_t vec_size    = (((OHMMS_DIM * N)+15)/16)*16;
+      size_t scalar_size = ((N+15)/16)*16;
+      R_GPU.reference((TinyVector<CUDA_PRECISION,OHMMS_DIM>*) 
+		      &cuda_DataSet[0], N);
+      Grad_GPU.reference((TinyVector<CUDA_PRECISION,OHMMS_DIM>*) 
+			 &cuda_DataSet[vec_size], N);
+      Lap_GPU.reference((CUDA_PRECISION*) &cuda_DataSet[2*vec_size], N);
+      //       R_GPU = a.R_GPU;
+      //       Grad_GPU = a.Grad_GPU;
+      //       Lap_GPU = a.Lap_GPU;
     }
 
     //return the address of the values of Hamiltonian terms
@@ -277,9 +298,9 @@ namespace qmcplusplus {
 #ifdef QMC_CUDA
       bsize += 2 *sizeof (int); // size and N
       bsize += cuda_DataSize             * sizeof(CUDA_PRECISION); // cuda_DataSet
-      bsize += R.size()      * OHMMS_DIM * sizeof(CUDA_PRECISION); // R_GPU
-      bsize += R.size()      * OHMMS_DIM * sizeof(CUDA_PRECISION); // Grad_GPU
-      bsize += R.size()      * 1         * sizeof(CUDA_PRECISION); // Lap_GPU
+      // bsize += R.size()      * OHMMS_DIM * sizeof(CUDA_PRECISION); // R_GPU
+      // bsize += R.size()      * OHMMS_DIM * sizeof(CUDA_PRECISION); // Grad_GPU
+      // bsize += R.size()      * 1         * sizeof(CUDA_PRECISION); // Lap_GPU
 #endif   
       return bsize;
     }
@@ -296,22 +317,22 @@ namespace qmcplusplus {
 #ifdef QMC_CUDA
       // Pack GPU data
       gpu::host_vector<CUDA_PRECISION> host_data;
-      gpu::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
-      gpu::host_vector<CUDA_PRECISION> host_lapl;
+      // gpu::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > R_host;
+      // gpu::host_vector<CUDA_PRECISION> host_lapl;
 
       host_data = cuda_DataSet;
-      R_host = R_GPU;
+      //R_host = R_GPU;
       int size = host_data.size();
-      int N = R_host.size();
+      // int N = R_host.size();
       m.Pack(size);
-      m.Pack(N);
+      // m.Pack(N);
       m.Pack(&(host_data[0]), host_data.size());
-      m.Pack(&(R_host[0][0]), OHMMS_DIM*R_host.size());
-      R_host = Grad_GPU;
-      m.Pack(&(R_host[0][0]), OHMMS_DIM*R_host.size());
+      // m.Pack(&(R_host[0][0]), OHMMS_DIM*R_host.size());
+      // R_host = Grad_GPU;
+      // m.Pack(&(R_host[0][0]), OHMMS_DIM*R_host.size());
       
-      host_lapl = Lap_GPU;
-      m.Pack(&(host_lapl[0]), host_lapl.size());
+      // host_lapl = Lap_GPU;
+      // m.Pack(&(host_lapl[0]), host_lapl.size());
 #endif
 
       return m;
@@ -334,21 +355,30 @@ namespace qmcplusplus {
 
       int size, N;
       m.Unpack(size);
-      m.Unpack(N);
+      //m.Unpack(N);
       host_data.resize(size);
-      R_host.resize(N);
-      host_lapl.resize(N);
+      //R_host.resize(N);
+      //host_lapl.resize(N);
 
       m.Unpack(&(host_data[0]), size);
       cuda_DataSet = host_data;
 
-      m.Unpack(&(R_host[0][0]), OHMMS_DIM*N);
-      R_GPU = R_host;
-      m.Unpack(&(R_host[0][0]), OHMMS_DIM*N);
-      Grad_GPU = R_host;
+      N = R.size();
+      size_t vec_size    = (((OHMMS_DIM * N)+15)/16)*16;
+      size_t scalar_size = ((N+15)/16)*16;
+      R_GPU.reference((TinyVector<CUDA_PRECISION,OHMMS_DIM>*) 
+		      &cuda_DataSet[0], N);
+      Grad_GPU.reference((TinyVector<CUDA_PRECISION,OHMMS_DIM>*) 
+			 &cuda_DataSet[vec_size], N);
+      Lap_GPU.reference((CUDA_PRECISION*) &cuda_DataSet[2*vec_size], N);
+
+      // m.Unpack(&(R_host[0][0]), OHMMS_DIM*N);
+      // R_GPU = R_host;
+      // m.Unpack(&(R_host[0][0]), OHMMS_DIM*N);
+      // Grad_GPU = R_host;
       
-      m.Unpack(&(host_lapl[0]), N);
-      Lap_GPU = host_lapl;
+      // m.Unpack(&(host_lapl[0]), N);
+      // Lap_GPU = host_lapl;
 #endif
 
 
@@ -371,7 +401,7 @@ namespace qmcplusplus {
 
 #endif
 /***************************************************************************
- * $RCSfile$   $Author$
- * $Revision$   $Date$
- * $Id$ 
+ * $RCSfile$   $Author: kpesler $
+ * $Revision: 4309 $   $Date: 2009-10-22 14:01:21 -0500 (Thu, 22 Oct 2009) $
+ * $Id: Walker.h 4309 2009-10-22 19:01:21Z kpesler $ 
  ***************************************************************************/
