@@ -180,7 +180,8 @@ namespace qmcplusplus {
 	      << " bytes in GPU memory.\n";
     for (int iw=0; iw<W.WalkerList.size(); iw++) {
       Walker_t &walker = *(W.WalkerList[iw]);
-      pool.allocate(walker.cuda_DataSet);
+      walker.resizeCuda(pool.getTotalSize());
+      //pool.allocate(walker.cuda_DataSet);
     }
     W.copyWalkersToGPU();
     W.updateLists_GPU();
