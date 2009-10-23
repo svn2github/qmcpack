@@ -97,7 +97,6 @@ namespace qmcplusplus {
     NumPtcls=nel;
     NumOrbitals=norb;
     RowStride = ((NumOrbitals + 31)/32) * 32;
-    app_log() << "RowStride = " << RowStride << endl;
   }
 
   DiracDeterminantBase::ValueType 

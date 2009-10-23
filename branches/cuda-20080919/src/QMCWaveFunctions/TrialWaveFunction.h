@@ -136,10 +136,11 @@ namespace qmcplusplus {
 		    ParticleSet::ParticleGradient_t& dG,
 		    ParticleSet::ParticleLaplacian_t& dL);		
 
-
     /////////////////////////
     // Vectorized versions //
     /////////////////////////
+    void freeGPUmem();
+
     void recompute (MCWalkerConfiguration &W, bool firstTime=true);
 
     void reserve (PointerPool<gpu::device_vector<CudaRealType> > &pool,

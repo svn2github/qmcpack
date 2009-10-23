@@ -553,6 +553,13 @@ namespace qmcplusplus {
   // Vectorized member fuctions //
   ///////////////////////////////
   void
+  TrialWaveFunction::freeGPUmem()
+  {
+    for (int i=Z.size()-1; i>=0; i--)
+      Z[i]->freeGPUmem();
+  }
+
+  void
   TrialWaveFunction::recompute
   (MCWalkerConfiguration &W, bool firstTime)
   {

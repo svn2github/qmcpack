@@ -306,6 +306,8 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     // Functions for vectorized evaluation and updates //
     /////////////////////////////////////////////////////
+    virtual void freeGPUmem() 
+    { }
 
     virtual void recompute(MCWalkerConfiguration &W, bool firstTime)
     { }
