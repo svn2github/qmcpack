@@ -304,22 +304,25 @@ void MCWalkerConfiguration::loadEnsemble()
 
   Walker_t::PropertyContainer_t prop(1,PropertyList.size());
   int nsamples=SampleStack.size();
-  delete_iter(WalkerList.begin(),WalkerList.end());
+  //  delete_iter(WalkerList.begin(),WalkerList.end());
+  // Do in reverse order -- maybe will help with memory fragmentation?
+  while (WalkerList.size()) pop_back();
   WalkerList.resize(nsamples);
   for(int i=0; i<nsamples; ++i)
   {
-    Walker_t* awalker=new Walker_t(GlobalNum);
+    Walker_t* awalker=new Walker_t(getTotalNum());
     // awalker->R = *(SampleStack[i]);
     // awalker->Drift = 0.0;
     awalker->R    = SampleStack[i].R;
     awalker->Grad = SampleStack[i].G;
     awalker->Lap  = SampleStack[i].L;
-    RealType *prop = awalker->getPropertyBase();
-    prop[LOGPSI]         = SampleStack[i].LogPsi;
-    prop[LOCALENERGY]    = SampleStack[i].KE + SampleStack[i].PE;
-    prop[LOCALPOTENTIAL] = SampleStack[i].PE;
+    // Make sure properties is resized properly first
+    awalker->Properties.copy(prop);
+    RealType *myprop = awalker->getPropertyBase();
+    myprop[LOGPSI]         = SampleStack[i].LogPsi;
+    myprop[LOCALENERGY]    = SampleStack[i].KE + SampleStack[i].PE;
+    myprop[LOCALPOTENTIAL] = SampleStack[i].PE;
     WalkerList[i]=awalker;
-    //    awalker->Properties.copy(prop);
     //delete SampleStack[i];
   }
   SampleStack.clear();
@@ -332,17 +335,18 @@ void MCWalkerConfiguration::loadEnsemble(MCWalkerConfiguration& other)
   int nsamples=SampleStack.size();
   for(int i=0; i<nsamples; ++i)
   {
-    Walker_t* awalker=new Walker_t(GlobalNum);
+    Walker_t* awalker=new Walker_t(getTotalNum());
     // awalker->R = *(SampleStack[i]);
     // awalker->Drift = 0.0;
     awalker->R    = SampleStack[i].R;
     awalker->Grad = SampleStack[i].G;
     awalker->Lap  = SampleStack[i].L;
+    // Make sure properties is resized properly first
     awalker->Properties.copy(prop);
-    RealType *prop = awalker->getPropertyBase();
-    prop[LOGPSI]         = SampleStack[i].LogPsi;
-    prop[LOCALENERGY]    = SampleStack[i].KE + SampleStack[i].PE;
-    prop[LOCALPOTENTIAL] = SampleStack[i].PE;
+    RealType *myprop = awalker->getPropertyBase();
+    myprop[LOGPSI]         = SampleStack[i].LogPsi;
+    myprop[LOCALENERGY]    = SampleStack[i].KE + SampleStack[i].PE;
+    myprop[LOCALPOTENTIAL] = SampleStack[i].PE;
     other.WalkerList.push_back(awalker);
     //    delete SampleStack[i];
   }
