@@ -6,6 +6,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <cmath>
 
 #ifdef QMC_CUDA
 #include <cuda_runtime_api.h>
@@ -51,29 +52,36 @@ namespace gpu
     T *data_pointer;
     size_t current_size, alloc_size;
     std::string name;
+    // True if the data was allocated by this vector.  False if we're
+    // referencing memory
+    bool own_data;
   public:
     typedef T* pointer;
 
     void set_name(std::string n) { name = n; }
 
     inline
-    device_vector() : data_pointer(NULL), current_size(0), alloc_size(0)
+    device_vector() : data_pointer(NULL), current_size(0), 
+		      alloc_size(0), own_data(true)
     { }
 
     inline
     device_vector(std::string myName) : name(myName), data_pointer(NULL), 
-				   current_size(0), alloc_size(0)
+					current_size(0), alloc_size(0), 
+					own_data(true)
     {  }
 
     inline
-    device_vector(size_t size) : data_pointer(NULL), current_size(0), alloc_size(0)
+    device_vector(size_t size) : data_pointer(NULL), current_size(0), 
+				 alloc_size(0), own_data(true)
     {
       resize (size);
     }
 
     inline 
-    device_vector(std::string myName, size_t size) : name(myName), data_pointer(NULL), 
-						current_size(0), alloc_size(0)
+    device_vector(std::string myName, size_t size) : 
+      name(myName), data_pointer(NULL), current_size(0), 
+      alloc_size(0), own_data(true)
     {
       resize(size);
     }
@@ -83,29 +91,50 @@ namespace gpu
 
     ~device_vector() 
     {
-      if (data_pointer)
+      if (alloc_size>0 && data_pointer && own_data)
 	cuda_memory_manager.deallocate (data_pointer);
     }
+
+    inline void 
+    reference (T *p, size_t size) 
+    {
+//       fprintf (stderr, "reference called for name=%s size=%ld ptr=%p\n",
+// 	       name.c_str(), size, p);
+      if (own_data && alloc_size > 0)
+	cuda_memory_manager.deallocate (data_pointer);
+      data_pointer = p;
+      current_size = size;
+      alloc_size = 0;
+      own_data = false;
+    }
+
   
     inline T& operator[](size_t i) const
     { return data_pointer[i]; }
 
+
     inline void
-    resize(size_t size)
+    resize(size_t size, double reserve_factor=1.0)
     {
       if (!size) {
 	current_size = 0; 
 	return;
       }
-      size_t byte_size = sizeof(T)*size;
+      size_t reserve_size = (size_t)std::ceil(reserve_factor*size);
+      size_t byte_size = sizeof(T)*reserve_size;
       if (alloc_size == 0) {
 	data_pointer = (T*)cuda_memory_manager.allocate(byte_size, name);
-	current_size = alloc_size = size;
+	current_size = size;
+	alloc_size = reserve_size;
+	own_data = true;
       }
       else if (size > alloc_size) {
-	cuda_memory_manager.deallocate (data_pointer);
+	if (own_data)
+	  cuda_memory_manager.deallocate (data_pointer);
 	data_pointer = (T*)cuda_memory_manager.allocate(byte_size, name);
-	current_size = alloc_size = size;
+	current_size = size;
+	alloc_size = reserve_size;
+	own_data = true;
       }
       else
 	current_size = size;
@@ -128,8 +157,17 @@ namespace gpu
     inline device_vector& 
     operator=(const device_vector<T> &vec)
     {
-      if (this->size() != vec.size())
+      if (this->size() != vec.size()) {
+	if (!own_data) {
+	  fprintf (stderr, "Assigning referenced GPU vector, but it has the "
+		   "wrong size.\n");
+	  fprintf (stderr, "Name = %s.  This size = %ld, vec size = %ld\n", 
+		   name.c_str(), size(), vec.size());
+
+	  abort();
+	}
 	resize(vec.size());
+      }
 #ifdef QMC_CUDA
       cudaMemcpy (data_pointer, &(vec[0]), this->size()*sizeof(T), 
 		  cudaMemcpyDeviceToDevice);
@@ -146,9 +184,12 @@ namespace gpu
     }
 
     device_vector(const device_vector<T> &vec) :
-      data_pointer(NULL), current_size(0), alloc_size(0)
+      data_pointer(NULL), current_size(0), alloc_size(0), own_data(true),
+      name(vec.name)
     {
       resize(vec.size());
+      // fprintf(stderr, "device_vector copy constructor called, name=%s.\n",
+      // 	      name.c_str());
 #ifdef QMC_CUDA
       if (this->size() != 0) {
 	cudaMemcpy (data_pointer, &(vec[0]), vec.size()*sizeof(T),
@@ -166,8 +207,17 @@ namespace gpu
     device_vector& 
     operator=(const std::vector<T,std::allocator<T> > &vec)
     {
-      if (this->size() != vec.size())
+      if (this->size() != vec.size()) {
+	if (!own_data) {
+	  fprintf (stderr, "Assigning referenced GPU vector, but it has the "
+		   "wrong size.\n");
+	  // fprintf (stderr, "Name = %s.  This size = %ld, vec size = %ld\n", 
+	  // 	   name.c_str(), size(), vec.size());
+	  abort();
+	}
 	resize(vec.size());
+      }
+      
 #ifdef QMC_CUDA
       cudaMemcpy (data_pointer, &(vec[0]), this->size()*sizeof(T), 
 		  cudaMemcpyHostToDevice);
@@ -184,15 +234,27 @@ namespace gpu
     device_vector& 
     operator=(const host_vector<T> &vec)
     {
-      if (this->size() != vec.size()) 
-	this->resize(vec.size());
+      if (this->size() != vec.size()) {
+	if (!own_data) {
+	  fprintf (stderr, "Assigning referenced GPU vector, but it has the "
+		   "wrong size.\n");
+	  fprintf (stderr, "Name = %s.  This size = %ld, vec size = %ld\n", 
+		   name.c_str(), size(), vec.size());
+	  abort();
+	}
+	resize(vec.size());
+      }
 #ifdef QMC_CUDA
+      // fprintf (stderr, "In operator=, name=%s, size=%ld  vec.size()=%ld\n",
+      // 	       name.c_str(), size(), vec.size());
+      // fprintf (stderr, "this pointer = %p  vec pointer=%p\n",
+      // 	       data_pointer, &(vec[0]));
       cudaMemcpy (&((*this)[0]), &(vec[0]), vec.size()*sizeof(T), 
 		  cudaMemcpyHostToDevice);
       cudaError_t err = cudaGetLastError();
       if (err != cudaSuccess) {
-	fprintf (stderr, "CUDA error in device_vector::operator=(host_vector):\n  %s\n",
-		 cudaGetErrorString(err));
+	fprintf (stderr, "CUDA error in device_vector::operator=(host_vector) for %s:\n  %s\n",
+		 name.c_str(), cudaGetErrorString(err));
 	abort();
       }
 #endif
@@ -278,14 +340,16 @@ namespace gpu
 
   template<typename T>
   device_vector<T>::device_vector(const host_vector<T> &vec) :
-    data_pointer(NULL), current_size(0), alloc_size(0)
+    data_pointer(NULL), current_size(0), alloc_size(0), own_data(true)
   {
+    resize(vec.size());
 #ifdef QMC_CUDA
     cudaMemcpy (&((*this)[0]), &(vec[0]), this->size()*sizeof(T), 
 		cudaMemcpyDeviceToHost);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-      fprintf (stderr, "CUDA error in host_vector::operator=():\n  %s\n",
+      fprintf (stderr, "CUDA error in host_vector::operator=() for %s:\n  %s\n",
+	       name.c_str(),
 	       cudaGetErrorString(err));
       abort();
     }

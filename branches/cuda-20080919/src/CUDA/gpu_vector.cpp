@@ -49,7 +49,8 @@ namespace gpu
     }
     std::string name = piter->second.first;
     size_t bytes = piter->second.second;
-    //    fprintf (stderr, "Deallocating %s from GPU memory.\n", name.c_str());
+    // fprintf (stderr, "Deallocating %s from GPU memory of size %ld at pointer %p.\n", 
+    //  	     name.c_str(), bytes, p);
     gpu_pointer_map.erase(piter);
 
     cudaFree (p);
