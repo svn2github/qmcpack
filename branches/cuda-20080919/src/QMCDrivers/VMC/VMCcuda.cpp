@@ -249,6 +249,7 @@ namespace qmcplusplus {
 
     // Compute the size of data needed for each walker on the GPU card
     PointerPool<Walker_t::cuda_Buffer_t > pool;
+    
     Psi.reserve (pool);
     app_log() << "Each walker requires " << pool.getTotalSize() * sizeof(CudaRealType)
 	      << " bytes in GPU memory.\n";
@@ -256,7 +257,8 @@ namespace qmcplusplus {
     // Now allocate memory on the GPU card for each walker
     for (int iw=0; iw<W.WalkerList.size(); iw++) {
       Walker_t &walker = *(W.WalkerList[iw]);
-      pool.allocate(walker.cuda_DataSet);
+      walker.resizeCuda(pool.getTotalSize());
+      // pool.allocate(walker.cuda_DataSet);
     }
     app_log() << "Successfully allocated walkers.\n";
     W.copyWalkersToGPU();
@@ -276,7 +278,7 @@ namespace qmcplusplus {
       app_log() << "  Dumping walker ensemble every " << myPeriod4WalkerDump
 		<< " steps.\n";
     }
-    
+    W.clearEnsemble();
   }
 
   bool 
