@@ -194,10 +194,11 @@ namespace qmcplusplus {
       NL_rMaxHost.resize(njobs);
     }
     if (NL_RatiosHost.size() < quadPoints.size()) {
-      NL_QuadPointsHost.resize(OHMMS_DIM*quadPoints.size());
-      NL_QuadPointsGPU.resize(OHMMS_DIM*quadPoints.size());
-      NL_RatiosHost.resize(quadPoints.size());
-      NL_RatiosGPU.resize(quadPoints.size());
+      int nalloc = quadPoints.size();
+      NL_QuadPointsHost.resize(OHMMS_DIM*nalloc);
+      NL_QuadPointsGPU.resize(OHMMS_DIM*nalloc, 1.25);
+      NL_RatiosHost.resize(nalloc);
+      NL_RatiosGPU.resize(nalloc, 1.25);
     }
     int iratio = 0;
     for (int ijob=0; ijob < njobs; ijob++) {
@@ -247,7 +248,7 @@ namespace qmcplusplus {
 
     if (OneGradHost.size() < OHMMS_DIM*walkers.size()) {
       OneGradHost.resize (walkers.size()*OHMMS_DIM);
-      OneGradGPU.resize (walkers.size()*OHMMS_DIM);
+      OneGradGPU.resize (walkers.size()*OHMMS_DIM, 1.25);
     }
 
     bool zero = true;
@@ -281,7 +282,7 @@ namespace qmcplusplus {
 
     int numGL = 4*N*walkers.size();
     if (GradLaplGPU.size()  < numGL) {
-      GradLaplGPU.resize(numGL);
+      GradLaplGPU.resize(numGL, 1.25);
       GradLaplHost.resize(numGL);
     }
     
@@ -375,7 +376,7 @@ namespace qmcplusplus {
       SplineDerivsHost.resize(2*MaxCoefs*nw);
       SplineDerivsGPU.resize(2*MaxCoefs*nw);
       DerivListHost.resize(nw);
-      DerivListGPU.resize(nw);
+      DerivListGPU.resize(nw, 1.25);
       for (int iw=0; iw<nw; iw++)
 	DerivListHost[iw] = SplineDerivsGPU.data() + 2*iw*MaxCoefs;
       DerivListGPU = DerivListHost;

@@ -3,6 +3,24 @@
 #include "Lattice/ParticleBConds.h"
 
 namespace qmcplusplus {
+  void
+  TwoBodyJastrowOrbitalBspline::freeGPUmem()
+  {
+    UpdateListGPU.clear();
+    SumGPU.clear();
+    GradLaplGPU.clear();
+    OneGradGPU.clear();
+    SplineDerivsGPU.clear();
+    DerivListGPU.clear();
+    NL_SplineCoefsListGPU.clear();
+    NL_JobListGPU.clear();
+    NL_NumCoefsGPU.clear();
+    NL_NumQuadPointsGPU.clear();
+    NL_rMaxGPU.clear();
+    NL_QuadPointsGPU.clear();
+    NL_RatiosGPU.clear();
+  }
+
 
   void
   TwoBodyJastrowOrbitalBspline::recompute(MCWalkerConfiguration &W, 
@@ -65,7 +83,6 @@ namespace qmcplusplus {
       GradLaplGPU.resize(numGL);
       GradLaplHost.resize(numGL);
     }
-    CudaReal RHost[OHMMS_DIM*N*walkers.size()];
     for (int iw=0; iw<walkers.size(); iw++) {
       Walker_t &walker = *(walkers[iw]);
       SumHost[iw] = 0.0;
@@ -202,16 +219,17 @@ namespace qmcplusplus {
     vector<Walker_t*> &walkers = W.WalkerList;
     int njobs = jobList.size();
     if (NL_JobListHost.size() < njobs) {
-      NL_JobListHost.resize(njobs);      
+      NL_JobListHost.resize        (njobs);      
       NL_SplineCoefsListHost.resize(njobs);
-      NL_NumCoefsHost.resize(njobs);
-      NL_rMaxHost.resize(njobs);
+      NL_NumCoefsHost.resize       (njobs);
+      NL_rMaxHost.resize           (njobs);
     }
     if (NL_RatiosHost.size() < quadPoints.size()) {
-      NL_QuadPointsHost.resize(OHMMS_DIM*quadPoints.size());
-      NL_QuadPointsGPU.resize(OHMMS_DIM*quadPoints.size());
-      NL_RatiosHost.resize(quadPoints.size());
-      NL_RatiosGPU.resize(quadPoints.size());
+      int nq = quadPoints.size();
+      NL_QuadPointsHost.resize(OHMMS_DIM*nq);
+      NL_QuadPointsGPU.resize (OHMMS_DIM*nq, 1.25);
+      NL_RatiosHost.resize    (nq);
+      NL_RatiosGPU.resize     (nq, 1.25);
     }
     int iratio = 0;
     for (int ijob=0; ijob < njobs; ijob++) {
