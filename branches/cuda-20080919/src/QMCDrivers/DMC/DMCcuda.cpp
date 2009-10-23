@@ -116,14 +116,13 @@ namespace qmcplusplus {
 	  }
 	}
 
-
 	for (int iw=0; iw<nw; iw++)
 	  W[iw]->Age++;
 	
 	DriftDiffuseTimer.start();
         for(int iat=0; iat<nat; iat++) {
 	  Psi.getGradient (W, iat, oldG);
-	  
+
           //create a 3N-Dimensional Gaussian with variance=1
           makeGaussRandomWithEngine(delpos,Random);
           for(int iw=0; iw<nw; iw++) {
@@ -490,12 +489,17 @@ namespace qmcplusplus {
     m_sqrttau = std::sqrt(Tau/mass);
     m_tauovermass = Tau/mass;
 
+    if (!myComm->rank())
+      gpu::cuda_memory_manager.report();
+
     // Compute the size of data needed for each walker on the GPU card
     PointerPool<Walker_t::cuda_Buffer_t > pool;
     Psi.reserve (pool);
     app_log() << "Each walker requires " 
 	      << pool.getTotalSize() * sizeof(CudaRealType)
 	      << " bytes in GPU memory.\n";
+    app_log() << "Preparing to allocate " << W.WalkerList.size() 
+	      << " walkers.\n";
 
     // Now allocate memory on the GPU card for each walker
     int cudaSize = pool.getTotalSize();
@@ -504,11 +508,12 @@ namespace qmcplusplus {
       walker.resizeCuda(cudaSize);
       //pool.allocate(walker.cuda_DataSet);
     }
+    app_log() << "Successfully allocated walkers.\n";
     W.copyWalkersToGPU();
     W.updateLists_GPU();
     vector<RealType> logPsi(W.WalkerList.size(), 0.0);
-    Psi.evaluateLog(W, logPsi);
-    Psi.recompute(W);
+    //Psi.evaluateLog(W, logPsi);
+    Psi.recompute(W, true);
     Estimators->start(nBlocks, true);
   }
 
