@@ -318,7 +318,7 @@ namespace qmcplusplus {
   void 
   QMCCostFunctionCUDA::GradCost(vector<Return_t>& PGradient, vector<Return_t> PM, Return_t FiniteDiff)
   {
-    if (FiniteDiff != 0) {
+    if (std::fabs(FiniteDiff) > 1.0e-10) {
       QMCTraits::RealType dh=1.0/(2.0*FiniteDiff);
       for (int i=0; i<NumOptimizables ; i++) {
 	for (int j=0; j<NumOptimizables; j++) OptVariables[j]=PM[j];
