@@ -21,7 +21,7 @@ namespace qmcplusplus {
   {
     OneBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> >::checkInVariables(active);
     for (int i=0; i<NumCenterGroups; i++)
-      GPUSplines[i]->set(*Fs[i]);
+      GPUSplines[i]->set(*Funique[i]);
   }
   
   void 
@@ -31,11 +31,11 @@ namespace qmcplusplus {
     CudaSpline<CudaReal> *newSpline = new CudaSpline<CudaReal>(*j);
     UniqueSplines.push_back(newSpline);
 
-    if(i==0) { //first time, assign everything
-      for(int ig=0; ig<NumCenterGroups; ++ig) 
-	if(GPUSplines[ig]==0) GPUSplines[ig]=newSpline;
-    }
-    else 
+//     if(i==0) { //first time, assign everything
+//       for(int ig=0; ig<NumCenterGroups; ++ig) 
+// 	if(GPUSplines[ig]==0) GPUSplines[ig]=newSpline;
+//     }
+//     else 
       GPUSplines[i]=newSpline;
   }
   
@@ -354,7 +354,7 @@ namespace qmcplusplus {
   {
     OneBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> >::resetParameters(active);
     for (int i=0; i<NumCenterGroups; i++)
-      GPUSplines[i]->set(*Fs[i]);
+      GPUSplines[i]->set(*Funique[i]);
   }  
 
   void
@@ -389,34 +389,39 @@ namespace qmcplusplus {
       int cfirst = CenterFirst[cgroup];
       int clast  = CenterLast[cgroup];
       CudaSpline<CudaReal> &spline = *(GPUSplines[cgroup]);
-
+//       cerr << "cgroup = " << cgroup << endl;
+//       cerr << "cfirst = " << cfirst << "  clast = " << clast << endl;
+//       cerr << "spline.coefs.size() = " << spline.coefs.size() << endl;
+//       cerr << "spline.rMax = " << spline.rMax << endl;
       one_body_derivs (C.data(), W.RList_GPU.data(), W.GradList_GPU.data(),
 		       cfirst, clast, efirst, elast, 
 		       spline.coefs.size(), spline.rMax, L.data(), 
 		       Linv.data(), sim_cell_radius, DerivListGPU.data(),nw);
       // Copy data back to CPU memory
       SplineDerivsHost = SplineDerivsGPU;
-	opt_variables_type splineVars = Fs[cgroup]->myVars;
-	for (int iv=0; iv<splineVars.size(); iv++) {
-	  // 	  cerr << "groups = (" << group1 << "," << group2 
-	  // 	       << ") Index=" << splineVars.Index[iv] << endl;
-	  int varIndex = splineVars.Index[iv];
-	  int coefIndex = iv+1;
-	  for (int iw=0; iw<nw; iw++) {
-	    d_logpsi(iw,varIndex) += 
-	      SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+0];
-	    dlapl_over_psi(iw,varIndex) +=
-	      SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+1];
-	  }
-	}
-	int varIndex = splineVars.Index[1];
-	int coefIndex = 0;
+//       cerr << "SplineDerivsHost = " << endl;
+//       for (int i=0; i<SplineDerivsHost.size(); i++)
+// 	cerr << SplineDerivsHost[i] << endl;
+      opt_variables_type splineVars = Funique[cgroup]->myVars;
+      for (int iv=0; iv<splineVars.size(); iv++) {
+	int varIndex = splineVars.Index[iv];
+	int coefIndex = iv+1;
 	for (int iw=0; iw<nw; iw++) {
 	  d_logpsi(iw,varIndex) += 
 	    SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+0];
 	  dlapl_over_psi(iw,varIndex) +=
 	    SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+1];
+	  //	  cerr << "dlapl_over_psi(iw,"<<varIndex<<") = " << d_logpsi(iw,varIndex) << endl;
 	}
+      }
+      int varIndex = splineVars.Index[1];
+      int coefIndex = 0;
+      for (int iw=0; iw<nw; iw++) {
+	d_logpsi(iw,varIndex) += 
+	  SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+0];
+	dlapl_over_psi(iw,varIndex) +=
+	  SplineDerivsHost[2*(MaxCoefs*iw+coefIndex)+1];
+      }
     }
   }
 }
