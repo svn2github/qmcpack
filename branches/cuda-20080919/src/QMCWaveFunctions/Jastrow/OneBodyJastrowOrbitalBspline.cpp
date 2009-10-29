@@ -31,12 +31,12 @@ namespace qmcplusplus {
     CudaSpline<CudaReal> *newSpline = new CudaSpline<CudaReal>(*j);
     UniqueSplines.push_back(newSpline);
 
-//     if(i==0) { //first time, assign everything
-//       for(int ig=0; ig<NumCenterGroups; ++ig) 
-// 	if(GPUSplines[ig]==0) GPUSplines[ig]=newSpline;
-//     }
-//     else 
-      GPUSplines[i]=newSpline;
+    // if(i==0) { //first time, assign everything
+    //   for(int ig=0; ig<NumCenterGroups; ++ig) 
+    // 	if(GPUSplines[ig]==0) GPUSplines[ig]=newSpline;
+    // }
+    // else 
+    GPUSplines[i]=newSpline;
   }
   
 

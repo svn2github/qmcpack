@@ -546,7 +546,7 @@ namespace qmcplusplus {
       RealType vol = PtclRef->Lattice.Volume;
       RealType aparam = 0.0;
       int nsp = PtclRef->groups();
-      FILE *fout=(Write_Chiesa_Correction)?fopen ("uk.dat", "w"):0;
+      //FILE *fout=(Write_Chiesa_Correction)?fopen ("uk.dat", "w"):0;
       for (int iG=0; iG<PtclRef->SK->KLists.ksq.size(); iG++) 
       {
         RealType Gmag = std::sqrt(PtclRef->SK->KLists.ksq[iG]);
@@ -588,9 +588,9 @@ namespace qmcplusplus {
 	    a = uk / (4.0*M_PI*(1.0/(Gmag*Gmag) - 1.0/(Gmag*Gmag + 1.0/a)));
 	  KEcorr = 4.0*M_PI*a/(4.0*vol) * PtclRef->getTotalNum();
 	}
-	if(fout) fprintf (fout, "%1.8f %1.12e %1.12e\n", Gmag, uk, sum);
+	//	if(fout) fprintf (fout, "%1.8f %1.12e %1.12e\n", Gmag, uk, sum);
       }
-      if(fout) fclose(fout);
+      //      if(fout) fclose(fout);
       return KEcorr;
     }
 

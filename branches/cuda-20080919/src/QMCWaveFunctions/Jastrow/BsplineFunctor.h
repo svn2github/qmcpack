@@ -243,6 +243,7 @@ namespace qmcplusplus {
       OhmmsAttributeSet rAttrib;
       rAttrib.add(NumParams,   "size");
       rAttrib.add(Rcut,        "rcut");
+      rAttrib.add(Rcut,        "cutoff");
       rAttrib.put(cur);
 
       if (NumParams == 0) 

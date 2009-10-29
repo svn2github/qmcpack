@@ -548,6 +548,15 @@ namespace qmcplusplus {
     for(int i=0;i<dhpsioverpsi.size();i++) dhpsioverpsi[i]*=OneOverM;
   }
 
+  TrialWaveFunction::RealType
+  TrialWaveFunction::KECorrection() const
+  {
+    RealType sum = 0.0;
+    for (int i=0; i<Z.size(); ++i)
+      sum += Z[i]->KECorrection();
+    return sum;
+  }
+
 
   ////////////////////////////////
   // Vectorized member fuctions //

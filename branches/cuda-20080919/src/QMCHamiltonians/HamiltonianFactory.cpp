@@ -23,6 +23,7 @@
 #include "QMCHamiltonians/CoulombPotential.h"
 #include "QMCHamiltonians/IonIonPotential.h"
 #include "QMCHamiltonians/NumericalRadialPotential.h"
+#include "QMCHamiltonians/ChiesaCorrection.h"
 #if OHMMS_DIM == 3
 #include "QMCHamiltonians/LocalCorePolPotential.h"
 #include "QMCHamiltonians/ECPotentialBuilder.h"
@@ -213,6 +214,29 @@ namespace qmcplusplus {
             targetH->addOperator(BP,BP->MyName,false);
           }
         }
+	else if(potType == "chiesa") {
+	  string PsiName="psi0";
+	  string SourceName = "e";
+	  OhmmsAttributeSet hAttrib;
+	  hAttrib.add(PsiName,"psi"); 
+	  hAttrib.add(SourceName, "source");
+	  hAttrib.put(cur);
+
+	  PtclPoolType::iterator pit(ptclPool.find(SourceName));
+	  if(pit == ptclPool.end())  {
+	    APP_ABORT("Unknown source \""+SourceName+"\" for Chiesa correction.");
+	  }
+	  ParticleSet &source = *pit->second;
+
+	  OrbitalPoolType::iterator psi_it(psiPool.find(PsiName));
+	  if(psi_it == psiPool.end()) {
+	    APP_ABORT("Unknown psi \""+PsiName+"\" for Chiesa correction.");
+	  }
+
+	  const TrialWaveFunction &psi = *psi_it->second->targetPsi;
+	  ChiesaCorrection *chiesa = new ChiesaCorrection (source, psi);
+	  targetH->addOperator(chiesa,"KEcorr",false);
+	}
       }
       //else if(cname == "harmonic") 
       //{

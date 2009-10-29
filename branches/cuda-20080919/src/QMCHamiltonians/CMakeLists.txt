@@ -7,6 +7,7 @@ SET(HAMSRCS
   NonLocalTOperator.cpp
   NumericalRadialPotential.cpp
   RPAPressure.cpp
+  ChiesaCorrection.cpp
 )
 #  FSAtomPseudoPot.cpp
 

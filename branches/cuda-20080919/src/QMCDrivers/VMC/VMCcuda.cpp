@@ -25,7 +25,8 @@ namespace qmcplusplus {
   /// Constructor.
   VMCcuda::VMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi, 
 		   QMCHamiltonian& h):
-    QMCDriver(w,psi,h), myWarmupSteps(0), UseDrift("yes"),    nSubSteps(1)
+    QMCDriver(w,psi,h), myWarmupSteps(0), UseDrift("yes"),    nSubSteps(1),
+    myPeriod4WalkerDump(0)
   { 
     RootName = "vmc";
     QMCType ="VMCcuda";
