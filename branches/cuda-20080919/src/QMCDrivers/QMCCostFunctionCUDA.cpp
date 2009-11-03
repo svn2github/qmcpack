@@ -300,18 +300,26 @@ namespace qmcplusplus {
 
   void QMCCostFunctionCUDA::resetPsi(bool final_reset)
   {
+    cerr << "QMCCostFunctCUDA::resetPsi(" << final_reset << ") called.\n";
     if(OptVariables.size() < OptVariablesForPsi.size())
     {
       for(int i=0; i<equalVarMap.size(); ++i)
         OptVariablesForPsi[equalVarMap[i][0]]=OptVariables[equalVarMap[i][1]];
     }
     else
-      for(int i=0; i<OptVariables.size(); ++i) OptVariablesForPsi[i]=OptVariables[i];
-
+      for(int i=0; i<OptVariables.size(); ++i) 
+	OptVariablesForPsi[i]=OptVariables[i];
+    
     //cout << "######### QMCCostFunctionCUDA::resetPsi " << endl;
     //OptVariablesForPsi.print(cout);
     //cout << "-------------------------------------- " << endl;
     Psi.resetParameters(OptVariablesForPsi);
+
+    if (final_reset) {
+      Psi.stopOptimization();
+      for (int i=0; i<psiClones.size(); ++i)
+        psiClones[i]->stopOptimization();
+    }
   }
   
 

@@ -304,10 +304,6 @@ namespace qmcplusplus
     else
       for (int i=0; i<OptVariables.size(); ++i) OptVariablesForPsi[i]=OptVariables[i];
 
-    if (final_reset)
-      for (int i=0; i<psiClones.size(); ++i)
-	psiClones[i]->stopOptimization();
-
     //cout << "######### QMCCostFunctionOMP::resetPsi " << endl;
     //OptVariablesForPsi.print(cout);
     //cout << "-------------------------------------- " << endl;
@@ -315,6 +311,12 @@ namespace qmcplusplus
 
     for (int i=0; i<psiClones.size(); ++i)
       psiClones[i]->resetParameters(OptVariablesForPsi);
+
+    if (final_reset) {
+      Psi.stopOptimization();
+      for (int i=0; i<psiClones.size(); ++i)
+	psiClones[i]->stopOptimization();
+    }
   }
 
   QMCCostFunctionOMP::Return_t QMCCostFunctionOMP::correlatedSampling(bool needDerivs)

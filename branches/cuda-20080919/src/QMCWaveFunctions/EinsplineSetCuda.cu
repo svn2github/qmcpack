@@ -86,7 +86,73 @@ void phase_factor_kernel (T *kPoints, int *makeTwoCopies,
       phi_out_ptr[i][outBlock*BS+tid] = out_shared[i][tid];
 }
 
-
+template<typename T, int BS> __global__
+void phase_factor_kernel_new (T *kPoints, int *makeTwoCopies, 
+			      T *pos, T **phi_in, T **phi_out, 
+			      int num_splines)
+{
+  __shared__ T in_shared[2*BS], out_shared[2*BS], kPoints_s[BS][3],
+    pos_s[3];
+  __shared__ int m2c[BS];
+  __shared__ T *phi_in_ptr, *phi_out_ptr;
+  int tid = threadIdx.x;
+  
+  if (tid < 3)
+    pos_s[tid] = pos[3*blockIdx.x+tid];
+  if (tid == 0) {
+    phi_in_ptr = phi_in[blockIdx.x];
+    phi_out_ptr = phi_out[blockIdx.x];
+  }
+  
+  int NB = (num_splines+BS-1)/BS;
+  int outIndex=0, outBlock=0;
+  for (int ib=0; ib<NB; ib++) {
+    for (int i=0; i<3; i++)
+      kPoints_s[0][i*BS+tid] = kPoints[(3*ib+i)*BS+tid];
+    
+    T phase = -(kPoints_s[tid][0]*pos_s[0] + 
+		kPoints_s[tid][1]*pos_s[1] + 
+		kPoints_s[tid][2]*pos_s[2]);
+    T s, c;
+    sincosf (phase, &s, &c);
+    int off = 2*ib*BS + tid;
+    in_shared[tid]    = phi_in_ptr[off];
+    in_shared[tid+BS] = phi_in_ptr[off+BS];
+    
+    T phi_real = in_shared[2*tid]*c - in_shared[2*tid+1]*s;
+    T phi_imag = in_shared[2*tid]*s + in_shared[2*tid+1]*c;
+    m2c[tid] = makeTwoCopies[ib*BS + tid];
+    
+    int iend = min (BS, num_splines - ib*BS);
+    for (int i=0; i<iend; i++) {
+      if (tid == i)
+	out_shared[outIndex] = phi_real;
+      outIndex++;
+      __syncthreads();
+      if (outIndex == BS) {
+	phi_out_ptr[outBlock*BS+tid] = out_shared[tid];
+	outIndex = 0;
+	outBlock++;
+      }
+      __syncthreads();
+      if (m2c[i]) {
+	if (tid == i)
+	  out_shared[outIndex] = phi_imag;
+	outIndex++;
+      }
+      __syncthreads();
+      if (outIndex == BS) {
+	phi_out_ptr[outBlock*BS+tid] = out_shared[tid];
+	outIndex = 0;
+	outBlock++;
+      }
+      __syncthreads();      
+    }
+  }
+  
+  if (tid < outIndex)
+    phi_out_ptr[outBlock*BS+tid] = out_shared[tid];
+}
 
 
 
@@ -331,10 +397,14 @@ void apply_phase_factors(float kPoints[], int makeTwoCopies[],
 
   const int BS = 32;
   dim3 dimBlock(BS);
-  dim3 dimGrid ((num_walkers+BS-1)/BS);
 
+  dim3 dimGrid ((num_walkers+BS-1)/BS);
   phase_factor_kernel<float,BS><<<dimGrid,dimBlock>>>
     (kPoints, makeTwoCopies, pos, phi_in, phi_out, num_splines, num_walkers);
+
+  // dim3 dimGrid (num_walkers);
+  // phase_factor_kernel_new<float,BS><<<dimGrid,dimBlock>>>
+  //   (kPoints, makeTwoCopies, pos, phi_in, phi_out, num_splines);
 }
 
 

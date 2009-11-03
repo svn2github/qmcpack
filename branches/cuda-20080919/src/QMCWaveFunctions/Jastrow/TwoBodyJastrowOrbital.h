@@ -63,6 +63,7 @@ namespace qmcplusplus {
     vector<FT*> F;
 
     TwoBodyJastrowOrbital(ParticleSet& p) {
+      PtclRef = &p;
       d_table=DistanceTable::add(p);
       init(p);
     }
@@ -112,6 +113,17 @@ namespace qmcplusplus {
       J2Unique[aname]=j;
       ChiesaKEcorrection();
       FirstTime = false;
+    }
+
+    void
+    finalizeOptimization()
+    {
+      ChiesaKEcorrection();
+    }
+
+    RealType KECorrection()
+    {
+      return KEcorr;
     }
 
     //evaluate the distance table with els
@@ -538,10 +550,11 @@ namespace qmcplusplus {
 
     RealType ChiesaKEcorrection()
     {
-      return 0.0;
-
-      if (!PtclRef->Lattice.SuperCellEnum)
+      cerr << "ChiesaKEcorrection called.\n";
+      if (!PtclRef->Lattice.SuperCellEnum) {
+	cerr << "Not in PBC, not Chiesa correction need.\n";
 	return 0.0;
+      }
       const int numPoints = 1000;
       RealType vol = PtclRef->Lattice.Volume;
       RealType aparam = 0.0;
@@ -573,7 +586,6 @@ namespace qmcplusplus {
 		  4.0*M_PI*r*std::sin(k*r)/k*u*dr;
 		uk += 0.5*4.0*M_PI*r*std::sin(k*r)/k * u * dr *
 		  (RealType)Nj / (RealType)(Ni+Nj);
-		
 		//aparam += 0.25* 4.0*M_PI*r*r*u*dr;
 	      }
 	    }

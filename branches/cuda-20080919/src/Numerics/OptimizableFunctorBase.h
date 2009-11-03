@@ -52,7 +52,7 @@ struct OptimizableFunctorBase
   ///set of variables to be optimized
   opt_variables_type myVars;
   ///default constructor
-  inline OptimizableFunctorBase(){}
+  inline OptimizableFunctorBase() : cutoff_radius(0.0) {}
   ///virtual destrutor
   virtual ~OptimizableFunctorBase(){}
 

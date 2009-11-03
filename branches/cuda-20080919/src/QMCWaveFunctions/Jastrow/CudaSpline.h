@@ -21,7 +21,7 @@ namespace qmcplusplus {
 	//app_log() << "coefs_h[" << i << "] = " << coefs_h[i] << endl;
       }
       coefs = coefs_h;
-      rMax = func.Rcut;
+      rMax = func.cutoff_radius;
     }
 
     template<typename T2>
