@@ -26,6 +26,15 @@
 
 namespace optimize
 {
+  /** An enum useful for determing the type of parameter is being optimized.
+  *   knowing this in the opt routine can reduce the computational load.
+  */
+  enum{ 
+    OTHER_P=0,
+    LOGLINEAR_P, //B-spline Jastrows
+    LINEAR_P     //Multi-determinant coefficients
+  };
+  
   /** class to handle a set of variables that can be modified during optimizations
    *
    * A serialized container of named variables.
@@ -34,6 +43,7 @@ namespace optimize
     {
       typedef APP_PRECISION                           real_type;
       typedef std::pair<std::string,real_type>        pair_type;
+      typedef std::pair<std::string,int>             indx_pair_type;
       typedef std::vector<pair_type>::iterator       iterator;
       typedef std::vector<pair_type>::const_iterator const_iterator;
       typedef std::vector<pair_type>::size_type      size_type;
@@ -47,11 +57,13 @@ namespace optimize
        */
       std::vector<int>        Index;
       std::vector<pair_type>  NameAndValue;
+      std::vector<indx_pair_type>        ParameterType;
+      std::vector<indx_pair_type>        Recompute;
 
       ///default constructor
       inline VariableSet():num_active_vars(0){}
       ///constructor using map
-      VariableSet(variable_map_type& input);
+//       VariableSet(variable_map_type& input);
       ///viturval destructor for safety
       virtual ~VariableSet(){}
       /** if any of Index value is not zero, return true
@@ -105,7 +117,7 @@ namespace optimize
         return -1;
       }
 
-      inline void insert(const std::string& vname, real_type v, bool enable=true)
+      inline void insert(const std::string& vname, real_type v, bool enable=true, int type=OTHER_P)
       {
         iterator loc=find(vname);
         int ind_loc=loc-NameAndValue.begin();
@@ -113,6 +125,8 @@ namespace optimize
         {
           Index.push_back(ind_loc);
           NameAndValue.push_back(pair_type(vname,v));
+          ParameterType.push_back(indx_pair_type(vname,type));
+          Recompute.push_back(indx_pair_type(vname,1));
         }
         //disable it if enable == false
         if(!enable) Index[ind_loc]=-1;
@@ -127,6 +141,8 @@ namespace optimize
         {
           Index.push_back(-1);
           NameAndValue.push_back(pair_type(vname,0));
+          ParameterType.push_back(indx_pair_type(vname,0));
+          Recompute.push_back(indx_pair_type(vname,1));
           return NameAndValue.back().second;
         }
         return (*loc).second;
@@ -156,6 +172,29 @@ namespace optimize
       {
         return NameAndValue[i].second;
       }
+      
+       /** get the i-th parameter's type
+       * @param i index
+       */      
+      inline int getType(int i)
+      {
+        return ParameterType[i].second;
+      }
+      
+      inline bool recompute(int i) const
+      {
+        return (Recompute[i].second==1);
+      }
+      
+      inline int& recompute(int i)
+      {
+        return Recompute[i].second;
+      }
+      
+      inline void setComputed()
+      {
+        for(int i=0;i<Recompute.size();i++) if (ParameterType[i].second==1) Recompute[i].second=0;
+      }
 
       /** clear the variable set
        *
@@ -165,7 +204,7 @@ namespace optimize
 
       /** insert local variables to output
        */
-      void insertTo(variable_map_type& output) const;
+//       void insertTo(variable_map_type& output) const;
 
       /** insert a VariableSet to the list
        * @param input varaibles

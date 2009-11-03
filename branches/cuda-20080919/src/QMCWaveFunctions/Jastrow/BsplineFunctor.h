@@ -310,7 +310,7 @@ namespace qmcplusplus {
           for (int i=0; i< NumParams; i++) {
             std::stringstream sstr;
             sstr << id << "_" << i;
-            myVars.insert(sstr.str(),Parameters[i],true);
+            myVars.insert(sstr.str(),Parameters[i],true,optimize::LOGLINEAR_P);
           }
 
           app_log() << "Parameter     Name      Value\n";

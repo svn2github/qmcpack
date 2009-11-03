@@ -22,34 +22,42 @@
 
 namespace optimize
 {
-  VariableSet::VariableSet(variable_map_type& input):num_active_vars(0)
-  {
-    Index.resize(input.size(),-1);
-    NameAndValue.resize(input.size());
-    std::copy(input.begin(),input.end(),NameAndValue.begin());
-    for(int i=0; i<Index.size(); ++i) Index[i]=i;
-  }
+//   VariableSet::VariableSet(variable_map_type& input):num_active_vars(0)
+//   {
+//     Index.resize(input.size(),-1);
+//     NameAndValue.resize(input.size());
+//     std::copy(input.begin(),input.end(),NameAndValue.begin());
+//     for(int i=0; i<Index.size(); ++i) Index[i]=i;
+//     
+//     ParameterType.resize(0); Recompute.resize(0);
+//     for(int i=0; i<Index.size(); ++i) ParameterType.push_back(indx_pair_type(NameAndValue[i].first,0));
+//     for(int i=0; i<Index.size(); ++i) Recompute.push_back(indx_pair_type(NameAndValue[i].first,1));
+//   }
 
   void VariableSet::clear()
   {
     num_active_vars=0;
     Index.clear();
     NameAndValue.clear();
+    Recompute.clear();
+    ParameterType.clear();
   }
 
   /** insert name-value pairs  of this object to output
    * @param output parameters to be added
    */
-  void VariableSet::insertTo(variable_map_type& output) const
-  {
-    for(int i=0; i<Index.size(); ++i)
-    {
-      if(Index[i]>-1)
-      {
-        output[NameAndValue[i].first]=NameAndValue[i].second;
-      }
-    }
-  }
+//   void VariableSet::insertTo(variable_map_type& output) const
+//   {
+//     for(int i=0; i<Index.size(); ++i)
+//     {
+//       if(Index[i]>-1)
+//       {
+//         output[NameAndValue[i].first]=NameAndValue[i].second;
+//         output[Recompute[i].first]=Recompute[i].second;
+//         output[ParameterType[i].first]=ParameterType[i].second;
+//       }
+//     }
+//   }
 
   void VariableSet::insertFrom(const VariableSet& input)
   {
@@ -60,6 +68,8 @@ namespace optimize
       {
         Index.push_back(input.Index[i]);
         NameAndValue.push_back(input.NameAndValue[i]);
+        ParameterType.push_back(input.ParameterType[i]);
+        Recompute.push_back(input.Recompute[i]);
       }
     }
   }
@@ -94,16 +104,21 @@ namespace optimize
   void VariableSet::removeInactive()
   {
     std::vector<int> valid(Index);
-    std::vector<pair_type> acopy(NameAndValue);
+    std::vector<pair_type> acopy(NameAndValue); 
+    std::vector<indx_pair_type> bcopy(Recompute), ccopy(ParameterType);
     num_active_vars=0;
     Index.clear();
     NameAndValue.clear();
+    Recompute.clear();
+    ParameterType.clear();
     for(int i=0; i<valid.size(); ++i)
     {
       if(valid[i]>-1)
       {
         Index.push_back(num_active_vars++);
         NameAndValue.push_back(acopy[i]);
+        Recompute.push_back(bcopy[i]);
+        ParameterType.push_back(ccopy[i]);
       }
     }
   }
@@ -135,7 +150,7 @@ namespace optimize
   {
     for(int i=0; i<NameAndValue.size(); ++i)
     {
-      os <<NameAndValue[i].first << " " << NameAndValue[i].second << " ";
+      os <<NameAndValue[i].first << " " << NameAndValue[i].second << " " << ParameterType[i].second << " " << Recompute[i].second << " " ;
       if(Index[i]<0) 
         os << " OFF" << std::endl;
       else 

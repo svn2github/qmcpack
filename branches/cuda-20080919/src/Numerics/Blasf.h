@@ -54,6 +54,9 @@ using namespace std;
 #define zgetrf zgetrf_
 #define zgetri zgetri_
 #define dgesvd dgesvd_
+#define dggev dggev_
+#define dger dger_
+#define zgeru zgeru_
 #endif 
 
 // declaring Fortran interfaces
@@ -169,6 +172,17 @@ extern "C" {
 	      double *A, int *LDA, double *S, double *U,
 	      int *LDU, double *VT, int *LDVT, double *work,
 	      int *LWORK, int *INFO);
+  
+  void dggev(char *JOBVL,char *JOBVR,int *N,double *A,int *LDA,double *B,int *LDB,double *ALPHAR,double *ALPHAI,
+              double *BETA, double *VL,int *LDVL,double *VR,int *LDVR, double *WORK,int *LWORK, int *INFO );
+
+  void dger(const int* m, const int* n, const double* alpha
+      , const double* x, const int* incx, const double* y, const int* incy
+      , double* a, const int* lda);
+
+  void zgeru(const int* m, const int* n, const complex<double>* alpha
+      , const complex<double>* x, const int* incx, const complex<double>* y, const int* incy
+      , complex<double>* a, const int* lda);
 }
 #endif
 

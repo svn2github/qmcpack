@@ -25,6 +25,7 @@
 #include "QMCDrivers/VMC/VMCFactory.h"
 #include "QMCDrivers/DMC/DMCFactory.h"
 #include "QMCDrivers/QMCOptimize.h"
+#include "QMCDrivers/QMCLinearOptimize.h"
 #include "QMCDrivers/RQMCMultiple.h"
 #include "QMCDrivers/RQMCMultiplePbyP.h"
 #if !defined(QMC_COMPLEX)
@@ -110,6 +111,10 @@ namespace qmcplusplus {
     QMCRunType newRunType = DUMMY_RUN;
     if(curName != "qmc") qmc_mode=curName;
     int nchars=qmc_mode.size();
+    if((qmc_mode.find("linear") < nchars)|(qmc_mode.find("Energy") < nchars))
+    {
+      newRunType=LINEAR_OPTIMIZE_RUN;
+    }
     if(qmc_mode.find("opt") < nchars)
     {
       newRunType=OPTIMIZE_RUN;
@@ -286,6 +291,13 @@ namespace qmcplusplus {
     else if(curRunType == OPTIMIZE_RUN)
     {
       QMCOptimize *opt = new QMCOptimize(*qmcSystem,*primaryPsi,*primaryH,*hamPool);
+      opt->setWaveFunctionNode(psiPool->getWaveFunctionNode("null"));
+      qmcDriver=opt;
+    } 
+    else if(curRunType == LINEAR_OPTIMIZE_RUN)
+    {
+      QMCLinearOptimize *opt = 
+	new QMCLinearOptimize(*qmcSystem,*primaryPsi,*primaryH,*hamPool);
       opt->setWaveFunctionNode(psiPool->getWaveFunctionNode("null"));
       qmcDriver=opt;
     } 

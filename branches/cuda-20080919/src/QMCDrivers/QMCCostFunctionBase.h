@@ -66,6 +66,8 @@ namespace qmcplusplus {
     inline int NumParams() { return OptVariables.size(); }
     ///return the number of optimizable parameters
     inline int getNumSamples() { return NumSamples; }
+    virtual void resetPsi(bool final_reset=false)=0;
+    inline int getType(int i)  { return OptVariables.getType(i); }
     ///dump the current parameters and other report
     void Report();
     ///report  parameters at the end
@@ -236,7 +238,6 @@ namespace qmcplusplus {
     bool checkParameters();
     void updateXmlNodes();
 
-    virtual void resetPsi(bool final_reset=false)=0;
     virtual Return_t correlatedSampling(bool needDerivs)=0;
   };
 }
