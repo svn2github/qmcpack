@@ -300,7 +300,6 @@ namespace qmcplusplus {
 
   void QMCCostFunctionCUDA::resetPsi(bool final_reset)
   {
-    cerr << "QMCCostFunctCUDA::resetPsi(" << final_reset << ") called.\n";
     if(OptVariables.size() < OptVariablesForPsi.size())
     {
       for(int i=0; i<equalVarMap.size(); ++i)
