@@ -114,6 +114,8 @@ namespace qmcplusplus {
     //this is MPI barrier
     //OHMMS::Controller->barrier();
     //collect the total weight for normalization and apply maximum weight
+    myComm->allreduce(wgt_tot);
+    myComm->allreduce(wgt_tot2);
 
     Return_t wgtnorm = (1.0*NumSamples)/wgt_tot;
     wgt_tot=0.0;
