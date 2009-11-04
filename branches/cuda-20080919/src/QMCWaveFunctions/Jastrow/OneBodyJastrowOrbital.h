@@ -83,6 +83,7 @@ namespace qmcplusplus {
     RealType *FirstAddressOfdU, *LastAddressOfdU;
     vector<FT*> Fs;
     vector<FT*> Funique;
+    vector<std::string> Fnames;
 
   public:
 
@@ -96,6 +97,7 @@ namespace qmcplusplus {
       d_table = DistanceTable::add(CenterRef,els);
       //allocate vector of proper size  and set them to 0
       Funique.resize(CenterRef.getSpeciesSet().getTotalNum(),0);
+      Fnames.resize(CenterRef.getSpeciesSet().getTotalNum());
       Fs.resize(CenterRef.getTotalNum(),0);
     }
 
@@ -107,11 +109,12 @@ namespace qmcplusplus {
       d_table = DistanceTable::add(CenterRef,P);
     }
 
-    void addFunc(int source_type, FT* afunc) 
+    void addFunc(int source_type, FT* afunc, std::string name="") 
     {
       for(int i=0; i<Fs.size(); i++) 
         if(CenterRef.GroupID[i] == source_type) Fs[i]=afunc;
       Funique[source_type]=afunc;
+      Fnames[source_type] = name;
     }
 
     /** check in an optimizable parameter
@@ -163,6 +166,18 @@ namespace qmcplusplus {
       for(int i=0; i<Funique.size(); ++i)
       {
         if(Funique[i]) Funique[i]->myVars.print(os);
+      }
+    }
+
+    void
+    finalizeOptimization()
+    {
+      cerr << "Writing Jastrows to file.\n";
+      for (int isp=0; isp<Funique.size(); isp++) {
+	string fname = "J1." + Fnames[isp] + ".dat";
+	ofstream fout(fname.c_str());
+	Funique[isp]->print(fout);
+	fout.close();
       }
     }
 

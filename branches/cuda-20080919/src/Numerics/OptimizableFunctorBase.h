@@ -96,6 +96,8 @@ struct OptimizableFunctorBase
    */
   virtual bool put(xmlNodePtr cur) = 0;
 
+  virtual void print (std::ostream &out) { };
+
   /** empty virtual function to help builder classes
   */
   virtual void setDensity(real_type n) { }

@@ -25,9 +25,9 @@ namespace qmcplusplus {
   }
   
   void 
-  OneBodyJastrowOrbitalBspline::addFunc(int i, FT* j)
+  OneBodyJastrowOrbitalBspline::addFunc(int i, FT* j, std::string name)
   {
-    OneBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> >::addFunc(i, j);
+    OneBodyJastrowOrbital<BsplineFunctor<OrbitalBase::RealType> >::addFunc(i, j, name);
     CudaSpline<CudaReal> *newSpline = new CudaSpline<CudaReal>(*j);
     UniqueSplines.push_back(newSpline);
 

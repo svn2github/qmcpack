@@ -119,6 +119,14 @@ namespace qmcplusplus {
     finalizeOptimization()
     {
       ChiesaKEcorrection();
+      cerr << "Writing Jastrows to file.\n";
+      typename std::map<std::string,FT*>::iterator iter;
+      for (iter=J2Unique.begin(); iter!=J2Unique.end(); iter++) {
+	string fname = "J2." + iter->first + ".dat";
+	ofstream fout(fname.c_str());
+	iter->second->print(fout);
+	fout.close();
+      }
     }
 
     RealType KECorrection()

@@ -71,7 +71,7 @@ namespace qmcplusplus {
 	      functor->cutoff_radius = sourcePtcl->Lattice.WignerSeitzRadius;
 	      functor->reset();
 	    }
-            J1->addFunc (ig,functor);
+            J1->addFunc (ig,functor, elementType);
 	    success = true;
             dJ1->addFunc(ig,functor);
             if(ReportLevel) 
