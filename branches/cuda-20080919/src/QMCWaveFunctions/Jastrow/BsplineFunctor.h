@@ -30,7 +30,7 @@ namespace qmcplusplus {
     int Dummy;
     const TinyVector<real_type,16> A, dA, d2A;
     //static const real_type A[16], dA[16], d2A[16];
-    real_type cutoff_radius, DeltaR, DeltaRInv;
+    real_type DeltaR, DeltaRInv;
     real_type CuspValue;
     std::vector<real_type> SplineCoefs;
     // Stores the derivatives w.r.t. SplineCoefs 
@@ -42,7 +42,7 @@ namespace qmcplusplus {
 
     ///constructor
     BsplineFunctor(real_type cusp=0.0) : 
-      NumParams(0), cutoff_radius(0.0), 
+      NumParams(0), 
       A( -1.0/6.0,  3.0/6.0, -3.0/6.0, 1.0/6.0,
            3.0/6.0, -6.0/6.0,  0.0/6.0, 4.0/6.0,
           -3.0/6.0,  3.0/6.0,  3.0/6.0, 1.0/6.0,

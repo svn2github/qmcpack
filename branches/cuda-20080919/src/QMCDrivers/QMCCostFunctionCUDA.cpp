@@ -99,7 +99,6 @@ namespace qmcplusplus {
       ParticleSet::Walker_t& walker = *(W[iw]);
       Return_t* restrict saved= &(Records(iw,0));
       RealType weight = std::exp(factor*(logpsi_new[iw] - saved[LOGPSI_FREE]));
-      if (KE[iw]<MinKE) weight=0.0;
       RealType eloc_new = KE[iw] + saved[ENERGY_FIXED];
       saved[ENERGY_NEW] = eloc_new;
       saved[REWEIGHT]   = weight;
