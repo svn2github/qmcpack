@@ -64,7 +64,6 @@ namespace qmcplusplus {
       Return_t weight;
       if (samplePsi2) weight = std::min( std::exp(2.0*(logpsi-saved[LOGPSI_FREE])),MaxWeight) ;
       else weight = std::min( std::exp( logpsi-saved[LOGPSI_FREE] ),MaxWeight) ;
-      if (KEtemp<MinKE) weight=0.0;
 
       //Return_t eloc_new=+saved[ENERGY_FIXED];
       //Return_t weight = UseWeight?std::exp(2.0*(logpsi-saved[LOGPSI_FREE])):1.0;
