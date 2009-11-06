@@ -273,13 +273,13 @@ namespace qmcplusplus
 //             for (int i=0;i<(N); i++) app_log()<<dP[i]<<" ";
 //             app_log()<<endl;
 
-            lineoptimization2();
+            lineoptimization();
             RealType newCost(LastCost);
             if (Lambda==Lambda)
               {
                 for (int i=0;i<(N-1); i++) optTarget->Params(i) = optparm[i] + Lambda * optdir[i];
                 newCost = optTarget->Cost();
-                if ((!optTarget->IsValid) || (newCost!=newCost))
+                if ((!optTarget->IsValid) || (newCost!=newCost) || (Cost>(LastCost+allowedCostIncrease)))
                   {
                     for (int i=0;i<(N-1); i++) optTarget->Params(i) = keepP[i];
                     optTarget->resetPsi();
