@@ -35,6 +35,7 @@ namespace qmcplusplus {
     m_param.add(UseDrift,"useDrift","string"); 
     m_param.add(UseDrift,"usedrift","string");
     m_param.add(myWarmupSteps,"warmupSteps","int");
+    m_param.add(myWarmupSteps,"warmupsteps","int");
     m_param.add(nTargetSamples,"targetWalkers","int");
     m_param.add(nSubSteps, "substeps", "int");
     m_param.add(nSubSteps, "subSteps", "int");
@@ -65,6 +66,38 @@ namespace qmcplusplus {
     Matrix<ValueType> lapl(nw, nat);
     Matrix<GradType>  grad(nw, nat);
     double Esum;
+
+    // First do warmup steps
+    for (int step=0; step<myWarmupSteps; step++) {
+      for(int iat=0; iat<nat; ++iat)  {
+	//create a 3N-Dimensional Gaussian with variance=1
+	makeGaussRandomWithEngine(delpos,Random);
+	for(int iw=0; iw<nw; ++iw) {
+	  PosType G = W[iw]->Grad[iat];
+	  newpos[iw]=W[iw]->R[iat] + m_sqrttau*delpos[iw];
+	  ratios[iw] = 1.0;
+	}
+	W.proposeMove_GPU(newpos, iat);
+	    
+	Psi.ratio(W,iat,ratios,newG, newL);
+	    
+	accepted.clear();
+	vector<bool> acc(nw, false);
+	for(int iw=0; iw<nw; ++iw) {
+	  if(ratios[iw]*ratios[iw] > Random()) {
+	    accepted.push_back(W[iw]);
+	    nAccept++;
+	    W[iw]->R[iat] = newpos[iw];
+	    acc[iw] = true;
+	  }
+	  else 
+	    nReject++;
+	}
+	W.acceptMove_GPU(acc);
+	if (accepted.size())
+	  Psi.update(accepted,iat);
+      }
+    }
 
     do {
       IndexType step = 0;
@@ -103,9 +136,6 @@ namespace qmcplusplus {
 	    if (accepted.size())
 	      Psi.update(accepted,iat);
 	  }
-	  // cerr << "Rank = " << myComm->rank() <<
-	  //   "  CurrentStep = " << CurrentStep << 
-	  //   "  isub = " << isub << endl;
 	}
 	Psi.gradLapl(W, grad, lapl);
 	H.evaluate (W, LocalEnergy);
@@ -155,6 +185,53 @@ namespace qmcplusplus {
     Matrix<ValueType> lapl(nw, nat);
     Matrix<GradType>  grad(nw, nat);
 
+    // First, do warmup steps
+    for (int step=0; step<myWarmupSteps; step++) {
+      for(int iat=0; iat<nat; iat++) {
+	Psi.getGradient (W, iat, oldG);
+	    
+	//create a 3N-Dimensional Gaussian with variance=1
+	makeGaussRandomWithEngine(delpos,Random);
+	for(int iw=0; iw<nw; iw++) {
+	  oldScale[iw] = getDriftScale(m_tauovermass,oldG[iw]);
+	  dr[iw] = (m_sqrttau*delpos[iw]) + (oldScale[iw]*oldG[iw]);
+	  newpos[iw]=W[iw]->R[iat] + dr[iw];
+	  ratios[iw] = 1.0;
+	}
+	W.proposeMove_GPU(newpos, iat);
+	    
+	Psi.ratio(W,iat,ratios,newG, newL);
+	    
+	accepted.clear();
+	vector<bool> acc(nw, false);
+	for(int iw=0; iw<nw; ++iw) {
+	  PosType drOld = 
+	    newpos[iw] - (W[iw]->R[iat] + oldScale[iw]*oldG[iw]);
+	  RealType logGf = -m_oneover2tau * dot(drOld, drOld);
+	  newScale[iw]   = getDriftScale(m_tauovermass,newG[iw]);
+	  PosType drNew  = 
+	    (newpos[iw] + newScale[iw]*newG[iw]) - W[iw]->R[iat];
+
+	  RealType logGb =  -m_oneover2tau * dot(drNew, drNew);
+	  RealType x = logGb - logGf;
+	  RealType prob = ratios[iw]*ratios[iw]*std::exp(x);
+	      
+	  if(Random() < prob) {
+	    accepted.push_back(W[iw]);
+	    nAccept++;
+	    W[iw]->R[iat] = newpos[iw];
+	    acc[iw] = true;
+	  }
+	  else 
+	    nReject++;
+	}
+	W.acceptMove_GPU(acc);
+	if (accepted.size())
+	  Psi.update(accepted,iat);
+      }
+    }
+
+    // Now do data collection steps
     do {
       IndexType step = 0;
       nAccept = nReject = 0;
