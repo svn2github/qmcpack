@@ -20,6 +20,7 @@
 #include "Message/Communicate.h"
 #include "Message/CommOperators.h"
 #include <map>
+#include <limits>
 
 namespace qmcplusplus  {
   TimerManagerClass TimerManager;
