@@ -1,6 +1,4 @@
-#summary Version which runs on NVIDIA GPUs
+#summary Version of QMCPACK which runs on NVIDIA GPUs
 
 = Introduction =
-[GPUposter.png]
-
-
+[http://qmcpack.googlecode.com/files/GPUposter_landscape.pdf Poster describing GPU version of QMCPACK]
