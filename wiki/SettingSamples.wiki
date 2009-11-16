@@ -1,14 +1,13 @@
 #summary Setting VMC and DMC parameters for a run
 
-= VMC Optimisation =
+= VMC Optimization =
 
 One way to set the number of samples for an optimisation is as follows,
 
 {{{
 <parameter name="blocks">50</parameter>
-<parameter name="stepsbetweensamples">8</parameter>
-<parameter name="walkersperthread">1</parameter>   
-<parameter name="samples">200000</parameter>
+<parameter name="stepsbetweensamples">8</parameter> 
+<parameter name="samples">2000</parameter>
 }}}
 
  * blocks = number of lines in the scalar.dat file.
@@ -36,13 +35,9 @@ Another way to set this is,
 
 {{{ 
 <parameter name="blocks">50</parameter>
-<parameter name="steps">15000</parameter>
-<parameter name="samples">10000</parameter>
-<parameter name="fractionaldeficit">0.8</parameter>
-<parameter name="walkers">4</parameter>
+<parameter name="samplesperthread">10000</parameter>
+<parameter name="stepsbetweensamples">8</parameter>
 }}}
-
- * fractionaldeficit = choose the number of samples so there is not an integer number of samples per thread. This might allow for less wasted time in the case of a fluctuating population. 0.0 <= fractionaldeficit < 1. This rounds the number of samples down to an even integer then adds the correct amount to get the desired imbalance.
 
 = Other useful parameters =
 Some other things you might find useful to put in your VMC and DMC blocks.
