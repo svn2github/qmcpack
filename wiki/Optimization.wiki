@@ -18,6 +18,7 @@ This is a slight variant on the Energy Minimization method of Umrigar et al. It 
 <cost name="reweightedvariance"> 0.05 </cost>
 <parameter name="max_its">2</parameter>
 <parameter name="exp0"> -8 </parameter>
+</qmc>
 }}}
 
 ==Optimization algorithm==
