@@ -2,7 +2,7 @@
 
 = VMC Optimization =
 
-One way to set the number of samples for an optimisation is as follows,
+One way to set the number of samples for an optimization is as follows,
 
 {{{
 <parameter name="blocks">50</parameter>
@@ -23,7 +23,6 @@ One way to set the parameters for a VMC run leading up to a DMC run is
 <parameter name="blocks">50</parameter>
 <parameter name="steps">15000</parameter>
 <parameter name="samples">10000</parameter>
-<parameter name="walkers">4</parameter>
 }}}
 
  * steps = number of steps each block
