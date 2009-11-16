@@ -2,7 +2,7 @@
 
 = Optimization =
 
-This is a slight variant on the Energy Minimization method of Umrigar et al. It uses a generalized eigenvalue solver on a linearized wavefunction (Psi trial and its derivatives with respect to its parameters) to find the lowest eigenvalue in the space spanned by the wavefunction w.r.t. its parameterization. Once the eigenvalue problem (which only includes the energy terms) is solved, a line minimization is performed along the direction of the optimal parameter changes using both the gradient and value of the cost function (which may include energy and variance) to find the minimum and update the parameters. This line minimization is necessary if using non linear parameters. If the line minimization is turned off parameters can be updated using Umrigar and Sorellas rescaling function. If both rescaling and line minimization are turned off then the parameters are changed according to the eigenvalue solution only.
+This is a slight variant on the Energy Minimization method of Umrigar et al. It uses a generalized eigenvalue solver on a linearized wavefunction (Psi trial and its derivatives with respect to its parameters) to find the lowest eigenvalue in the space spanned by the wavefunction w.r.t. its parameterization. Once the eigenvalue problem (which only includes the energy terms) is solved, a line minimization is performed along the direction of the optimal parameter changes using both the gradient and value of the cost function (which may include energy and variance) to find the minimum and update the parameters. This line minimization is necessary if using non linear parameters. An additional step is attempted in the direction of the second lowest eigenvalue. This is similar to a CG routine.
 
 {{{
 <qmc method="linear" move="pbyp" checkpoint="100" gpu="no">
@@ -11,19 +11,13 @@ This is a slight variant on the Energy Minimization method of Umrigar et al. It 
 <parameter name="warmupSteps">10</parameter>
 <parameter name="blocks">10</parameter>
 <parameter name="stepsbetweensamples">3</parameter>
-<parameter name="walkersperthread">1</parameter>
 <parameter name="timestep">2.5</parameter>
 <parameter name="samples">800</parameter>
 <cost name="energy"> 0.95 </cost>
 <cost name="variance"> 0.00 </cost>
 <cost name="reweightedvariance"> 0.05 </cost>
-<parameter name="linemin">yes</parameter>
 <parameter name="max_its">2</parameter>
-<parameter name="conditionhamiltonian">yes</parameter>
-<parameter name="rescaleparameters">no</parameter>
 <parameter name="exp0"> -8 </parameter>
-<parameter name="allowedincrease">0</parameter>
-<parameter name="alloweddifference">2.0e-5</parameter>
 }}}
 
 ==Optimization algorithm==
@@ -32,12 +26,8 @@ This is a slight variant on the Energy Minimization method of Umrigar et al. It 
 
 ===Advanced Opt. options===
 These are options you probably want to leave alone.
- * linemin = uses a line minimization along the direction we found in the eigenvalue problem to get to minimum of cost function.
  * exp0 = 10^exp0 is added to the diagonal for added stability in the algorithm.
- * conditionhamiltonian = tricks to condition the Hamiltonian/Hessian matrix. adding 10^exp0 and subtracting the smallest element from the diagonal.
  * maxWeight = maximum weight a walker can have. 
- * rescaleparameters = rescale parameters according to Urmigar/Sorella formulation. xi=0.5
- * allowedincrease = allowed increase in cost function for accepting parameter changes.
  * alloweddifference = allowed difference in cost function while doing the line minimization.
 
 ==Cost function==
