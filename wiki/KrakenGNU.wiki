@@ -4,11 +4,13 @@
 
 Check [CMakeToolchain] for the descriptions of the toolchain file and `cmake` variables.
 
-Important: After `cmake` stage, edit CMakeCache.txt file to replace any dynamic libraries (`libxyz.so`) 
+Important: After `cmake` stage, edit CMakeCache.txt file to replace the dynamic libraries (`libeinspline.so` and `libfftw3.so`) 
 with static libraries, e.g.,
 {{{
 //Path to a library.
 FFTW_LIBRARY:FILEPATH=/opt/fftw/3.2.1/lib/libfftw3.a
+//Path to a library.
+EINSPLINE_LIBRARY:FILEPATH=/nics/a/proj/qmc/lib/libeinspline.a
 }}}
 
 = {{{config/KrakenGNU.cmake}}} =
