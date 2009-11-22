@@ -1525,7 +1525,7 @@ namespace qmcplusplus {
     int N = pos.size();
     CudaRealType plus_minus[2] = {1.0, -1.0};
 
-    if (cudapos.size() < N) {
+    if (NLcudapos.size() < N) {
       NLhostPos.resize(N);
       NLcudapos.resize(N);
       NLhostSign.resize(N);
