@@ -889,7 +889,7 @@ namespace qmcplusplus {
 	    for (int i=0; i<3; i++)
 	      for (int j=0; j<3; j++) {
 		L_host[i*3+j]    = (float)orbitalSet->PrimLattice.R(i,j);
-		Linv_host[i*3+j] = (float)orbitalSet->PrimLattice.G(i,j);
+		Linv_host[i*3+j] = (float)orbitalSet->PrimLattice.G(j,i);
 	      }
 	    orbitalSet->L_cuda    = L_host;
 	    orbitalSet->Linv_cuda = Linv_host;
@@ -921,7 +921,7 @@ namespace qmcplusplus {
 	    for (int i=0; i<3; i++)
 	      for (int j=0; j<3; j++) {
 		L_host[i*3+j]    = (float)orbitalSet->PrimLattice.R(i,j);
-		Linv_host[i*3+j] = (float)orbitalSet->PrimLattice.G(i,j);
+		Linv_host[i*3+j] = (float)orbitalSet->PrimLattice.G(j,i);
 	      }
 	    orbitalSet->L_cuda    = L_host;
 	    orbitalSet->Linv_cuda = Linv_host;
