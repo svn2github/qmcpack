@@ -1389,26 +1389,27 @@ namespace qmcplusplus {
       rowIndex += numQuad;
       numJobs++;
     }
-    // Compute whatever remains in the buffer
-    // Compute orbital rows
-    Phi->evaluate (posBuffer, SplineRowList_d);
-    // Compute ratios
-    NLAinvList_d     = NLAinvList_host;
-    NLnumRatioList_d = NLnumRatioList_host;
-    NLelecList_d     = NLelecList_host;
-    NLratioList_d    = NLratioList_host;
-    RatioRowList_d   = RatioRowList_host;  
-    
-    calc_many_ratios (NLAinvList_d.data(), RatioRowList_d.data(),
-		      NLratioList_d.data(), NLnumRatioList_d.data(),
-		      NumOrbitals, RowStride, NLelecList_d.data(),
-		      numJobs);
-    
-    // Write ratios out output vector
-    NLratios_host = NLratios_d;
-    for (int i=0; i<ratio_pointers.size(); i++) 
-      *(ratio_pointers[i]) *= NLratios_host[i];
-
+    if (posBuffer.size()) {
+      // Compute whatever remains in the buffer
+      // Compute orbital rows
+      Phi->evaluate (posBuffer, SplineRowList_d);
+      // Compute ratios
+      NLAinvList_d     = NLAinvList_host;
+      NLnumRatioList_d = NLnumRatioList_host;
+      NLelecList_d     = NLelecList_host;
+      NLratioList_d    = NLratioList_host;
+      RatioRowList_d   = RatioRowList_host;  
+      
+      calc_many_ratios (NLAinvList_d.data(), RatioRowList_d.data(),
+			NLratioList_d.data(), NLnumRatioList_d.data(),
+			NumOrbitals, RowStride, NLelecList_d.data(),
+			numJobs);
+      
+      // Write ratios out output vector
+      NLratios_host = NLratios_d;
+      for (int i=0; i<ratio_pointers.size(); i++) 
+	*(ratio_pointers[i]) *= NLratios_host[i];
+    }
     // DEBUG DEBUG DEBUG
     // for (int i=0; i<psi_ratios.size(); i++) {
     //   double diff = psi_ratios[i] - cpu_ratios[i];
