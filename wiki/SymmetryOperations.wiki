@@ -1,0 +1,162 @@
+#summary Routine to rotate orbitals to definite symmetries.
+
+= Introduction =
+
+Given degenerate orbitals in DFT we must rotate them to belong to a specific symmetry for some calculations. This tool allows you to perform these rotations.
+
+
+= Sample Code =
+  * "orbitalutility" is this tool.
+  * "projection" is the determination of the symmetries of the orbitals.
+  * "rotate" produces the rotation matrix.
+  * "symmetryclass" provides the symmetry group and symmetry operators. This illustration is D2V with the y-axis as principle axis.
+    # "charactertable" is orgainized by classes. should have as many elements as there are symmetry operators.
+    # "symmetries" provides the symmetry operators. class refers to which class in the charactertable its characters belong to.
+  * "projectedorbitals" designates the orbitals to classify and rotate between. They are numbered according to their energy eigenvalues. *Rotate one group of degenerate orbitals at a time.*
+  * "representations" designates which representations to rotate between. Your orbitals should belong to these representations to begin with.
+  * "grid" grid to evaluate the projectors.
+
+{{{
+<qmc method="test">
+<parameter name="orbitalutility">yes</parameter>
+<parameter name="projection">yes</parameter>
+<parameter name="rotate">yes</parameter>
+<symmetryclass classes="4" symmetries="4">
+  <charactertable>
+  <class> 1  1  1  1 </class>
+  <class> 1  1 -1 -1 </class>
+  <class> 1 -1  1 -1 </class>
+  <class> 1 -1 -1  1 </class>
+  </charactertable>
+  <symmetries>
+  <operator class="1">
+  1 0 0
+  0 1 0
+  0 0 1
+  </operator>
+  <operator class="2">
+  -1 0 0
+  0 1 0
+  0 0 -1
+  </operator>
+  <operator class="3">
+  0 0 1
+  0 1 0
+  1 0 0
+  </operator>
+  <operator class="4">
+  0 0 -1
+  0 1 0
+  -1 0 0
+  </operator>
+  </symmetries>
+</symmetryclass>
+<orbitals>254 255 256</orbitals>
+<representations>1 3 4</representations>
+<grid> 15 15 15</grid>
+</qmc>
+}}}
+
+== Sample Output ==
+
+Projection Matrix is the result of the projector: rows are orbitals, columns are representations.
+Coefficient matrix is the trial wave function coefficients expanded in your basis.
+Rotation Matrix provides the rotations necessary to build the pure basis out of the mixed ones.
+
+{{{
+ Total of 1 orbitals.
+ Projected orbitals: 254 255 256
+Printing Projection Matrix
+0.4606738632 0.0000000000 0.2294112354 0.3099148948
+0.0001347631 0.0000000000 0.5639315049 0.4359337407
+0.5391911215 0.0000000000 0.2066553569 0.2541535172
+
+Printing Coefficient Matrix
+0.6787295951 0.0000000000 0.4789689295 0.5567000043
+0.0116087528 0.0000000000 0.7509537302 0.6602527854
+0.7342963445 0.0000000000 0.4545936173 0.5041364073
+
+Printing Rotation Matrix
+-0.5566989385 -0.6602522971 0.5041360888
+0.4789701344 -0.7509542012 -0.4545936626
+0.6787296238 -0.0116056792 0.7342965382
+}}}
+
+== Performing rotation in qmcpack ==
+
+Add the rotationmatrix and rotatedorbitals lines in the determinantset. 
+*After running it once remove the lines.* The block permanently overwrites the wave function file. In this case the new "SmallRot.pwscf.h5" will have the rotated orbitals.
+
+{{{
+      <determinantset type="bspline" href="SmallRot.pwscf.h5" sort="1" tilematrix="4 0 0 0 4 0 0 0 4" version="0.10" source="ion0">
+        <basisset ecut="7.000000000000000E+001">
+          <grid dir="0" npts="45" closed="no"/>
+          <grid dir="1" npts="45" closed="no"/>
+          <grid dir="2" npts="45" closed="no"/>
+        </basisset>
+        <rotationmatrix>
+        -0.5566989385 -0.6602522971 0.5041360888
+        0.4789701344 -0.7509542012 -0.4545936626
+        0.6787296238 -0.0116056792 0.7342965382
+        </rotationmatrix>
+        <rotatedorbitals>
+        254 255 256
+        </rotatedorbitals>
+        <h5tag name="twistIndex">
+           0
+        </h5tag>
+        <h5tag name="twistAngle">
+    0.000000000000000    0.000000000000000    0.000000000000000
+        </h5tag>
+        <slaterdeterminant>
+          <determinant id="updet" size="256">
+<!--        <occupation mode="excited" spindataset="0">
+            -256 +257
+            </occupation>-->
+           <occupation mode="ground" spindataset="0">
+            </occupation>
+          </determinant>
+          <determinant id="downdet" size="256">
+            <occupation mode="ground" spindataset="0">
+            </occupation>
+          </determinant>
+        </slaterdeterminant>
+      </determinantset>
+}}}
+
+== Results ==
+A backup of the original wave function h5 file is made if a similarly named file doesn't exist. It is named ` {original}_bkup `
+If the rotation worked correctly then you should get a result such as the following:
+
+{{{
+ Rotating between: 254 255 256                                                                                                                                                      
+ Using the following rotation                                                                                                                                                       
+-0.5566989385 -0.6602522971 0.5041360888                                                                                                                                            
+0.4789701344 -0.7509542012 -0.4545936626                                                                                                                                            
+0.6787296238 -0.0116056792 0.7342965382                                                                                                                                             
+ destination file already exists, backup completed                                                                                                                                  
+  Rotating state:  ti=  0  bi=  1 energy= 0.35534 k=( 0.0000,  0.0000,  0.0000) rank=0                                                                                              
+  Rotating state:  ti=  0  bi=  2 energy= 0.35534 k=( 0.0000,  0.0000,  0.0000) rank=0                                                                                              
+  Rotating state:  ti=  0  bi=  3 energy= 0.35534 k=( 0.0000,  0.0000,  0.0000) rank=0
+}}}
+
+then
+
+{{{
+ Total of 1 orbitals.
+ Projected orbitals: 254 255 256
+Printing Projection Matrix
+0.0000000000 0.0000000000 0.0000000000 1.0000000045
+0.0000000000 0.0000000000 0.9999999977 0.0000000000
+0.9999999974 0.0000000000 0.0000000000 0.0000000000
+
+Printing Coefficient Matrix
+0.0000000000 0.0000000000 0.0000000000 1.0000000022
+0.0000000000 0.0000000000 0.9999999988 0.0000000000
+0.9999999987 0.0000000000 0.0000000000 0.0000000000
+
+Printing Rotation Matrix
+-0.9999999990 -0.0000415132 0.0000156967
+0.0000415130 -0.9999999990 -0.0000169926
+0.0000156974 -0.0000169919 0.9999999997
+}}}
