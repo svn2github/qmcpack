@@ -1,0 +1,56 @@
+#summary Using ppconvert to convert pseudopotentials
+
+= Ken Esler's ppconvert =
+
+Ken has been kind enough to develop a tool for the conversion of pseudopotentials.
+
+== output from help ==
+{{{
+Usage:  ppconvert  options
+  Options include:
+   --casino_pot fname
+   --fhi_pot    fname
+   --bfd_pot    fname
+   --gamess_pot fname
+   --casino_us fname
+   --casino_up fname
+   --casino_ud fname
+   --xml  fname.xml
+   --tm   fname.tm
+   --hdf5 fname.h5
+   --upf  fname.upf
+   --fhi  fname.fhi
+   --fpmd  fname.xml
+   --casino fname.xml
+   --log_grid
+}}}
+
+== input PPs ==
+casino, fhi bfd, gamess.
+
+== output PPs ==
+qmcpack (xml) tm, hdf5, upf, fhi, fpmd, casino
+
+== reference state ==
+ -s_ref "1s(1)" ... s state occupations in ensuing qmc calculation.
+
+ -p_ref similar to s but for p states
+
+ -d_ref similar to s but for d states
+
+== options ==
+* log_grid. This should always be included for qmcpack PPs (may be default).
+
+== Example ==
+for sodium PP from Trail Needs tabulated to qmcpack and pwscf
+ * Download the summary, pp.dat, and awfn files.
+ * in the same file execute,
+
+{{{
+ppconvert --casino_pot pp.data --casino_us awfn.data_s1_2S --casino_up awfn.data_p1_2P --casino_ud awfn.data_d1_2D --log_grid --upf Na.TN.upf --xml Na.TN.xml
+}}}
+
+for sodium PP from Trail Needs gamess format to qmcpack and pwscf
+{{{
+ppconvert --gamess_pot Na.GAMESS --s_ref "1s(1)" --p_ref "1s(1)" --d_ref "1s(1)" --log_grid --upf Na.upf --xml Na.xml
+}}}
