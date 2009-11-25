@@ -2,32 +2,55 @@
 
 = Optimization =
 
-This is a slight variant on the Energy Minimization method of Umrigar et al. It uses a generalized eigenvalue solver on a linearized wavefunction (Psi trial and its derivatives with respect to its parameters) to find the lowest eigenvalue in the space spanned by the wavefunction w.r.t. its parameterization. Once the eigenvalue problem (which only includes the energy terms) is solved, a line minimization is performed along the direction of the optimal parameter changes using both the gradient and value of the cost function (which may include energy and variance) to find the minimum and update the parameters. This line minimization is necessary if using non linear parameters. An additional step is attempted in the direction of the second lowest eigenvalue. This is similar to a CG routine.
+== beta=0 case ==
+We use a generalized eigenvalue solver on a linearized wave function (Psi trial and its derivatives with respect to its parameters) to find the lowest eigenvalue in the space spanned by the wave function w.r.t. its parameterization. Once the eigenvalue problem (which only includes the energy terms) is solved, a line minimization is performed along the direction of the optimal parameter changes using both the gradient and value of the cost function (which may include energy and variance) to find the minimum and update the parameters. This line minimization is necessary if using non linear parameters.
 
+== beta=1 case ==
+We use the same generalized eigenvalue solve but now solve for H\psi = H^2\psi.
+
+== both cases ==
+We perform CG searches using the differences in the eigenvectors associated with the lowest eigenvalues between iterations.
+
+
+Here is an input block that works well for a large Carbon (diamond) calculation.
 {{{
-<qmc method="linear" move="pbyp" checkpoint="100" gpu="no">
-<estimator name="LocalEnergy" hdf5="no"/>
-<parameter name="useDrift">yes</parameter>
-<parameter name="warmupSteps">10</parameter>
-<parameter name="blocks">10</parameter>
-<parameter name="stepsbetweensamples">3</parameter>
-<parameter name="timestep">2.5</parameter>
-<parameter name="samples">800</parameter>
-<cost name="energy"> 0.95 </cost>
-<cost name="variance"> 0.00 </cost>
-<cost name="reweightedvariance"> 0.05 </cost>
-<parameter name="max_its">2</parameter>
-<parameter name="exp0"> -8 </parameter>
-</qmc>
+    <qmc method="linear" move="pbyp" checkpoint="100" gpu="no">
+      <parameter name="blocks">     4  </parameter>
+      <parameter name="warmupsteps"> 16 </parameter>
+      <parameter name="stepsbetweensamples">    6 </parameter>
+      <parameter name="timestep">  2.0 </parameter>
+      <parameter name="samples">  7680 </parameter>
+      <parameter name="useDrift">  yes </parameter>
+      <estimator name="LocalEnergy" hdf5="no"/>
+      <cost name="energy">                   0.0 </cost>
+      <cost name="unreweightedvariance">     0.25 </cost>
+      <cost name="reweightedvariance">       0.75 </cost>
+      <parameter name="beta">  0.0  </parameter>
+      <parameter name="max_its">               1  </parameter>
+      <parameter name="exp0">                  -3 </parameter>
+      <parameter name="alloweddifference"> 2.0e-7 </parameter>
+      <parameter name="bigchange">150</parameter>
+      <parameter name="stabilizerscale">  3 </parameter>
+      <parameter name="nstabilizers"> 3 </parameter>
+      <parameter name="eigcg">     2  </parameter>
+    </qmc>
 }}}
 
 ==Optimization algorithm==
  * samples = number of samples to optimize on.
  * max_its = maximum number of repeat optimization without generating new samples. 1-5 is regular range here.
+ * beta = H or H^2 minimization. 0 is H, 1 is H2. Fractions are allowed.
+ * eigcg = number of CG steps to try during each iteration.
+
+==commonly changed options==
+ * exp0 = 10^exp0 is added to the diagonal for added stability in the algorithm. as exp0 is increased you rotate towards the steepest descent direction.
+ * nstabilizers = number of different exponents to try for the stabilizer.
+ * stabilizerscale = amount to change the stabilizer by each time.
+ * bigchange = reject moves if a change larger than this occurs. This is a stability feature. A good range for this is around |E_DMC-E_VMC| + variance
+
 
 ===Advanced Opt. options===
 These are options you probably want to leave alone.
- * exp0 = 10^exp0 is added to the diagonal for added stability in the algorithm.
  * maxWeight = maximum weight a walker can have. 
  * alloweddifference = allowed difference in cost function while doing the line minimization.
 
