@@ -11,6 +11,7 @@
   * [BulkSolidDFTSample Bulk Solid]
   * [SHEGSample SHEG]
   * [HEG3DSample 3DHEG]
+ * [HowToGuide How To Guides]
  * [DevHandbook For developers]
   * [ClassOverview Class Overview]
   * [IntroXml QMC-XML]
