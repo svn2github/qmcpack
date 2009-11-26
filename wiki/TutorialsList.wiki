@@ -7,8 +7,6 @@
  * [HEG3DSample 3D Homogeneous Electron Gas]
  * [BulkSolidDFTSample Bulk Solid with DFT oritals]
 
-= How To guides =
- * [Optimization Sample Optimization Block]
 
 = Adding a tutorial or a sample run =
 
