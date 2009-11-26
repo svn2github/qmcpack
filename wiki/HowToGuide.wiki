@@ -1,12 +1,7 @@
 #summary Guides on how to perform certain operations
 
 = How To Guides =
-
-
-
-= Details =
-
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+ * [Optimization Sample Optimization Block]
+ * [ppconvert Converting Pseudopotentials using ppconvert]
+ * [SymmetryOperations Symmetrizing single particle orbitals for excited state calculations]
+ * [SettingSamples Different methods for setting Samples field]
