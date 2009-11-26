@@ -39,7 +39,7 @@ qmcpack (xml) tm, hdf5, upf, fhi, fpmd, casino
  -d_ref similar to s but for d states
 
 == options ==
-* log_grid. This should always be included for qmcpack PPs (may be default).
+ log_grid. This should always be included for qmcpack PPs (may be default).
 
 == Example ==
 for sodium PP from Trail Needs tabulated to qmcpack and pwscf
