@@ -331,8 +331,9 @@ DMC projection has caused the energy has dropped about another 50 mHa to -12.185
 
 == Running on QMCPACK-GPU ==
 For users of the GPU version of the code, a few modifications are necessary:
-* The GPU code cannot currently do optimization.  Optimize with the CPU version and copy the optimized wavefunction from the last ".opt.xml" files into the input file.
-* The attribute gpu="yes" must be added to the determinantset, vmc, and dmc sections.
+* The GPU can now be used to optimize with conjugate gradients or the linearized
+  eigenvalue method.
+* The attribute gpu="yes" must be added to the determinantset, optimization, vmc, and dmc sections.
 * The GPU code is designed to run all walkers in parallel and at least 128 to 256 walkers be GPU are needed to get good efficiency.
 
 Below is the same example, run on the GPU version of the code:
@@ -458,4 +459,3 @@ Larger crystal supercells require small changes to the input.  First, we need to
 
 
 === 64-atom cubic supercell ===
-
