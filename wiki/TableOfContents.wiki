@@ -16,7 +16,7 @@
   * [ppconvert Converting Pseudopotentials]
   * [SymmetryOperations Symmetrizing single particle orbitals]
   * [SettingSamples Setting samples]
-
+  * [QuantumEspressoConverter PWSCF converter]
  * [DevHandbook For developers]
   * [ClassOverview Class Overview]
   * [IntroXml QMC-XML]
