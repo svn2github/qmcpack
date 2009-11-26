@@ -102,7 +102,7 @@ Several variables can be overwritten at `cmake` step by passing arguments to `cm
 cmake -DQMC_MPI=0 ..
 }}}
 
-||*varaible*||*type*||*default*||*comment*||
+||*variable*||*type*||*default*||*comment*||
 ||QMC_BUILD_LEVEL||int||1||QMC Build Level: 1=bare, 2=developer, 3=experimental||
 ||OHMMS_DIM||int||3||physical dimension of the build||
 ||QMC_MPI||bool||1||Eanble/disable MPI||
@@ -115,7 +115,7 @@ cmake -DQMC_MPI=0 ..
 
 During `cmake` step, CMakeCache.txt file is created in the `build` directory.
 As the name implies, it contains cached variables that are used during the
-build stage. This file can be edited to modify the build properties. 
+build stage. This file can be edited to modify the cached variables above.
 
 = Selecting compilers =
  * Use CXX and CC to set the compilers in your shell, e.g., 
