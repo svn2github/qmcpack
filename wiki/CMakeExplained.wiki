@@ -113,6 +113,10 @@ cmake -DQMC_MPI=0 ..
 ||ENABLE_PHDF5||bool||0|| Enable use of phdf5 ||
 ||ENABLE_TAU_PROFILE||bool||0||Enable tau for profiling||
 
+In addition to QMCPACK-defined variables, there are many `cmake` variables that
+can be manipulated the same way. Check out
+[http://www.cmake.org/Wiki/CMake_Useful_Variables cmake wiki].
+
 During `cmake` step, CMakeCache.txt file is created in the `build` directory.
 As the name implies, it contains cached variables that are used during the
 build stage. This file can be edited to modify the cached variables above.
@@ -134,7 +138,7 @@ build stage. This file can be edited to modify the cached variables above.
 Development and testing are done mostly on LINUX systems using Intel 10.x or
 GNU 4.2 and higher compilers.  Older compilers will work but supports for
 OpenMP both at the compiler and run time may not be good.  We strongly
-encourage people to move on new compilers whenever possible: they are usually
+encourage people to move on to new compilers whenever possible: they are usually
 getting better with few exceptions, which will be posted on this wiki whenever
 such cases are encountered.
 
