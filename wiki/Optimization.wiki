@@ -1,4 +1,5 @@
 #summary Sample block for the energy minimization algorithm in qmcpack.
+||[Welcome Home]||[TutorialsList tutorials]||
 
 = Optimization =
 
