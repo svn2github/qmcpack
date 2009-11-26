@@ -12,6 +12,11 @@
   * [SHEGSample SHEG]
   * [HEG3DSample 3DHEG]
  * [HowToGuide How To Guides]
+  * [Optimization Optimization]
+  * [ppconvert Converting Pseudopotentials]
+  * [SymmetryOperations Symmetrizing single particle orbitals]
+  * [SettingSamples Setting samples]
+
  * [DevHandbook For developers]
   * [ClassOverview Class Overview]
   * [IntroXml QMC-XML]
