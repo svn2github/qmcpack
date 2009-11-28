@@ -3,6 +3,7 @@
 = Ken Esler's ppconvert =
 
 Ken has been kind enough to develop a tool for the conversion of pseudopotentials.
+Also see [BulkSolidDFTSample BulkSolidDFTSample Tutorial]
 
 == output from help ==
 {{{
