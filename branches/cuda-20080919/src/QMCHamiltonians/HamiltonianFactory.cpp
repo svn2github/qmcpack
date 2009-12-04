@@ -349,13 +349,11 @@ namespace qmcplusplus {
 
     //CHECK PBC and create CoulombPBC for el-el
     if(source == targetPtcl) {
-      if(source->getTotalNum()>1 || applyPBC)  {
-        if(applyPBC) {
-          //targetH->addOperator(new CoulombPBCAA(*targetPtcl),title);
-          targetH->addOperator(new CoulombPBCAATemp(*targetPtcl,true),title);
-        } else {
-          targetH->addOperator(new CoulombPotentialAA(*targetPtcl),title);
-        }
+      if(applyPBC)  {
+	//targetH->addOperator(new CoulombPBCAA(*targetPtcl),title);
+	targetH->addOperator(new CoulombPBCAATemp(*targetPtcl,true),title);
+      } else if (source->getTotalNum()>1) {
+	targetH->addOperator(new CoulombPotentialAA(*targetPtcl),title);
       }
     } else {
       if(applyPBC) {
