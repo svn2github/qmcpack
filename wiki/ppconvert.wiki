@@ -39,6 +39,12 @@ qmcpack (xml) tm, hdf5, upf, fhi, fpmd, casino
 
  -d_ref similar to s but for d states
 
+Note that the reference state should include only the valence electrons.  
+For example, for a sodium atom with a neon core, the reference state would be "1s(1)".  
+Note that the "s_ref" needs to include a 1s state (potentially with 0 occupancy), the 
+"p_ref" needs to include a 2p state, and the "d_ref" needs to include a 3d state.  One 
+reference state should be included for each channel in the pseudopotential.
+
 == options ==
  log_grid. This should always be included for qmcpack PPs (may be default).
 
