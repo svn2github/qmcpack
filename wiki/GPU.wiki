@@ -5,7 +5,7 @@ The loosely-coupled population of walkers in QMC simulations make a nearly ideal
 
 Currently, the source exists as a branch from the mainline code, but we hope to merge it back in soon.  In the meantime, it may be check out with:
 
-svn co https://qmcpack.googlecode.com/svn/branches/cuda-20080919 qmcpack-gpu
+svn co http://qmcpack.googlecode.com/svn/branches/cuda-20080919 qmcpack-gpu
 
 A poster on the GPU port was presented at Supercomputing 09:
 [http://qmcpack.googlecode.com/files/GPUposter_landscape.pdf SC09 poster]
