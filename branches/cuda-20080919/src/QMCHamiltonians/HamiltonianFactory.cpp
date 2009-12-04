@@ -450,13 +450,13 @@ namespace qmcplusplus {
     PtclPoolType::iterator pit(ptclPool.find(nuclei));
     if(pit != ptclPool.end()) {
       ParticleSet* ion=(*pit).second;
-      if(ion->getTotalNum()>1) 
-        if(PBCType){
-          //targetH->addOperator(new CoulombPBCAA(*ion),"IonIon");
-          targetH->addOperator(new CoulombPBCAATemp(*ion,false),"IonIon");
-        } else {
-          targetH->addOperator(new IonIonPotential(*ion),"IonIon");
-        }
+      if(PBCType){
+	//targetH->addOperator(new CoulombPBCAA(*ion),"IonIon");
+	targetH->addOperator(new CoulombPBCAATemp(*ion,false),"IonIon");
+      }
+      else if(ion->getTotalNum()>1) {
+	targetH->addOperator(new IonIonPotential(*ion),"IonIon");
+      }
      }
   }
 
