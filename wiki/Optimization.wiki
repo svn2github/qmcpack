@@ -30,7 +30,7 @@ Here is an input block that works well for a large Carbon (diamond) calculation.
       <parameter name="max_its">               1  </parameter>
       <parameter name="exp0">                  -3 </parameter>
       <parameter name="alloweddifference"> 2.0e-7 </parameter>
-      <parameter name="bigchange">150</parameter>
+      <parameter name="bigchange">1</parameter>
       <parameter name="stabilizerscale">  3 </parameter>
       <parameter name="nstabilizers"> 3 </parameter>
       <parameter name="eigcg">     2  </parameter>
@@ -47,7 +47,7 @@ Here is an input block that works well for a large Carbon (diamond) calculation.
  * exp0 = 10^exp0 is added to the diagonal for added stability in the algorithm. as exp0 is increased you rotate towards the steepest descent direction.
  * nstabilizers = number of different exponents to try for the stabilizer.
  * stabilizerscale = amount to change the stabilizer by each time.
- * bigchange = reject moves if a change larger than this occurs. This is a stability feature. A good range for this is around |E_DMC-E_VMC| + variance
+ * bigchange = reject moves if a RMS parameter change larger than this occurs.
 
 
 ===Advanced Opt. options===
