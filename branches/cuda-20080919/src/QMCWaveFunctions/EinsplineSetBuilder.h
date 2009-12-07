@@ -20,6 +20,7 @@
 #include "QMCWaveFunctions/EinsplineSet.h"
 #include "Numerics/HDFNumericAttrib.h"
 #include <map>
+#include <fftw3.h>
 
 class Communicate;
 
@@ -149,9 +150,11 @@ namespace qmcplusplus {
     FormatType Format;
     TinyVector<int,2> Version;
     string parameterGroup, ionsGroup, eigenstatesGroup;
+    vector<int> Occ;
     bool HaveLocalizedOrbs;
     bool ReadOrbitalInfo ();
     bool ReadOrbitalInfo_ESHDF ();
+    void ReadGvectors_ESHDF();
     void BroadcastOrbitalInfo();
 
 
@@ -159,6 +162,11 @@ namespace qmcplusplus {
     UnitCellType SuperCell, PrimCell, PrimCellInv;
     int NumBands, NumElectrons, NumSpins, NumTwists, 
       NumCoreStates;
+    RealType MeshFactor;
+    TinyVector<int,3> MeshSize;
+    vector<vector<TinyVector<int,3> > > Gvecs;
+    fftw_plan FFTplan;
+    Array<complex<double>,3> FFTbox;
     Vector<int> IonTypes;
     Vector<TinyVector<double,OHMMS_DIM> > IonPos;
     /////////////////////////////
@@ -222,6 +230,11 @@ namespace qmcplusplus {
     // spin-restricted calculations.                           //
     /////////////////////////////////////////////////////////////
     int LastSpinSet, NumOrbitalsRead;
+    
+    bool makeRotations;
+    std::vector<RealType> rotationMatrix;
+    std::vector<int> rotatedOrbitals;
+    void RotateBands_ESHDF(int spin, EinsplineSetExtended<complex<double > >* orbitalSet);
   }; 
 }
 
