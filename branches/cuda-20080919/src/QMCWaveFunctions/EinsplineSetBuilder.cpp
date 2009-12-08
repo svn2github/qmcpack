@@ -714,10 +714,10 @@ namespace qmcplusplus {
     attribs.add (sourceName, "source");
     attribs.add (useGPU,     "gpu");    
     attribs.add (useGPU,     "cuda");
+    attribs.add (MeshFactor, "meshfactor");
     attribs.put (XMLRoot);
     attribs.add (numOrbs,    "size");
     attribs.add (numOrbs,    "norbs");
-    attribs.add (MeshFactor, "meshfactor");
     attribs.put (cur);
 
     ///////////////////////////////////////////////
@@ -2201,6 +2201,9 @@ namespace qmcplusplus {
     MeshSize[0] = (int)std::ceil(4.0*MeshFactor*maxIndex[0]);
     MeshSize[1] = (int)std::ceil(4.0*MeshFactor*maxIndex[1]);
     MeshSize[2] = (int)std::ceil(4.0*MeshFactor*maxIndex[2]);
+    app_log() << "B-spline mesh factor is " << MeshFactor << endl;
+    app_log() << "B-spline mesh size is (" << MeshSize[0] << ", "
+	      << MeshSize[1] << ", " << MeshSize[2] << ")\n";
   }
 
   void
