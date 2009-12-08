@@ -99,12 +99,9 @@ ecut  200.0         # Maximal kinetic energy cut-off, in Hartree
 chkprim 0
 
 
-#Definition of the k-point grid
-##################################
-# USE THESE FOR CASINO OUTPUT!!! #
-##################################
-kptopt 0          # Manual k-points
-nkpt 1
+# Definition of the k-point grid
+kptopt 3          # Manual k-points
+ngkpt 1 1 1
 istwfk 1
 wtk 1
 
@@ -456,6 +453,22 @@ Below is the same example, run on the GPU version of the code:
 Larger crystal supercells require small changes to the input.  First, we need to run ABINIT with more k-points.  Then we will need to update the sizes and dimensions in the QMCPACK input.
 
 === 16-atom 2x2x2 supercell ===
+Copy cBNprim.in to cBN_222.in
+Change the k-point section of the cBN_222.in to the following:
+{{{
+# Definition of the k-point grid
+kptopt 3          # Manual k-points
+ngkpt 2 2 2
+istwfk 1
+nshiftk 1
+shiftk 0.0 0.0 0.0
+}}}
+This will use a 2x2x2 k-point grid centered at the gamma point of the supercell.
+To use the L point of the supercell, for example, change 
+{{{shiftk 0.0 0.0 0.0 }}}
+to
+{{{shiftk 0.5 0.5 0.5 }}}
+
 
 
 === 64-atom cubic supercell ===
