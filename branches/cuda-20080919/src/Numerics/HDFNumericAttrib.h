@@ -28,6 +28,43 @@
 
 
 namespace qmcplusplus {
+
+
+/** Specialization for string */
+/*
+template<>
+struct HDFAttribIO<string>: public HDFAttribIOBase {
+
+  std::string& ref;
+
+  HDFAttribIO<string>(string& a):ref(a) { }
+
+  inline void write(hid_t grp, const char* name) {
+    hsize_t dim = 1;
+    hid_t dataspace  = H5Screate_simple(1, &dim, NULL);
+    hid_t typeID = H5Tcopy (H5T_C_S1);
+    H5Tset_size(typeID, ref.size());
+    hid_t dataset =  
+      H5Dcreate(grp, name, typeID, dataspace, H5P_DEFAULT);
+    hid_t ret = 
+      H5Dwrite(dataset, typeID, H5S_ALL, H5S_ALL, H5P_DEFAULT,&(ref[0]));
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+    H5Tclose(typeID);
+  }
+
+  inline void read(hid_t grp, const char* name) {
+    hid_t h1 = H5Dopen(grp, name);
+    hid_t typeID = H5Dget_type(h1);
+    hsize_t len = H5Tget_size(typeID);
+    ref.resize(len);
+    hid_t ret = H5Dread(h1, typeID, H5S_ALL, H5S_ALL, H5P_DEFAULT, &(ref[0]));
+    H5Tclose(typeID);
+    H5Dclose(h1);
+  }
+  };*/
+
+
 /** Specialization for hsize_t */
 template<>
 struct HDFAttribIO<hsize_t>: public HDFAttribIOBase {
@@ -204,9 +241,10 @@ struct HDFAttribIO<TinyVector<double,D> >: public HDFAttribIOBase {
     H5Eget_auto (&func, &client_data);
     H5Eset_auto (NULL, NULL);
     hid_t h1 = H5Dopen(grp, name);
-    if(h1>-1)
+    if(h1>-1) {
       hid_t ret = H5Dread(h1, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &(ref[0]));
-    H5Dclose(h1);
+      H5Dclose(h1);
+    }
     H5Eset_auto (func, client_data);
   }
 };
@@ -422,6 +460,52 @@ struct HDFAttribIO<Vector<double> >: public HDFAttribIOBase {
   }
 
 };
+
+
+template<>
+struct HDFAttribIO<Vector<std::complex<double> > >: public HDFAttribIOBase {
+
+  typedef Vector<complex<double> > ArrayType_t;
+  ArrayType_t&  ref;
+
+  HDFAttribIO<ArrayType_t>(ArrayType_t& a):ref(a) { }
+
+  inline void write(hid_t grp, const char* name) {
+
+    hsize_t dim[2];
+    dim[0] = ref.size();
+    dim[1] = 2;
+    hid_t dataspace  = H5Screate_simple(2, dim, NULL);
+    hid_t dataset =  
+      H5Dcreate(grp, name, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT);
+    hid_t ret = 
+      H5Dwrite(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,ref.data());
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+  }
+
+  inline void read(hid_t grp, const char* name) {
+
+    hid_t h1 = H5Dopen(grp, name);
+    hid_t dataspace = H5Dget_space(h1);
+    hsize_t dims_out[2];
+    int rank = H5Sget_simple_extent_ndims(dataspace);
+    if (rank != 2) {
+      fprintf (stderr, "Error reading Vector<complex> in HDFNumericAttrib.h.\n");
+      abort();
+    }
+    int status_n = H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
+    if(ref.size() != int(dims_out[0])){
+      ref.resize(int(dims_out[0]));
+    }
+    hid_t ret = H5Dread(h1, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, ref.data());
+    H5Sclose(dataspace);
+    H5Dclose(h1);
+  }
+
+};
+
+
 
 /** Specialization for Vector<int>  */
 template<>
@@ -707,13 +791,26 @@ struct HDFAttribIO<Array<complex<double>,D> >: public HDFAttribIOBase
   typedef Array<complex<double>,D> ArrayType_t;
 
   ArrayType_t&  ref;
-  HDFAttribIO<ArrayType_t>(ArrayType_t& a):ref(a) { }
+  bool replace;
+  HDFAttribIO<ArrayType_t>(ArrayType_t& a, bool reuse=false):ref(a), replace(reuse) { }
   inline void write(hid_t grp, const char* name) 
   {
     const int rank = D+1;
     hsize_t dim[rank];
     for(int i=0; i<D; ++i) dim[i]=ref.size(i);
     dim[D] = 2;
+    
+    if(replace)
+    {
+      hid_t dataset =  H5Dopen(grp, name);
+      herr_t status = H5Dextend(dataset,dim);
+      hid_t dataspace = H5Screate_simple(rank, dim, NULL);
+      hid_t ret = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, dataspace, H5S_ALL, H5P_DEFAULT,ref.data());
+      H5Sclose(dataspace);
+      H5Dclose(dataset);
+    }
+    else
+    { 
     hid_t dataspace  = H5Screate_simple(rank, dim, NULL);
     hid_t dataset =  
       H5Dcreate(grp, name, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT);
@@ -721,6 +818,7 @@ struct HDFAttribIO<Array<complex<double>,D> >: public HDFAttribIOBase
       H5Dwrite(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,ref.data());
     H5Sclose(dataspace);
     H5Dclose(dataset);
+    }
   }
 
   inline void read(hid_t grp, const char* name) 
