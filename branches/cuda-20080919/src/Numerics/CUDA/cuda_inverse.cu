@@ -85,7 +85,7 @@ block_inverse (float* A, int N, int stride)
 
 template<typename T, int BS>
 __device__ T
-block_inverse1 (T A[BS][BS+1])
+block_inverse2 (T A[BS][BS+1])
 {
   __shared__ unsigned int ipiv[BS];
   __shared__ unsigned int kb;
@@ -186,6 +186,147 @@ block_inverse1 (T A[BS][BS+1])
 
 
 template<typename T, int BS>
+__device__ void block_mul2 (T A[BS][BS+1],
+			    T B[BS][BS+1],
+			    T C[BS][BS+1])
+{
+  int tid = threadIdx.x;
+  for (int row=0; row<BS; row++)
+    C[row][tid] = (T)0.0;
+  __syncthreads();
+
+  for (int k=0; k<BS; k++)
+    for (int i=0; i<BS; i++)
+      C[i][tid] += A[i][k]*B[k][tid];
+}  
+
+
+template<typename T, int BS>
+__device__ void block_mul_add2 (T A[BS][BS+1],
+				T B[BS][BS+1],
+				T *C, int Cstride)
+{
+  int tid = threadIdx.x;
+  __shared__ T Crow[2][BS];
+
+  for (int i=0; i<BS; i+=blockDim.y) {
+    Crow[threadIdx.y][tid] = C[(i+threadIdx.y)*Cstride + tid];
+    for (int k=0; k<BS; k++) 
+      Crow[threadIdx.y][tid] += A[i+threadIdx.y][k]*B[k][tid];
+    C[(i+threadIdx.y)*Cstride + tid] = Crow[threadIdx.y][tid];
+  }
+}  
+
+template<typename T, int BS>
+__device__ void block_mul_set2 (T A[BS][BS+1],
+				T B[BS][BS+1],
+				T *C, int Cstride)
+{
+  int tid = threadIdx.x;
+  __shared__ T Crow[2][BS];
+
+
+  for (int i=0; i<BS; i+=blockDim.y) {
+    Crow[threadIdx.y][tid] = (T)0.0;
+    for (int k=0; k<BS; k++) 
+      Crow[threadIdx.y][tid] += A[i+threadIdx.y][k]*B[k][tid];
+    C[(i+threadIdx.y)*Cstride + tid] = Crow[threadIdx.y][tid];
+  }
+}  
+
+
+
+template<typename T, int BS>
+__device__ T
+block_inverse1 (T A[BS][BS+1])
+{
+  __shared__ unsigned int ipiv[BS];
+  __shared__ unsigned int kb;
+  __shared__ T maxval[BS], mask[BS], pivotInv;
+  __shared__ T Arowk[BS], Acolk[BS];
+  ipiv[threadIdx.x] = threadIdx.x;
+  mask[threadIdx.x] = (T)1.0;
+  __syncthreads();
+
+  unsigned int tid = threadIdx.x;
+
+  __shared__ T det;
+  if (tid == 0)
+    det = (T)1.0;
+
+
+  for (int k=0; k<BS; k++) {
+    // First, find locate of maximum of kth column, excluding the
+    // first k rows through the mask.
+    maxval[tid] = mask[tid] * fabsf(A[tid][k]);
+    __syncthreads();
+
+    for (int bs = BS>>1; bs>0; bs=bs>>1) {
+      if (tid < bs) 
+	maxval[tid] =  max(maxval[tid], maxval[tid+bs]);
+      __syncthreads();
+    }
+
+    if ((mask[tid] * fabsf(A[tid][k])) == maxval[0]) {
+      kb = tid;
+      pivotInv = (T)1.0/A[tid][k];
+      if (kb == k)	det *= A[tid][k];
+      else              det *= -A[tid][k];
+    }
+
+
+    __syncthreads();
+
+    // Now kb holds pivot row and pivot the value
+    
+    // Swap rows
+    T tmp = A[k][tid];
+    A[k][tid] = A[kb][tid];
+    A[kb][tid] = tmp;
+    
+    // Swap pivot
+    if (tid == 0) {
+      int itmp = ipiv[kb];
+      ipiv[kb] = ipiv[k];
+      ipiv[k]  = itmp;
+    }
+    __syncthreads();
+
+    // Col k update
+    if (tid != k)
+      A[tid][k] = -pivotInv*A[tid][k];
+    else
+      A[k][k] = (T)0.0;
+    __syncthreads();
+
+    // Rank-1 update
+    Arowk[tid] = A[k][tid];
+    Acolk[tid] = A[tid][k];
+    __syncthreads();
+    for (int i=0; i<BS; i++) 
+      A[i][tid] += Arowk[tid]*Acolk[i];
+    __syncthreads();
+
+    // Row k update
+    if (tid != k) 
+      A[k][tid] *= pivotInv;
+    else {
+      A[k][k] = pivotInv;
+      mask[k] = 0.0;
+    }
+    __syncthreads();
+  }
+  // Finally, do backward pivoting
+  for (int i=0; i<BS; i++) {
+    Arowk[tid] = A[i][tid];
+    __syncthreads();
+    A[i][ipiv[tid]] = Arowk[tid];
+  }
+  return det;
+}
+
+
+template<typename T, int BS>
 __device__ void block_mul (T A[BS][BS+1],
 			   T B[BS][BS+1],
 			   T C[BS][BS+1])
@@ -207,13 +348,13 @@ __device__ void block_mul_add (T A[BS][BS+1],
 			       T *C, int Cstride)
 {
   int tid = threadIdx.x;
-  __shared__ T Crow[2][BS];
+  __shared__ T Crow[BS];
 
-  for (int i=0; i<BS; i+=blockDim.y) {
-    Crow[threadIdx.y][tid] = C[(i+threadIdx.y)*Cstride + tid];
+  for (int i=0; i<BS; i++) {
+    Crow[tid] = C[i*Cstride + tid];
     for (int k=0; k<BS; k++) 
-      Crow[threadIdx.y][tid] += A[i+threadIdx.y][k]*B[k][tid];
-    C[(i+threadIdx.y)*Cstride + tid] = Crow[threadIdx.y][tid];
+      Crow[tid] += A[i][k]*B[k][tid];
+    C[i*Cstride + tid] = Crow[tid];
   }
 }  
 
@@ -223,16 +364,17 @@ __device__ void block_mul_set (T A[BS][BS+1],
 			       T *C, int Cstride)
 {
   int tid = threadIdx.x;
-  __shared__ T Crow[2][BS];
+  __shared__ T Crow[BS];
 
 
-  for (int i=0; i<BS; i+=blockDim.y) {
-    Crow[threadIdx.y][tid] = (T)0.0;
+  for (int i=0; i<BS; i++) {
+    Crow[tid] = (T)0.0;
     for (int k=0; k<BS; k++) 
-      Crow[threadIdx.y][tid] += A[i+threadIdx.y][k]*B[k][tid];
-    C[(i+threadIdx.y)*Cstride + tid] = Crow[threadIdx.y][tid];
+      Crow[tid] += A[i][k]*B[k][tid];
+    C[i*Cstride + tid] = Crow[tid];
   }
 }  
+
 
 
 
@@ -355,7 +497,7 @@ inverse_many (T **A_list, T **work_list, int N, int stride)
 	pivot[j][tid] = A[(row+j)*stride + row+tid];
     
     // invert pivot
-    block_inverse1<T,BS> (pivot);
+    block_inverse2<T,BS> (pivot);
 
     // Column scaling
     int col = kb*BS;
@@ -366,7 +508,7 @@ inverse_many (T **A_list, T **work_list, int N, int stride)
 	  for (int j=0; j<BS; j++)
 	    in[j][tid] = -A[(row+j)*stride + col + tid];
 	__syncthreads();
-    	block_mul_set<T,BS>(in, pivot, A+row*stride+col, stride);
+    	block_mul_set2<T,BS>(in, pivot, A+row*stride+col, stride);
       }
       else if (threadIdx.y == 0)
     	for (int j=0; j<BS; j++)
@@ -396,7 +538,7 @@ inverse_many (T **A_list, T **work_list, int N, int stride)
 	  for (int i=0; i<BS; i++) 
 	    pivot[i][tid] = A[(kb*BS+i)*stride + jb*BS + tid];
 	__syncthreads();
-    	block_mul_add<T,BS>(in, pivot,  Atmp+(ib*BS)*stride + jb*BS,
+    	block_mul_add2<T,BS>(in, pivot,  Atmp+(ib*BS)*stride + jb*BS,
     			    stride);
 	__syncthreads();
       }
@@ -421,7 +563,7 @@ inverse_many (T **A_list, T **work_list, int N, int stride)
 	  for (int j=0; j<BS; j++)
 	    in[j][tid] = A[(row+j)*stride + col+tid];
 	__syncthreads();
-    	block_mul_set<T,BS>(pivot, in, A+row*stride+col, stride);
+    	block_mul_set2<T,BS>(pivot, in, A+row*stride+col, stride);
       }
       else {
 	if (threadIdx.y == 0)
@@ -449,12 +591,13 @@ inverse_many_pivot (T **A_list, T **work_list, int N, int stride)
     det = (T)1.0;
   }
   ipiv[tid] = tid;
+  ipiv[tid+BS] = tid+BS;
   __syncthreads();
 
   T *Atmp = work;
   T *pivot_tmp = work+N*stride;
 
-  __shared__ T pivot[BS][BS+1], in[BS][BS+1];
+  __shared__ T pivot[BS][BS+1], in[MAX_BLOCKS][BS+1];
 
 
   int NB = N/BS;
@@ -754,15 +897,16 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
 
 
   // Do the inversion in double-precision
-  dim3 dimBlock(INVERSE_BS,2);
   dim3 dimGrid(num_mats);
   
   // This appears to cause NANs for certain matrix sizes on occasion.
   // Check the pivoting algorithm.
-  inverse_many<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
-    ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-//   inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+//   dim3 dimBlock(INVERSE_BS,2);
+//   inverse_many<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
 //     ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+  dim3 dimBlock(INVERSE_BS);
+  inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+    ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
 
 
 
@@ -1044,8 +1188,8 @@ test_inverse_many_double_conv()
   srand48((long) 12394);
   int numMats = 100;
 
-  int N = 352;
-  int row_stride = 352;
+  int N = 288;
+  int row_stride = 288;
 
   int lwork = cuda_inverse_many_double_worksize(N);
   fprintf (stderr, "lwork = %d\n", lwork);
@@ -1058,10 +1202,10 @@ test_inverse_many_double_conv()
   cudaMalloc((void**)&Alist_d,    numMats*sizeof(float*));
   cudaMalloc((void**)&worklist_d, numMats*sizeof(float*));
 
-  float A[numMats*N*row_stride];
+  float *A = (float*)malloc(sizeof(float)*numMats*N*row_stride);
   for (int j=0; j<numMats; j++)
     for (int i=0; i<N*row_stride; i++)
-      A[j*N*row_stride+i] = 1.0e-30*(drand48()-0.5);
+      A[j*N*row_stride+i] = 1.0e-3*(drand48()-0.5);
 
   for (int mat=0; mat<numMats; mat++) {
     cudaMalloc ((void**)&(Alist[mat]),    N*row_stride*sizeof(float));
