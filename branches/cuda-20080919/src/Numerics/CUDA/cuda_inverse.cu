@@ -722,6 +722,108 @@ inverse_many_pivot (T **A_list, T **work_list, int N, int stride)
   }
 }
 
+
+template<typename T, int BS>
+__global__ void
+inverse_many_naive (T **A_list, T **work_list, int N, int stride)
+{
+  int tid = threadIdx.x;
+  __shared__ T *A;
+  if (tid == 0) 
+    A    = A_list[blockIdx.x];
+  __syncthreads();
+
+  __shared__ T colk[BS], rowk[BS];
+
+  for (int k=0; k<N; k++) {
+    rowk[tid] = A[k*stride+tid];
+    __syncthreads();
+    T pivInv = 1.0/rowk[k];
+    __syncthreads();
+    if (tid == k) rowk[k] = T();
+    // Column scaling
+    colk[tid] = (tid==k) ? T() : -pivInv*A[tid*stride+k];
+    __syncthreads();
+    A[tid*stride+k] = colk[tid];
+    __syncthreads();
+    // Rank-1 update
+    for (int j=0; j<N; j++)
+      A[j*stride+tid] += colk[j]*rowk[tid];
+    __syncthreads();
+    // Row scaling
+    A[k*stride + tid] = pivInv * ((tid==k) ? 1.0 : rowk[tid]);
+    __syncthreads();
+  }
+}
+
+
+template<typename T, int BS>
+__global__ void
+inverse_many_naive_pivot (T **A_list, T **work_list, int N, int stride)
+{
+  int tid = threadIdx.x;
+  __shared__ T *A;
+  if (tid == 0) 
+    A    = A_list[blockIdx.x];
+  __syncthreads();
+  __shared__ int kbar, ipiv[BS];  
+  __shared__ T colk[BS], rowk[BS];
+
+  ipiv[tid] = tid;
+  __syncthreads();
+  for (int k=0; k<N; k++) {
+    // Find location of largest element in the column at or below k
+    colk[tid] = (tid < k) ? 0.0 : fabs(A[tid*stride+k]);
+    rowk[tid] = colk[tid];
+    __syncthreads();
+    int skip = 1<<((int)ceil(log2((double)BS)-1.0e-6)-1);
+    for (; skip>0; skip>>=1) {
+      if (tid < skip && (tid+skip)<N)
+    	colk[tid] = max(colk[tid],colk[tid+skip]);
+      __syncthreads();
+    }
+    if (rowk[tid] == colk[0]) {
+      kbar = tid;
+      int i = ipiv[tid];
+      ipiv[tid] = ipiv[k];
+      ipiv[k]   = i;
+    }
+    __syncthreads();
+    // Swap rows
+    rowk[tid] = A[kbar*stride + tid];
+    colk[tid] = A[k   *stride + tid];
+    __syncthreads();
+    A[k   *stride + tid] = rowk[tid];
+    A[kbar*stride + tid] = colk[tid];
+    __syncthreads();
+    T pivInv = 1.0/rowk[k];
+    if (tid == k) rowk[k] = T();
+    // Column scaling
+    colk[tid] = (tid==k) ? T() : -pivInv*A[tid*stride+k];
+    __syncthreads();
+    A[tid*stride+k] = colk[tid];
+    __syncthreads();
+    // Rank-1 update
+    for (int j=0; j<N; j++)
+      A[j*stride+tid] += colk[j]*rowk[tid];
+    __syncthreads();
+    // Row scaling
+    A[k*stride + tid] = pivInv * ((tid==k) ? 1.0 : rowk[tid]);
+    __syncthreads();
+  }
+  // Now, permute columns one row at a time in shared memory
+  for (int k=0; k<N; k++) {
+    rowk[tid] = A[k*stride+tid];
+    __syncthreads();
+    colk[ipiv[tid]] = rowk[tid];
+    __syncthreads();
+    A[k*stride+tid] = colk[tid];
+    __syncthreads();
+  }
+}
+
+
+
 #define CONVERT_BS 256
 
 
@@ -904,9 +1006,168 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
 //   dim3 dimBlock(INVERSE_BS,2);
 //   inverse_many<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
 //     ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-  dim3 dimBlock(INVERSE_BS);
-  inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
-    ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+  // dim3 dimBlock(INVERSE_BS);
+  // inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+  //   ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+  int NB = (N+31)/32;
+  int BS=0;
+  dim3 dimBlock(NB*32);
+  switch (NB) {
+    case 1:
+      inverse_many_naive_pivot<double,32><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=32;
+      break;
+    case 2:
+      inverse_many_naive_pivot<double,64><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=64;
+      break;
+    case 3:
+      inverse_many_naive_pivot<double,96><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=96;
+      break;
+    case 4:
+      inverse_many_naive_pivot<double,128><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=128;
+      break;
+    case 5:
+      inverse_many_naive_pivot<double,160><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=160;
+      break;
+    case 6:
+      inverse_many_naive_pivot<double,192><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=192;
+      break;
+    case 7:
+      inverse_many_naive_pivot<double,224><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=224;
+      break;
+    case 8:
+      inverse_many_naive_pivot<double,256><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=256;
+      break;
+    case 9:
+      inverse_many_naive_pivot<double,288><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=288;
+      break;
+    case 10:
+      inverse_many_naive_pivot<double,320><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=320;
+      break;
+    case 11:
+      inverse_many_naive_pivot<double,352><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=352;
+      break;
+    case 12:
+      inverse_many_naive_pivot<double,384><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=384;
+      break;
+    case 13:
+      inverse_many_naive_pivot<double,416><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      break;
+    case 14:
+      inverse_many_naive_pivot<double,448><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=448;
+      break;
+    case 15:
+      inverse_many_naive_pivot<double,480><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=480;
+      break;
+    case 16:
+      inverse_many_naive_pivot<double,512><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=512;
+      break;
+    case 17:
+      inverse_many_naive_pivot<double,544><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=544;
+      break;
+    case 18:
+      inverse_many_naive_pivot<double,576><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=576;
+      break;
+    case 19:
+      inverse_many_naive_pivot<double,608><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=608;
+      break;
+    case 20:
+      inverse_many_naive_pivot<double,640><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=640;
+      break;
+    case 21:
+      inverse_many_naive_pivot<double,672><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=672;
+      break;
+    case 22:
+      inverse_many_naive_pivot<double,704><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=704;
+      break;
+    case 23:
+      inverse_many_naive_pivot<double,736><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=736;
+      break;
+    case 24:
+      inverse_many_naive_pivot<double,768><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=768;
+      break;
+    case 25:
+      inverse_many_naive_pivot<double,800><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=800;
+      break;
+    // case 26:
+    //   inverse_many_naive_pivot<double,832><<<dimGrid,dimBlock>>> 
+    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+    //  break;
+    // case 27:
+    //   inverse_many_naive_pivot<double,864><<<dimGrid,dimBlock>>> 
+    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+    //  break;
+    // case 28:
+    //   inverse_many_naive_pivot<double,896><<<dimGrid,dimBlock>>> 
+    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+    //  break;
+    // case 29:
+    //   inverse_many_naive_pivot<double,928><<<dimGrid,dimBlock>>> 
+    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+    //  break;
+    // case 30:
+    //   inverse_many_naive_pivot<double,960><<<dimGrid,dimBlock>>> 
+    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+    //  break;
+    // case 31:
+    //   inverse_many_naive_pivot<double,992><<<dimGrid,dimBlock>>> 
+    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+    //  break;
+    // case 32:
+    //   inverse_many_naive_pivot<double,1024><<<dimGrid,dimBlock>>> 
+    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+
+    default:
+      fprintf (stderr, "N=%d is larger than maximum 640 in cuda_inverse_many_double.\n");
+  };
 
 
 
@@ -916,7 +1177,7 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
     char buff[500];
     gethostname(buff, 500);
     fprintf (stderr, "CUDA error in inverse_many<double,%d>:\n  %s\n",
-	     INVERSE_BS, cudaGetErrorString(err));
+	     BS, cudaGetErrorString(err));
     fprintf (stderr, "Hostname = %s\n", buff);
 
     abort();
@@ -1026,7 +1287,7 @@ test_inverse()
 void 
 test_inverse_many()
 {
-  int numMats = 1000;
+  int numMats = 10000;
 
   int N = 128;
 
@@ -1188,8 +1449,8 @@ test_inverse_many_double_conv()
   srand48((long) 12394);
   int numMats = 100;
 
-  int N = 288;
-  int row_stride = 288;
+  int N = 244;
+  int row_stride = 256;
 
   int lwork = cuda_inverse_many_double_worksize(N);
   fprintf (stderr, "lwork = %d\n", lwork);
@@ -1205,7 +1466,7 @@ test_inverse_many_double_conv()
   float *A = (float*)malloc(sizeof(float)*numMats*N*row_stride);
   for (int j=0; j<numMats; j++)
     for (int i=0; i<N*row_stride; i++)
-      A[j*N*row_stride+i] = 1.0e-3*(drand48()-0.5);
+      A[j*N*row_stride+i] = 1.0*(drand48()-0.5);
 
   for (int mat=0; mat<numMats; mat++) {
     cudaMalloc ((void**)&(Alist[mat]),    N*row_stride*sizeof(float));
