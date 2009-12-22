@@ -7,6 +7,7 @@
 #include <map>
 #include <vector>
 #include <cmath>
+#include <cstdlib>
 
 #ifdef QMC_CUDA
 #include <cuda_runtime_api.h>

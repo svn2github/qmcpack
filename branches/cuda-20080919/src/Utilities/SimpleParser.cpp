@@ -15,8 +15,9 @@
 //   Ohio Supercomputer Center
 //////////////////////////////////////////////////////////////////
 // -*- C++ -*-
-#include <stdio.h>
+#include <cstdio>
 #include <string.h>
+#include <cstdlib>
 
 #include "Utilities/SimpleParser.h"
 #include <algorithm>

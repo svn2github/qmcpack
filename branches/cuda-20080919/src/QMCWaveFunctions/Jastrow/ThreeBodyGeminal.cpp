@@ -23,6 +23,7 @@
 using namespace std;
 #include "Numerics/MatrixOperators.h"
 #include "OhmmsData/AttributeSet.h"
+#include <cstdlib>
 
 namespace qmcplusplus {
 

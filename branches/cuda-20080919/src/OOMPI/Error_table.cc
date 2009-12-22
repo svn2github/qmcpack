@@ -17,7 +17,7 @@
 #include <iostream>
 
 #include <stdarg.h>
-
+#include <cstdlib>
 #include "Constants.h"
 #include "Error.h"
 #include "Comm.h"
