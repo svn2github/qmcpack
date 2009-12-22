@@ -22,6 +22,9 @@
  *The arguments are stored in std::vector<string>. 
  *
  */
+
+#include <cstdlib>
+
 namespace APPNAMESPACE {
 /** dummy template class to be specialized */
 template<class CL>
