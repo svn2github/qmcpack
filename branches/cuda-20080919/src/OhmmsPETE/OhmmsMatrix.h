@@ -23,6 +23,7 @@
 
 #include <vector>
 #include <iostream>
+#include <cstdlib>
 
 namespace APPNAMESPACE {
 
