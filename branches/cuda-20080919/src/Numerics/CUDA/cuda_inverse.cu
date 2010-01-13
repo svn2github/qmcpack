@@ -1006,167 +1006,268 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
 //   dim3 dimBlock(INVERSE_BS,2);
 //   inverse_many<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
 //     ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-  // dim3 dimBlock(INVERSE_BS);
-  // inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
-  //   ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-  int NB = (N+31)/32;
+//   dim3 dimBlock(INVERSE_BS);
+//   inverse_many_pivot<double,INVERSE_BS><<<dimGrid,dimBlock>>> 
+//     ((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+
+
+  int NB = (N+15)/16;
   int BS=0;
-  dim3 dimBlock(NB*32);
+  dim3 dimBlock(NB*16);
   switch (NB) {
     case 1:
+      inverse_many_naive_pivot<double,16><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=16;
+      break;
+    case 2:
       inverse_many_naive_pivot<double,32><<<dimGrid,dimBlock>>> 
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
       BS=32;
       break;
-    case 2:
+    case 3:
+      inverse_many_naive_pivot<double,48><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=48;
+      break;
+    case 4:
       inverse_many_naive_pivot<double,64><<<dimGrid,dimBlock>>> 
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
       BS=64;
       break;
-    case 3:
+    case 5:
+      inverse_many_naive_pivot<double,80><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=80;
+      break;
+    case 6:
       inverse_many_naive_pivot<double,96><<<dimGrid,dimBlock>>> 
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
       BS=96;
       break;
-    case 4:
+    case 7:
+      inverse_many_naive_pivot<double,112><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=112;
+      break;
+    case 8:
       inverse_many_naive_pivot<double,128><<<dimGrid,dimBlock>>> 
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
       BS=128;
       break;
-    case 5:
+    case 9:
+      inverse_many_naive_pivot<double,144><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=144;
+      break;
+    case 10:
       inverse_many_naive_pivot<double,160><<<dimGrid,dimBlock>>> 
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
       BS=160;
       break;
-    case 6:
+    case 11:
+      inverse_many_naive_pivot<double,176><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=176;
+      break;
+    case 12:
       inverse_many_naive_pivot<double,192><<<dimGrid,dimBlock>>> 
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
       BS=192;
       break;
-    case 7:
+    case 13:
+      inverse_many_naive_pivot<double,208><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 208;
+      break;
+    case 14:
       inverse_many_naive_pivot<double,224><<<dimGrid,dimBlock>>> 
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
       BS=224;
       break;
-    case 8:
+    case 15:
+      inverse_many_naive_pivot<double,240><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=240;
+      break;
+    case 16:
       inverse_many_naive_pivot<double,256><<<dimGrid,dimBlock>>> 
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
       BS=256;
       break;
-    case 9:
+    case 17:
+      inverse_many_naive_pivot<double,272><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=272;
+      break;
+    case 18:
       inverse_many_naive_pivot<double,288><<<dimGrid,dimBlock>>> 
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
       BS=288;
       break;
-    case 10:
+    case 19:
+      inverse_many_naive_pivot<double,304><<<dimGrid,dimBlock>>> 
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS=304;
+      break;
+    case 20:
       inverse_many_naive_pivot<double,320><<<dimGrid,dimBlock>>> 
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
       BS=320;
       break;
-    case 11:
-      inverse_many_naive_pivot<double,352><<<dimGrid,dimBlock>>> 
-	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=352;
-      break;
-    case 12:
-      inverse_many_naive_pivot<double,384><<<dimGrid,dimBlock>>> 
-	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=384;
-      break;
-    case 13:
-      inverse_many_naive_pivot<double,416><<<dimGrid,dimBlock>>> 
-	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      break;
-    case 14:
-      inverse_many_naive_pivot<double,448><<<dimGrid,dimBlock>>> 
-	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=448;
-      break;
-    case 15:
-      inverse_many_naive_pivot<double,480><<<dimGrid,dimBlock>>> 
-	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=480;
-      break;
-    case 16:
-      inverse_many_naive_pivot<double,512><<<dimGrid,dimBlock>>> 
-	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=512;
-      break;
-    case 17:
-      inverse_many_naive_pivot<double,544><<<dimGrid,dimBlock>>> 
-	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=544;
-      break;
-    case 18:
-      inverse_many_naive_pivot<double,576><<<dimGrid,dimBlock>>> 
-	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=576;
-      break;
-    case 19:
-      inverse_many_naive_pivot<double,608><<<dimGrid,dimBlock>>> 
-	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=608;
-      break;
-    case 20:
-      inverse_many_naive_pivot<double,640><<<dimGrid,dimBlock>>> 
-	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=640;
-      break;
     case 21:
-      inverse_many_naive_pivot<double,672><<<dimGrid,dimBlock>>> 
+      inverse_many_naive_pivot<double,336><<<dimGrid,dimBlock>>> 
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=672;
+      BS=336;
       break;
     case 22:
-      inverse_many_naive_pivot<double,704><<<dimGrid,dimBlock>>> 
+      inverse_many_naive_pivot<double,352><<<dimGrid,dimBlock>>>
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=704;
+      BS = 352;
       break;
     case 23:
-      inverse_many_naive_pivot<double,736><<<dimGrid,dimBlock>>> 
+      inverse_many_naive_pivot<double,368><<<dimGrid,dimBlock>>>
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=736;
+      BS = 368;
       break;
     case 24:
-      inverse_many_naive_pivot<double,768><<<dimGrid,dimBlock>>> 
+      inverse_many_naive_pivot<double,384><<<dimGrid,dimBlock>>>
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=768;
+      BS = 384;
       break;
     case 25:
-      inverse_many_naive_pivot<double,800><<<dimGrid,dimBlock>>> 
+      inverse_many_naive_pivot<double,400><<<dimGrid,dimBlock>>>
 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-      BS=800;
+      BS = 400;
       break;
-    // case 26:
-    //   inverse_many_naive_pivot<double,832><<<dimGrid,dimBlock>>> 
-    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-    //  break;
-    // case 27:
-    //   inverse_many_naive_pivot<double,864><<<dimGrid,dimBlock>>> 
-    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-    //  break;
-    // case 28:
-    //   inverse_many_naive_pivot<double,896><<<dimGrid,dimBlock>>> 
-    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-    //  break;
-    // case 29:
-    //   inverse_many_naive_pivot<double,928><<<dimGrid,dimBlock>>> 
-    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-    //  break;
-    // case 30:
-    //   inverse_many_naive_pivot<double,960><<<dimGrid,dimBlock>>> 
-    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-    //  break;
-    // case 31:
-    //   inverse_many_naive_pivot<double,992><<<dimGrid,dimBlock>>> 
-    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
-    //  break;
-    // case 32:
-    //   inverse_many_naive_pivot<double,1024><<<dimGrid,dimBlock>>> 
-    // 	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+    case 26:
+      inverse_many_naive_pivot<double,416><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 416;
+      break;
+    case 27:
+      inverse_many_naive_pivot<double,432><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 432;
+      break;
+    case 28:
+      inverse_many_naive_pivot<double,448><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 448;
+      break;
+    case 29:
+      inverse_many_naive_pivot<double,464><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 464;
+      break;
+    case 30:
+      inverse_many_naive_pivot<double,480><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 480;
+      break;
+    case 31:
+      inverse_many_naive_pivot<double,496><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 496;
+      break;
+    case 32:
+      inverse_many_naive_pivot<double,512><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 512;
+      break;
+    case 33:
+      inverse_many_naive_pivot<double,528><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 528;
+      break;
+    case 34:
+      inverse_many_naive_pivot<double,544><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 544;
+      break;
+    case 35:
+      inverse_many_naive_pivot<double,560><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 560;
+      break;
+    case 36:
+      inverse_many_naive_pivot<double,576><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 576;
+      break;
+    case 37:
+      inverse_many_naive_pivot<double,592><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 592;
+      break;
+    case 38:
+      inverse_many_naive_pivot<double,608><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 608;
+    break;
+    case 39:
+      inverse_many_naive_pivot<double,624><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 624;
+      break;
+    case 40:
+      inverse_many_naive_pivot<double,640><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 640;
+      break;
+    case 41:
+      inverse_many_naive_pivot<double,656><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 656;
+      break;
+    case 42:
+      inverse_many_naive_pivot<double,672><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 672;
+      break;
+    case 43:
+      inverse_many_naive_pivot<double,688><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 688;
+      break;
+    case 44:
+      inverse_many_naive_pivot<double,704><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 704;
+      break;
+    case 45:
+      inverse_many_naive_pivot<double,720><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 720;
+      break;
+    case 46:
+      inverse_many_naive_pivot<double,736><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 736;
+      break;
+    case 47:
+      inverse_many_naive_pivot<double,752><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 752;
+      break;
+    case 48:
+      inverse_many_naive_pivot<double,768><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 768;
+      break;
+    case 49:
+      inverse_many_naive_pivot<double,784><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 784;
+      break;
+    case 50:
+      inverse_many_naive_pivot<double,800><<<dimGrid,dimBlock>>>
+	((double**)Alist_d, (double**)worklist_d, N_double, N_double);
+      BS = 800;
+      break;
 
     default:
-      fprintf (stderr, "N=%d is larger than maximum 640 in cuda_inverse_many_double.\n");
+      fprintf (stderr, "N=%d is larger than maximum 800 in cuda_inverse_many_double.\n");
   };
 
 
