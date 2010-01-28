@@ -773,6 +773,7 @@ inverse_many_naive_pivot (T **A_list, T **work_list, int N, int stride)
   __syncthreads();
   __shared__ int kbar, ipiv[BS];  
   __shared__ T colk[BS], rowk[BS];
+  __shared__ short imax[BS];
 
   ipiv[tid] = tid;
   __syncthreads();
@@ -782,17 +783,30 @@ inverse_many_naive_pivot (T **A_list, T **work_list, int N, int stride)
     rowk[tid] = colk[tid];
     __syncthreads();
     int skip = 1<<((int)ceil(log2((double)BS)-1.0e-6)-1);
+    imax[tid] = tid;
+    __syncthreads();
     for (; skip>0; skip>>=1) {
-      if (tid < skip && (tid+skip)<N)
-    	colk[tid] = max(colk[tid],colk[tid+skip]);
+      if (tid < skip && (tid+skip)<N) 
+    	// colk[tid] = max(colk[tid],colk[tid+skip]);
+	if (colk[tid+skip] > colk[tid]) {
+	  imax[tid] = imax[tid+skip];
+	  colk[tid] = colk[tid+skip];
+	}
       __syncthreads();
     }
-    if (rowk[tid] == colk[0]) {
-      kbar = tid;
-      int i = ipiv[tid];
-      ipiv[tid] = ipiv[k];
-      ipiv[k]   = i;
+    if (tid == 0) {
+      kbar = imax[0];
+      int i = ipiv[kbar];
+      ipiv[kbar] = ipiv[k];
+      ipiv[k] = i;
     }
+    
+    // if (rowk[tid] == colk[0]) {
+    //   kbar = tid;
+    //   int i = ipiv[tid];
+    //   ipiv[tid] = ipiv[k];
+    //   ipiv[k]   = i;
+    // }
     __syncthreads();
     // Swap rows
     rowk[tid] = A[kbar*stride + tid];
@@ -1296,29 +1310,29 @@ cuda_inverse_many_double (float *Alist_d[], float *worklist_d[],
 	((double**)Alist_d, (double**)worklist_d, N, N_double);
       BS = 736;
       break;
-    case 47:
-      inverse_many_naive_pivot<double,752><<<dimGrid,dimBlock>>>
-	((double**)Alist_d, (double**)worklist_d, N, N_double);
-      BS = 752;
-      break;
-    case 48:
-      inverse_many_naive_pivot<double,768><<<dimGrid,dimBlock>>>
-	((double**)Alist_d, (double**)worklist_d, N, N_double);
-      BS = 768;
-      break;
-    case 49:
-      inverse_many_naive_pivot<double,784><<<dimGrid,dimBlock>>>
-	((double**)Alist_d, (double**)worklist_d, N, N_double);
-      BS = 784;
-      break;
-    case 50:
-      inverse_many_naive_pivot<double,800><<<dimGrid,dimBlock>>>
-	((double**)Alist_d, (double**)worklist_d, N, N_double);
-      BS = 800;
-      break;
+    // case 47:
+    //   inverse_many_naive_pivot<double,752><<<dimGrid,dimBlock>>>
+    // 	((double**)Alist_d, (double**)worklist_d, N, N_double);
+    //   BS = 752;
+    //   break;
+    // case 48:
+    //   inverse_many_naive_pivot<double,768><<<dimGrid,dimBlock>>>
+    // 	((double**)Alist_d, (double**)worklist_d, N, N_double);
+    //   BS = 768;
+    //   break;
+    // case 49:
+    //   inverse_many_naive_pivot<double,784><<<dimGrid,dimBlock>>>
+    // 	((double**)Alist_d, (double**)worklist_d, N, N_double);
+    //   BS = 784;
+    //   break;
+    // case 50:
+    //   inverse_many_naive_pivot<double,800><<<dimGrid,dimBlock>>>
+    // 	((double**)Alist_d, (double**)worklist_d, N, N_double);
+    //   BS = 800;
+    //   break;
 
     default:
-      fprintf (stderr, "N=%d is larger than maximum 800 in cuda_inverse_many_double.\n");
+      fprintf (stderr, "N=%d is larger than maximum 736 in cuda_inverse_many_double.\n");
   };
 
   cudaThreadSynchronize();
