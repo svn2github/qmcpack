@@ -178,7 +178,6 @@ namespace qmcplusplus {
      */
     Return_t evaluate(ParticleSet& P);
 
-
     /** evaluate Local and NonLocal energies
      * @param P ParticleSEt
      * @param Txy transition matrix of nonlocal Hamiltonians

@@ -224,7 +224,7 @@ namespace qmcplusplus {
     NumWalkers=0;
     MCWalkerConfiguration::iterator it_end(W.end());
     RealType esum=0.0,e2sum=0.0,wsum=0.0,ecum=0.0, w2sum=0.0;
-    RealType r2_accepted=0.0,r2_proposed=0.0;
+    RealType r2_accepted=1e-10,r2_proposed=1e-10;
     //RealType sigma=std::max(5.0*targetVar,targetEnergyBound);
     //RealType ebar= targetAvg;
     while(it != it_end) 

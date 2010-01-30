@@ -44,7 +44,7 @@ namespace qmcplusplus
 
   bool VMCSingleOMP::run()
   {
-    resetRun();
+    resetVMC();
 
     //start the main estimator
     Estimators->start(nBlocks);
@@ -95,7 +95,7 @@ namespace qmcplusplus
     return finalize(nBlocks);
   }
 
-  void VMCSingleOMP::resetRun()
+  void VMCSingleOMP::resetVMC()
   {
     makeClones(W,Psi,H);
 
@@ -179,7 +179,7 @@ namespace qmcplusplus
                   Movers[ip]=new VMCUpdatePbyPWithDriftFast(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]);
                 else
                   Movers[ip]=new VMCUpdatePbyP(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]);
-                //Movers[ip]->resetRun(branchClones[ip],estimatorClones[ip]);
+                //Movers[ip]->resetVMC(branchClones[ip],estimatorClones[ip]);
               }
             else
               {
@@ -188,7 +188,7 @@ namespace qmcplusplus
                   Movers[ip]=new VMCUpdateAllWithDrift(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]);
                 else
                   Movers[ip]=new VMCUpdateAll(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]);
-                //Movers[ip]->resetRun(branchClones[ip],estimatorClones[ip]);
+                //Movers[ip]->resetVMC(branchClones[ip],estimatorClones[ip]);
               }
           }
       }

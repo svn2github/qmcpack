@@ -34,7 +34,7 @@ namespace qmcplusplus {
   }
   
   bool VMCSingle::run() { 
-    resetRun();
+    resetVMC();
 
     Mover->startRun(nBlocks,true);
 
@@ -77,7 +77,7 @@ namespace qmcplusplus {
     return finalize(block);
   }
 
-  void VMCSingle::resetRun()
+  void VMCSingle::resetVMC()
   {
 
     int samples_tot=W.getActiveWalkers()*nBlocks*nSteps*myComm->size();

@@ -48,7 +48,7 @@ namespace qmcplusplus {
     /// Copy operator (disabled).
     VMCSingle& operator=(const VMCSingle&) { return *this;}
     ///hide initialization from the main function
-    void resetRun();
+    void resetVMC();
   };
 }
 

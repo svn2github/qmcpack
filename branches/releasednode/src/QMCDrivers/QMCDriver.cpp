@@ -78,7 +78,7 @@ namespace qmcplusplus {
     H1.push_back(h);
     Psi1.push_back(psi);
   }
-
+  
   /** process a <qmc/> element 
    * @param cur xmlNode with qmc tag
    *
@@ -335,7 +335,7 @@ namespace qmcplusplus {
 	tcur=tcur->next;
       }
     }
-    
+
     int Nthreads = omp_get_max_threads();
     int Nprocs=myComm->size();
 
@@ -343,7 +343,7 @@ namespace qmcplusplus {
     nTargetWalkers=std::max(Nthreads,nTargetWalkers);
 //     nTargetSamples is set to 
     nTargetSamples=std::max(int(nTargetWalkers*Nprocs*nSamplesPerThread),nTargetSamples);
-    
+
     if(nStepsBetweenSamples)
     {
       int nStepsTotal = std::ceil(RealType(nTargetSamples*nStepsBetweenSamples)/RealType(nTargetWalkers*Nprocs) );
@@ -354,12 +354,13 @@ namespace qmcplusplus {
       nStepsBetweenSamples = std::floor(RealType(nStepsTotal*nTargetWalkers*Nprocs)/RealType(nTargetSamples));
       Period4WalkerDump = nStepsBetweenSamples;
     }
-    else
+    else if (nTargetSamples)
     {
       int nStepsTotal =  nSteps*nBlocks;
       nStepsBetweenSamples = std::floor(RealType(nStepsTotal*nTargetWalkers*Nprocs)/RealType(nTargetSamples));
       Period4WalkerDump = nStepsBetweenSamples;
-    }      
+    }
+    else Period4WalkerDump=(nBlocks+1)*nSteps;
 
     if(Period4CheckPoint==0)  Period4CheckPoint=(nBlocks+1)*nSteps;
 

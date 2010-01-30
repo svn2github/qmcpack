@@ -44,7 +44,7 @@ namespace qmcplusplus
       string reweight;
       int weightLength,Eindex;
       ///check the run-time environments
-      void resetRun();
+      void resetVMC();
       ///copy constructor
       VMCSingleOMP(const VMCSingleOMP& a): QMCDriver(a),CloneManager(a) { }
       /// Copy operator (disabled).

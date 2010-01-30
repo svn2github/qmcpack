@@ -122,6 +122,7 @@ namespace qmcplusplus {
     /** initialize with xmlNode
      */
     void process(xmlNodePtr cur);
+    virtual void resetRun(xmlNodePtr cur){};
 
     /** return a xmlnode with update **/
     xmlNodePtr getQMCNode();
@@ -166,6 +167,9 @@ namespace qmcplusplus {
     void setTau(RealType i) {
       Tau=i;
     }
+    
+    ///resetComponents for next run if reusing a driver.
+    virtual void resetComponents(xmlNodePtr cur) {}
 
     ///Observables manager
     EstimatorManager* Estimators;

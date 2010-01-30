@@ -376,7 +376,9 @@ namespace qmcplusplus {
 
       qmcDriver->setStatus(myProject.CurrentMainRoot(),PrevConfigFile, append_run);
       qmcDriver->putWalkers(m_walkerset_in);
-      qmcDriver->process(cur);
+//       if (append_run) qmcDriver->resetRun(cur); 
+//       else 
+        qmcDriver->process(cur);
 
       Timer qmcTimer;
       qmcDriver->run();

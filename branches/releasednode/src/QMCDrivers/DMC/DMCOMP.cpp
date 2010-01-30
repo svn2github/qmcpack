@@ -47,6 +47,46 @@ namespace qmcplusplus {
       m_param.add(mover_MaxAge,"MaxAge","double");
       m_param.add(UseFastGrad,"fastgrad", "string");
     }
+    
+  void DMCOMP::resetComponents(xmlNodePtr cur)
+  {
+    m_param.put(cur);
+    put(cur);
+    
+    Estimators->reset();
+    branchEngine->resetRun(cur);
+    
+    
+#pragma omp parallel for
+      for(int ip=0; ip<NumThreads; ++ip)
+      {
+        delete Movers[ip]; delete estimatorClones[ip]; delete branchClones[ip];
+        estimatorClones[ip]= new EstimatorManager(*Estimators);
+        estimatorClones[ip]->setCollectionMode(false);
+
+        branchClones[ip] = new BranchEngineType(*branchEngine);
+        if(QMCDriverMode[QMC_UPDATE_MODE])
+        {
+          if(UseFastGrad == "yes")
+            Movers[ip] = new DMCUpdatePbyPWithRejectionFast(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]); 
+          else
+            Movers[ip] = new DMCUpdatePbyPWithRejection(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]); 
+          Movers[ip]->put(qmcNode);
+          Movers[ip]->resetRun(branchClones[ip],estimatorClones[ip]);
+        }
+        else
+        {
+          if(KillNodeCrossing) 
+            Movers[ip] = new DMCUpdateAllWithKill(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]);
+          else 
+            Movers[ip] = new DMCUpdateAllWithRejection(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]);
+          Movers[ip]->put(qmcNode);
+          Movers[ip]->resetRun(branchClones[ip],estimatorClones[ip]);
+        }
+      }
+    
+  }
+
 
   void DMCOMP::resetUpdateEngines() 
   {
@@ -161,6 +201,48 @@ namespace qmcplusplus {
       app_log() << o.str() << endl;
     }
     app_log() << "  DMC Engine Initialization = " << init_timer.elapsed() << " secs " << endl;
+  }
+  
+  void DMCOMP::resetRun(xmlNodePtr cur){
+     xmlNodePtr tcur(cur);
+     
+     m_param.put(tcur);
+     branchEngine->resetRun(tcur);
+     
+#pragma omp parallel for
+      for(int ip=0; ip<NumThreads; ++ip)
+      {
+        estimatorClones[ip]->setCollectionMode(false);
+        delete branchClones[ip]; delete Movers[ip];
+        branchClones[ip] = new BranchEngineType(*branchEngine);
+        if(QMCDriverMode[QMC_UPDATE_MODE])
+        {
+          if(UseFastGrad == "yes")
+            Movers[ip] = new DMCUpdatePbyPWithRejectionFast(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]); 
+          else
+            Movers[ip] = new DMCUpdatePbyPWithRejection(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]); 
+          Movers[ip]->put(qmcNode);
+          Movers[ip]->resetRun(branchClones[ip],estimatorClones[ip]);
+//           Movers[ip]->initWalkersForPbyP(W.begin()+wPerNode[ip],W.begin()+wPerNode[ip+1]);
+        }
+        else
+        {
+          if(KillNodeCrossing) 
+            Movers[ip] = new DMCUpdateAllWithKill(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]);
+          else 
+            Movers[ip] = new DMCUpdateAllWithRejection(*wClones[ip],*psiClones[ip],*hClones[ip],*Rng[ip]);
+          Movers[ip]->put(qmcNode);
+          Movers[ip]->resetRun(branchClones[ip],estimatorClones[ip]);
+//           Movers[ip]->initWalkers(W.begin()+wPerNode[ip],W.begin()+wPerNode[ip+1]);
+        }
+      }
+     
+     
+//      while(tcur!=NULL)
+//      {
+//        
+//        tcur=tcur->next;
+//      }
   }
 
   bool DMCOMP::run() {

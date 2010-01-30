@@ -587,6 +587,7 @@ void ParticleSet::rejectMove(Index_t iat) {
     PropertyList.add("R2Accepted");
     PropertyList.add("R2Proposed");
     PropertyList.add("DriftScale");
+    PropertyList.add("BranchingEnergy");
     PropertyList.add("LocalEnergy");
     PropertyList.add("LocalPotential");
 
