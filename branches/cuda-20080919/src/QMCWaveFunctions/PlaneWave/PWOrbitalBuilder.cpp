@@ -102,7 +102,7 @@ namespace qmcplusplus {
     myParam->put(cur);
 
     typedef SlaterDet SlaterDeterminant_t;
-    typedef DiracDeterminantBase Det_t;
+    typedef SlaterDet::Determinant_t Det_t;
 
     SlaterDeterminant_t* sdet(new SlaterDeterminant_t);
 

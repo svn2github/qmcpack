@@ -16,15 +16,22 @@
 #ifndef QMCPLUSPLUS_SLATERDETERMINANT_WITHBASE_H
 #define QMCPLUSPLUS_SLATERDETERMINANT_WITHBASE_H
 #include "QMCWaveFunctions/OrbitalBase.h"
-#include "QMCWaveFunctions/Fermion/DiracDeterminantBase.h"
-
+#ifdef QMC_CUDA
+  #include "QMCWaveFunctions/Fermion/DiracDeterminantCUDA.h"
+#else
+  #include "QMCWaveFunctions/Fermion/DiracDeterminantBase.h"
+#endif
 namespace qmcplusplus {
 
   class SlaterDet: public OrbitalBase {
 
   public:
 
+#ifdef QMC_CUDA
+    typedef DiracDeterminantCUDA Determinant_t;
+#else
     typedef DiracDeterminantBase Determinant_t;
+#endif
 
     /// constructor
     SlaterDet();

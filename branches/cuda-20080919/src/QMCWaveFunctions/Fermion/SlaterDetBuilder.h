@@ -32,7 +32,8 @@ namespace qmcplusplus {
   public:
 
     typedef SlaterDet SlaterDeterminant_t;
-    typedef DiracDeterminantBase Det_t;
+    typedef SlaterDet::Determinant_t Det_t;
+
     /** constructor
      * \param els reference to the electrons
      * \param psi reference to the wavefunction
