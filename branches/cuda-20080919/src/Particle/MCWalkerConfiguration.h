@@ -92,6 +92,7 @@ namespace qmcplusplus {
     // passed to GPU kernels.
 #ifdef QMC_CUDA
     gpu::device_vector<CUDA_PRECISION*> RList_GPU, GradList_GPU, LapList_GPU;
+    gpu::device_vector<CUDA_PRECISION*> DataList_GPU;
     gpu::device_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > Rnew_GPU;
     gpu::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > Rnew_host;    
     gpu::device_vector<int> iatList_GPU;

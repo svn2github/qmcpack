@@ -367,6 +367,7 @@ void MCWalkerConfiguration::updateLists_GPU()
     RList_GPU.resize(nw);
     GradList_GPU.resize(nw);
     LapList_GPU.resize(nw);
+    DataList_GPU.resize(nw);
   }
 
   gpu::host_vector<CUDA_PRECISION*> hostlist(nw);
@@ -390,7 +391,10 @@ void MCWalkerConfiguration::updateLists_GPU()
     hostlist[iw] = (CUDA_PRECISION*)WalkerList[iw]->Lap_GPU.data();
   }
   LapList_GPU = hostlist;
-  
+
+  for (int iw=0; iw<nw; iw++) 
+    hostlist[iw] = WalkerList[iw]->cuda_DataSet.data();
+  DataList_GPU = hostlist;
 }
 
 void MCWalkerConfiguration::copyWalkersToGPU(bool copyGrad)
