@@ -239,12 +239,20 @@ namespace qmcplusplus {
       ReportEngine PRE("BsplineFunctor","put(xmlNodePtr)");
       //CuspValue = -1.0e10;
       NumParams = 0;
-      cutoff_radius = 0.0;
+      real_type radius = 0.0;
       OhmmsAttributeSet rAttrib;
       rAttrib.add(NumParams,   "size");
-      rAttrib.add(cutoff_radius,        "rcut");
-      rAttrib.add(cutoff_radius,        "cutoff");
+      rAttrib.add(radius,        "rcut");
+      rAttrib.add(radius,        "cutoff");
       rAttrib.put(cur);
+
+      if (radius == 0.0) 
+	app_log() << "  Jastrow cutoff unspecified.  Setting to Wigner-Seitz radius = "
+		  << cutoff_radius << ".\n";
+      else
+	cutoff_radius = radius;
+
+	
 
       if (NumParams == 0) 
       {

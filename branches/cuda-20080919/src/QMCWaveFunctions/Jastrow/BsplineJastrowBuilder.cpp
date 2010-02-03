@@ -63,6 +63,7 @@ namespace qmcplusplus {
 	  int ig = sSet.findSpecies (elementType);
 	  if (ig < numSpecies) 
           {//ignore
+	    functor->cutoff_radius = sourcePtcl->Lattice.WignerSeitzRadius;
             functor->put (kids);
 	    if (functor->cutoff_radius < 1.0e-6) {
 	      app_log()  << "  BsplineFunction rcut is currently zero.\n"
@@ -162,6 +163,7 @@ namespace qmcplusplus {
           app_log() << "  BsplineJastrowBuilder adds a functor with cusp = " << cusp << endl;
 
 	  RadFuncType *functor = new RadFuncType(cusp);
+	  functor->cutoff_radius = sourcePtcl->Lattice.WignerSeitzRadius;
 	  functor->put (kids);
 	  if (functor->cutoff_radius < 1.0e-6) {
 	    app_log()  << "  BsplineFunction rcut is currently zero.\n"
