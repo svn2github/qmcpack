@@ -44,6 +44,8 @@ namespace qmcplusplus {
     /////////////////////////////////////////////////////
     size_t AOffset, AinvOffset, newRowOffset, AinvDeltaOffset, 
       AinvColkOffset, gradLaplOffset, newGradLaplOffset, workOffset;
+    gpu::host_vector<CudaRealType*> UpdateList;
+    gpu::device_vector<CudaRealType*> UpdateList_d;
     gpu::host_vector<updateJob> UpdateJobList;
     gpu::device_vector<updateJob> UpdateJobList_d;
     vector<CudaRealType*> srcList, destList, AList, AinvList, newRowList, AinvDeltaList, 

@@ -95,51 +95,66 @@ namespace qmcplusplus {
   void 
   DiracDeterminantCUDA::update (vector<Walker_t*> &walkers, int iat)
   {
-    if (AList.size() < walkers.size())
-      resizeLists(walkers.size());
-    int gradoff = 4*(iat-FirstIndex)*RowStride;
-    if (UpdateJobList.size() != walkers.size()) {
-      UpdateJobList.resize(walkers.size());
-      srcList.resize(walkers.size());
-      destList.resize(walkers.size());
-      UpdateJobList_d.resize(walkers.size());
-      srcList_d.resize(walkers.size());
-      destList_d.resize(walkers.size());
-      
-    }
-    for (int iw=0; iw<walkers.size(); iw++) {
-      Walker_t::cuda_Buffer_t &data = walkers[iw]->cuda_DataSet;
-      updateJob &job = UpdateJobList[iw];
-      job.A            = &(data.data()[AOffset]);		      
-      job.Ainv         = &(data.data()[AinvOffset]);	    
-      job.newRow       = &(data.data()[newRowOffset]);	    
-      job.AinvDelta    = &(data.data()[AinvDeltaOffset]);	    
-      job.AinvColk     = &(data.data()[AinvColkOffset]);	    
-      job.gradLapl     = &(data.data()[gradLaplOffset+gradoff]);
-      job.newGradLapl  = &(data.data()[newGradLaplOffset]); 
-      job.iat          = iat-FirstIndex;
-      CheckAlign (job.A, "A"); 
-      CheckAlign (job.Ainv, "Ainv"); 
-      CheckAlign (job.newRow, "newRow"); 
-      CheckAlign (job.AinvDelta, "AinvDelta"); 
-      CheckAlign (job.AinvColk,  "AinvColk"); 
-      CheckAlign (job.gradLapl,  "gradLapl"); 
-      CheckAlign (job.newGradLapl, "newGradLapl"); 
-      
-      destList[iw]    = &(data.data()[gradLaplOffset+gradoff]);
-      srcList[iw]     = &(data.data()[newGradLaplOffset]);     
-    }
-    // Copy pointers to the GPU
-    UpdateJobList_d = UpdateJobList;
-    srcList_d  = srcList;
-    destList_d = destList;
-    // Call kernel wrapper function
-    CudaRealType dummy;
-    update_inverse_cuda(UpdateJobList_d.data(), dummy,
-			NumPtcls, RowStride, walkers.size());
+    if (UpdateList.size() < walkers.size()) 
+      UpdateList.resize(walkers.size()); UpdateList_d.resize(walkers.size());
+    for (int iw=0; iw<walkers.size(); iw++) 
+      UpdateList[iw] =  walkers[iw]->cuda_DataSet.data();
+    UpdateList_d = UpdateList;
+    update_inverse_cuda (UpdateList_d.data(), iat-FirstIndex, AOffset,
+    			 AinvOffset, newRowOffset, AinvDeltaOffset,
+    			 AinvColkOffset, NumPtcls, RowStride, walkers.size());
     // Copy temporary gradients and laplacians into matrix
-    multi_copy (destList_d.data(), srcList_d.data(),
+    int gradoff = 4*(iat-FirstIndex)*RowStride;
+    multi_copy (UpdateList_d.data(), gradLaplOffset+gradoff, newGradLaplOffset, 
 		4*RowStride, walkers.size());
+    // multi_copy (destList_d.data(), srcList_d.data(),
+    // 		4*RowStride, walkers.size());
+
+    // if (AList.size() < walkers.size())
+    //   resizeLists(walkers.size());
+    // int gradoff = 4*(iat-FirstIndex)*RowStride;
+    // if (UpdateJobList.size() != walkers.size()) {
+    //   UpdateJobList.resize(walkers.size());
+    //   srcList.resize(walkers.size());
+    //   destList.resize(walkers.size());
+    //   UpdateJobList_d.resize(walkers.size());
+    //   srcList_d.resize(walkers.size());
+    //   destList_d.resize(walkers.size());
+      
+    // }
+    // for (int iw=0; iw<walkers.size(); iw++) {
+    //   Walker_t::cuda_Buffer_t &data = walkers[iw]->cuda_DataSet;
+    //   updateJob &job = UpdateJobList[iw];
+    //   job.A            = &(data.data()[AOffset]);		      
+    //   job.Ainv         = &(data.data()[AinvOffset]);	    
+    //   job.newRow       = &(data.data()[newRowOffset]);	    
+    //   job.AinvDelta    = &(data.data()[AinvDeltaOffset]);	    
+    //   job.AinvColk     = &(data.data()[AinvColkOffset]);	    
+    //   job.gradLapl     = &(data.data()[gradLaplOffset+gradoff]);
+    //   job.newGradLapl  = &(data.data()[newGradLaplOffset]); 
+    //   job.iat          = iat-FirstIndex;
+    //   CheckAlign (job.A, "A"); 
+    //   CheckAlign (job.Ainv, "Ainv"); 
+    //   CheckAlign (job.newRow, "newRow"); 
+    //   CheckAlign (job.AinvDelta, "AinvDelta"); 
+    //   CheckAlign (job.AinvColk,  "AinvColk"); 
+    //   CheckAlign (job.gradLapl,  "gradLapl"); 
+    //   CheckAlign (job.newGradLapl, "newGradLapl"); 
+      
+    //   destList[iw]    = &(data.data()[gradLaplOffset+gradoff]);
+    //   srcList[iw]     = &(data.data()[newGradLaplOffset]);     
+    // }
+    // // Copy pointers to the GPU
+    // UpdateJobList_d = UpdateJobList;
+    // srcList_d  = srcList;
+    // destList_d = destList;
+    // // Call kernel wrapper function
+    // CudaRealType dummy;
+    // update_inverse_cuda(UpdateJobList_d.data(), dummy,
+    // 			NumPtcls, RowStride, walkers.size());
+    // // Copy temporary gradients and laplacians into matrix
+    // multi_copy (destList_d.data(), srcList_d.data(),
+    // 		4*RowStride, walkers.size());
 
     
 #ifdef DEBUG_CUDA

@@ -1744,6 +1744,25 @@ multi_copy (T **dest, T **src, int len)
     mydest[i] = mysrc[i];
 }
 
+
+template<typename T>
+__global__ void
+multi_copy (T **buff, int dest_off, int src_off, int len)
+{
+  __shared__ T *mysrc, *mydest;
+  if (threadIdx.x ==0) {
+    T* ptr = buff[blockIdx.y];
+    mysrc  = ptr + src_off;
+    mydest = ptr + dest_off;
+  }
+  __syncthreads();
+  int i = blockIdx.x * COPY_BS + threadIdx.x;
+  if (i < len)
+    mydest[i] = mysrc[i];
+}
+
+
+
 void
 multi_copy (float *dest[], float *src[], int len, int num)
 {
@@ -1762,6 +1781,28 @@ multi_copy (double *dest[], double *src[], int len, int num)
     dimGrid.x++;
   
   multi_copy<double><<<dimGrid,dimBlock>>>(dest, src, len);
+}
+
+
+
+void
+multi_copy (float *buff[], int dest_off, int src_off, int len, int num)
+{
+  dim3 dimBlock(COPY_BS);
+  dim3 dimGrid ((len+COPY_BS-1)/COPY_BS, num);
+  
+  multi_copy<float><<<dimGrid,dimBlock>>>(buff, dest_off, src_off, len);
+}
+
+void
+multi_copy (double *buff[], int dest_off, int src_off, int len, int num)
+{
+  dim3 dimBlock(COPY_BS);
+  dim3 dimGrid (len/COPY_BS, num);
+  if (len % COPY_BS)
+    dimGrid.x++;
+  
+  multi_copy<double><<<dimGrid,dimBlock>>>(buff, dest_off, src_off, len);
 }
 
 

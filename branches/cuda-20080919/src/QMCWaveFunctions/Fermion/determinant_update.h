@@ -30,6 +30,8 @@ update_inverse_cuda(double *A_g[], double *Ainv_g[], double *u_g[],
 /////////////////////////////////////////////////
 // New version with fewer PCI transfers needed //
 /////////////////////////////////////////////////
+// These are for nonlocal updates, in which the electron
+// is different for each block
 void
 update_inverse_cuda(float **data[], int iat[], 
 		    int A_off, int Ainv_off, int newRow_off,
@@ -42,6 +44,8 @@ update_inverse_cuda(double **data[], int iat[],
 		    int AinvDelta_off, int AinvColk_off,
 		    int N, int rowstride, int numWalkers);
 
+// These are for single-particle move updates.  Each
+// walker is moving the same electron.
 void
 update_inverse_cuda(float **data, int iat, 
 		    int A_off, int Ainv_off, int newRow_off,
@@ -96,9 +100,14 @@ calc_grad_lapl (double *Ainv_list[], double *grad_lapl_list[],
 
 void
 multi_copy (float *dest[], float *src[], int len, int num);
-
 void
 multi_copy (double *dest[], double *src[], int len, int num);
+
+void
+multi_copy (float *buff[], int srcoff, int dest_off, int len, int num);
+void
+multi_copy (double *buff[], int src_off, int dest_off, int len, int num);
+
 
 
 void
@@ -114,25 +123,27 @@ calc_many_ratios (double *Ainv_list[], double *new_row_list[],
 		  int numWalkers);
 
 void
-determinant_ratios_grad_lapl_cuda (float *Ainv_list[], float *new_row_list[],
-				   float *grad_lapl_list[], float ratios_grad_lapl[], 
-				   int N, int row_stride, int iat, int numWalkers);
+determinant_ratios_grad_lapl_cuda 
+(float *Ainv_list[], float *new_row_list[],
+ float *grad_lapl_list[], float ratios_grad_lapl[], 
+ int N, int row_stride, int iat, int numWalkers);
 
 void
-determinant_ratios_grad_lapl_cuda (double *Ainv_list[], double *new_row_list[],
-				   double *grad_lapl_list[], double ratios_grad_lapl[], 
-				   int N, int row_stride, int iat, int numWalkers);
+determinant_ratios_grad_lapl_cuda 
+(double *Ainv_list[], double *new_row_list[], double *grad_lapl_list[], 
+ double ratios_grad_lapl[], int N, int row_stride, int iat, int numWalkers);
 
 void
-determinant_ratios_grad_lapl_cuda (float *Ainv_list[], float *new_row_list[],
-				   float *grad_lapl_list[], float ratios_grad_lapl[], 
-				   int N, int row_stride, int iat_list[], int numWalkers);
+determinant_ratios_grad_lapl_cuda 
+(float *Ainv_list[], float *new_row_list[], float *grad_lapl_list[], 
+ float ratios_grad_lapl[], int N, int row_stride, 
+ int iat_list[], int numWalkers);
 
 void
-determinant_ratios_grad_lapl_cuda (double *Ainv_list[], double *new_row_list[],
-				   double *grad_lapl_list[], double ratios_grad_lapl[], 
-				   int N, int row_stride, int iat_list[], int numWalkers);
-
+determinant_ratios_grad_lapl_cuda 
+(double *Ainv_list[], double *new_row_list[], double *grad_lapl_list[], 
+ double ratios_grad_lapl[], int N, int row_stride, 
+ int iat_list[], int numWalkers);
 
 
 void
