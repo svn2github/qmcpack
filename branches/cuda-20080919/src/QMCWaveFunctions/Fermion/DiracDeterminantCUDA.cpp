@@ -245,7 +245,7 @@ namespace qmcplusplus {
       destList_d.resize(walkers.size());
     }
     for (int iw=0; iw<walkers.size(); iw++) {
-      int gradoff = 4*(iatList[iw]-FirstIndex)*RowStride;
+      int gradoff = 4*(iat_list[iw]-FirstIndex)*RowStride;
       Walker_t::cuda_Buffer_t &data = walkers[iw]->cuda_DataSet;
       updateJob &job = UpdateJobList[iw];
       job.A            = &(data.data()[AOffset]);		      
@@ -255,7 +255,7 @@ namespace qmcplusplus {
       job.AinvColk     = &(data.data()[AinvColkOffset]);	    
       job.gradLapl     = &(data.data()[gradLaplOffset+gradoff]);
       job.newGradLapl  = &(data.data()[newGradLaplOffset]); 
-      job.iat          = iatList[iw] - FirstIndex;
+      job.iat          = iat_list[iw] - FirstIndex;
       CheckAlign (job.A, "A"); 
       CheckAlign (job.Ainv, "Ainv"); 
       CheckAlign (job.newRow, "newRow"); 
