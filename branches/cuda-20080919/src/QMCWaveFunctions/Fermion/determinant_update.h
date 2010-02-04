@@ -33,13 +33,13 @@ update_inverse_cuda(double *A_g[], double *Ainv_g[], double *u_g[],
 // These are for nonlocal updates, in which the electron
 // is different for each block
 void
-update_inverse_cuda(float **data[], int iat[], 
+update_inverse_cuda(float **data, int iat[], 
 		    int A_off, int Ainv_off, int newRow_off,
 		    int AinvDelta_off, int AinvColk_off,
 		    int N, int rowstride, int numWalkers);
 
 void
-update_inverse_cuda(double **data[], int iat[], 
+update_inverse_cuda(double **data, int iat[], 
 		    int A_off, int Ainv_off, int newRow_off,
 		    int AinvDelta_off, int AinvColk_off,
 		    int N, int rowstride, int numWalkers);
