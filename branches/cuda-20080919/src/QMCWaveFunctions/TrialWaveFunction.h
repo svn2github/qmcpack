@@ -46,7 +46,8 @@ namespace qmcplusplus {
   {
 
   public:
-
+    typedef OrbitalBase::CudaValueType   CudaValueType;
+    typedef OrbitalBase::CudaGradType    CudaGradType;
     typedef OrbitalBase::RealType        RealType;
     typedef OrbitalBase::CudaRealType    CudaRealType;
     typedef OrbitalBase::ValueType       ValueType;
@@ -139,6 +140,13 @@ namespace qmcplusplus {
     /////////////////////////
     // Vectorized versions //
     /////////////////////////
+  private:
+    gpu::device_host_vector<CudaValueType>   GPUratios;
+    gpu::device_host_vector<CudaGradType>    GPUgrads;
+    gpu::device_host_vector<CudaValueType>   GPUlapls;
+  public:
+
+
     void freeGPUmem();
 
     void recompute (MCWalkerConfiguration &W, bool firstTime=true);
@@ -191,10 +199,10 @@ namespace qmcplusplus {
 			  GradMatrix_t&  fixedG,
 			  ValueMatrix_t& fixedL);
 
- void evaluateOptimizableLog (MCWalkerConfiguration &W,  
-			      vector<RealType>& logpsi_opt,  
-			      GradMatrix_t&  optG,
-			      ValueMatrix_t& optL);
+    void evaluateOptimizableLog (MCWalkerConfiguration &W,  
+				 vector<RealType>& logpsi_opt,  
+				 GradMatrix_t&  optG,
+				 ValueMatrix_t& optL);
 
 
     void evaluateDerivatives (MCWalkerConfiguration &W, 
