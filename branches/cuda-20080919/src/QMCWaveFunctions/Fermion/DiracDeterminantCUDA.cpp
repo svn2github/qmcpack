@@ -19,6 +19,8 @@
 
 #include "DiracDeterminantCUDA.h"
 #include "Numerics/CUDA/cuda_inverse.h"
+#include "QMCWaveFunctions/Fermion/determinant_update.h"
+#include "Numerics/CUDA/cuda_inverse.h"
 #include "Numerics/DeterminantOperators.h"
 
 namespace qmcplusplus {
@@ -804,16 +806,25 @@ namespace qmcplusplus {
 	  host_data = walkers[iw]->cuda_DataSet;
 	  FILE *Amat = fopen ("Amat.dat", "w");
 	  FILE *Ainv = fopen ("Ainv.dat", "w");
+	  FILE *Lmat = fopen ("Alapl.dat", "w");
+	  FILE *Gmat = fopen ("Agrad.dat", "w");
 	  for (int i=0; i<NumPtcls; i++) {
 	    for (int j=0; j<NumPtcls; j++) {
 	      fprintf (Amat, "%14.8e ", host_data[AOffset+i*RowStride+j]);
 	      fprintf (Ainv, "%14.8e ", host_data[AinvOffset+i*RowStride+j]);
+	      fprintf (Lmat, "%14.8e ", host_data[gradLaplOffset+(4*i+3)*RowStride+j]);
+	      for (int k=0; k<3; k++)
+		fprintf (Lmat, "%14.8e ", host_data[gradLaplOffset+(4*i+k)*RowStride+j]);
 	    }
 	    fprintf (Amat, "\n");
 	    fprintf (Ainv, "\n");
+	    fprintf (Lmat, "\n");
+	    fprintf (Gmat, "\n");
 	  }
 	  fclose (Amat);
 	  fclose (Ainv);
+	  fclose (Lmat);
+	  fclose (Gmat);
 	  abort();
 	
 	      
