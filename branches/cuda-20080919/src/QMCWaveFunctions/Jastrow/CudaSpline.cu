@@ -244,7 +244,7 @@ __device__ void
 eval_1d_spline_vgl(T dist, T rmax, T drInv, T A[12][4], T coefs[],
 		   T& u, T& du, T& d2u)
 {
-  if (dist > rmax) {
+  if (dist >= rmax) {
     u = du = d2u = (T)0.0;
     return;
   }
@@ -286,6 +286,10 @@ two_body_sum_kernel(T **R, int e1_first, int e1_last,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
+
 
   int tid = threadIdx.x;
   __shared__ T *myR;
@@ -424,6 +428,10 @@ two_body_ratio_kernel(T **R, int first, int last,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
+
 
   int tid = threadIdx.x;
   __shared__ T *myR;
@@ -564,6 +572,9 @@ two_body_ratio_grad_kernel(T **R, int first, int last,
   int tid = threadIdx.x;
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
 
   __shared__ T *myR;
   __shared__ T myRnew[3], myRold[3];
@@ -687,6 +698,10 @@ two_body_ratio_grad_kernel_fast (T **R, int first, int last,
   int tid = threadIdx.x;
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
+
 
   __shared__ T *myR;
   __shared__ T myRnew[3], myRold[3];
@@ -1220,6 +1235,9 @@ two_body_grad_lapl_kernel(T **R, int e1_first, int e1_last,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;
   
   int tid = threadIdx.x;
   __shared__ T *myR;
@@ -1306,7 +1324,11 @@ two_body_grad_lapl_kernel_fast(T **R, int e1_first, int e1_last,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;
   
+
   int tid = threadIdx.x;
   __shared__ T *myR;
   if (tid == 0) 
@@ -1394,11 +1416,11 @@ two_body_grad_lapl(float *R[], int e1_first, int e1_last,
   dim3 dimBlock(BS);
   dim3 dimGrid(numWalkers);
 
-  if (sim_cell_radius >= rMax) 
-  two_body_grad_lapl_kernel_fast<float,BS><<<dimGrid,dimBlock>>>
-    (R, e1_first, e1_last, e2_first, e2_last, spline_coefs, numCoefs, 
-     rMax, lattice, latticeInv,  gradLapl, row_stride);
-  else
+  // if (sim_cell_radius >= rMax) 
+  // two_body_grad_lapl_kernel_fast<float,BS><<<dimGrid,dimBlock>>>
+  //   (R, e1_first, e1_last, e2_first, e2_last, spline_coefs, numCoefs, 
+  //    rMax, lattice, latticeInv,  gradLapl, row_stride);
+  // else
     two_body_grad_lapl_kernel<float,BS><<<dimGrid,dimBlock>>>
       (R, e1_first, e1_last, e2_first, e2_last, spline_coefs, numCoefs, 
        rMax, lattice, latticeInv,  gradLapl, row_stride);
@@ -1449,6 +1471,9 @@ two_body_grad_kernel(T **R, int first, int last, int iat,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;
   
   int tid = threadIdx.x;
   __shared__ T *myR, r2[3];
@@ -1541,6 +1566,10 @@ two_body_grad_kernel_fast(T **R, int first, int last, int iat,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;
+
   
   int tid = threadIdx.x;
   __shared__ T *myR, r2[3];
@@ -1687,6 +1716,10 @@ two_body_derivs_kernel(T **R, T **gradLogPsi,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0f/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;
+
   
   int tid = threadIdx.x;
   __shared__ T *myR, *myGrad, *myDerivs;
@@ -1891,6 +1924,9 @@ one_body_sum_kernel(T *C, T **R, int cfirst, int clast,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
 
   int tid = threadIdx.x;
   __shared__ T *myR;
@@ -2024,6 +2060,9 @@ one_body_ratio_kernel(T *C, T **R, int cfirst, int clast,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
 
   int tid = threadIdx.x;
   __shared__ T *myR;
@@ -2162,6 +2201,9 @@ one_body_ratio_grad_kernel(T *C, T **R, int cfirst, int clast,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
 
   int tid = threadIdx.x;
   __shared__ T *myR;
@@ -2284,6 +2326,9 @@ one_body_ratio_grad_kernel_fast(T *C, T **R, int cfirst, int clast,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
 
   int tid = threadIdx.x;
   __shared__ T *myR;
@@ -2523,7 +2568,10 @@ one_body_grad_lapl_kernel(T *C, T **R, int cfirst, int clast,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
-  
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;    
+
   int tid = threadIdx.x;
   __shared__ T *myR;
   if (tid == 0) 
@@ -2688,7 +2736,9 @@ one_body_NLratio_kernel(NLjobGPU<float> *jobs, float *C, int first, int last,
 
   float dr = rMax/(float)(numCoefs-3);
   float drInv = 1.0/dr;
-  
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
 
   __shared__ float coefs[MAX_COEFS];
   __shared__ float c[BS][3];
@@ -2791,7 +2841,9 @@ one_body_NLratio_kernel_fast(NLjobGPU<float> *jobs, float *C, int first, int las
 
   float dr = rMax/(float)(numCoefs-3);
   float drInv = 1.0/dr;
-  
+    __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
 
   __shared__ float coefs[MAX_COEFS];
   __shared__ float c[BS][3];
@@ -3044,7 +3096,11 @@ one_body_grad_kernel(T **R, int iat, T *C, int first, int last,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
   
+
   int tid = threadIdx.x;
   __shared__ T *myR, r[3];
   if (tid == 0) 
@@ -3134,6 +3190,10 @@ one_body_grad_kernel_fast(T **R, int iat, T *C, int first, int last,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
+
   
   int tid = threadIdx.x;
   __shared__ T *myR, r[3];
@@ -3277,6 +3337,10 @@ one_body_derivs_kernel(T* C, T **R, T **gradLogPsi,
 {
   T dr = rMax/(T)(numCoefs-3);
   T drInv = 1.0/dr;
+  __syncthreads();
+  // Safety for rounding error
+  rMax *= 0.999999;  
+
   
   int tid = threadIdx.x;
   __shared__ T *myR, *myGrad, *myDerivs;

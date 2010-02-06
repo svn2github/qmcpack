@@ -344,6 +344,10 @@ namespace qmcplusplus {
       for (int ptcl=0; ptcl<N; ptcl++) {
 	for (int i=0; i<OHMMS_DIM; i++) 
 	  grad(iw,ptcl)[i] += GradLaplHost[4*N*iw + 4*ptcl + i];
+	if (std::isnan(GradLaplHost[4*N*iw+ + 4*ptcl +3])) {
+	  fprintf (stderr, "NAN in OneBodyJastrowOrbitalBspline laplacian.\n");
+	  abort();
+	}
 	lapl(iw,ptcl) += GradLaplHost[4*N*iw+ + 4*ptcl +3];
       }
     }
