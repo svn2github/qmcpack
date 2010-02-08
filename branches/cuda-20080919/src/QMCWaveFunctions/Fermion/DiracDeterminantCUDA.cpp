@@ -775,7 +775,7 @@ namespace qmcplusplus {
       Walker_t::cuda_Buffer_t& data = walkers[iw]->cuda_DataSet;
       AinvList[iw]        =  &(data.data()[AinvOffset]);
       gradLaplList[iw]    =  &(data.data()[gradLaplOffset]);
-      newGradLaplList[iw] =  &(gradLapl_d.data()[4*NumPtcls*iw]);
+      newGradLaplList[iw] =  &(gradLapl_d.data()[4*RowStride*iw]);
     }
     AinvList_d      = AinvList;
     gradLaplList_d = gradLaplList;
@@ -790,11 +790,11 @@ namespace qmcplusplus {
 
     for (int iw=0; iw<walkers.size(); iw++) {
       for(int iat=0; iat < NumPtcls; iat++) {
-    	GradType g(gradLapl_host[4*(iw*NumPtcls + iat)+0],
-    		   gradLapl_host[4*(iw*NumPtcls + iat)+1],
-    		   gradLapl_host[4*(iw*NumPtcls + iat)+2]);
+    	GradType g(gradLapl_host[4*(iw*RowStride + iat)+0],
+    		   gradLapl_host[4*(iw*RowStride + iat)+1],
+    		   gradLapl_host[4*(iw*RowStride + iat)+2]);
     	grads(iw,iat+FirstIndex) += g;
-    	lapl(iw,iat+FirstIndex)  += gradLapl_host[4*(iw*NumPtcls + iat)+3] - dot(g,g);
+    	lapl(iw,iat+FirstIndex)  += gradLapl_host[4*(iw*RowStride + iat)+3] - dot(g,g);
 	if (std::isnan(lapl(iw,iat+FirstIndex))) {
 	  char name[1000];
 	  gethostname(name, 1000);
@@ -833,7 +833,7 @@ namespace qmcplusplus {
 	  
 	  cerr << "NAN in walker " << iw << ", iat " << iat + FirstIndex 
 	       << "  grad = " << grads(iw,iat+FirstIndex) 
-	       << "  lapl = " << gradLapl_host[4*(iw*NumPtcls + iat)+3] << endl;
+	       << "  lapl = " << gradLapl_host[4*(iw*RowStride + iat)+3] << endl;
 	  fprintf (stderr, "grad-lapl row:\n");
 	  fprintf (stderr, "r = %1.8f %1.8f %1.8f\n",
 		   walkers[iw]->R[iat+FirstIndex][0],
