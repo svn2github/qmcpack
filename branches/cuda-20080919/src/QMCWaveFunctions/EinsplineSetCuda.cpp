@@ -33,6 +33,63 @@ void apply_phase_factors(float kPoints[], int makeTwoCopies[],
 
 namespace qmcplusplus {
 
+    // Real evaluation functions
+  inline void 
+  EinsplineMultiEval (multi_UBspline_3d_d *restrict spline,
+		      TinyVector<double,3> r, 
+		      Vector<double> &psi)
+  {
+    eval_multi_UBspline_3d_d (spline, r[0], r[1], r[2], psi.data());
+  }
+
+  inline void
+  EinsplineMultiEval (multi_UBspline_3d_d *restrict spline,
+		      TinyVector<double,3> r, 
+		      vector<double> &psi)
+  {
+    eval_multi_UBspline_3d_d (spline, r[0], r[1], r[2], &(psi[0]));
+  }
+
+
+  inline void
+  EinsplineMultiEval (multi_UBspline_3d_d *restrict spline,
+		      TinyVector<double,3> r,
+		      Vector<double> &psi,
+		      Vector<TinyVector<double,3> > &grad,
+		      Vector<Tensor<double,3> > &hess)
+  {
+    eval_multi_UBspline_3d_d_vgh (spline, r[0], r[1], r[2],
+				  psi.data(), 
+				  (double*)grad.data(), 
+				  (double*)hess.data());
+  }
+
+  //////////////////////////////////
+  // Complex evaluation functions //
+  //////////////////////////////////
+  inline void 
+  EinsplineMultiEval (multi_UBspline_3d_z *restrict spline,
+		      TinyVector<double,3> r, 
+		      Vector<complex<double> > &psi)
+  {
+    eval_multi_UBspline_3d_z (spline, r[0], r[1], r[2], psi.data());
+  }
+
+
+  inline void
+  EinsplineMultiEval (multi_UBspline_3d_z *restrict spline,
+		      TinyVector<double,3> r,
+		      Vector<complex<double> > &psi,
+		      Vector<TinyVector<complex<double>,3> > &grad,
+		      Vector<Tensor<complex<double>,3> > &hess)
+  {
+    eval_multi_UBspline_3d_z_vgh (spline, r[0], r[1], r[2],
+				  psi.data(), 
+				  (complex<double>*)grad.data(), 
+				  (complex<double>*)hess.data());
+  }
+
+
   inline void
   eval_multi_multi_UBspline_3d_cuda (multi_UBspline_3d_s_cuda *spline, 
 				     float *pos, float *sign, float *phi[], int N)
@@ -771,7 +828,7 @@ namespace qmcplusplus {
 			      phi.data(), grad_lapl.data(), 
 			      row_stride, NumOrbitals, newpos.size(), lMax);	
 
-#ifdef HYBRID_DEBUG
+ #ifdef HYBRID_DEBUG
 
 
     gpu::host_vector<CudaRealType*> phi_CPU (phi.size()), grad_lapl_CPU(phi.size());
@@ -782,9 +839,9 @@ namespace qmcplusplus {
     HybridJobs_CPU = HybridJobs_GPU;
     gpu::host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
     HybridData_CPU = HybridData_GPU;
-    
+
     rhats_CPU = rhats_GPU;
-    
+
     for (int iw=0; iw<newpos.size(); iw++) 
       if (false && HybridJobs_CPU[iw] == ATOMIC_POLY_JOB) {
 	ValueVector_t CPUvals(NumOrbitals), CPUlapl(NumOrbitals);
@@ -828,7 +885,7 @@ namespace qmcplusplus {
 		     GL_CPU[0*row_stride+j], CPUgrad[j][0],
 		     GL_CPU[1*row_stride+j], CPUgrad[j][1],
 		     GL_CPU[2*row_stride+j], CPUgrad[j][2]);
-	    
+
 	    fprintf (stderr, "lapl[%2d] = %10.5e %10.5e\n", 
 		     j, GL_CPU[3*row_stride+j], CPUlapl[j]);
 	  }
@@ -847,7 +904,7 @@ namespace qmcplusplus {
 	  sign += HalfG[i]*(int)img[i];
 	}
 	EinsplineMultiEval (MultiSpline, ru, CPUvals, CPUgrad,
-	 		    StorageHessVector);
+			    StorageHessVector);
 
 	cudaMemcpy (&vals_CPU[0], phi_CPU[iw], NumOrbitals*sizeof(float),
 		    cudaMemcpyDeviceToHost);
@@ -871,7 +928,7 @@ namespace qmcplusplus {
 		   CPUvals[j], CPUgrad[j][0], CPUgrad[j][1], CPUgrad[j][2],
 		   CPUlapl[j], sign);
 
-	  if (isnan(GL_CPU[0*row_stride+j])) {
+	  if (std::isnan(GL_CPU[0*row_stride+j])) {
 	    cerr << "r[" << iw << "] = " << newpos[iw] << endl;
 	    cerr << "iw = " << iw << endl;
 
@@ -881,27 +938,26 @@ namespace qmcplusplus {
 		     GL_CPU[0*row_stride+j], CPUgrad[j][0],
 		     GL_CPU[1*row_stride+j], CPUgrad[j][1],
 		     GL_CPU[2*row_stride+j], CPUgrad[j][2]);
-	    
+
 	    fprintf (stderr, "3D lapl[%2d] = %10.5e %10.5e\n", 
 		     j, GL_CPU[3*row_stride+j], CPUlapl[j]);
+
 	  }
 	}
       }
-  
-
 
     gpu::host_vector<float> Ylm_CPU(Ylm_GPU.size());
     Ylm_CPU = Ylm_GPU;
-    
+
     rhats_CPU = rhats_GPU;
     for (int i=0; i<rhats_CPU.size()/3; i++)
       fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f]\n",
 	       i, rhats_CPU[3*i+0], rhats_CPU[3*i+1], rhats_CPU[3*i+2]);
 
-    gpu::host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    //    gpu::host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
     HybridJobs_CPU = HybridJobs_GPU;
-        
-    gpu::host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
+
+    //    gpu::host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
     HybridData_CPU = HybridData_GPU;
 
     cerr << "Before loop.\n";
@@ -913,7 +969,7 @@ namespace qmcplusplus {
 	int numlm = (atom.lMax+1)*(atom.lMax+1);
 	vector<double> Ylm(numlm), dYlm_dtheta(numlm), dYlm_dphi(numlm);
 	atom.CalcYlm (rhat, Ylm, dYlm_dtheta, dYlm_dphi);
-	
+
 	for (int lm=0; lm < numlm; lm++) {
 	  fprintf (stderr, "lm=%3d  Ylm_CPU=%8.5f  Ylm_GPU=%8.5f\n",
 		   lm, Ylm[lm], Ylm_CPU[3*i*Ylm_BS+lm]);

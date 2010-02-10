@@ -2762,9 +2762,9 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *k_redu
   int i1 = tid - 3*i0;
   if (tid < 9) {
     G[0][tid] = Linv[tid];
-    GGt[i0][i1] = (G[i0][0]*G[i1][0] + 
-		   G[i0][1]*G[i1][1] + 
-		   G[i0][2]*G[i1][2]);
+    GGt[i0][i1] = (G[0][i0]*G[0][i1] + 
+		   G[1][i0]*G[1][i1] + 
+		   G[2][i0]*G[2][i1]);
   }
   if (tid == 0) {
     myval  = vals[ir];
@@ -2785,7 +2785,7 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *k_redu
   __syncthreads();
   float sign = __cosf(-(k_red[tid][0]*img[0]+
 			k_red[tid][1]*img[1]+
-			k_red[tid][2]*img[2]));
+			k_red[tid][2]*img[2])); 
   // copysign(1.0f,__sinf(-(r[0]*kp[tid][0] + 
   // 		     r[1]*kp[tid][1] + 
   // 		     r[2]*kp[tid][2])));
@@ -3094,9 +3094,9 @@ evaluate3DSplineComplexToReal_kernel
   int i1 = tid - 3*i0;
   if (tid < 9) {
     G[0][tid] = Linv[tid];
-    GGt[i0][i1] = (G[i0][0]*G[i1][0] + 
-		   G[i0][1]*G[i1][1] + 
-		   G[i0][2]*G[i1][2]);
+    GGt[i0][i1] = (G[0][i0]*G[0][i1] + 
+		   G[1][i0]*G[1][i1] + 
+		   G[2][i0]*G[2][i1]);
   }
   if (tid == 0) {
     myVal      =      vals[ir];
