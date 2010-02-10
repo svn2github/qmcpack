@@ -44,6 +44,9 @@
 #include "QMCHamiltonians/HePressure.h"
 #include "QMCHamiltonians/HFDHE2Potential.h"
 
+#ifdef QMC_CUDA
+#include "QMCHamiltonians/CoulombPBCAB_CUDA.h"
+#endif
 
 
 namespace qmcplusplus {
@@ -358,7 +361,11 @@ namespace qmcplusplus {
     } else {
       if(applyPBC) {
         //targetH->addOperator(new CoulombPBCAB(*source,*targetPtcl),title);
+#ifdef QMC_CUDA
+        targetH->addOperator(new CoulombPBCAB_CUDA(*source,*targetPtcl),title);
+#else
         targetH->addOperator(new CoulombPBCABTemp(*source,*targetPtcl),title);
+#endif
       } else {
         targetH->addOperator(new CoulombPotentialAB(*source,*targetPtcl),title);
       }

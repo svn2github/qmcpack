@@ -28,6 +28,7 @@ IF(QMC_CUDA)
    SET(HAMSRCS ${HAMSRCS}
        CudaCoulomb.cu 
        NLPP.cu
+       CoulombPBCAB_CUDA.cpp
       )
 ENDIF(QMC_CUDA)
 

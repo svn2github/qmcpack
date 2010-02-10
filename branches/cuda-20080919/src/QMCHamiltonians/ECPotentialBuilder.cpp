@@ -18,6 +18,9 @@
 #include "QMCHamiltonians/ECPComponentBuilder.h"
 #include "QMCHamiltonians/QMCHamiltonian.h"
 #include "QMCHamiltonians/CoulombPBCABTemp.h"
+#ifdef QMC_CUDA
+  #include "QMCHamiltonians/CoulombPBCAB_CUDA.h"
+#endif
 #include "OhmmsData/AttributeSet.h"
 #include "Numerics/OneDimNumGridFunctor.h"
 
@@ -77,7 +80,11 @@ namespace qmcplusplus {
       }
       else
       {
+#ifdef QMC_CUDA
+        CoulombPBCAB_CUDA* apot=new CoulombPBCAB_CUDA(IonConfig,targetPtcl);
+#else
         CoulombPBCABTemp* apot=new CoulombPBCABTemp(IonConfig,targetPtcl);
+#endif
         for(int i=0; i<localPot.size(); i++) {
           if(localPot[i]) apot->add(i,localPot[i]);
         }
