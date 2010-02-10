@@ -302,10 +302,16 @@ namespace qmcplusplus {
     gpu::host_vector<TinyVector<CUDA_PRECISION,OHMMS_DIM> > hostkPoints(M),
       hostkPoints_reduced(M);
     for (int i=0; i<M; i++) {
-      PosType k_red = PrimLattice.toCart(kPoints[i]);
+      //      PosType k_red1 = PrimLattice.toCart(kPoints[i]);
+      PosType k_red2(dot(kPoints[i], PrimLattice.a(0)),
+		     dot(kPoints[i], PrimLattice.a(1)),
+		     dot(kPoints[i], PrimLattice.a(2)));
+//       fprintf (stderr, "kred1 = %8.3f %8.3f %8.3f\n", k_red1[0], k_red1[1], k_red1[2]);      
+//       fprintf (stderr, "kred2 = %8.3f %8.3f %8.3f\n", k_red2[0], k_red2[1], k_red2[2]);
+      
       for (int j=0; j<OHMMS_DIM; j++) {
 	hostkPoints[i][j]         = kPoints[i][j];
-	hostkPoints_reduced[i][j] = k_red[j];
+	hostkPoints_reduced[i][j] = k_red2[j];
       }
     }
     CudakPoints = hostkPoints;
@@ -1497,18 +1503,18 @@ namespace qmcplusplus {
       fprintf (stderr, "rhat[%d] = [%10.6f %10.6f %10.6f]\n",
 	       i, rhats_CPU[3*i+0], rhats_CPU[3*i+1], rhats_CPU[3*i+2]);
 
-    gpu::host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
-    HybridJobs_CPU = HybridJobs_GPU;
+    //    gpu::host_vector<HybridJobType> HybridJobs_CPU(HybridJobs_GPU.size());
+    //    HybridJobs_CPU = HybridJobs_GPU;
         
-    gpu::host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
-    HybridData_CPU = HybridData_GPU;
+    //    gpu::host_vector<HybridDataFloat> HybridData_CPU(HybridData_GPU.size());
+    //    HybridData_CPU = HybridData_GPU;
 
     cerr << "Before loop.\n";
     for (int i=0; i<newpos.size(); i++) 
       if (HybridJobs_CPU[i] != BSPLINE_3D_JOB) {
 	cerr << "Inside if.\n";
 	PosType rhat(rhats_CPU[3*i+0], rhats_CPU[3*i+1], rhats_CPU[3*i+2]);
-	AtomicOrbital<double> &atom = AtomicOrbitals[HybridData_CPU[i].ion];
+	AtomicOrbital<complex<double> > &atom = AtomicOrbitals[HybridData_CPU[i].ion];
 	int numlm = (atom.lMax+1)*(atom.lMax+1);
 	vector<double> Ylm(numlm), dYlm_dtheta(numlm), dYlm_dphi(numlm);
 	atom.CalcYlm (rhat, Ylm, dYlm_dtheta, dYlm_dphi);

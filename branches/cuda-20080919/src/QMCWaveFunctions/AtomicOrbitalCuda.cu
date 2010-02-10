@@ -89,23 +89,25 @@ MakeHybridJobList_kernel (T* elec_list, int num_elecs, T* ion_list,
       dr0 = epos[tid][0] - ipos[ion][0];
       dr1 = epos[tid][1] - ipos[ion][1];
       dr2 = epos[tid][2] - ipos[ion][2];
-      u0 = Linv_s[0][0]*dr0 + Linv_s[0][1]*dr1 + Linv_s[0][2]*dr2;
-      u1 = Linv_s[1][0]*dr0 + Linv_s[1][1]*dr1 + Linv_s[1][2]*dr2;
-      u2 = Linv_s[2][0]*dr0 + Linv_s[2][1]*dr1 + Linv_s[2][2]*dr2;
+      u0 = Linv_s[0][0]*dr0 + Linv_s[1][0]*dr1 + Linv_s[2][0]*dr2;
+      u1 = Linv_s[0][1]*dr0 + Linv_s[1][1]*dr1 + Linv_s[2][1]*dr2;
+      u2 = Linv_s[0][2]*dr0 + Linv_s[1][2]*dr1 + Linv_s[2][2]*dr2;
       img0 = rintf(u0);  img1 = rintf(u1);  img2 = rintf(u2);
       u0  -= img0;       u1  -= img1;       u2  -= img2;
-      dr0 = L_s[0][0]*u0 + L_s[0][1]*u1 + L_s[0][2]*u2;
-      dr1 = L_s[1][0]*u0 + L_s[1][1]*u1 + L_s[1][2]*u2;
-      dr2 = L_s[2][0]*u0 + L_s[2][1]*u1 + L_s[2][2]*u2;
+      dr0 = L_s[0][0]*u0 + L_s[1][0]*u1 + L_s[2][0]*u2;
+      dr1 = L_s[0][1]*u0 + L_s[1][1]*u1 + L_s[2][1]*u2;
+      dr2 = L_s[0][2]*u0 + L_s[1][2]*u1 + L_s[2][2]*u2;
       
       T dist2 = dr0*dr0 + dr1*dr1 + dr2*dr2;
       T dist = sqrtf(dist2);
       
+
       // Compare with radii
       if (dist < r_poly[ion]) 
-	jobs_shared[tid] =  ATOMIC_POLY_JOB;
+      	jobs_shared[tid] =  ATOMIC_POLY_JOB;
       else if (dist < r_spline[ion]) 
-	jobs_shared[tid] =  ATOMIC_SPLINE_JOB;
+      	jobs_shared[tid] =  ATOMIC_SPLINE_JOB;
+
       // Compute rhat
       if (dist < r_spline[ion]) {
 	data[tid].dist = dist;
@@ -2778,7 +2780,7 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *k_redu
   
   if (tid < 3) {
     r[tid] = pos[3*ir+tid];
-    u[tid] = G[tid][0]*r[0] + G[tid][1]*r[1] + G[tid][2]*r[2];
+    u[tid] = G[0][tid]*r[0] + G[1][tid]*r[1] + G[2][tid]*r[2];
     img[tid] = floor(u[tid]);
     u[tid] -= img[tid];
   }
@@ -2965,7 +2967,7 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
   
   if (tid < 3) {
     r[tid] = pos[3*ir+tid];
-    u[tid] = G[tid][0]*r[0] + G[tid][1]*r[1] + G[tid][2]*r[2];
+    u[tid] = G[0][tid]*r[0] + G[1][tid]*r[1] + G[2][tid]*r[2];
     img[tid] = floor(u[tid]);
     u[tid] -= img[tid];
   }
@@ -2984,11 +2986,6 @@ evaluate3DSplineReal_kernel (HybridJobType *job_types, float *pos, float *kpoint
   // }
   __syncthreads();
 
-  if (tid < 3) {
-    u[tid] = G[tid][0]*r[0] + G[tid][1]*r[1] + G[tid][2]*r[2];
-    img[tid] = floor(u[tid]);
-    u[tid] -= img[tid];
-  }
 
   int3 index;
   float3 t;
@@ -3105,7 +3102,7 @@ evaluate3DSplineComplexToReal_kernel
   
   if (tid < 3) {
     r[tid] = pos[3*ir+tid];
-    u[tid] = G[tid][0]*r[0] + G[tid][1]*r[1] + G[tid][2]*r[2];
+    u[tid] = G[0][tid]*r[0] + G[1][tid]*r[1] + G[2][tid]*r[2];
     u[tid] -= floor(u[tid]);
   }
   __syncthreads();
@@ -3423,7 +3420,7 @@ evaluate3DSplineComplexToReal_kernel
   
   if (tid < 3) {
     r[tid] = pos[3*ir+tid];
-    u[tid] = G[tid][0]*r[0] + G[tid][1]*r[1] + G[tid][2]*r[2];
+    u[tid] = G[0][tid]*r[0] + G[1][tid]*r[1] + G[2][tid]*r[2];
     u[tid] -= floor(u[tid]);
   }
   __syncthreads();
