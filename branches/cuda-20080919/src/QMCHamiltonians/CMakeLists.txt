@@ -31,6 +31,7 @@ IF(QMC_CUDA)
        CoulombPBCAA_CUDA.cpp
        CoulombPBCAB_CUDA.cpp
        MPC_CUDA.cpp
+       NonLocalECPotential_CUDA.cpp
       )
 ENDIF(QMC_CUDA)
 

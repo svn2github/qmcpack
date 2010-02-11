@@ -20,6 +20,7 @@
 #include "QMCHamiltonians/CoulombPBCABTemp.h"
 #ifdef QMC_CUDA
   #include "QMCHamiltonians/CoulombPBCAB_CUDA.h"
+  #include "QMCHamiltonians/NonLocalECPotential_CUDA.h"
 #endif
 #include "OhmmsData/AttributeSet.h"
 #include "Numerics/OneDimNumGridFunctor.h"
@@ -109,7 +110,13 @@ namespace qmcplusplus {
       //resize the sphere
       targetPtcl.resizeSphere(IonConfig.getTotalNum());
 
-      NonLocalECPotential* apot = new NonLocalECPotential(IonConfig,targetPtcl,targetPsi);
+#ifdef QMC_CUDA
+      NonLocalECPotential_CUDA* apot = 
+	new NonLocalECPotential_CUDA(IonConfig,targetPtcl,targetPsi);
+#else
+      NonLocalECPotential* apot = 
+	new NonLocalECPotential(IonConfig,targetPtcl,targetPsi);
+#endif
       for(int i=0; i<nonLocalPot.size(); i++) {
         if(nonLocalPot[i]) {
           apot->add(i,nonLocalPot[i]);
