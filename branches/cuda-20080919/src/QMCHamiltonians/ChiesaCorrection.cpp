@@ -25,7 +25,8 @@ namespace qmcplusplus {
   {
     return Value = psi_ref.KECorrection();
   }
-  
+
+#ifdef QMC_CUDA  
   void 
   ChiesaCorrection::addEnergy(MCWalkerConfiguration &W, 
 			      vector<RealType> &LocalEnergy)
@@ -37,4 +38,5 @@ namespace qmcplusplus {
       LocalEnergy[iw] += corr;
     }
   }
+#endif
 }

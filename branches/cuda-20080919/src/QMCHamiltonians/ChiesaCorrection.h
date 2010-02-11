@@ -36,7 +36,9 @@ namespace qmcplusplus {
 
     Return_t evaluate(ParticleSet& P);
     
+#ifdef QMC_CUDA
     void addEnergy(MCWalkerConfiguration &W, vector<RealType> &LocalEnergy);
+#endif
 
 
      inline Return_t evaluate(ParticleSet& P, vector<NonLocalData>& Txy) {
