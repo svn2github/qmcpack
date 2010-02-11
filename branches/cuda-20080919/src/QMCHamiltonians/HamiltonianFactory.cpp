@@ -45,7 +45,8 @@
 #include "QMCHamiltonians/HFDHE2Potential.h"
 
 #ifdef QMC_CUDA
-#include "QMCHamiltonians/CoulombPBCAB_CUDA.h"
+  #include "QMCHamiltonians/CoulombPBCAA_CUDA.h"
+  #include "QMCHamiltonians/CoulombPBCAB_CUDA.h"
 #endif
 
 
@@ -354,7 +355,11 @@ namespace qmcplusplus {
     if(source == targetPtcl) {
       if(applyPBC)  {
 	//targetH->addOperator(new CoulombPBCAA(*targetPtcl),title);
+#ifdef QMC_CUDA
+	targetH->addOperator(new CoulombPBCAA_CUDA(*targetPtcl,true),title);
+#else
 	targetH->addOperator(new CoulombPBCAATemp(*targetPtcl,true),title);
+#endif
       } else if (source->getTotalNum()>1) {
 	targetH->addOperator(new CoulombPotentialAA(*targetPtcl),title);
       }
@@ -459,7 +464,11 @@ namespace qmcplusplus {
       ParticleSet* ion=(*pit).second;
       if(PBCType){
 	//targetH->addOperator(new CoulombPBCAA(*ion),"IonIon");
+#ifdef QMC_CUDA
+	targetH->addOperator(new CoulombPBCAA_CUDA(*ion,false),"IonIon");
+#else
 	targetH->addOperator(new CoulombPBCAATemp(*ion,false),"IonIon");
+#endif
       }
       else if(ion->getTotalNum()>1) {
 	targetH->addOperator(new IonIonPotential(*ion),"IonIon");

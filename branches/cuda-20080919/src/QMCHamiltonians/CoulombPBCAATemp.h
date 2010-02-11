@@ -16,7 +16,6 @@
 #ifndef QMCPLUSPLUS_COULOMBPBCAA_TEMP_H
 #define QMCPLUSPLUS_COULOMBPBCAA_TEMP_H
 #include "QMCHamiltonians/QMCHamiltonianBase.h"
-#include "QMCHamiltonians/CudaCoulomb.h"
 #include "LongRange/LRCoulombSingleton.h"
 
 namespace qmcplusplus {
@@ -90,30 +89,7 @@ namespace qmcplusplus {
     Return_t evalSR(ParticleSet& P);
     Return_t evalLR(ParticleSet& P);
     Return_t evalConsts();
-    Return_t evaluateForPbyP(ParticleSet& P);
-    
-    //////////////////////////////////
-    // Vectorized evaluation on GPU //
-    //////////////////////////////////
-    //// Short-range part
-    TextureSpline *SRSpline;
-    gpu::device_vector<CUDA_PRECISION>  SumGPU;
-    gpu::host_vector<CUDA_PRECISION>  SumHost;
-    gpu::device_vector<CUDA_PRECISION>  L, Linv;
-    //// Long-range part
-    int Numk;
-    gpu::device_vector<CUDA_PRECISION> kpointsGPU;
-    gpu::device_vector<int>            kshellGPU;
-    // This has the same lengths as KshellGPU
-    gpu::device_vector<CUDA_PRECISION> FkGPU;
-    // The first vector index is the species number
-    // Complex, stored as float2
-    vector<gpu::device_vector<CUDA_PRECISION*> > RhoklistsGPU;
-    vector<gpu::host_vector<CUDA_PRECISION*> > RhoklistsHost;
-    gpu::device_vector<CUDA_PRECISION> RhokGPU;
-    void setupLongRangeGPU(ParticleSet &P);
-    void addEnergy(MCWalkerConfiguration &W, 
-		   vector<RealType> &LocalEnergy);
+    Return_t evaluateForPbyP(ParticleSet& P);    
   };
 
 }
