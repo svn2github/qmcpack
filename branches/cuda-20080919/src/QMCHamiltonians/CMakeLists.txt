@@ -30,6 +30,7 @@ IF(QMC_CUDA)
        NLPP.cu
        CoulombPBCAA_CUDA.cpp
        CoulombPBCAB_CUDA.cpp
+       MPC_CUDA.cpp
       )
 ENDIF(QMC_CUDA)
 

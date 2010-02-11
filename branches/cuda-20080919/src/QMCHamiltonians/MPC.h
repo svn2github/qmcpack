@@ -29,7 +29,7 @@ namespace qmcplusplus {
    */
 
   class MPC: public QMCHamiltonianBase {
-  private:
+  protected:
     UBspline_3d_d *VlongSpline, *DensitySpline;
     double Vconst;
     void compute_g_G(double &g_0_N, vector<double> &g_G_N, int N);
@@ -92,18 +92,8 @@ namespace qmcplusplus {
 
     void initBreakup();
 
-    //////////////////////////////////
-    // Vectorized evaluation on GPU //
-    //////////////////////////////////
-    //// Short-range part
-    UBspline_3d_s_cuda *CudaSpline;
-    vector<int> IonFirst, IonLast;
-    // This is indexed by the ion species
-    gpu::device_vector<CUDA_PRECISION>  SumGPU;
-    gpu::host_vector<CUDA_PRECISION>  SumHost;
-    gpu::device_vector<CUDA_PRECISION>  L, Linv;
-    void addEnergy(MCWalkerConfiguration &W, 
-		   vector<RealType> &LocalEnergy);
+
+
   };
 
 }

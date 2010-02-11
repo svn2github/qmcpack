@@ -47,6 +47,7 @@
 #ifdef QMC_CUDA
   #include "QMCHamiltonians/CoulombPBCAA_CUDA.h"
   #include "QMCHamiltonians/CoulombPBCAB_CUDA.h"
+  #include "QMCHamiltonians/MPC_CUDA.h"
 #endif
 
 
@@ -322,7 +323,11 @@ namespace qmcplusplus {
 
     renameProperty(a);
 
+#ifdef QMC_CUDA
+    MPC_CUDA *mpc = new MPC_CUDA (*targetPtcl, cutoff);
+#else
     MPC *mpc = new MPC (*targetPtcl, cutoff);
+#endif
     targetH->addOperator(mpc, "MPC", physical);
 #else
     APP_ABORT("HamiltonianFactory::addMPCPotential MPC is disabled because FFTW3 was not found during the build process.");
