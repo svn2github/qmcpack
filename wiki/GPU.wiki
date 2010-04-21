@@ -3,9 +3,9 @@
 = Introduction =
 The loosely-coupled population of walkers in QMC simulations make a nearly ideal case for acceleration on GPUs.  We have developed a partial port of QMCPACK to run on NVIDIA GPUs using CUDA.  For large systems, the code runs up to 15 times faster on a G200 GPU than on a quad-core Xeon processors.
 
-Currently, the source exists as a branch from the mainline code, but we hope to merge it back in soon.  In the meantime, it may be check out with:
-
-svn co http://qmcpack.googlecode.com/svn/branches/cuda-20080919 qmcpack-gpu
+The GPU version can be built by adding the flag "-DQMC_CUDA=1" to the cmake command.  
 
 A poster on the GPU port was presented at Supercomputing 09:
 [http://qmcpack.googlecode.com/files/GPUposter_landscape.pdf SC09 poster]
+
+A paper on the work has been submitted and is under review.
