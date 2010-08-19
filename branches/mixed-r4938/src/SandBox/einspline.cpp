@@ -80,7 +80,7 @@ int main(int argc, char** argv)
 #pragma omp parallel
   {
     einspline3d_benchmark<multi_UBspline_3d_d> d_bench;
-    d_bench.set(nx,ny,nz,num_splines);
+    d_bench.create_plan(nx,ny,nz,num_splines);
     random_position_generator<double> d_pos(nsamples,omp_get_thread_num());
     timer_type d_timer(0.0);
     for(int i=0; i<niters; ++i)
@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 #pragma omp parallel
   {
     einspline3d_benchmark<multi_UBspline_3d_z> d_bench;
-    d_bench.set(nx,ny,nz,num_splines);
+    d_bench.create_plan(nx,ny,nz,num_splines);
     random_position_generator<double> d_pos(nsamples,omp_get_thread_num());
     timer_type d_timer(0.0);
     for(int i=0; i<niters; ++i)
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 #pragma omp parallel
   {
     einspline3d_benchmark<multi_UBspline_3d_s> d_bench;
-    d_bench.set(nx,ny,nz,num_splines);
+    d_bench.create_plan(nx,ny,nz,num_splines);
     random_position_generator<float> d_pos(nsamples,omp_get_thread_num());
     timer_type d_timer(0.0);
     for(int i=0; i<niters; ++i)
@@ -131,7 +131,7 @@ int main(int argc, char** argv)
 #pragma omp parallel
   {
     einspline3d_benchmark<multi_UBspline_3d_c> d_bench;
-    d_bench.set(nx,ny,nz,num_splines);
+    d_bench.create_plan(nx,ny,nz,num_splines);
     random_position_generator<float> d_pos(nsamples,omp_get_thread_num());
     timer_type d_timer(0.0);
     for(int i=0; i<niters; ++i)

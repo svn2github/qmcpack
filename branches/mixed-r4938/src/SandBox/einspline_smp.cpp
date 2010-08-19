@@ -71,16 +71,16 @@ int main(int argc, char** argv)
   Timer big_clock;
 
   einspline3d_benchmark<multi_UBspline_3d_z> z_bench;
-  z_bench.set(nx,ny,nz,num_splines);
+  z_bench.create_plan(nx,ny,nz,num_splines);
 
   einspline3d_benchmark<multi_UBspline_3d_d> d_bench;
-  d_bench.set(nx,ny,nz,num_splines);
+  d_bench.create_plan(nx,ny,nz,num_splines);
 
   einspline3d_benchmark<multi_UBspline_3d_s> s_bench;
-  s_bench.set(nx,ny,nz,num_splines);
+  s_bench.create_plan(nx,ny,nz,num_splines);
 
   einspline3d_benchmark<multi_UBspline_3d_c> c_bench;
-  c_bench.set(nx,ny,nz,num_splines);
+  c_bench.create_plan(nx,ny,nz,num_splines);
 
   double t_init=big_clock.elapsed();
   app_log() << "#einspline benchmark grid = " << nx << " " << ny << " " << nz
@@ -98,6 +98,7 @@ int main(int argc, char** argv)
     random_position_generator<double> d_pos(nsamples,omp_get_thread_num());
     random_position_generator<float> s_pos(nsamples,omp_get_thread_num());
     timer_type d_timer,s_timer,z_timer,c_timer;
+
     for(int i=0; i<niters; ++i)
     {
       d_pos.randomize();

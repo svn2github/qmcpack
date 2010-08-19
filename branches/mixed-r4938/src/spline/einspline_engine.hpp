@@ -19,66 +19,162 @@
 #define QMCPLUSPLUS_EINSPLINE_ENGINE_HPP
 #include <spline/bspline_traits.hpp>
 #include <spline/einspline_impl.hpp>
+#include <OhmmsPETE/OhmmsVector.h>
 namespace qmcplusplus
 {
 
   /** einspline_engine
-   *
-   * The copy constructor is disabled.
+   * @tparam EngT type of einspline engine, e.g., multi_UBspline_3d_d
+   * Container and handler of einspline  libraries
    */
-  template<typename ENGT>
-    class einspline_engine
+  template<typename EngT>
+  class einspline_engine
+  {
+  public:
+    enum
     {
-      public:
-        enum {D=bspline_engine_traits<ENGT>::DIM};
-        typedef typename bspline_engine_traits<ENGT>::real_type real_type;
-        typedef typename bspline_engine_traits<ENGT>::value_type value_type;
-        typedef value_type* pointer;
-        ///number of splines
-        int num_splines;
-        ///spline engine
-        ENGT* spliner;
-
-        einspline_engine():num_splines(0),spliner(0) { }
-
-        void create(TinyVector<real_type,D>& start, TinyVector<real_type,D>& end
-            , TinyVector<int,D>& ng, bc_code bc, int nstates)
-        {
-          num_splines=nstates;
-          spliner=einspline::create(spliner,start,end,ng,bc,nstates);
-        }
-
-        inline void set(int i, Array<value_type,D>& data)
-        {
-          einspline::set(spliner,i,data);
-        }
-
-        template<typename PT, typename VT> 
-          inline void evaluate(const PT& r, VT& psi)
-          { 
-            einspline::evaluate(spliner,r,psi); 
-          }
-
-        template<typename PT, typename VT, typename GT> 
-          inline void evaluate(const PT& r, VT& psi, GT& grad)
-          { 
-            einspline::evaluate(spliner,r,psi,grad); 
-          }
-
-        template<typename PT, typename VT, typename GT>
-          inline void evaluate(const PT& r, VT& psi, GT& grad, VT& lap)
-          { 
-            einspline::evaluate(spliner,r,psi,grad,lap); 
-          }
-
-        template<typename PT, typename VT, typename GT, typename HT>
-          inline void evaluate(const PT& r, VT& psi, GT& grad, HT& hess)
-          { 
-            einspline::evaluate(spliner,r,psi,grad,hess); 
-          }
-      private:
-        einspline_engine(const einspline_engine<ENGT>& rhs) {}
+      DIM = bspline_engine_traits<EngT>::DIM
     };
+    typedef typename bspline_engine_traits<EngT>::real_type real_type;
+    typedef typename bspline_engine_traits<EngT>::value_type value_type;
+    typedef typename bspline_engine_traits<EngT>::Spline_t Spline_t;
+    typedef typename bspline_engine_traits<EngT>::BCtype_t BCtype_t;
+/// owner of Spliner
+    bool own_spliner;
+    ///the locator of the states owned by this class
+    int first_index;
+    ///the number of spline objects owned by this class
+    int num_splines;
+    ///spline engine
+    Spline_t *spliner;
+    ///grid
+    Ugrid my_grid[DIM];
+    ///boundary conditions
+    BCtype_t bconds[DIM];
+
+    ///values
+    Vector<value_type> Val;
+    ///gradients
+    Vector<TinyVector<value_type, DIM> > Grad;
+    ///laplacians
+    Vector<value_type> Lap;
+    ///hessians
+    Vector<Tensor<value_type, DIM> > Hess;
+
+    /** default constructor
+     *
+     * initialize bconds to be periodic
+     */
+    einspline_engine() :
+      own_spliner(false), spliner(0), first_index(0), num_splines(0)
+    {
+    }
+
+    einspline_engine(const TinyVector<int, DIM>& npts, int norbs) :
+      own_spliner(false), spliner(0), first_index(0), num_splines(norbs)
+    {
+      create_plan(npts, norbs);
+    }
+
+    /// copy constructor
+    einspline_engine(einspline_engine<EngT>& rhs) :
+      own_spliner(false), first_index(rhs.first_index), num_splines(rhs.num_splines), spliner(rhs.spliner)
+    {
+      Val.resize(num_splines);
+      Grad.resize(num_splines);
+      Lap.resize(num_splines);
+      Hess.resize(num_splines);
+    }
+
+    ~einspline_engine()
+    {
+      if (own_spliner&& spliner) destroy_Bspline(spliner);
+    }
+
+    void set_defaults(const TinyVector<int, DIM>& npts, int norbs=0)
+    {
+      for (int i = 0; i < DIM; ++i)
+      {
+        bconds[i].lCode = bconds[i].rCode = PERIODIC;
+        my_grid[i].start = 0.0;
+        my_grid[i].end = 1.0;
+        my_grid[i].num = npts[i];
+      }
+      if(norbs>0) num_splines=norbs;
+    }
+
+    /** allocate internal storage
+     * @param npts grid
+     * @param norbs number of orbitals owned byt this
+     */
+    void create_plan(const TinyVector<int, DIM>& npts, int norbs, int first=0)
+    {
+      first_index=first;
+      set_defaults(npts, norbs);
+      create_plan();
+    }
+
+    /** allocate internal storage for the coefficients
+     */
+    void create_plan()
+    {
+      if(own_spliner&&spliner) destroy_Bspline(spliner);
+      spliner=einspline::impl::create_bspline_engine(my_grid, bconds, num_splines);
+      own_spliner=true;
+      Val.resize(num_splines);
+      Grad.resize(num_splines);
+      Lap.resize(num_splines);
+      Hess.resize(num_splines);
+    }
+
+    /** set the ival-th spline function with the datain
+     */
+    template<typename T1>
+    void set(int ival, T1* datain, size_t n)
+    {
+      if (ival >= num_splines)
+      {
+        APP_ABORT("Out of bound of the orbital index");
+      }
+      einspline::impl::set_bspline(spliner, ival, datain);
+//      if (compare_types<value_type, T1>::same)
+//        einspline::impl::set_bspline(spliner, ival, datain);
+//      else
+//      {//not sure if the conversion should be handled here
+//        std::vector<value_type> converted(n);
+//        for (int i = 0; i < n; ++i)
+//          convert(datain[i], converted[i]);
+//        einspline::impl::set_bspline(spliner, ival, converted.data());
+//      }
+    }
+
+    template<typename ValT>
+    inline void evaluate_v(const TinyVector<ValT, DIM>& r)
+    {
+      einspline::impl::evaluate(spliner, r, Val.data());
+    }
+
+    template<typename ValT>
+    inline void evaluate_vg(const TinyVector<ValT, DIM>& r)
+    {
+      einspline::impl::evaluate(spliner, r, Val.data(), Grad.data());
+    }
+
+    template<typename ValT>
+    inline void evaluate_vgl(const TinyVector<ValT, DIM>& r)
+    {
+      einspline::impl::evaluate(spliner, r, Val.data(), Grad.data(), Lap.data());
+    }
+
+    template<typename ValT>
+    inline void evaluate_vgh(const TinyVector<ValT, DIM>& r)
+    {
+      if (spliner) einspline::impl::evaluate(spliner, r, Val.data(), Grad.data(), Hess.data());
+    }
+
+    private:
+
+  };
 }
 
 #endif

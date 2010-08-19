@@ -48,19 +48,17 @@ namespace qmcplusplus
   {
       static const bool value=false;
   };
-  //
-  /** struct to check if two types are the same
-   */
+
   template<typename T1, typename T2>
-    struct type_check
+    struct compare_types
     {
-      static const bool value=false;
+      static const bool same=false;
     };
 
   template<typename T1>
-    struct type_check<T1,T1>
+    struct compare_types<T1,T1>
     {
-      static const bool value=true;
+      static const bool same=true;
     };
 
   /** dummy traits class for bspline engine
@@ -68,14 +66,16 @@ namespace qmcplusplus
    * Should fail to instantiate invalid engines if the trait class is not implemented
    * The specialization provides
    * - DIM, physical dimension
-   * - real_type real data type
-   * - value_type value data type
-   * - spline_type einspline engine type
+   * - Real_t real data type
+   * - Type_t value data type
+   * - Spline_t einspline engine type
+   * - BCtype_t type of the boundary condition
    */
   template<typename EngT>
-  struct bspline_engine_traits {};
+  struct bspline_engine_traits
+  {};
 
-#if OHMMS_DIM == 3
+#if  OHMMS_DIM==3
   /** specialization with multi_UBspline_3d_d
    */
   template<>
@@ -84,6 +84,8 @@ namespace qmcplusplus
     enum {DIM=3};
     typedef double real_type;
     typedef double value_type;
+    typedef multi_UBspline_3d_d Spline_t;
+    typedef BCtype_d BCtype_t;
   };
 
   ///specialization with multi_UBspline_3d_z
@@ -93,6 +95,8 @@ namespace qmcplusplus
     enum {DIM=3};
     typedef double real_type;
     typedef std::complex<double> value_type;
+    typedef multi_UBspline_3d_z Spline_t;
+    typedef BCtype_z BCtype_t;
   };
 
   /** specialization with multi_UBspline_3d_d
@@ -103,6 +107,8 @@ namespace qmcplusplus
     enum {DIM=3};
     typedef float real_type;
     typedef float value_type;
+    typedef multi_UBspline_3d_s Spline_t;
+    typedef BCtype_s BCtype_t;
   };
 
   ///specialization with multi_UBspline_3d_z
@@ -112,10 +118,12 @@ namespace qmcplusplus
     enum {DIM=3};
     typedef float real_type;
     typedef std::complex<float> value_type;
+    typedef multi_UBspline_3d_c Spline_t;
+    typedef BCtype_c BCtype_t;
   };
 
 #else
-#error "DIMENSION!=3 is not implemented yet"
+  #error "Only three-dimensional interfaces are implemented."
 #endif
 }
 #endif
