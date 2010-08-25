@@ -1,37 +1,43 @@
 #include <Configuration.h>
 #include <spline/einspline_engine.hpp>
 #include <OhmmsPETE/OhmmsArray.h>
-#include <Message/OpenMP.h>
+#include <Message/Communicate.h>
+#include <mpi/collectives.h>
 #include <Utilities/RandomGenerator.h>
 #include <Utilities/Timer.h>
 #include <Utilities/IteratorUtility.h>
-
+#include <Utilities/UtilityFunctions.h>
 namespace qmcplusplus {
   template<typename EngT>
     class einspline_omp
     {
       typedef einspline_engine<EngT> spliner_type;
       enum {DIM=spliner_type::DIM};
-      vector<spliner_type*> engines;
+      vector<spliner_type*> Engines;
+      vector<int> Offsets;
 
       public:
       einspline_omp(){}
 
       ~einspline_omp()
       {
-        delete_iter(engines.begin(),engines.end());
+        delete_iter(Engines.begin(),Engines.end());
       }
 
       void create_plan(const TinyVector<int,DIM>& ng, int nsplines, bool randomize=false)
       {
-        if(engines.empty())
-          engines.resize(omp_get_max_threads(),0);
+        if(Engines.empty())
+          Engines.resize(omp_get_max_threads(),0);
+
+        Offsets.resize(Engines.size()+1);
+        FairDivideLow(nsplines,Engines.size(),Offsets);
+        
 #pragma omp parallel
         {
           int ip=omp_get_thread_num();
-          int ns_loc=nsplines/engines.size();
-          if(engines[ip]) delete engines[ip];
-          engines[ip]=new spliner_type(ng,ns_loc);
+          int ns_loc=Offsets[ip+1]-Offsets[ip];//nsplines/Engines.size();
+          if(Engines[ip]) delete Engines[ip];
+          Engines[ip]=new spliner_type(ng,ns_loc,Offsets[ip]);
           if(randomize)
           {
             Array<typename spliner_type::value_type, 3> data(ng[0], ng[1], ng[2]);
@@ -39,7 +45,7 @@ namespace qmcplusplus {
             {
               for (int j = 0; j < data.size(); ++j)
                 data(j) = Random();
-              engines[ip]->set(i, data.data(), data.size());
+              Engines[ip]->set(i, data.data(), data.size());
             }
           }
         }
@@ -48,29 +54,29 @@ namespace qmcplusplus {
       template<typename T1>
       void evaluate_v(const TinyVector<T1,DIM>& here)
       {
-        const int np=engines.size();
+        const int np=Engines.size();
 #pragma omp parallel for
-        for(int ip=0; ip<np; ++ip) engines[ip]->evaluate_v(here);
+        for(int ip=0; ip<np; ++ip) Engines[ip]->evaluate_v(here);
       }
 
       template<typename T1>
       void evaluate_v(const vector<TinyVector<T1,DIM> >& here)
       {
-        const int np=engines.size();
+        const int np=Engines.size();
 #pragma omp parallel for
         for(int ip=0; ip<np; ++ip) 
         {
           for(int i=0; i<here.size(); ++i)
-            engines[ip]->evaluate_v(here[i]);
+            Engines[ip]->evaluate_v(here[i]);
         }
       }
 
       template<typename T1>
       void evaluate_vgh(const TinyVector<T1,DIM>& here)
       {
-        const int np=engines.size();
+        const int np=Engines.size();
 #pragma omp parallel for
-        for(int ip=0; ip<np; ++ip) engines[ip]->evaluate_vgh(here);
+        for(int ip=0; ip<np; ++ip) Engines[ip]->evaluate_vgh(here);
       }
     };
 }
@@ -80,6 +86,9 @@ using namespace qmcplusplus;
 int main(int argc, char **argv)
 {
 
+  OHMMS::Controller->initialize(argc,argv);
+  Communicate* mycomm=OHMMS::Controller;
+  OhmmsInfo Welcome("mixed",mycomm->rank());
   Random.init(0,1,11);
   //einspline_test<multi_UBspline_3d_s> sp_s;
   //einspline_test<multi_UBspline_3d_d> sp_d;
@@ -124,7 +133,6 @@ int main(int argc, char **argv)
     }
   }
 
-  typedef einspline_engine<multi_UBspline_3d_d> spliner_type;
   einspline_omp<multi_UBspline_3d_d> myeng;
   myeng.create_plan(ng,num_splines,true);
   RandomGenerator_t rng;
@@ -143,20 +151,23 @@ int main(int argc, char **argv)
     myeng.evaluate_vgh(here);
   }
   double dt_vgh=clock.elapsed();
-  cout.setf(std::ios::scientific, std::ios::floatfield);
-  cout.precision(6);
-  cout << "einspline_omp " << setw(3) << omp_get_max_threads() 
+
+  mycomm->barrier();
+
+  mpi::allreduce(*mycomm,dt_v);
+  mpi::allreduce(*mycomm,dt_vgh);
+
+  dt_v/=static_cast<double>(mycomm->size());
+  dt_vgh/=static_cast<double>(mycomm->size());
+
+  num_splines *= mycomm->size();
+  app_log().setf(std::ios::scientific, std::ios::floatfield);
+  app_log().precision(6);
+  app_log() << "einspline_omp " << setw(3) << omp_get_max_threads() 
     <<setw(6) << ng[0] << setw(6) << num_splines << setw(6) << num_samples
     << "  " << niters*num_samples*num_splines/dt_v
     << "  " << niters*num_splines/dt_vgh
     << endl;
-
-//  einspline_engine<multi_UBspline_3d_s> spliner(ng,num_splines);
-//  spliner.evaluate_v(here);
-//  cout << spliner.Val << endl;
-//  spliner.evaluate_vg(here);
-//  spliner.evaluate_vgl(here);
-//  spliner.evaluate_vgh(here);
 
   return 0;
 }

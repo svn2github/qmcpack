@@ -26,6 +26,9 @@ namespace qmcplusplus
   /** einspline_engine
    * @tparam EngT type of einspline engine, e.g., multi_UBspline_3d_d
    * Container and handler of einspline  libraries
+   *
+   * Each object owns a set of states which can be globally addressed
+   * [first_index,last_index).
    */
   template<typename EngT>
   class einspline_engine
@@ -39,10 +42,12 @@ namespace qmcplusplus
     typedef typename bspline_engine_traits<EngT>::value_type value_type;
     typedef typename bspline_engine_traits<EngT>::Spline_t Spline_t;
     typedef typename bspline_engine_traits<EngT>::BCtype_t BCtype_t;
-/// owner of Spliner
+    /// owner of Spliner
     bool own_spliner;
-    ///the locator of the states owned by this class
+    ///the lower bound of the index
     int first_index;
+    ///the upper bound of the index
+    int last_index;
     ///the number of spline objects owned by this class
     int num_splines;
     ///spline engine
@@ -70,8 +75,8 @@ namespace qmcplusplus
     {
     }
 
-    einspline_engine(const TinyVector<int, DIM>& npts, int norbs) :
-      own_spliner(false), spliner(0), first_index(0), num_splines(norbs)
+    einspline_engine(const TinyVector<int, DIM>& npts, int norbs, int first=0) :
+      own_spliner(false), spliner(0), first_index(first), num_splines(norbs)
     {
       create_plan(npts, norbs);
     }
@@ -110,6 +115,7 @@ namespace qmcplusplus
     void create_plan(const TinyVector<int, DIM>& npts, int norbs, int first=0)
     {
       first_index=first;
+      last_index=first+norbs;
       set_defaults(npts, norbs);
       create_plan();
     }
