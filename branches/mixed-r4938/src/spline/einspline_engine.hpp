@@ -42,12 +42,10 @@ namespace qmcplusplus
     typedef typename bspline_engine_traits<EngT>::value_type value_type;
     typedef typename bspline_engine_traits<EngT>::Spline_t Spline_t;
     typedef typename bspline_engine_traits<EngT>::BCtype_t BCtype_t;
+    typedef TinyVector<value_type,DIM> grad_type;
+    typedef Tensor<value_type,DIM> hessian_type;
     /// owner of Spliner
     bool own_spliner;
-    ///the lower bound of the index
-    int first_index;
-    ///the upper bound of the index
-    int last_index;
     ///the number of spline objects owned by this class
     int num_splines;
     ///spline engine
@@ -60,30 +58,30 @@ namespace qmcplusplus
     ///values
     Vector<value_type> Val;
     ///gradients
-    Vector<TinyVector<value_type, DIM> > Grad;
+    Vector<grad_type> Grad;
     ///laplacians
     Vector<value_type> Lap;
     ///hessians
-    Vector<Tensor<value_type, DIM> > Hess;
+    Vector<hessian_type> Hess;
 
     /** default constructor
      *
      * initialize bconds to be periodic
      */
     einspline_engine() :
-      own_spliner(false), spliner(0), first_index(0), num_splines(0)
+      own_spliner(false), spliner(0), num_splines(0)
     {
     }
 
-    einspline_engine(const TinyVector<int, DIM>& npts, int norbs, int first=0) :
-      own_spliner(false), spliner(0), first_index(first), num_splines(norbs)
+    einspline_engine(const TinyVector<int, DIM>& npts, int norbs) :
+      own_spliner(false), spliner(0),  num_splines(norbs)
     {
       create_plan(npts, norbs);
     }
 
     /// copy constructor
     einspline_engine(einspline_engine<EngT>& rhs) :
-      own_spliner(false), first_index(rhs.first_index), num_splines(rhs.num_splines), spliner(rhs.spliner)
+      own_spliner(false),  num_splines(rhs.num_splines), spliner(rhs.spliner)
     {
       Val.resize(num_splines);
       Grad.resize(num_splines);
@@ -112,10 +110,8 @@ namespace qmcplusplus
      * @param npts grid
      * @param norbs number of orbitals owned byt this
      */
-    void create_plan(const TinyVector<int, DIM>& npts, int norbs, int first=0)
+    void create_plan(const TinyVector<int, DIM>& npts, int norbs)
     {
-      first_index=first;
-      last_index=first+norbs;
       set_defaults(npts, norbs);
       create_plan();
     }
@@ -178,6 +174,29 @@ namespace qmcplusplus
       if (spliner) einspline::impl::evaluate(spliner, r, Val.data(), Grad.data(), Hess.data());
     }
 
+    template<typename ValT>
+     inline void evaluate(const TinyVector<ValT, DIM>& r, value_type* v)
+     {
+       einspline::impl::evaluate(spliner, r, v);
+     }
+
+     template<typename ValT>
+     inline void evaluate(const TinyVector<ValT, DIM>& r, value_type* v, grad_type* g)
+     {
+       einspline::impl::evaluate(spliner, r, v, g);
+     }
+
+     template<typename ValT>
+     inline void evaluate(const TinyVector<ValT, DIM>& r, value_type* v, grad_type* g, value_type* l)
+     {
+       einspline::impl::evaluate(spliner, r, v, g, l);
+     }
+
+     template<typename ValT>
+     inline void evaluate(const TinyVector<ValT, DIM>& r, value_type* v, grad_type* g, hessian_type* h)
+     {
+       if (spliner) einspline::impl::evaluate(spliner, r, v, g, h);
+     }
     private:
 
   };
