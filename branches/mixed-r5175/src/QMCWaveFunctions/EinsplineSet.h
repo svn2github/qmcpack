@@ -7,7 +7,6 @@
 //   University of Illinois, Urbana-Champaign                   //
 //   Urbana, IL 61801                                           //
 //   e-mail: jnkim@ncsa.uiuc.edu                                //
-//   Tel:    217-244-6319 (NCSA) 217-333-3324 (MCC)             //
 //                                                              //
 // Supported by                                                 //
 //   National Center for Supercomputing Applications, UIUC      //
@@ -17,18 +16,19 @@
 #ifndef QMCPLUSPLUS_EINSPLINE_SET_H
 #define QMCPLUSPLUS_EINSPLINE_SET_H
 
-#include "QMCWaveFunctions/BasisSetBase.h"
-#include "QMCWaveFunctions/SPOSetBase.h"
-#include "QMCWaveFunctions/AtomicOrbital.h"
-#include "QMCWaveFunctions/MuffinTin.h"
-#include "Utilities/NewTimer.h"
-#include "Configuration.h"
-#include "Numerics/e2iphi.h"
-#include <einspline/multi_bspline_structs.h>
-#ifdef QMC_CUDA
-  #include <einspline/multi_bspline_create_cuda.h>
-  #include "QMCWaveFunctions/AtomicOrbitalCuda.h"
-#endif
+#include <Configuration.h>
+#include <QMCWaveFunctions/BasisSetBase.h>
+#include <QMCWaveFunctions/SPOSetBase.h>
+#include <QMCWaveFunctions/AtomicOrbital.h>
+#include <QMCWaveFunctions/MuffinTin.h>
+#include <Utilities/NewTimer.h>
+#include <Numerics/e2iphi.h>
+#include <QMCWaveFunctions/EinsplineTraits.h>
+//#include <einspline/multi_bspline_structs.h>
+//#ifdef QMC_CUDA
+//  #include <einspline/multi_bspline_create_cuda.h>
+//  #include "QMCWaveFunctions/AtomicOrbitalCuda.h"
+//#endif
 
 namespace qmcplusplus {
 
@@ -77,22 +77,6 @@ namespace qmcplusplus {
   public:  
     UnitCellType GetLattice();
 
-    void evaluate(const ParticleSet& P, int iat, ValueVector_t& psi);
-    void evaluate(const ParticleSet& P, int iat, 
-		  ValueVector_t& psi, GradVector_t& dpsi, ValueVector_t& d2psi);
-    void evaluate(const ParticleSet& P, int iat, 
-		  ValueVector_t& psi, GradVector_t& dpsi, HessVector_t& grad_grad_psi);
-    void evaluate_notranspose(const ParticleSet& P, int first, int last,
-		  ValueMatrix_t& psi, GradMatrix_t& dpsi, 
-		  ValueMatrix_t& d2psi);
-    void evaluate_notranspose(const ParticleSet& P, int first, int last,
-                  ValueMatrix_t& logdet, GradMatrix_t& dlogdet,
-                  HessMatrix_t& grad_grad_logdet);
-    void evaluate_notranspose(const ParticleSet& P, int first, int last,
-                  ValueMatrix_t& logdet, GradMatrix_t& dlogdet,
-                  HessMatrix_t& grad_grad_logdet,
-                  GGGMatrix_t& grad_grad_grad_logdet);
-
     void resetTargetParticleSet(ParticleSet& e);
     void resetSourceParticleSet(ParticleSet& ions);
     void setOrbitalSetSize(int norbs);
@@ -105,94 +89,6 @@ namespace qmcplusplus {
       className = "EinsplineSet";
     }
   };
-
-  ////////////////////////////////////////////////////////////////////
-  // This is just a template trick to avoid template specialization //
-  // in EinsplineSetExtended.                                       //
-  ////////////////////////////////////////////////////////////////////
-  template<typename StorageType, int dim>  struct MultiOrbitalTraits{};
-
-  template<> struct MultiOrbitalTraits<double,2>
-  {  
-    typedef multi_UBspline_2d_d SplineType; 
-#ifdef QMC_CUDA 
-    typedef multi_UBspline_2d_d_cuda CudaSplineType;  
-#endif
-  };
-
-  template<> struct MultiOrbitalTraits<double,3>
-  {  
-    typedef multi_UBspline_3d_d SplineType;  
-#ifdef QMC_CUDA 
-    typedef multi_UBspline_3d_d_cuda CudaSplineType; 
-#endif
-  };
-
-  template<> struct MultiOrbitalTraits<complex<double>,2>
-  {  
-    typedef multi_UBspline_2d_z SplineType;  
-#ifdef QMC_CUDA 
-    typedef multi_UBspline_2d_z_cuda CudaSplineType;  
-#endif
-  };
-
-  template<> struct MultiOrbitalTraits<complex<double>,3>
-  {  
-    typedef multi_UBspline_3d_z SplineType;  
-#ifdef QMC_CUDA 
-    typedef multi_UBspline_3d_z_cuda CudaSplineType;  
-#endif
-  };
-
-
-  template<> struct MultiOrbitalTraits<float,2>
-  {  
-    typedef multi_UBspline_2d_s SplineType;  
-#ifdef QMC_CUDA 
-    typedef multi_UBspline_2d_s_cuda CudaSplineType;  
-#endif
-  };
-
-  template<> struct MultiOrbitalTraits<float,3>
-  {  
-    typedef multi_UBspline_3d_s SplineType;  
-#ifdef QMC_CUDA 
-    typedef multi_UBspline_3d_s_cuda CudaSplineType;  
-#endif
-  };
-
-  template<> struct MultiOrbitalTraits<complex<float>,2>
-  {  
-    typedef multi_UBspline_2d_c SplineType;  
-#ifdef QMC_CUDA 
-    typedef multi_UBspline_2d_c_cuda CudaSplineType;  
-#endif
-  };
-
-  template<> struct MultiOrbitalTraits<complex<float>,3>
-  {  
-    typedef multi_UBspline_3d_c SplineType;  
-#ifdef QMC_CUDA 
-    typedef multi_UBspline_3d_c_cuda CudaSplineType;  
-#endif
-  };
-
-
-#ifdef QMC_CUDA
-  template<typename StoreType, typename CudaPrec> struct StorageTypeConverter;
-  template<> struct StorageTypeConverter<double,double>
-  {    typedef double CudaStorageType;         };
-  template<> struct StorageTypeConverter<double,float>
-  {    typedef float CudaStorageType;           };
-  template<> struct StorageTypeConverter<complex<double>,float>
-  {    typedef complex<float> CudaStorageType ; };
-  template<> struct StorageTypeConverter<complex<double>,complex<double> >
-  {    typedef complex<double> CudaStorageType; };
-#endif
-
-  
-
-
 
   ////////////////////////////////////////////////////////////////////
   // Template class for evaluating multiple extended Bloch orbitals // 
@@ -427,30 +323,6 @@ namespace qmcplusplus {
   };
 
 #ifdef QMC_CUDA
-  template<typename T>
-  struct AtomicSplineJob
-  {
-    T dist, SplineDelta;
-    T rhat[OHMMS_DIM];
-    int lMax, YlmIndex;
-    T* SplineCoefs;
-    T *phi, *grad_lapl;
-    T PAD[3];
-    //T PAD[(64 - (2*OHMMS_DIM*sizeof(T) + 2*sizeof(int) + 2*sizeof(T*)))/sizeof(T)];
-  };
-
-  template<typename T>
-  struct AtomicPolyJob
-  {
-    T dist, SplineDelta;
-    T rhat[OHMMS_DIM];
-    int lMax, PolyOrder, YlmIndex;
-    T* PolyCoefs;
-    T *phi, *grad_lapl;
-    T PAD[2];
-    //T PAD[(64 - (2*OHMMS_DIM*sizeof(T) + 2*sizeof(int) + 2*sizeof(T*)))/sizeof(T)];
-  };
-
 
   template<typename StorageType>
   class EinsplineSetHybrid : public EinsplineSetExtended<StorageType>

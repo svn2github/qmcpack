@@ -923,6 +923,7 @@ void
   EinsplineSetBuilder::ReadBands_ESHDF
   (int spin, EinsplineSetExtended<complex<double > >* orbitalSet)
   {
+    cout << "STARTING EinsplineSetBuilder::ReadBands_ESHDF " << endl;
     bool root = myComm->rank()==0;
     // bcast other stuff
     myComm->bcast (NumDistinctOrbitals);
@@ -1000,10 +1001,12 @@ void
     y_grid.start = 0.0;  y_grid.end = 1.0;  y_grid.num = ny;
     z_grid.start = 0.0;  z_grid.end = 1.0;  z_grid.num = nz;
 
+    cout << "TEST 1 " << endl;
     // Create the multiUBspline object
     orbitalSet->MultiSpline = 
       create_multi_UBspline_3d_z (x_grid, y_grid, z_grid, xBC, yBC, zBC, NumValenceOrbs);
     
+    cout << "TEST 2 " << endl;
     //////////////////////////////////////
     // Create the MuffinTin APW splines //
     //////////////////////////////////////
@@ -1020,6 +1023,7 @@ void
       AtomicOrbitals[iat].set_num_bands(NumValenceOrbs);
       AtomicOrbitals[iat].allocate();
     }
+    cout << "TEST 3 " << endl;
       
            
     int iorb  = 0;
@@ -1039,18 +1043,17 @@ void
 
     EinsplineSetBuilder::RotateBands_ESHDF(spin, orbitalSet);
 
-    
-
-
     while (iorb < N) {
+      cout << "TEST 4 " << iorb << endl;
       bool isCore;
       if (root)  isCore = SortBands[iorb].IsCoreState;
       myComm->bcast (isCore);
-      if (isCore) {
-	app_error() << "Core states not supported by ES-HDF yet.\n";
-	abort();
+      if (isCore) 
+      {
+	APP_ABORT("Core states not supported by ES-HDF yet.");
       }
-      else {
+      else 
+      {
 	PosType twist;
 	if (root) {
 	  int ti   = SortBands[iorb].TwistIndex;
@@ -1213,6 +1216,8 @@ void
       orbitalSet->AtomicOrbitals[i].registerTimers();
 
     ExtendedMap_z[set] = orbitalSet->MultiSpline;
+
+    cout << "ENDING EinsplineSetBuilder::ReadBands_ESHDF " << endl;
   }
 
 
@@ -1221,6 +1226,7 @@ void
   EinsplineSetBuilder::ReadBands_ESHDF
   (int spin, EinsplineSetExtended<double>* orbitalSet)
   {
+    cout << "#### EinsplineSetBuilder::ReadBands_ESHDF for real" << endl;
     vector<AtomicOrbital<double> > realOrbs(AtomicOrbitals.size());
     for (int iat=0; iat<realOrbs.size(); iat++) {
       AtomicOrbital<complex<double> > &corb (AtomicOrbitals[iat]);
@@ -1329,6 +1335,8 @@ void
     x_grid.start = 0.0;  x_grid.end = 1.0;  x_grid.num = nx;
     y_grid.start = 0.0;  y_grid.end = 1.0;  y_grid.num = ny;
     z_grid.start = 0.0;  z_grid.end = 1.0;  z_grid.num = nz;
+
+    cout << "### creating multi_UBspline_3d_d" << endl;
 
     // Create the multiUBspline object
     orbitalSet->MultiSpline = 
