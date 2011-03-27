@@ -32,23 +32,6 @@ namespace qmcplusplus {
   }
 
   template<typename StorageType> void
-  EinsplineSetExtended<StorageType>::resetParameters(const opt_variables_type& active)
-  {
-
-  }
-
-  template<typename StorageType> void
-  EinsplineSetExtended<StorageType>::resetTargetParticleSet(ParticleSet& e)
-  {
-  }
-
-  template<typename StorageType> void
-  EinsplineSetExtended<StorageType>::setOrbitalSetSize(int norbs)
-  {
-    OrbitalSetSize = norbs;
-  }
-  
-  template<typename StorageType> void
   EinsplineSetExtended<StorageType>::evaluate
   (const ParticleSet& P, int iat, RealValueVector_t& psi)
   {

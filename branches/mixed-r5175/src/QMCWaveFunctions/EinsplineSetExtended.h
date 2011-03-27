@@ -215,9 +215,6 @@ namespace qmcplusplus {
     void evaluate (vector<PosType> &pos, gpu::device_vector<CudaComplexType*> &phi);
 #endif
     
-    void resetParameters(const opt_variables_type& active);
-    void resetTargetParticleSet(ParticleSet& e);
-    void setOrbitalSetSize(int norbs);
     string Type();
     
     SPOSetBase* makeClone() const;

@@ -92,6 +92,7 @@ namespace qmcplusplus {
     inline UnitCellType GetLattice() {return SuperLattice;}
     inline void resetTargetParticleSet(ParticleSet& e) {}
     inline void resetSourceParticleSet(ParticleSet& ions){}
+    inline void resetParameters(const opt_variables_type& active){}
     inline void setOrbitalSetSize(int norbs) { OrbitalSetSize=norbs;}
   };
   
