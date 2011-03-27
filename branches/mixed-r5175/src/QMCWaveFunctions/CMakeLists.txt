@@ -83,6 +83,7 @@ IF(QMC_CUDA)
    IF(HAVE_EINSPLINE)
       SET(FERMION_SRCS ${FERMION_SRCS}
          EinsplineSetCuda.cpp
+         EinsplineSetExtended.cpp
          PhaseFactors.cu
          AtomicOrbitalCuda.cu
          )
@@ -92,7 +93,7 @@ ENDIF(QMC_CUDA)
 
   IF(HAVE_EINSPLINE)
     SET(FERMION_SRCS ${FERMION_SRCS}
-      EinsplineSet.cpp
+      EinsplineSetExtended.cpp
       EinsplineSetLocal.cpp
       EinsplineSetBuilderCommon.cpp
       EinsplineSetBuilderOld.cpp

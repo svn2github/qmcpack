@@ -12,38 +12,25 @@
 //   National Center for Supercomputing Applications, UIUC      //
 //   Materials Computation Center, UIUC                         //
 //////////////////////////////////////////////////////////////////
+/** @file EinsplineSetExtended.h
+ *
+ * Implementation of EinsplineSetExtended<StorageType> and 
+ * instatiation of double and complex<double>
+ */
 
-#include "QMCWaveFunctions/EinsplineSet.h"
+#include <QMCWaveFunctions/EinsplineSetExtended.h>
 #include <einspline/multi_bspline.h>
-#include "Configuration.h"
-#ifdef HAVE_MKL
-  #include <mkl_vml.h>
-#endif
 
 namespace qmcplusplus {
-
-  EinsplineSet::UnitCellType
-  EinsplineSet::GetLattice()
-  {
-    return SuperLattice;
-  }
   
-  void
-  EinsplineSet::resetTargetParticleSet(ParticleSet& e)
+  template<typename StorageType>
+  inline void EinsplineSetExtended<StorageType>::computePhaseFactors
+  (TinyVector<RealType,OHMMS_DIM> r)
   {
+    for (int i=0; i<kPoints.size(); i++) phase[i] = -dot(r, kPoints[i]);
+    eval_e2iphi(phase,eikr);
   }
 
-  void
-  EinsplineSet::resetSourceParticleSet(ParticleSet& ions)
-  {
-  }
-  
-  void
-  EinsplineSet::setOrbitalSetSize(int norbs)
-  {
-    OrbitalSetSize = norbs;
-  }
-  
   template<typename StorageType> void
   EinsplineSetExtended<StorageType>::resetParameters(const opt_variables_type& active)
   {
@@ -1619,81 +1606,13 @@ namespace qmcplusplus {
     return clone;
   }
 
+  //instantiation of EinsplineSetExdended
   template class EinsplineSetExtended<complex<double> >;
   template class EinsplineSetExtended<        double  >;
 
-
-#ifdef QMC_CUDA
-  ///////////////////////////////
-  // Real StorageType versions //
-  ///////////////////////////////
-  template<> string
-  EinsplineSetHybrid<double>::Type()
-  {
-  }
-  
-  
-  template<typename StorageType> SPOSetBase*
-  EinsplineSetHybrid<StorageType>::makeClone() const
-  {
-    EinsplineSetHybrid<StorageType> *clone = 
-      new EinsplineSetHybrid<StorageType> (*this);
-    clone->registerTimers();
-    return clone;
-  }
-  
-
-  //////////////////////////////////
-  // Complex StorageType versions //
-  //////////////////////////////////
-
-  
-  template<> string
-  EinsplineSetHybrid<complex<double> >::Type()
-  {
-  }
-  
-
-
-
-
-
-
-  template<>
-  EinsplineSetHybrid<double>::EinsplineSetHybrid() :
-    CurrentWalkers(0)
-  {
-    ValueTimer.set_name ("EinsplineSetHybrid::ValueOnly");
-    VGLTimer.set_name ("EinsplineSetHybrid::VGL");
-    ValueTimer.set_name ("EinsplineSetHybrid::VGLMat");
-    EinsplineTimer.set_name ("EinsplineSetHybrid::Einspline");
-    className = "EinsplineSeHybrid";
-    TimerManager.addTimer (&ValueTimer);
-    TimerManager.addTimer (&VGLTimer);
-    TimerManager.addTimer (&VGLMatTimer);
-    TimerManager.addTimer (&EinsplineTimer);
-    for (int i=0; i<OHMMS_DIM; i++)
-      HalfG[i] = 0;
-  }
-
-  template<>
-  EinsplineSetHybrid<complex<double > >::EinsplineSetHybrid() :
-    CurrentWalkers(0)
-  {
-    ValueTimer.set_name ("EinsplineSetHybrid::ValueOnly");
-    VGLTimer.set_name ("EinsplineSetHybrid::VGL");
-    ValueTimer.set_name ("EinsplineSetHybrid::VGLMat");
-    EinsplineTimer.set_name ("EinsplineSetHybrid::Einspline");
-    className = "EinsplineSeHybrid";
-    TimerManager.addTimer (&ValueTimer);
-    TimerManager.addTimer (&VGLTimer);
-    TimerManager.addTimer (&VGLMatTimer);
-    TimerManager.addTimer (&EinsplineTimer);
-    for (int i=0; i<OHMMS_DIM; i++)
-      HalfG[i] = 0;
-  }
-
-  template class EinsplineSetHybrid<complex<double> >;
-  template class EinsplineSetHybrid<        double  >;
-#endif
 }
+/***************************************************************************
+* $RCSfile$   $Author: jeongnim.kim $
+* $Revision: 5119 $   $Date: 2011-02-06 16:20:47 -0600 (Sun, 06 Feb 2011) $
+* $Id: EinsplineSetExtended.cpp 5119 2011-02-06 22:20:47Z jeongnim.kim $
+***************************************************************************/
