@@ -111,7 +111,7 @@ namespace qmcplusplus {
     NewTimer ValueTimer, VGLTimer, VGLMatTimer;
     NewTimer EinsplineTimer;
 
-#ifdef QMC_CUDA
+#if defined(QMC_CUDA)
     // Cuda equivalents of the above
     typedef typename StorageTypeConverter<StorageType,CUDA_PRECISION>::CudaStorageType CudaStorageType;
     typedef typename MultiOrbitalTraits<CudaStorageType,OHMMS_DIM>::CudaSplineType CudaSplineType; 
@@ -191,7 +191,7 @@ namespace qmcplusplus {
                   ComplexValueMatrix_t& psi, ComplexGradMatrix_t& dpsi,
                   ComplexHessMatrix_t& grad_grad_psi,
                   ComplexGGGMatrix_t& grad_grad_grad_logdet); 
-#ifdef QMC_CUDA
+#if defined(QMC_CUDA)
     void initGPU();
 
     // Vectorized evaluation functions
@@ -256,6 +256,7 @@ namespace qmcplusplus {
   };
 
 }
+
 #endif
 /***************************************************************************
 * $RCSfile$   $Author: jeongnim.kim $

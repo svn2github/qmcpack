@@ -80,31 +80,38 @@ IF(QMC_CUDA)
        Jastrow/OneBodyJastrowOrbitalBspline.cpp
        Jastrow/TwoBodyJastrowOrbitalBspline.cpp
       )
-   IF(HAVE_EINSPLINE)
-      SET(FERMION_SRCS ${FERMION_SRCS}
-         EinsplineSetCuda.cpp
-         EinsplineSetExtended.cpp
-         PhaseFactors.cu
-         AtomicOrbitalCuda.cu
-         )
-   ENDIF(HAVE_EINSPLINE)
 ENDIF(QMC_CUDA)
 
 
-  IF(HAVE_EINSPLINE)
+IF(HAVE_EINSPLINE)
+
+  SET(FERMION_SRCS ${FERMION_SRCS}
+    EinsplineSetExtended.cpp
+    EinsplineSetLocal.cpp
+    MuffinTin.cpp
+    AtomicOrbital.cpp
+    )
+
+  IF(QMC_CUDA)
     SET(FERMION_SRCS ${FERMION_SRCS}
-      EinsplineSetExtended.cpp
-      EinsplineSetLocal.cpp
-      EinsplineSetBuilderCommon.cpp
-      EinsplineSetBuilderOld.cpp
-      EinsplineSetBuilderESHDF.cpp
-      MuffinTin.cpp
-      AtomicOrbital.cpp
+      EinsplineSetHybrid.cpp
+      EinsplineSetCuda.cpp
+      PhaseFactors.cu
+      AtomicOrbitalCuda.cu
       )
-    if(NOT IBM_COMPILER)
-      SET(FERMION_SRCS ${FERMION_SRCS} EinsplineWrapper.cpp)
-    endif(NOT IBM_COMPILER)
-  ENDIF(HAVE_EINSPLINE)
+  ENDIF(QMC_CUDA)
+
+  SET(FERMION_SRCS ${FERMION_SRCS}
+    EinsplineSetBuilderCommon.cpp
+    EinsplineSetBuilderOld.cpp
+    EinsplineSetBuilderESHDF.cpp
+    )
+
+  if(NOT IBM_COMPILER)
+    SET(FERMION_SRCS ${FERMION_SRCS} EinsplineWrapper.cpp)
+  endif(NOT IBM_COMPILER)
+
+ENDIF(HAVE_EINSPLINE)
 
   IF(QMC_BUILD_LEVEL GREATER 1)
 

@@ -106,14 +106,6 @@ namespace qmcplusplus
 
   inline void
   EinsplineMultiEval (multi_UBspline_3d_d *restrict spline,
-		      TinyVector<double,3> r, 
-		      vector<double> &psi)
-  {
-    eval_multi_UBspline_3d_d (spline, r[0], r[1], r[2], &(psi[0]));
-  }
-
-  inline void
-  EinsplineMultiEval (multi_UBspline_3d_d *restrict spline,
 		      const TinyVector<double,3>& r,
 		      Vector<double> &psi,
 		      Vector<TinyVector<double,3> > &grad)

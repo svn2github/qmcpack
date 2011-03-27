@@ -13,14 +13,11 @@
 //   Materials Computation Center, UIUC                         //
 //////////////////////////////////////////////////////////////////
 
-#include "QMCWaveFunctions/EinsplineSet.h"
-#include <einspline/multi_bspline.h>
+#include "QMCWaveFunctions/EinsplineSetExtended.h"
+#include "QMCWaveFunctions/EinsplineSetHybrid.h"
 #include <einspline/multi_bspline_eval_cuda.h>
-#include "Configuration.h"
-#include "AtomicOrbitalCuda.h"
-#ifdef HAVE_MKL
-  #include <mkl_vml.h>
-#endif
+//#include "Configuration.h"
+#include "QMCWaveFunctions/AtomicOrbitalCuda.h"
 
 void apply_phase_factors(float kPoints[], int makeTwoCopies[], 
 			 float pos[], float *phi_in[], float *phi_out[], 
@@ -32,94 +29,6 @@ void apply_phase_factors(float kPoints[], int makeTwoCopies[],
 			 int num_splines, int num_walkers, int row_stride);
 
 namespace qmcplusplus {
-  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_d *in, 
-					     multi_UBspline_3d_s_cuda* &out)
-  { out = create_multi_UBspline_3d_s_cuda_conv (in); }
-
-  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_d *in, 
-					     multi_UBspline_3d_d_cuda * &out)
-  { out = create_multi_UBspline_3d_d_cuda(in); }
-
-  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_z *in, 
-					     multi_UBspline_3d_c_cuda* &out)
-  { out = create_multi_UBspline_3d_c_cuda_conv (in); }
-
-  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_z *in, 
-					     multi_UBspline_3d_z_cuda * &out)
-  { out = create_multi_UBspline_3d_z_cuda(in); }
-
-  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_z *in, 
-					     multi_UBspline_3d_d_cuda * &out)
-  { 
-    app_error() << "Attempted to convert complex CPU spline into a real "
-		<< " GPU spline.\n";
-    abort();
-  }
-
-  inline void create_multi_UBspline_3d_cuda (multi_UBspline_3d_z *in, 
-					     multi_UBspline_3d_s_cuda * &out)
-  { 
-    app_error() << "Attempted to convert complex CPU spline into a real "
-		<< " GPU spline.\n";
-    abort();
-  }
-
-    // Real evaluation functions
-  inline void 
-  EinsplineMultiEval (multi_UBspline_3d_d *restrict spline,
-		      TinyVector<double,3> r, 
-		      Vector<double> &psi)
-  {
-    eval_multi_UBspline_3d_d (spline, r[0], r[1], r[2], psi.data());
-  }
-
-  inline void
-  EinsplineMultiEval (multi_UBspline_3d_d *restrict spline,
-		      TinyVector<double,3> r, 
-		      vector<double> &psi)
-  {
-    eval_multi_UBspline_3d_d (spline, r[0], r[1], r[2], &(psi[0]));
-  }
-
-
-  inline void
-  EinsplineMultiEval (multi_UBspline_3d_d *restrict spline,
-		      TinyVector<double,3> r,
-		      Vector<double> &psi,
-		      Vector<TinyVector<double,3> > &grad,
-		      Vector<Tensor<double,3> > &hess)
-  {
-    eval_multi_UBspline_3d_d_vgh (spline, r[0], r[1], r[2],
-				  psi.data(), 
-				  (double*)grad.data(), 
-				  (double*)hess.data());
-  }
-
-  //////////////////////////////////
-  // Complex evaluation functions //
-  //////////////////////////////////
-  inline void 
-  EinsplineMultiEval (multi_UBspline_3d_z *restrict spline,
-		      TinyVector<double,3> r, 
-		      Vector<complex<double> > &psi)
-  {
-    eval_multi_UBspline_3d_z (spline, r[0], r[1], r[2], psi.data());
-  }
-
-
-  inline void
-  EinsplineMultiEval (multi_UBspline_3d_z *restrict spline,
-		      TinyVector<double,3> r,
-		      Vector<complex<double> > &psi,
-		      Vector<TinyVector<complex<double>,3> > &grad,
-		      Vector<Tensor<complex<double>,3> > &hess)
-  {
-    eval_multi_UBspline_3d_z_vgh (spline, r[0], r[1], r[2],
-				  psi.data(), 
-				  (complex<double>*)grad.data(), 
-				  (complex<double>*)hess.data());
-  }
-
 
   inline void
   eval_multi_multi_UBspline_3d_cuda (multi_UBspline_3d_s_cuda *spline, 

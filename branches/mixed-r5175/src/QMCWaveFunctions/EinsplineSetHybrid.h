@@ -152,6 +152,7 @@ namespace qmcplusplus {
     EinsplineSetHybrid();
   };
 }
+
 #endif
 /***************************************************************************
 * $RCSfile$   $Author: jeongnim.kim $

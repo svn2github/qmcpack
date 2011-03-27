@@ -14,6 +14,7 @@
 
 #include "QMCWaveFunctions/GroupedOrbitalSet.h"
 #include "QMCWaveFunctions/EinsplineSetBuilder.h"
+#include "QMCWaveFunctions/EinsplineSetHybrid.h"
 #include "QMCWaveFunctions/OrbitalBuilderBase.h"
 #include "Particle/DistanceTable.h"
 #include "OhmmsData/AttributeSet.h"
