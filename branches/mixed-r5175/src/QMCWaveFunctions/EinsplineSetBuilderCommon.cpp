@@ -14,14 +14,15 @@
 
 #include "QMCWaveFunctions/GroupedOrbitalSet.h"
 #include "QMCWaveFunctions/EinsplineSetBuilder.h"
+#if defined(QMC_CUDA)
 #include "QMCWaveFunctions/EinsplineSetHybrid.h"
+#endif
 #include "QMCWaveFunctions/OrbitalBuilderBase.h"
 #include "Particle/DistanceTable.h"
 #include "OhmmsData/AttributeSet.h"
 #include "Utilities/Timer.h"
 #include "Message/Communicate.h"
 #include "Message/CommOperators.h"
-#include <vector>
 #include "Numerics/HDFSTLAttrib.h"
 #include "OhmmsData/HDFStringAttrib.h"
 #include "ParticleIO/ESHDFParticleParser.h"
