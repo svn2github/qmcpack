@@ -12,19 +12,19 @@
 //   National Center for Supercomputing Applications, UIUC      //
 //   Materials Computation Center, UIUC                         //
 //////////////////////////////////////////////////////////////////
-/** @file spline_adoptor.h
+/** @file spline_adapter.h
  *
- * Define and declare spline_adoptor<EngT,IsOrtho,IsGamma,SingleK,PrecisionMatched>
+ * Define and declare spline_adapter<EngT,IsOrtho,IsGamma,SingleK,PrecisionMatched>
  * EngT = einspline_engine<multi_UBspline_Xd_Y> with X=1,2,3 and Y=d,z,s,c
  * Specializations are needed for (IsGamma,SingleK,PrecisionMatched)
- * - spline_adoptor<EngT,IsOrtho,true,true,true>  
- * - spline_adoptor<EngT,IsOrtho,true,true,false> 
+ * - spline_adapter<EngT,IsOrtho,true,true,true>  
+ * - spline_adapter<EngT,IsOrtho,true,true,false> 
  * ToDo
- * - spline_adoptor<EngT,IsOrtho,false,true,true>
- * - spline_adoptor<EngT,IsOrtho,false,true,false>
+ * - spline_adapter<EngT,IsOrtho,false,true,true>
+ * - spline_adapter<EngT,IsOrtho,false,true,false>
  */
-#ifndef QMCPLUSPLUS_EINSPLINE_ADOPTORS_H
-#define QMCPLUSPLUS_EINSPLINE_ADOPTORS_H
+#ifndef QMCPLUSPLUS_EINSPLINE_ADAPTERS_H
+#define QMCPLUSPLUS_EINSPLINE_ADAPTERS_H
 
 #include <QMCWaveFunctions/OrbitalSetTraits.h>
 #include <QMCWaveFunctions/EinsplineSet.h>
@@ -59,22 +59,24 @@ namespace qmcplusplus
       }
   };
 
+  ///enumeration to handle specialization for spline_adapter
+  enum {MixedPrecision, MultipleK, NotGamma} bspline_key;
 
   /** generic declaration of bspline_engin
    *
    * Template parameters
    * - EngT engine which evaluates quantities
    * - IsOrtho true, the cell is orthorombic
-   * - IsGamma ture, if gamma point is used
-   * - SingleK true, if single twist is used
-   * - NoConversion true, if the precision is the same
+   * - IFLAG bspline_key using bitset<4>
    */
-  template<typename EngT, bool IsOrtho, bool IsGamma, bool SingleK, bool PrecisionMatched> struct spline_adoptor { };
+  template<typename EngT, bool IsOrtho, unsigned IFLAG> struct spline_adapter { };
 
-  /** specialization for Gamma & SingleK & SamePrecision 
+  /** specialization for !(MixedPrecision) &!(MultipleK)& !(NotGamma)
+   *
+   * using IFLAG=0000
    */
   template<typename EngT, bool IsOrtho>
-    class spline_adoptor<EngT,IsOrtho,true,true,true> : public EinsplineSet
+    class spline_adapter<EngT,IsOrtho,0> : public EinsplineSet
     {
       public:
         ///spliner
@@ -83,7 +85,7 @@ namespace qmcplusplus
         LatticeUnitHandler<IsOrtho> posConverter;
 
         ///constructor
-        spline_adoptor(): spliner(0){}
+        spline_adapter(): spliner(0){}
 
         void evaluate_notranspose(const ParticleSet& P, int first, int last
             , ValueMatrix_t& logdet, GradMatrix_t& dlogdet, ValueMatrix_t& d2logdet)
@@ -117,10 +119,12 @@ namespace qmcplusplus
 
     };
 
-  /** specialization for Gamma & SingleK & Mixed-precision
+  /** specialization for MixedPrecision &!(MultipleK)& !(NotGamma)
+   *
+   * using IFLAG=0001
    */
   template<typename EngT, bool IsOrtho>
-    class spline_adoptor<EngT,IsOrtho,true,true,false> : public EinsplineSet
+    class spline_adapter<EngT,IsOrtho,1> : public EinsplineSet
     {
       public:
         ///typedef real type
@@ -141,7 +145,7 @@ namespace qmcplusplus
         Vector<value_type> lapVec;
 
         ///constructor
-        spline_adoptor(): spliner(0){}
+        spline_adapter(): spliner(0){}
 
         void evaluate_notranspose(const ParticleSet& P, int first, int last
             , ValueMatrix_t& logdet, GradMatrix_t& dlogdet, ValueMatrix_t& d2logdet)
@@ -188,5 +192,5 @@ namespace qmcplusplus
 /***************************************************************************
 * $RCSfile$   $Author: jeongnim.kim $
 * $Revision: 5119 $   $Date: 2011-02-06 16:20:47 -0600 (Sun, 06 Feb 2011) $
-* $Id: spline_adoptor.hpp 5119 2011-02-06 22:20:47Z jeongnim.kim $
+* $Id: spline_adapter.hpp 5119 2011-02-06 22:20:47Z jeongnim.kim $
 ***************************************************************************/

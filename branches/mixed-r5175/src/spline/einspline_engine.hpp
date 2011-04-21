@@ -50,32 +50,39 @@ namespace qmcplusplus
 
         inline void set(int i, Array<value_type,D>& data)
         {
-          einspline::set(spliner,i,data);
+          einspline::set(spliner,i,data.data());
         }
 
         template<typename PT, typename VT> 
           inline void evaluate(const PT& r, VT& psi)
           { 
-            einspline::evaluate(spliner,r,psi); 
+            einspline::evaluate(spliner,r,psi.data()); 
           }
 
         template<typename PT, typename VT, typename GT> 
           inline void evaluate(const PT& r, VT& psi, GT& grad)
           { 
-            einspline::evaluate(spliner,r,psi,grad); 
+            einspline::evaluate_vg(spliner,r,psi.data(),grad[0].data()); 
           }
 
         template<typename PT, typename VT, typename GT>
           inline void evaluate(const PT& r, VT& psi, GT& grad, VT& lap)
           { 
-            einspline::evaluate(spliner,r,psi,grad,lap); 
+            einspline::evaluate_vgl(spliner,r,psi.data(),grad[0].data(),lap.data()); 
           }
 
         template<typename PT, typename VT, typename GT, typename HT>
           inline void evaluate(const PT& r, VT& psi, GT& grad, HT& hess)
           { 
-            einspline::evaluate(spliner,r,psi,grad,hess); 
+            einspline::evaluate_vgh(spliner,r,psi.data(),grad[0].data(),hess[0].data()); 
           }
+
+        template<typename PT>
+        inline void evaluate(const PT& r, value_type* psi, TinyVector<value_type,D>* grad, value_type* lap)
+        { 
+          einspline::evaluate_vgl(spliner,r,psi,grad->data(),lap);
+        }
+
       private:
         einspline_engine(const einspline_engine<ENGT>& rhs) {}
     };
