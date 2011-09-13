@@ -15,6 +15,16 @@ set(CMAKE_Fortran_FLAGS "-O3 -march=amdfam10 -funroll-all-loops -fno-f2c")
 set(CMAKE_Fortran_FLAGS_RELEASE ${CMAKE_Fortran_FLAGS})
 set(CMAKE_Fortran_FLAGS_DEBUG  "-march=amdfam10 -fopenmp  -msse3 -fno-f2c -O0 -g")
 
+SET(QMC_BUILD_STATIC 1)
+SET(ENABLE_OPENMP 1)
+SET(HAVE_MPI 1)
+SET(HAVE_SSE 1)
+SET(HAVE_SSE2 1)
+SET(HAVE_SSE3 1)
+SET(HAVE_SSSE3 1)
+SET(USE_PREFETCH 1)
+SET(PREFETCH_AHEAD 12)
+
 FOREACH(type SHARED_LIBRARY SHARED_MODULE EXE)
   SET(CMAKE_${type}_LINK_STATIC_C_FLAGS "-Wl,-Bstatic")
   SET(CMAKE_${type}_LINK_DYNAMIC_C_FLAGS "-Wl,-Bstatic")
@@ -30,15 +40,6 @@ set(CMAKE_FIND_ROOT_PATH
   /global/homes/j/jkim/share/boost_1_42_0
   /global/homes/j/jkim/share/hopper/libxml2/cnos_gnu_4.5.2
 )
-
-SET(ENABLE_OPENMP 1)
-SET(HAVE_MPI 1)
-SET(HAVE_SSE 1)
-SET(HAVE_SSE2 1)
-SET(HAVE_SSE3 1)
-SET(HAVE_SSSE3 1)
-SET(USE_PREFETCH 1)
-SET(PREFETCH_AHEAD 12)
 
 set(ACML_HOME /opt/acml/4.4.0/gnu64)
 SET(ACML_LIBRARIES ${ACML_HOME}/lib/libacml.a ${ACML_HOME}/lib/libacml_mv.a)
