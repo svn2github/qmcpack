@@ -1,6 +1,6 @@
 PROJECT(qmcpack)
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 #####################################################
 SET(CMAKE_FALLBACK FALSE)
@@ -12,7 +12,6 @@ endif(${CMAKE_MINOR_VERSION} VERSION_LESS "8")
 if(COMMAND cmake_policy)
   cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
-
 
 ######################################################################
 # Version 
@@ -95,11 +94,11 @@ SET(QMC_CUDA 0 CACHE BOOL "Build with GPU support through CUDA")
 ######################################################################
 IF($ENV{QMC_MPI})
   SET(QMC_MPI $ENV{QMC_MPI}) 
-  MESSAGE("-- Found QMC_MPI=${QMC_MPI}")
+  MESSAGE(STATUS "Found QMC_MPI=${QMC_MPI}")
 ENDIF($ENV{QMC_MPI})
 IF($ENV{QMC_OMP})
   SET(QMC_OMP $ENV{QMC_OMP}) 
-  MESSAGE("-- Found QMC_OMP=${QMC_OMP}")
+  MESSAGE(STATUS "Found QMC_OMP=${QMC_OMP}")
 ENDIF($ENV{QMC_OMP})
 #IF($ENV{QMC_BITS})
 #  SET(QMC_BITS $ENV{QMC_BITS})
@@ -107,7 +106,7 @@ ENDIF($ENV{QMC_OMP})
 #ENDIF($ENV{QMC_BITS})
 IF($ENV{QMC_COMPLEX})
   SET(QMC_COMPLEX $ENV{QMC_COMPLEX})
-  MESSAGE("-- Found QMC_COMPLEX=${QMC_COMPLEX}")
+  MESSAGE(STATUS "Found QMC_COMPLEX=${QMC_COMPLEX}")
 ENDIF($ENV{QMC_COMPLEX})
 #IF($ENV{QMC_CUDA})
 #  SET(QMC_CUDA $ENV{QMC_CUDA} CACHE BOOL "Build with GPU support through CUDA")
@@ -118,15 +117,16 @@ ENDIF($ENV{QMC_COMPLEX})
 # Standard test
 ######################################################################
 SET(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake" ${CMAKE_MODULE_PATH})
-INCLUDE(${CMAKE_ROOT}/Modules/CheckFunctionExists.cmake)
-INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
-INCLUDE(${CMAKE_ROOT}/Modules/CheckTypeSize.cmake)
-CHECK_FUNCTION_EXISTS(sincos HAVE_SINCOS)
-CHECK_FUNCTION_EXISTS(round HAVE_STD_ROUND)
 
 ######################################################################
 # add macros to compile einspline if necessary
 ######################################################################
+INCLUDE(${CMAKE_ROOT}/Modules/CheckFunctionExists.cmake)
+INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
+INCLUDE(${CMAKE_ROOT}/Modules/CheckTypeSize.cmake)
+
+CHECK_FUNCTION_EXISTS(sincos HAVE_SINCOS)
+CHECK_FUNCTION_EXISTS(round HAVE_STD_ROUND)
 CHECK_FUNCTION_EXISTS(floor HAVE_FLOOR)
 CHECK_FUNCTION_EXISTS(posix_memalign HAVE_POSIX_MEMALIGN)
 CHECK_FUNCTION_EXISTS(pow HAVE_POW)
@@ -149,7 +149,6 @@ CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
 # BUILD_SANDBOX    build test programs
 # MPIP_PROFILE     profile mpi performance
 ######################################################################
-SET(QMC_BUILD_STATIC 0 CACHE BOOL "Build static libraries and binary")
 SET(BUILD_QMCTOOLS 0 CACHE BOOL "Build tools for QMCPACK")
 SET(BUILD_SANDBOX 0 CACHE BOOL "Build snadbox for testing")
 SET(MPIP_PROFILE 0 CACHE BOOL "Build with mpip for mpi profile")
@@ -204,7 +203,7 @@ SET(QMCPLUSPLUS_SVN_LAST_CHANGED "2008-05-12")
 FIND_PACKAGE(Subversion) 
 IF(Subversion_FOUND) 
   Subversion_WC_INFO(${PROJECT_SOURCE_DIR} Project) 
-  MESSAGE("-- Current revision : ${Project_WC_REVISION} modified on ${Project_WC_LAST_CHANGED_DATE}") 
+  MESSAGE(STATUS "Current revision : ${Project_WC_REVISION} modified on ${Project_WC_LAST_CHANGED_DATE}") 
   SET(QMCPLUSPLUS_BRANCH ${Project_WC_REVISION})
   SET(QMCPLUSPLUS_LAST_CHANGED_DATE ${Project_WC_LAST_CHANGED_DATE})
 ENDIF(Subversion_FOUND)
@@ -226,9 +225,9 @@ INCLUDE(${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
 # now set the compiler flags and the macros in src/config.h
 ######################################################
 IF(CMAKE_TOOLCHAIN_FILE)
-  MESSAGE(STATUS "-- Using ${CMAKE_TOOLCHAIN_FILE} toolchain ")
+  MESSAGE(STATUS "Using ${CMAKE_TOOLCHAIN_FILE} toolchain ")
 ELSE(CMAKE_TOOLCHAIN_FILE)
-  #fun begins
+  SET(QMC_BUILD_STATIC 0)
   SET(FOUND_CXXENV 0)
   SET(ENABLE_OPENMP 0)
   SET(HAVE_MPI 0)
@@ -336,8 +335,8 @@ ELSE(CMAKE_TOOLCHAIN_FILE)
 
 ENDIF(CMAKE_TOOLCHAIN_FILE)
 
-MESSAGE("-- CXX compiler flags: ${CMAKE_CXX_FLAGS}")
-MESSAGE("-- CC  compiler flags: ${CMAKE_C_FLAGS}")
+MESSAGE(STATUS "CXX compiler flags: ${CMAKE_CXX_FLAGS}")
+MESSAGE(STATUS "CC  compiler flags: ${CMAKE_C_FLAGS}")
 
 SET(HAVE_OOMPI ${HAVE_MPI})
 INCLUDE(${CMAKE_ROOT}/Modules/FindThreads.cmake)
@@ -501,7 +500,7 @@ endif()
 # Done searching libraries. Start building qmcpack
 ###################################################
 
-MESSAGE("-- Ready to build qmcpack")
+MESSAGE(STATUS "Ready to build qmcpack")
 
 INCLUDE_DIRECTORIES(
   ${qmcpack_SOURCE_DIR}/src
