@@ -67,9 +67,9 @@ namespace qmcplusplus {
       branchClones[ip] = new BranchEngineType(*branchEngine);
     }
     
-#pragma omp parallel for
-      for(int ip=0; ip<NumThreads; ++ip)
+#pragma omp parallel 
       {
+        int ip=omp_get_thread_num();
         if(QMCDriverMode[QMC_UPDATE_MODE])
         {
           if(UseFastGrad == "yes")
@@ -145,9 +145,9 @@ namespace qmcplusplus {
         app_log() << o.str() << endl;
       }
 
-#pragma omp parallel for
-      for(int ip=0; ip<NumThreads; ++ip)
+#pragma omp parallel 
       {
+        int ip=omp_get_thread_num();
         estimatorClones[ip]= new EstimatorManager(*Estimators);
         estimatorClones[ip]->setCollectionMode(false);
 

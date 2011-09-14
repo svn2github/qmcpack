@@ -32,15 +32,18 @@ FOREACH(type SHARED_LIBRARY SHARED_MODULE EXE)
   SET(CMAKE_${type}_LINK_DYNAMIC_CXX_FLAGS "-Wl,-Bstatic")
 ENDFOREACH(type)
 
+set(EINSPLINE_HOME /global/homes/j/jkim/share/hopper/einspline/gnu_4.5.2)
+set(HDF5_HOME /opt/cray/hdf5/1.8.5.0/hdf5-gnu)
+set(FFTW_HOME /opt/fftw/3.2.2.1)
+set(BOOST_HOME /global/homes/j/jkim/share/boost_1_42_0)
+set(LIBXML2_HOME /global/homes/j/jkim/share/hopper/libxml2/cnos_gnu_4.5.2)
+set(ZLIB_LIBRARY /usr/lib64/libz.a)
+#set(ZLIB_HOME /usr)
 
-set(CMAKE_FIND_ROOT_PATH
-  /global/homes/j/jkim/share/hopper/einspline/gnu_4.5.2
-  /opt/cray/hdf5/1.8.5.0/hdf5-gnu
-  /opt/fftw/3.2.2.1
-  /global/homes/j/jkim/share/boost_1_42_0
-  /global/homes/j/jkim/share/hopper/libxml2/cnos_gnu_4.5.2
-)
+INCLUDE(Platform/UnixPaths) 
 
+#using ACML 4.4, no f2c is needed
 set(ACML_HOME /opt/acml/4.4.0/gnu64)
-SET(ACML_LIBRARIES ${ACML_HOME}/lib/libacml.a ${ACML_HOME}/lib/libacml_mv.a)
-link_libraries(${ACML_LIBRARIES})
+set(LAPACK_LIBRARY ${ACML_HOME}/lib/libacml.a)
+set(BLAS_LIBRARY ${ACML_HOME}/lib/libacml_mv.a)
+

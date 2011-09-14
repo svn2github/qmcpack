@@ -24,7 +24,7 @@
 #define QMCPLUSPLUS_MATH_SIMD_ADOPTORS_HPP
 
 //#define USE_BLAS_DOT
-//#define USE_DIRAC_FAST_OPERATORS
+//#define USE_GEMV_FOR_G_DOT_V
 
 #include <simd/inner_product.hpp>
 #include <simd/trace.hpp>

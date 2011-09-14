@@ -16,6 +16,7 @@
 // -*- C++ -*-
 #ifndef ESTOOLS_OHMMS_LIBXML_DEF_H
 #define ESTOOLS_OHMMS_LIBXML_DEF_H
+#include <libxml/tree.h>
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xpath.h>

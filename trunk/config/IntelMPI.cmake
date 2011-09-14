@@ -15,16 +15,6 @@ SET(CMAKE_Fortran_FLAGS "${INTEL_OPTS}")
 SET(CMAKE_Fortran_FLAGS_RELEASE ${CMAKE_Fortran_FLAGS})
 
 #--------------------------------------------------------------------------
-# path where the libraries are located
-# boost,hdf,szip,libxml2,fftw,essl
-#--------------------------------------------------------------------------
-set(CMAKE_FIND_ROOT_PATH
-  /ui/ncsa/jnkim/share/intel-12/einsline
-  /ui/ncsa/jnkim/share/intel-12/fftw-3.3
-  /usr/local/hdf/hdf5/v187
-)
-
-#--------------------------------------------------------------------------
 # below is common for INTEL compilers and MKL library
 #--------------------------------------------------------------------------
 set(ENABLE_OPENMP 1)
@@ -38,6 +28,15 @@ set(PREFETCH_AHEAD 10)
 set(HAVE_MKL 1)
 set(HAVE_MKL_VML 1)
 
+#--------------------------------------------------------------------------
+# path where the libraries are located
+# boost,hdf,szip,libxml2,fftw,essl
+#--------------------------------------------------------------------------
+set(EINSPLINE_HOME /ui/ncsa/jnkim/share/intel-12/einsline)
+set(FFTW_HOME /ui/ncsa/jnkim/share/intel-12/fftw-3.3)
+set(HDF5_HOME /usr/local/hdf/hdf5/v187)
+
+# mkl 10.3.x
 include_directories(/usr/local/intel/mkl/include)
 set(LAPACK_LIBRARY -L/usr/local/intel/mkl/lib/intel64 -mkl=sequential)
 
