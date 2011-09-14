@@ -33,29 +33,22 @@ FOREACH(type SHARED_LIBRARY SHARED_MODULE EXE)
   SET(CMAKE_${type}_LINK_DYNAMIC_CXX_FLAGS "-Wl,-Bstatic")
 ENDFOREACH(type)
 
-set(BOOST_HOME /home/projects/qmcpack/boost-1.45_0)
-set(EINSPLINE_HOME /home/projects/qmcpack/einspline)
-set(LIBXML2_HOME /home/projects/qmcpack/libxml2)
-set(HDF5_HOME /soft/apps/hdf5-1.6.6)
-set(FFTW_HOME /soft/apps/fftw-3.1.2-double)
-
 # set the search path for the environment coming with the compiler
 # and a directory where you can install your own compiled software
-#set(CMAKE_FIND_ROOT_PATH
-#    /home/projects/qmcpack/boost-1.45_0
-#    /home/projects/qmcpack/einspline
-#    /home/projects/qmcpack/libxml2
-#    /soft/apps/hdf5-1.6.6
-#    /soft/apps/fftw-3.1.2-double
-#)
-
+set(CMAKE_FIND_ROOT_PATH
+    /home/projects/qmcpack/boost-1.45_0
+    /home/projects/qmcpack/einspline
+    /home/projects/qmcpack/libxml2
+    /soft/apps/hdf5-1.6.6
+    /soft/apps/fftw-3.1.2-double
+)
 
 set(LAPACK_LIBRARY /soft/apps/LAPACK/lapack_3.3_BGP.a)
 set(BLAS_LIBRARY /soft/apps/ESSL-4.4.1-1/lib/libesslbg.a)
 set(FORTRAN_LIBRARIES 
-/soft/apps/ibmcmp-aug2011/xlf/bg/11.1/lib/libxlf90_r.a
-/soft/apps/ibmcmp-aug2011/xlf/bg/11.1/lib/libxlfmath.a
-/soft/apps/ibmcmp-aug2011/xlf/bg/11.1/lib/libxlopt.a
+/soft/apps/ibmcmp-aug2011/xlf/bg/11.1/bglib/libxlf90_r.a
+/soft/apps/ibmcmp-aug2011/xlf/bg/11.1/bglib/libxlfmath.a
+/soft/apps/ibmcmp-aug2011/xlf/bg/11.1/bglib/libxlopt.a
 )
 #link lapack, essl, mass
 #  link_libraries(/soft/apps/LAPACK/lapack_3.3_BGP.a 
