@@ -17,6 +17,7 @@ foreach my $file (@files) {
 #	print $sedline . "\n";
 	`$sedline > $file.tmp`;
 	move ("$file.tmp",  "$file");
+        `chmod 755 $file`;
     }
 
 }
