@@ -442,11 +442,11 @@ if ($convBspline) {
     my $splDirName;
     if ($targetSsize) {
 	$splDirName = "bsplineConv-S$targetSsize";
+	$baseName = $baseName . "-S$targetSsize";
     } else {
 	$splDirName = "bsplineConv";
     }
     mkdir $splDirName;
-    $baseName = $baseName . "-S$targetSsize";
 # Loop over mesh factors and write the appropriate qmcpack input files
     for (my $splineFactor = $minfactor; $splineFactor < $maxfactor+0.0001; $splineFactor+= $factorinc) {
 	$splineFactor = sprintf("%3.2f", $splineFactor);
