@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 use POSIX qw/floor/;
 use strict;
 
@@ -219,7 +219,6 @@ sub formatString {
 
  #**************************************************************************
  # $RCSfile$   $Author: lshulenburger $
- # $Revision: 5115 $   $Date: 2011-2-7 8:15:23 -0700 (Mon, 7 Feb 2011) $
- # $Id: energy.pl 5115 2011-2-7 8:15:23 lshulenburger $
+ # $Revision: 5115 $   $Date: 2011-9-15 10:19:08 -0700 (Thu, 15 Sep 2011) $
+ # $Id: energy.pl 5115 2011-9-15 10:19:08 lshulenburger $
  #*************************************************************************/
-
