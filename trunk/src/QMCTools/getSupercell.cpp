@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
+#include <stdio.h>
+#include <string.h>
 using namespace std;
 
 
