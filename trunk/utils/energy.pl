@@ -43,22 +43,20 @@ my $blockweight=0;
 for (my $i = 2; $i <= $#{$filedata[0]}; $i++) {    
     my $colname =  $filedata[0][$i];
     my @arr = getColumn(\@filedata,$i,$start,$end);
-    for (my $j = 0; $j <= $#arr; $j++) {
-	if ($colname eq 'AcceptRatio' || $colname eq 'BlockCPU' || $colname eq 'BlockWeight') {
-	    $arr[$j] *= 1;
-	} else {
-	    $arr[$j] /= $factor;
-	}
-    }
+
     my $avg;
     my $error;
-    ($avg, $error) = stats(\@arr);
+    if ($colname eq 'AcceptRatio' || $colname eq 'BlockCPU' || $colname eq 'BlockWeight' || $colname eq 'Efficiency') {
+	($avg, $error) = simplestats(\@arr);
+    } else {
+	($avg, $error) = stats(\@arr, $factor);
+    }
     if ($colname eq 'LocalEnergy_sq') {
 	$colname = 'Variance';
 	my @arr2 = getColumn(\@filedata, $i-1, $start, $end);
 	my $avg2;
 	my $err2;
-	($avg2, $err2) = stats(\@arr2);
+	($avg2, $err2) = stats(\@arr2, $factor);
 	$avg = $avg - $avg2*$avg2/$factor;
     }
     if ($colname eq 'LocalEnergy') {
@@ -101,10 +99,24 @@ if (abs($correction) > 1.0e-12) {
     printf("%-21s =  $formatStr +/- $formatStr\n", "Corrected Energy", $Locen+$correction, $enerr);
 }
 
+sub simplestats {
+    my $arr = shift;
+    my $avg;
+    my $sqavg;
+    ($avg, $sqavg) = getAvgAndSqAv($arr);
+    my $var = $sqavg-$avg*$avg;
+    return ($avg, sqrt($var/$#{$arr}));
+}
+
+
 sub stats {
     my $arr = shift;
-    my $avg = getAvg($arr);
-    my $sqav = getSqAvg($arr);
+    my $locfac = shift;
+    my $avg;
+    my $sqav;
+    ($avg, $sqav) = getAvgAndSqAv($arr);
+    $avg /= $locfac;
+    $sqav /= $locfac*$locfac;
     my $var = $sqav-$avg*$avg;
     my $c=0;
     my $N = $#{$arr}+1;
@@ -113,7 +125,7 @@ sub stats {
     while($tempC > 0 and $c < ($N-1)) {
 	$kappa+=2*$tempC;
 	$c += 1;
-	$tempC=corr($c, $arr, $avg, $var);
+	$tempC=corr($c, $arr, $avg*$locfac, $var*$locfac*$locfac);
     }
     if ($kappa == 0.0) {
 	$kappa = 1.0;
@@ -168,21 +180,19 @@ sub getSum {
     return $outval;
 }
 
-sub getAvg {
+
+sub getAvgAndSqAv {
     my $arr = shift;
-    my $size = $#{$arr};
-    return getSum($arr)/($size+1);
+    my $sum;
+    my $sumsq;
+    for (my $i = 0; $i <= $#{$arr}; $i++) {
+	$sum += ${$arr}[$i];
+	$sumsq += ${$arr}[$i]*${$arr}[$i];
+    }
+    return ($sum/($#{$arr}+1), $sumsq/($#{$arr}+1));
 }
 
-sub getSqAvg {
-    my $arr = shift;
-    my @newarr;
-    for (my $i = 0; $i <= $#{$arr}; $i++) {
-	my $val = ${$arr}[$i];
-	push @newarr, $val*$val;
-    }
-    return getAvg(\@newarr);
-}
+
 
 sub corr {
     my $i = shift;
