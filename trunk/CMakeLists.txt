@@ -72,6 +72,7 @@ SET(QMC_OMP 1 CACHE BOOL "Enable/disable OpenMP")
 SET(QMC_BITS 64 CACHE INTEGER "Select OS bit")
 SET(QMC_COMPLEX 0 CACHE INTEGER "Build for complex binary")
 SET(PRINT_DEBUG 0 CACHE BOOL "Enable/disable debug printing")
+SET(QMC_CUDA 0 CACHE BOOL "Build with GPU support through CUDA")
 
 ######################################################################
 # set debug printout
@@ -214,7 +215,6 @@ INCLUDE(${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
 IF(CMAKE_TOOLCHAIN_FILE)
   MESSAGE(STATUS "Using ${CMAKE_TOOLCHAIN_FILE} toolchain ")
 ELSE(CMAKE_TOOLCHAIN_FILE)
-  SET(QMC_CUDA 0)
   SET(QMC_BUILD_STATIC 0)
   SET(FOUND_CXXENV 0)
   SET(ENABLE_OPENMP 0)
@@ -450,13 +450,14 @@ INCLUDE_DIRECTORIES( ${PROJECT_SOURCE_DIR}/src ${PROJECT_BINARY_DIR}/src)
 
 ######################################################################
 # Manage Einspline library
+# - toolchain file can set 
 # - check if libeinspline can be found in $EINSPLINE_HOME/include and
 # $EINSPLINE_HOME/lib
 # - if not found, build it from the source directory in $EINSPLINE_HOME
 # - if everything fails, do not use it
 ######################################################################
 if(HAVE_EINSPLINE)
-  if(HAVE_EINSPLINE_EXT)
+  if(EINSPLINE_HOME)
     SUBDIRS(src/einspline)
     INCLUDE_DIRECTORIES(${PROJECT_BINARY_DIR}/include)
     SET(QMC_UTIL_LIBS ${QMC_UTIL_LIBS} einspline)
