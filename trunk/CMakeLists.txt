@@ -136,10 +136,10 @@ CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
 # BUILD_SANDBOX    build test programs
 # MPIP_PROFILE     profile mpi performance
 ######################################################################
-#SET(BUILD_QMCTOOLS 0 CACHE BOOL "Build tools for QMCPACK")
+#SET(BUILD_QMCTOOLS 1 CACHE BOOL "Build tools for QMCPACK")
 #SET(BUILD_SANDBOX 0 CACHE BOOL "Build snadbox for testing")
 #SET(MPIP_PROFILE 0 CACHE BOOL "Build with mpip for mpi profile")
-#SET(BUILD_QMCTOOLS 0)
+#SET(BUILD_QMCTOOLS 1)
 #SET(BUILD_SANDBOX 0)
 #SET(MPIP_PROFILE 0)
 
@@ -230,9 +230,6 @@ ELSE(CMAKE_TOOLCHAIN_FILE)
   SET(USE_PREFETCH 0)
   SET(PREFETCH_AHEAD 12)
   SET(HAVE_C_VARARRAYS 1)
-
-  SET(HAVE_EINSPLINE 0)
-  SET(HAVE_EINSPLINE_EXT 0)
 
   ######################################################
   # Try to identify CPU identity
@@ -372,7 +369,6 @@ ENDIF(HDF5_FOUND)
 
 IF(Boost_FOUND)
   SET(HAVE_LIBBOOST 1)
-  #SET(Boost_INCLUDE_DIR /home/jnkim/share/boost_1_45_0/boost)
   INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
   MESSAGE(STATUS "Setting Boost_INCLUDE_DIR="${Boost_INCLUDE_DIR})
 ELSE()
@@ -456,26 +452,23 @@ INCLUDE_DIRECTORIES( ${PROJECT_SOURCE_DIR}/src ${PROJECT_BINARY_DIR}/src)
 # - if not found, build it from the source directory in $EINSPLINE_HOME
 # - if everything fails, do not use it
 ######################################################################
-if(HAVE_EINSPLINE)
-  if(EINSPLINE_HOME)
-    SUBDIRS(src/einspline)
-    INCLUDE_DIRECTORIES(${PROJECT_BINARY_DIR}/include)
-    SET(QMC_UTIL_LIBS ${QMC_UTIL_LIBS} einspline)
-  endif()
-else()
+SET(HAVE_EINSPLINE 1)
+set(build_einspline 1)
+if(HAVE_EINSPLINE_EXT)
+  set(HAVE_EINSPLINE 0)
   INCLUDE(${PROJECT_CMAKE}/FindEinspline.cmake)
-  if(EINSPLINE_FOUND)
-    set(HAVE_EINSPLINE 1)
-    IF(HAVE_EINSPLINE_EXT)
-      INCLUDE_DIRECTORIES(${EINSPLINE_INCLUDE_DIR})
-      SET(QMC_UTIL_LIBS ${EINSPLINE_LIBRARIES} ${QMC_UTIL_LIBS})
-    ELSE(HAVE_EINSPLINE_EXT)
-      SUBDIRS(src/einspline)
-      INCLUDE_DIRECTORIES(${PROJECT_BINARY_DIR}/include)
-    ENDIF(HAVE_EINSPLINE_EXT)
-    MESSAGE(STATUS "EINSPLINE_INCLUDE_DIR="${EINSPLINE_INCLUDE_DIR})
+  IF(EINSPLINE_FOUND)
+    INCLUDE_DIRECTORIES(${EINSPLINE_INCLUDE_DIR})
+    SET(QMC_UTIL_LIBS ${EINSPLINE_LIBRARIES} ${QMC_UTIL_LIBS})
+    set(build_einspline 0)
   endif()
 endif()
+if(build_einspline)
+  SUBDIRS(src/einspline)
+  INCLUDE_DIRECTORIES(${PROJECT_BINARY_DIR}/include)
+  SET(QMC_UTIL_LIBS ${QMC_UTIL_LIBS} einspline)
+endif()
+
 #include(ExternalProject)
 #  set(einspline_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/einspline")
 #  set(einspline_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/einspline")
@@ -489,7 +482,6 @@ endif()
 #    )
 #  find_package(einspline REQUIRED)
 #  set(HAVE_EINSPLINE 1)
-
 #######################################################################
 ## Manage GTK+ and GTKMM packages for GUI
 ## search headers and libraries

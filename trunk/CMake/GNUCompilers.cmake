@@ -2,8 +2,10 @@
 IF(CMAKE_COMPILER_IS_GNUCXX) 
   ADD_DEFINITIONS(-Drestrict=__restrict__ -DADD_ -DINLINE_ALL=inline)
 #  SET(CMAKE_CXX_FLAGS "-O3 -ftemplate-depth-60 -Drestrict=__restrict__ -fstrict-aliasing -funroll-all-loops   -finline-limit=1000 -ffast-math -Wno-deprecated ")
-  SET(CMAKE_CXX_FLAGS "-g -O3 -ftemplate-depth-60 -Drestrict=__restrict__ -funroll-all-loops   -finline-limit=1000 -Wno-deprecated ")
-  SET(CMAKE_C_FLAGS "-O3 -Drestrict=__restrict__ -funroll-all-loops   -finline-limit=1000 -std=gnu99 -fomit-frame-pointer ")
+#  SET(CMAKE_CXX_FLAGS "-g -O3 -ftemplate-depth-60 -Drestrict=__restrict__ -funroll-all-loops   -finline-limit=1000 -Wno-deprecated ")
+  set(GNU_FLAGS "-malign-double -fomit-frame-pointer -ffast-math -fopenmp -O3 -finline-limit=1000 -fstrict-aliasing -funroll-all-loops -Wno-deprecated ")
+  SET(CMAKE_CXX_FLAGS "${GNU_FLAGS} -ftemplate-depth=60")
+  SET(CMAKE_C_FLAGS "${GNU_FLAGS} -std=c99")
 
   IF(HAVE_POSIX_MEMALIGN)
   SET(CMAKE_TRY_GNU_CC_FLAGS "-mmmx")
