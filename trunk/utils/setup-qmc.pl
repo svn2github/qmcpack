@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 use strict;
-use Getopt::Long ;
-use POSIX qw/floor fmod ceil/;
+use Getopt::Long;
+use POSIX qw/floor fmod ceil pow/;
 
 
 # Input pwscf file must follow some rather strict conventions.  It must specify the pseudo
@@ -10,27 +10,30 @@ use POSIX qw/floor fmod ceil/;
 # (not real space coordinates although it will probably be worthwhile to relax this later)
 
 # will allow only the use of ibrav=3 (bcc), ibrav=2 (fcc), ibrav=1 (simple cubic) and ibrav=0 (arbitrary)
-print "$0 @ARGV\n";
+#print "$0 @ARGV\n";
 
-my %config = do "/remote/lshulen/sharedmaintenance/qmcpack/utils/setup-qmc-conf.pl";
+my %config = do "/remote/lshulen/sharedmaintenance/qmcpack-assembla/utils/setup-qmc-conf.pl";
 #print "The location of ppconvert is: $config{ppconvert}\n";
 
 
 ###############################################################################
 # Parse through the various options which can be given to the script
 ###############################################################################
+my $testwvfcn;
+my $getTilemat;
 my $genNSCF;
 my $genFSDFT;
 my $convBspline;
 my $optwvfcn;
 my $convDMCTstep;
 my $dmcCalc;
-
+my $help;
 
 ## Supercell description keywords
 my (@inSuperCellTwist, @inSuperCellKGrid, @inSuperCellKShift);
 my @toptilingmatrix;
 my $targetSsize;
+my $isAe = 0;
 
 ## Wavefunction keywords
 my $wvfcnfile;
@@ -41,10 +44,12 @@ my $withjas;
 
 ## General MC keywords
 my $walkers; # automatically sets both vmcwalkers and dmcwalkers
+my $targetpop;
 
 ## VMC keywords
 my ($vmcblocks, $vmcwalkers, $vmcwarmupsteps, $vmctimestep);
-my ($vmcsteps, $vmcSubsteps, $vmcnodrift);
+my ($vmcsteps, $vmcSubsteps, $vmcnodrift, $vmcequiltime, $vmcdecorrtime);
+my $numsamples;
 $vmcwarmupsteps = 0;
 $vmcsteps = 1;
 $vmcSubsteps = 1;
@@ -56,13 +61,16 @@ my ($oneBodySplinePts, $twoBodySplinePts);
 ## DMC keywords
 my ($dmcblocks, $dmcwalkers, $dmcwarmupsteps, $dmctimestep);
 my ($dmcsteps, $dmctstep, $dmcUseTmoves, $mindmctstep, $maxdmctstep, $dmctstepinc);
+my ($dmcequiltime, $dmcruntime, $dmcblocktime);
 $dmcUseTmoves=1; 
 
 ## General execution keywords
 my $useGPU = 0;
 
 
-GetOptions('genwfn' => \$genNSCF,
+GetOptions('testwvfcn' => \$testwvfcn,
+	   'gettilemat' => \$getTilemat,
+	   'genwfn' => \$genNSCF,
 	   'genfsdft' => \$genFSDFT,
            'splconv' => \$convBspline,
 	   'optwvfcn' => \$optwvfcn,
@@ -71,11 +79,15 @@ GetOptions('genwfn' => \$genNSCF,
 	   'wvfcnfile=s' => \$wvfcnfile,
 	   'tilemat=i{9}' => \@toptilingmatrix,
 	   'walkers=i' => \$walkers,
+	   'targetpop=i' => \$targetpop,
 	   'vmcblocks=i' => \$vmcblocks,
-	   'withjas' => \$withjas,
+	   'withjas:1' => \$withjas,
 	   'vmcwalkers=i' => \$vmcwalkers,
 	   'vmcwarmupsteps=i' => \$vmcwarmupsteps,
 	   'vmctimestep=f' => \$vmctimestep,
+	   'vmcequiltime=f' => \$vmcequiltime,
+	   'vmcdecorrtime=f' => \$vmcdecorrtime,
+	   'numsamples=i' => \$numsamples,
 	   'vmcsteps=i' => \$vmcsteps,
 	   'vmcSubsteps=f' => \$vmcSubsteps,
 	   'vmcnodrift' => \$vmcnodrift,
@@ -85,6 +97,9 @@ GetOptions('genwfn' => \$genNSCF,
 	   'dmctimestep=f' => \$dmctimestep,
 	   'dmcsteps=i' => \$dmcsteps,
 	   'dmctstep=f' => \$dmctstep,
+	   'dmcequiltime=f' => \$dmcequiltime,
+	   'dmcruntime=f' => \$dmcruntime,
+	   'dmcblocktime=f' => \$dmcblocktime,
 	   'dmcUseTmoves' => \$dmcUseTmoves,
 	   'mindmctstep=f' => \$mindmctstep,
 	   'maxdmctstep=f' => \$maxdmctstep,
@@ -97,12 +112,14 @@ GetOptions('genwfn' => \$genNSCF,
 	   'twobodysplinepts=i' => \$twoBodySplinePts,
 	   'optsamples=i' => \$optSamples,
 	   'optloops=i' => \$optLoops,
+	   'isAe=i' => \$isAe,
 	   'useGPU' => \$useGPU,
 	   'twistnum=i' => \$twistnum,
 	   'kpoint=f{3}' => \@inSuperCellTwist,
 	   'kgrid=i{3}' => \@inSuperCellKGrid,
 	   'kshift=f{3}' => \@inSuperCellKShift,
-	   'supercellsize=i' => \$targetSsize);
+	   'supercellsize=i' => \$targetSsize,
+           'help' => \$help);
 
 
 if (! @inSuperCellKGrid) {
@@ -112,8 +129,12 @@ if (! @inSuperCellKShift) {
     @inSuperCellKShift = (0, 0, 0);
 }
 
+unless($testwvfcn || $genNSCF || $genFSDFT || $convBspline || $optwvfcn || $dmcCalc || $convDMCTstep || $getTilemat) {
+    globalUsage();
+}
 
-$#ARGV == 0 || die "Must give a pwscf input file as the argument to this script\n";
+
+($#ARGV == 0 || $help) || die "Must give a pwscf input file as the argument to this script\n";
 my $inputFile = $ARGV[0];
 
 $useGPU = 1;
@@ -121,6 +142,92 @@ $useGPU = 1;
 if ($walkers) {
     $vmcwalkers = $walkers;
     $dmcwalkers = $walkers;
+}
+
+################################################################################
+#
+#
+# Branch of code to test that given a supercell and supercell twists that the provided
+# hdf wavefunction file contains the appropriate kpoints for the requested simulations
+#
+#
+################################################################################
+if ($testwvfcn) {
+###################################################################################
+# Variable Declarations to be used later
+##################################################################################
+    my ($calcPrefix, $pseudoDir, $outdir, $celldim, $numSpecies);
+    my ($numAts, $numSpins, @cell_ptv, @atoms_name, @pseudoPotentials);
+    my (@ionIds, %atNameToPP, @posArray);
+#####################################################################################
+    
+    unless((@toptilingmatrix) && $wvfcnfile && ((@inSuperCellTwist) || (@inSuperCellKGrid))) {
+	die "Must give an input tilematrix, wavefunction file and either a specific\nkpoint or a kgrid for testwvfcn to make sense\n";
+    }
+    
+    my $extractKvecsCommand = $config{kptlister};
+    print "$extractKvecsCommand\n";
+    my $kvecoutput = `$extractKvecsCommand $wvfcnfile`;
+    my @kvecs = split('\s+', $kvecoutput);
+
+    my $sstwists;
+    if ((@inSuperCellTwist)) {
+	$sstwists = 1;
+    } else {
+	$sstwists = $inSuperCellKGrid[0]*$inSuperCellKGrid[1]*$inSuperCellKGrid[2];
+    }
+    print "Looking for $sstwists supercell twists\n";
+
+
+    analyzeTwists(\@toptilingmatrix, \@kvecs);
+}
+
+
+
+
+################################################################################
+#
+#
+# Branch of code to get a good tile matrix for a given supercell size
+#
+#
+################################################################################
+if ($getTilemat) {
+###################################################################################
+# Variable Declarations to be used later
+##################################################################################
+    my ($calcPrefix, $pseudoDir, $outdir, $celldim, $numSpecies);
+    my ($numAts, $numSpins, @cell_ptv, @atoms_name, @pseudoPotentials);
+    my (@ionIds, %atNameToPP, @posArray);
+#####################################################################################
+
+    unless($targetSsize) {
+	die "Must give a supercellsize for the supercell for the gettilemat option to make sense!\n";
+    }
+
+#####################################################################################
+# Parse the pwscf input file for most of the information I will need
+#####################################################################################
+    open(IF, $inputFile) || die "cannot open input file $inputFile given on the command line\n";
+
+    my @fdata = <IF>;
+    close(IF);
+    
+    parsePwscfInput(\@fdata, \$calcPrefix, \$pseudoDir, \$outdir, \$celldim, \$numSpecies, \$numAts,
+	  	    \$numSpins, \@cell_ptv, \@atoms_name, \@pseudoPotentials, \@ionIds, \%atNameToPP, 
+                    \@posArray);
+    #####################################################################################
+
+    
+    if ($targetSsize) {
+	my $getSupercell = $config{supercell};
+	my $out = `$getSupercell --ptvs @cell_ptv --target $targetSsize --maxentry 7`;
+	my @data = split(/\s+/, $out);
+	for (my $i = 1; $i < 10; $i++) {
+	    $toptilingmatrix[$i-1] = $data[$i];
+	}
+    }
+    print "@toptilingmatrix\n";
 }
 
 
@@ -140,6 +247,10 @@ if ($genNSCF) {
     my ($numAts, $numSpins, @cell_ptv, @atoms_name, @pseudoPotentials);
     my (@ionIds, %atNameToPP, @posArray);
 #####################################################################################
+
+    if ($help) {
+	NSCFUsage();
+    }
 
     print "Generating files for nscf creation of wavefunctions\n";
 
@@ -175,16 +286,18 @@ if ($genNSCF) {
     #####################################################################################
 
     
-    if ($targetSsize) {
-	my $getSupercell = $config{supercell};
-	my $out = `$getSupercell --ptvs @cell_ptv --target $targetSsize --maxentry 7`;
-	my @data = split(/\s+/, $out);
-	for (my $i = 1; $i < 10; $i++) {
-	    $toptilingmatrix[$i-1] = $data[$i];
+    if ((@toptilingmatrix)) {
+	$targetSsize = abs(getDet(\@toptilingmatrix));
+    } elsif ($targetSsize) {
+	if (!(@toptilingmatrix)) {
+	    my $getSupercell = $config{supercell};
+	    my $out = `$getSupercell --ptvs @cell_ptv --target $targetSsize --maxentry 7`;
+	    my @data = split(/\s+/, $out);
+	    for (my $i = 1; $i < 10; $i++) {
+		$toptilingmatrix[$i-1] = $data[$i];
+	    }
 	}
-    }
-
-    if (!(@toptilingmatrix)) {
+    } else {
 	@toptilingmatrix = (1, 0, 0, 0, 1, 0, 0, 0, 1);
     }
 
@@ -254,6 +367,10 @@ if ($genFSDFT) {
     my (@ionIds, %atNameToPP, @posArray);
 #####################################################################################
 
+    if ($help) {
+	FSDFTUsage();
+    }
+
     print "Generating files for pscf calculation of energy and KZK correction\n";
 
     if (!$#inSuperCellTwist && (@inSuperCellKGrid || @inSuperCellKShift)) {
@@ -286,16 +403,18 @@ if ($genFSDFT) {
                     \@posArray);
     #####################################################################################
 
-    if ($targetSsize) {
-	my $getSupercell = $config{supercell};
-	my $out = `$getSupercell --ptvs @cell_ptv --target $targetSsize --maxentry 7`;
-	my @data = split(/\s+/, $out);
-	for (my $i = 1; $i < 10; $i++) {
-	    $toptilingmatrix[$i-1] = $data[$i];
+    if ((@toptilingmatrix)) {
+	$targetSsize = abs(getDet(\@toptilingmatrix));
+    } elsif ($targetSsize) {
+	if (!(@toptilingmatrix)) {
+	    my $getSupercell = $config{supercell};
+	    my $out = `$getSupercell --ptvs @cell_ptv --target $targetSsize --maxentry 7`;
+	    my @data = split(/\s+/, $out);
+	    for (my $i = 1; $i < 10; $i++) {
+		$toptilingmatrix[$i-1] = $data[$i];
+	    }
 	}
-    }
-
-    if (!(@toptilingmatrix)) {
+    } else {
 	@toptilingmatrix = (1, 0, 0, 0, 1, 0, 0, 0, 1);
     }
 
@@ -367,7 +486,6 @@ if ($genFSDFT) {
 
 ################################################################################
 #
-#
 # Branch of code to generate qmcpack input files to test convergence of the
 # spacing of the spline mesh.  These will be VMC calculations with no jastrow
 # OR, if --withjas is given then we will start from an optimized jastrow as
@@ -375,12 +493,23 @@ if ($genFSDFT) {
 #
 ################################################################################
 if ($convBspline) {
-    if (!($wvfcnfile && $vmcblocks && $vmcwalkers && $vmctimestep && $minfactor && $maxfactor && $factorinc)) {
-	my $usage = "Must specify all of the keywords: wvfcnfile, vmcblocks,";
-	$usage .= " vmcwalkers, vmctimestep\n     minfactor, maxfactor, and ";
-	$usage .= "factorinc when doing a spline convergence test\n";
-	$usage .= "Can also give withjas keyword to use the contents of the ";
-	$usage .= " optimization directory to specify an initial jastrow\n";
+    my $calcType = 0;
+    my $usage = "Must specify all of the keywords:\n";
+    $usage .=   "   wvfcnfile, vmcblocks, vmcwalkers, vmctimestep, minfactor, maxfactor, and fatorinc\n";
+    $usage .=   "OR\n";
+    $usage .=   "   wvfcnfile, vmcequiltime, vmcdecorrtime, vmctimestep, numsamples, minfactor,\n";
+    $usage .=   "   maxfactor and factorinc\n";   
+    $usage .=   "when doing a spline convergence test\n\n";
+    $usage .=   "Can also give withjas keyword to use the contents of the optimization directory to specify\n";
+    $usage .=   "an initial jastrow\n";
+    
+
+    
+    if (($wvfcnfile && $vmcblocks && $vmcwalkers && $vmctimestep && $minfactor && $maxfactor && $factorinc)) {
+	$calcType = 1;
+    } elsif(($wvfcnfile && $vmcequiltime && $vmcdecorrtime && $vmctimestep && $numsamples && $minfactor && $maxfactor && $factorinc)) {
+	$calcType = 2;
+    } else {
 	die $usage;
     }
 
@@ -398,6 +527,10 @@ if ($convBspline) {
 # In an effort to refactor and simplify, put everything until the parts
 # where we are getting qmc input sections into a single function
 #####################################################################################
+    if ((@toptilingmatrix)) {
+	$targetSsize = abs(getDet(\@toptilingmatrix));
+    }
+
     getSystemInformation($inputFile, $calcPrefix, $pseudoDir, $outdir, $celldim, $numSpecies,
 			 $numAts, $numSpins, \@cell_ptv, \@atoms_name, \@pseudoPotentials,
 			 \@ionIds, \%atNameToPP, \@posArray, $baseName, \@fdata, $topSpinDependentWvfcn,
@@ -418,7 +551,7 @@ if ($convBspline) {
 #########################################################################################
 # get the hamiltonian string
 #########################################################################################
-    my $hamiltonianString = getHamiltonianString(0, \%atNameToPP, 0, 0, 0);
+    my $hamiltonianString = getHamiltonianString(0, \%atNameToPP, 0, 0, 0, $isAe, \@atomsCharge);
 #########################################################################################
 
 #########################################################################################
@@ -428,8 +561,23 @@ if ($convBspline) {
     if ($vmcnodrift) {
 	$vmcUseDrift = 0;
     }
-    my $vmcSection = getVMCSection($useGPU, $vmcwalkers, $vmcwarmupsteps, $vmcblocks,
-				   $vmcsteps, $vmcSubsteps, $vmctimestep, $vmcUseDrift);
+
+    unless ($vmcwalkers) {
+	$vmcwalkers = 1;
+    }
+    unless ($vmcblocks) {
+	$vmcblocks = 500;
+    }
+
+    my $vmcSection;
+    if ($calcType == 1) {
+	$vmcSection = getVMCSection($useGPU, $vmcwalkers, $vmcwarmupsteps, $vmcblocks,
+				    $vmcsteps, $vmcSubsteps, $vmctimestep, $vmcUseDrift);
+    } elsif ($calcType == 2) {
+	$vmcSection = getVMCSectionNew($useGPU, $vmctimestep, $vmcequiltime, $vmcdecorrtime,
+				       $vmcblocks, $vmcwalkers, $numsamples, $vmcUseDrift);
+    }
+
 #########################################################################################
 
 
@@ -440,6 +588,7 @@ if ($convBspline) {
 #########################################################################################
 
     my $splDirName;
+    my $optBaseName = "opt-$baseName";
     if ($targetSsize) {
 	$splDirName = "bsplineConv-S$targetSsize";
 	$baseName = $baseName . "-S$targetSsize";
@@ -447,22 +596,28 @@ if ($convBspline) {
 	$splDirName = "bsplineConv";
     }
     mkdir $splDirName;
+
+    my $optDir;
+    if ($withjas > 1) {
+	$optDir = "optimization-S$withjas";
+	$optBaseName .= "-S$withjas.s001.scalar.dat";
+    } elsif ($targetSsize) {
+	$optDir = "optimization-S$targetSsize";
+	$optBaseName .= "-S$targetSsize.s001.scalar.dat";
+	print "optBaseName = $optBaseName\n";
+    } else {
+	$optDir = "optimization";
+	$optBaseName .= ".s001.scalar.dat";
+    }
 # Loop over mesh factors and write the appropriate qmcpack input files
     for (my $splineFactor = $minfactor; $splineFactor < $maxfactor+0.0001; $splineFactor+= $factorinc) {
 	$splineFactor = sprintf("%3.2f", $splineFactor);
 	my $jobid = "$baseName-f" . $splineFactor;
 	my $fname = "$splDirName/$baseName-f" . $splineFactor . ".xml";
 
-
+	my $jasOptBaseName;
 	my $wvfcnString;
 	if ($withjas) {
-	    my $optDir;
-	    if ($targetSsize) {
-		$optDir = "optimization-S$targetSsize";
-	    } else {
-		$optDir = "optimization";
-	    }
-	    my $optBaseName = "opt-$baseName.s001.scalar.dat";
 	    $wvfcnString = getWvfcnStringFromOptDir($optDir, $optBaseName, $twistnum, $splineFactor, $useGPU, $wvfcnfile);
 	} else {
 	    my @dummyArr;
@@ -470,7 +625,7 @@ if ($convBspline) {
 						\@dummyArr, \@dummyArr, \@atoms_name,
 						$numAts, \@ionIds, 0, 0, \@dummyArr, "../" . $wvfcnfile, 
 						\@toptilingmatrix, $twistnum, $useGPU, 1,
-						$splineFactor, $numUpElec, $numDownElec, $topSpinDependentWvfcn);
+						$splineFactor, $numUpElec, $numDownElec, $topSpinDependentWvfcn, $isAe, \@atomsCharge);
 	}
 	my $qmcHeaderString = getQmcpackHeader($jobid, 1, "Mesh Size Convergence Test for $baseName with factor = $splineFactor", 49154);
 	
@@ -490,10 +645,20 @@ if ($convBspline) {
 ####################################################################################
 
 if ($dmcCalc) {
-    if (!($wvfcnfile && $vmcblocks && $vmcwalkers && $vmctimestep && $dmcblocks && $dmcwalkers && 
-          ($dmcwarmupsteps > 0) && $dmcsteps && $dmctstep)) {
-	die "Must specify all of the keywords: wvfcnfile, vmcblocks, vmcwalkers, vmctimestep\ndmcblocks, dmcwalkers, dmcwarmupsteps, dmcsteps, dmctstep\nwhen doing a DMC calculation\n";
+    my $calcType = 0;
+    if (($wvfcnfile && $vmcblocks && $vmcwalkers && $vmctimestep && $dmcblocks && $dmcwalkers && 
+	 ($dmcwarmupsteps > 0) && $dmcsteps && $dmctstep)) {
+	print "Warning: Be sure you know what you are doing.  Prefer to specify\n";
+	print "         vmcequiltime, vmcdecorrtime, dmctstep, dmcequiltime,\n";
+	print "         dmcruntime, dmcblocktime and targetpop\n";
+	$calcType = 1;
+    } elsif (($wvfcnfile && $vmcequiltime && $vmcdecorrtime && $vmctimestep && $dmctstep && $dmcequiltime &&
+		$dmcruntime && $dmcblocktime && $targetpop)) {
+	$calcType = 2;
+    } else {
+	die "Must specify either all of the keywords: wvfcnfile, vmcblocks, vmcwalkers\nvmctimestep, dmcblocks, dmcwalkers, dmcwarmupsteps, dmcsteps, dmctstep\nOR \nwvfcnfile, vmctimestep, vmcequiltime, vmcdecorrtime, dmctstsp, dmcequiltime, dmcruntime\ndmcblocktime and targetpop when doing a DMC calculation\n";
     }
+
 
 ###################################################################################
 # Variable Declarations to be used later
@@ -509,6 +674,10 @@ if ($dmcCalc) {
 # In an effort to refactor and simplify, put everything until the parts
 # where we are getting qmc input sections into a single function
 #####################################################################################
+    if ((@toptilingmatrix)) {
+	$targetSsize = abs(getDet(\@toptilingmatrix));
+    }
+
     getSystemInformation($inputFile, $calcPrefix, $pseudoDir, $outdir, $celldim, $numSpecies,
 			 $numAts, $numSpins, \@cell_ptv, \@atoms_name, \@pseudoPotentials,
 			 \@ionIds, \%atNameToPP, \@posArray, $baseName, \@fdata, $topSpinDependentWvfcn,
@@ -535,23 +704,36 @@ if ($dmcCalc) {
 # Grab optimized wavefunction by inspecting the output of optimization runs
 #########################################################################################
     my $optDir;
+    my $optBaseName = "opt-$baseName";
     if ($targetSsize) {
 	$optDir = "optimization-S$targetSsize";
 	$baseName = "$baseName-S$targetSsize";
     } else {
 	$optDir = "optimization";
     }
+
+    if ($withjas > 1) {
+	$optDir = "optimization-S$withjas";
+	$optBaseName .= "-S$withjas.s001.scalar.dat";
+    } elsif ($targetSsize) {
+	$optDir = "optimization-S$targetSsize";
+	$optBaseName .= "-S$targetSsize.s001.scalar.dat";
+    } else {
+	$optDir = "optimization";
+	$optBaseName .= ".s001.scalar.dat";
+    }
     
-    my $optBaseName = "opt-$baseName.s001.scalar.dat";
     my @wvfcnStrings;
+    
+    my $lowestseq = findLowestEnergyWvfcn($optDir, $optBaseName);
     for (my $i = 0; $i < $numSupercellTwists; $i++) {
-	my $wvfcnString = getWvfcnStringFromOptDir($optDir, $optBaseName, $i, $splfactor, $useGPU, $wvfcnfile);
+	my $wvfcnString = getWvfcnStringFromOptDir($optDir, $optBaseName, $i, $splfactor, $useGPU, $wvfcnfile, $lowestseq);
 	push(@wvfcnStrings, $wvfcnString);
     }
 #########################################################################################
 # get the hamiltonian string
 #########################################################################################
-    my $hamiltonianString = getHamiltonianString(0, \%atNameToPP, 1, 0, 1);
+    my $hamiltonianString = getHamiltonianString(0, \%atNameToPP, 1, 0, 1, $isAe, \@atomsCharge);
 #########################################################################################
 
 #########################################################################################
@@ -561,8 +743,22 @@ if ($dmcCalc) {
     if ($vmcnodrift) {
 	$vmcUseDrift = 0;
     }
-    my $vmcSection = getVMCSection($useGPU, $vmcwalkers, $vmcwarmupsteps, $vmcblocks,
-				   $vmcsteps, $vmcSubsteps, $vmctimestep, $vmcUseDrift);
+    unless ($vmcwalkers) {
+	$vmcwalkers = 1;
+    }
+    unless ($vmcblocks) {
+	$vmcblocks = 500;
+    }
+
+
+    my $vmcSection;
+    if ($calcType == 1) {
+	$vmcSection = getVMCSection($useGPU, $vmcwalkers, $vmcwarmupsteps, $vmcblocks,
+				    $vmcsteps, $vmcSubsteps, $vmctimestep, $vmcUseDrift);
+    } elsif ($calcType == 2) {
+	$vmcSection = getVMCSectionNew($useGPU, $vmctimestep, $vmcequiltime, $vmcdecorrtime,
+				       $vmcblocks, $vmcwalkers, $targetpop, $vmcUseDrift);
+    }
 #########################################################################################
 
 
@@ -591,9 +787,14 @@ if ($dmcCalc) {
     mkdir "$dmcdirname";
     
 
-    my $dmcSection = getDMCSection($useGPU, $dmcwalkers, $dmcwarmupsteps, 
-				   $dmcblocks, $dmcsteps, $dmctstep, $dmcUseTmoves);
-
+    my $dmcSection;
+    if ($calcType == 1) {
+	$dmcSection = getDMCSection($useGPU, $dmcwalkers, $dmcwarmupsteps, 
+				    $dmcblocks, $dmcsteps, $dmctstep, $dmcUseTmoves);
+    } elsif ($calcType == 2) {
+	$dmcSection = getDMCSectionNew($useGPU, $dmctstep, $dmcequiltime, $dmcruntime,
+				       $dmcblocktime, $dmcUseTmoves);
+    }
 
     for (my $i = 0; $i < $numSupercellTwists; $i++) {
 	my $qmcFile = $qmcHeaderStrings[$i] . $ptclsetString . $wvfcnStrings[$i] . $hamiltonianString;
@@ -618,18 +819,31 @@ if ($dmcCalc) {
 #
 # Branch of code to generate qmcpack input files to optimize jastrow factors
 # currently blindly using Jeremy's recommended block for Al.
-# TODO: Add facility for template optimization block to be given and modified
-# TODO: Add facility to take directory where previous opt was performed and
-#       start this opt from the best wvfcn that was found in that directory
+# TODO: Add facility to use rescaling for optimization rather than quartic.
+#       This will require decoupling optsamples from the number of vmc steps
+#       so that H and S matrices can be relatively well converged without having
+#       too many samples.  This will be extermely useful on machines which have
+#       small amounts of memory.
 #
 #
 ################################################################################
 if ($optwvfcn) {
-    if (!($wvfcnfile && $vmcblocks && $vmcwalkers && $vmctimestep && $splfactor 
-	  && $optSamples && $optLoops && $oneBodySplinePts && $twoBodySplinePts )) {
-	my $usage = "Must specify all of the keywords: wvfcnfile, splfactor, vmcblocks, ";
-	$usage .= "vmcwalkers, vmctimestep\n     optsamples, optloops, onebodysplinepts ";
-	$usage .= " and twobodysplinepts when optimizing a wavefunction\n";
+    my $usage = "Must specify all of the keywords:\n";
+    $usage   .= "   wvfcnfile, splfactor, vmcblocks, vmcwalkers, vmctimestep\n";
+    $usage   .= "   optsamples, optloops, onebodysplinepts and twobodysplinepts\n";
+    $usage   .= "OR\n";
+    $usage   .= "   wvfcnfile, splfactor, vmctimestep, vmcequiltime, vmcdecorrtime\n";
+    $usage   .= "   optsamples, optloops, onebodysplinepts and twobodysplinepts\n";
+    $usage   .= "when optimizing a wavefunction\n";
+
+    my $calcType = 0;
+    if (($wvfcnfile && $vmcblocks && $vmcwalkers && $vmctimestep && $splfactor 
+	 && $optSamples && $optLoops && $oneBodySplinePts && $twoBodySplinePts )) {
+	$calcType = 1;
+    } elsif (($wvfcnfile && $splfactor && $vmctimestep, $vmcequiltime, $vmcdecorrtime
+	      && $optSamples && $optLoops && $oneBodySplinePts && $twoBodySplinePts )) {
+	$calcType = 2;
+    } else {
 	die $usage;
     }
 
@@ -647,11 +861,17 @@ if ($optwvfcn) {
 # In an effort to refactor and simplify, put everything until the parts
 # where we are getting qmc input sections into a single function
 #####################################################################################
+    if ((@toptilingmatrix)) {
+	$targetSsize = abs(getDet(\@toptilingmatrix));
+    }
+    print "targetSsize = $targetSsize\n";
+
     getSystemInformation($inputFile, $calcPrefix, $pseudoDir, $outdir, $celldim, $numSpecies,
 			 $numAts, $numSpins, \@cell_ptv, \@atoms_name, \@pseudoPotentials,
 			 \@ionIds, \%atNameToPP, \@posArray, $baseName, \@fdata, $topSpinDependentWvfcn,
 			 \@toptilingmatrix, $targetSsize, \@atomsCharge, \@atomsValence, \@atomsAtomicNumbers,
 			 $numelec, $numUpElec, $numDownElec);
+
 
 ########################################################################################
 # Get the particleset string.  
@@ -668,7 +888,7 @@ if ($optwvfcn) {
 #########################################################################################
 # get the hamiltonian string
 #########################################################################################
-    my $hamiltonianString = getHamiltonianString(0, \%atNameToPP, 1, 0, 1);
+    my $hamiltonianString = getHamiltonianString(0, \%atNameToPP, 1, 0, 1, $isAe, \@atomsCharge);
 #########################################################################################
 
 #########################################################################################
@@ -678,23 +898,34 @@ if ($optwvfcn) {
 #########################################################################################
     my @topUpUpCoefs;
     my @topUpDownCoefs;
+    
+    
     for (my $i = 0; $i < $twoBodySplinePts; $i++) {
 	push(@topUpUpCoefs, 0.0);
 	push(@topUpDownCoefs, 0.0);
     }
+    my $twoBodyRcut = 0.0;
+    my $numDens = 0.0;
+    getCellProperties($numelec, \@cell_ptv, $twoBodyRcut, $numDens);
+    getTwoBodyRPAJastrow($numDens, $twoBodyRcut, $twoBodySplinePts, \@topUpUpCoefs, \@topUpDownCoefs);
+    
+#    for (my $i = 0; $i < $twoBodySplinePts; $i++) {
+#	print "uu[$i] = $topUpUpCoefs[$i], ud[$i] = $topUpDownCoefs[$i]\n";
+#    }
+
     my @topJastrowStarts;
     for (my $i = 0; $i <= $#atoms_name; $i++) {
 	for (my $j = 0; $j < $oneBodySplinePts; $j++) {
 	    push (@topJastrowStarts, 0.0);
 	}
     }
-    
+
     my $wvfcnString = getWavefunctionString(0, 1, 1, $twoBodySplinePts, -1.0, \@topUpUpCoefs,
 					    \@topUpDownCoefs, \@atoms_name, $numAts, \@ionIds,
 					    $oneBodySplinePts, -1.0, \@topJastrowStarts,
 					    "../" . $wvfcnfile, \@toptilingmatrix, $twistnum, $useGPU,
 					    1, $splfactor, $numUpElec, $numDownElec, 
-					    $topSpinDependentWvfcn);
+					    $topSpinDependentWvfcn, $isAe, \@atomsCharge);
 #########################################################################################
 # get the qmc header and footer
 #########################################################################################
@@ -714,11 +945,24 @@ if ($optwvfcn) {
     if ($vmcnodrift) {
 	$vmcdrift = 0;
     }
-
-    my $optimizationString = getOptSection($useGPU, $vmcwalkers, $vmcwarmupsteps, $vmcblocks,
-					   $vmcsteps, $vmcSubsteps, $vmctimestep, $vmcdrift,
-					   $optLoops, $optSamples);
     
+    unless($vmcwalkers) {
+	$vmcwalkers = 1;
+    }
+    unless($vmcblocks) {
+	$vmcblocks = 500;
+    }
+
+    my $optimizationString;
+    if ($calcType == 1) {
+	$optimizationString = getOptSection($useGPU, $vmcwalkers, $vmcwarmupsteps, $vmcblocks,
+					    $vmcsteps, $vmcSubsteps, $vmctimestep, $vmcdrift,
+					    $optLoops, $optSamples);
+    } elsif ($calcType == 2) {
+	$optimizationString = getOptSectionNew($useGPU, $vmcwalkers, $vmctimestep, $vmcequiltime,
+					       $vmcdecorrtime, $vmcblocks, $optSamples, $optLoops, $vmcdrift);
+    }
+
 #########################################################################################
 # Put it all together and write to a file
 #########################################################################################
@@ -749,11 +993,17 @@ if ($optwvfcn) {
 #
 ################################################################################
 if ($convDMCTstep) {
-    if (!($wvfcnfile && $vmcblocks && $vmcwalkers && $vmctimestep && $dmcblocks && $dmcwalkers && 
-          ($dmcwarmupsteps > 0) && $dmcsteps && $mindmctstep && $maxdmctstep && $dmctstepinc)) {
-	die "Must specify all of the keywords: wvfcnfile, vmcblocks, vmcwalkers, vmctimestep\ndmcblocks, dmcwalkers, dmcwarmupsteps, dmcsteps, mindmctstep, maxdmctstep, dmctstepinc\nwhen doing a DMC timestep convergence test\n";
-    }
-
+    my $calcType = 0;
+    if (($wvfcnfile && $vmcblocks && $vmcwalkers && $vmctimestep && $dmcblocks && $dmcwalkers && 
+	 ($dmcwarmupsteps > 0) && $dmcsteps && $mindmctstep && $maxdmctstep && $dmctstepinc)) {
+	$calcType = 1;
+    } elsif (($wvfcnfile && $vmcequiltime && $vmcdecorrtime && $vmctimestep && $dmcequiltime &&
+	      $dmcruntime && $dmcblocktime && $targetpop && $mindmctstep && $maxdmctstep && $dmctstepinc)) {
+	$calcType = 2;
+    } else {
+	die "Must specify all of the keywords: \nwvfcnfile, vmcblocks, vmcwalkers, vmctimestep\ndmcblocks, dmcwalkers, dmcwarmupsteps, dmcsteps, mindmctstep, maxdmctstep, dmctstepinc\nOR\nwvfcnfile, vmcequiltime, vmcdecorrtime, vmctimestep, dmcequiltime, dmcruntime\ndmcblocktime, targetpop, maxdmctstep, dmctstepinc\nwhen doing a DMC timestep convergence test\n";
+    } 
+    
 ###################################################################################
 # Variable Declarations to be used later
 ##################################################################################
@@ -768,6 +1018,10 @@ if ($convDMCTstep) {
 # In an effort to refactor and simplify, put everything until the parts
 # where we are getting qmc input sections into a single function
 #####################################################################################
+    if ((@toptilingmatrix)) {
+	$targetSsize = abs(getDet(\@toptilingmatrix));
+    }
+
     getSystemInformation($inputFile, $calcPrefix, $pseudoDir, $outdir, $celldim, $numSpecies,
 			 $numAts, $numSpins, \@cell_ptv, \@atoms_name, \@pseudoPotentials,
 			 \@ionIds, \%atNameToPP, \@posArray, $baseName, \@fdata, $topSpinDependentWvfcn,
@@ -790,20 +1044,28 @@ if ($convDMCTstep) {
 # Grab optimized wavefunction by inspecting the output of optimization runs
 #########################################################################################
     my $optDir;
+    my $optBaseName = "opt-$baseName";
     if ($targetSsize) {
-	$optDir = "optimization-S$targetSsize";
 	$baseName = "$baseName-S$targetSsize";
+    }
+
+    if ($withjas > 1) {
+	$optDir = "optimization-S$withjas";
+	$optBaseName .= "-S$withjas.s001.scalar.dat";
+    } elsif ($targetSsize) {
+	$optDir = "optimization-S$targetSsize";
+	$optBaseName .= "-S$targetSsize.s001.scalar.dat";
     } else {
 	$optDir = "optimization";
+	$optBaseName .= ".s001.scalar.dat";
     }
     
-    my $optBaseName = "opt-$baseName.s001.scalar.dat";
     my $wvfcnString = getWvfcnStringFromOptDir($optDir, $optBaseName, $twistnum, $splfactor, $useGPU, $wvfcnfile);
 
 #########################################################################################
 # get the hamiltonian string
 #########################################################################################
-    my $hamiltonianString = getHamiltonianString(0, \%atNameToPP, 1, 0, 1);
+    my $hamiltonianString = getHamiltonianString(0, \%atNameToPP, 1, 0, 1, $isAe, \@atomsCharge);
 #########################################################################################
 
 #########################################################################################
@@ -813,8 +1075,23 @@ if ($convDMCTstep) {
     if ($vmcnodrift) {
 	$vmcUseDrift = 0;
     }
-    my $vmcSection = getVMCSection($useGPU, $vmcwalkers, $vmcwarmupsteps, $vmcblocks,
-				   $vmcsteps, $vmcSubsteps, $vmctimestep, $vmcUseDrift);
+    unless ($vmcwalkers) {
+	$vmcwalkers = 1;
+    }
+    unless ($vmcblocks) {
+	$vmcblocks = 500;
+    }
+
+    my $vmcSection;
+    if ($calcType == 1) {
+	$vmcSection = getVMCSection($useGPU, $vmcwalkers, $vmcwarmupsteps, $vmcblocks,
+				    $vmcsteps, $vmcSubsteps, $vmctimestep, $vmcUseDrift);
+    } elsif ($calcType == 2) {
+	$vmcSection = getVMCSectionNew($useGPU, $vmctimestep, $vmcequiltime, $vmcdecorrtime,
+				       $vmcblocks, $vmcwalkers, $targetpop, $vmcUseDrift);
+    }
+
+
 #########################################################################################
 
 
@@ -837,9 +1114,15 @@ if ($convDMCTstep) {
     my $qmcFile = $qmcHeaderString . $ptclsetString . $wvfcnString. $hamiltonianString . "\n\n" . $vmcSection;
    
     for (my $locdmctstep = $maxdmctstep; $locdmctstep > $mindmctstep-0.000001; $locdmctstep -= $dmctstepinc) {
-	my $dmcSection = getDMCSection($useGPU, $dmcwalkers, $dmcwarmupsteps, 
-                                       floor($dmcblocks*$maxdmctstep/$dmctstep),
-				       $dmcsteps, $locdmctstep, $dmcUseTmoves);
+	my $dmcSection;
+	if ($calcType == 1) {
+	    $dmcSection = getDMCSection($useGPU, $dmcwalkers, $dmcwarmupsteps, 
+					floor($dmcblocks*$maxdmctstep/$locdmctstep),
+					$dmcsteps, $locdmctstep, $dmcUseTmoves);
+	} elsif ($calcType == 2) {
+	    $dmcSection = getDMCSectionNew($useGPU, $locdmctstep, $dmcequiltime, $dmcruntime,
+					   $dmcblocktime, $dmcUseTmoves);
+	}
 	$qmcFile .= $dmcSection;
     }
     $qmcFile .= $qmcFooterString;
@@ -917,12 +1200,14 @@ sub getSystemInformation {
 #  from input line.  If using a supercell, update relevant variables from above
 #####################################################################################
     if ($tss) {
-	my $getSupercell = $config{supercell};
-	my $out = `$getSupercell --ptvs @{$cptvref} --target $tss --maxentry 7`;
-	my @data = split(/\s+/, $out);
-	## Set tilematrix from output of getSupercell
-	for (my $i = 1; $i < 10; $i++) {
-	    $$ttilmatref[$i-1] = $data[$i];
+	if (!(@{$ttilmatref})) {
+	    my $getSupercell = $config{supercell};
+	    my $out = `$getSupercell --ptvs @{$cptvref} --target $tss --maxentry 7`;
+	    my @data = split(/\s+/, $out);
+	    ## Set tilematrix from output of getSupercell
+	    for (my $i = 1; $i < 10; $i++) {
+		$$ttilmatref[$i-1] = $data[$i];
+	    }
 	}
 	
 	## Get new arrays for iidref and posarrref
@@ -952,9 +1237,13 @@ sub getSystemInformation {
 	## Update the number of ions in the supercell
 	$$nats *= $tss;
 	## Set ptv to be the supercell's lattice vectors from the output of getSupercell
-	for (my $i = 10; $i < 19; $i++) {
-	    $$cptvref[$i-10] = $data[$i];
-	}
+	#for (my $i = 10; $i < 19; $i++) {
+	#    $$cptvref[$i-10] = $data[$i];
+	#}
+	my @tmpssptv;
+	getSuperCell(\@tmpssptv, $cptvref, $ttilmatref);
+	@{$cptvref} = @tmpssptv;
+	
     }
 
     if (!(@{$ttilmatref})) {
@@ -977,13 +1266,21 @@ sub getSystemInformation {
 	getPPInfo($ppname, $atValenceCharge, $atAtomicNumber);
 
 	$$nelec += $atValenceCharge;
-	push(@{$atchgref}, $atValenceCharge);
-	push(@{$atvalref}, $atValenceCharge);
-	push(@{$atatnumref}, $atAtomicNumber);
+	#push(@{$atchgref}, $atValenceCharge);
+	#push(@{$atvalref}, $atValenceCharge);
+	#push(@{$atatnumref}, $atAtomicNumber);
     }   
 
     foreach my $at (@{$anameref}) {
 	my $ppname = $$atnmtoppref{$at};
+	my $atValenceCharge;
+	my $atAtomicNumber;
+	
+	getPPInfo($ppname, $atValenceCharge, $atAtomicNumber);
+	push(@{$atchgref}, $atValenceCharge);
+	push(@{$atvalref}, $atValenceCharge);
+	push(@{$atatnumref}, $atAtomicNumber);
+
 	if ($ppname =~ /ncpp/i) {
 	    $ppname =~ s/ncpp/xml/;
 	    my $ppbasename = $ppname;
@@ -1048,11 +1345,16 @@ sub parsePwscfInput {
     my $ionsRef = shift;
     my $atnmtoppRef = shift;
     my $posarrRef = shift;
+    my $coadim;
     
     ${$cp} = getPwscfToken("prefix", $filedataRef);
     ${$psdir} = getPwscfToken("pseudo_dir", $filedataRef);
     ${$odir} = getPwscfToken("outdir", $filedataRef);
     ${$cdim} = getPwscfToken('celldm(1)', $filedataRef);
+    if (${$cdim} < 0) {
+	${$cdim} = 1.0;
+    }
+    $coadim = getPwscfToken('celldm(3)', $filedataRef);
     ${$numSp} = getPwscfToken("ntyp", $filedataRef);
     ${$numAt} = getPwscfToken("nat", $filedataRef);
     ${$numSpin} = getPwscfToken("nspin", $filedataRef);
@@ -1072,14 +1374,23 @@ sub parsePwscfInput {
     } elsif ($ibrav == 3) {
 	my $val = 0.5*${$cdim};
 	@{$cptvRef} = ($val, $val, $val, -$val, $val, $val, -$val, -$val, $val);
+    } elsif ($ibrav == 4) {
+	my $val = ${$cdim};
+	@{$cptvRef} = ($val, 0, 0, -$val*0.5, sqrt(3)*0.5*$val, 0, 0, 0, $val*$coadim);
     } else {
 	die "Ibrav $ibrav is not recognized, please recreate with ibrav = 0\n";
     }
 
+#    print "Primitive Translation Vectors:\n";
+#    print "${$cptvRef}[0] ${$cptvRef}[1] ${$cptvRef}[2]\n";
+#    print "${$cptvRef}[3] ${$cptvRef}[4] ${$cptvRef}[5]\n";
+#    print "${$cptvRef}[6] ${$cptvRef}[7] ${$cptvRef}[8]\n";
+
+
     # now try to read in the atomic species
     my $speciesString = getPwscfCard("ATOMIC_SPECIES", $filedataRef);
-    my @allSpecies = split(/\s+/, removeWhiteSpaceAtBeginning($speciesString));
-    $#allSpecies+1 == $$numSp * 3 || die "Number of species specified in pwscf file does not match with number of species specified in system section\n";
+     my @allSpecies = split(/\s+/, removeWhiteSpaceAtBeginning($speciesString));
+     $#allSpecies+1 == $$numSp * 3 || die "Number of species specified in pwscf file does not match with number of species specified in system section\n";
     for (my $i = 0; $i < $$numSp; $i++) {
 	$atnmtoppRef->{$allSpecies[$i*3]} = $$psdir . $allSpecies[$i*3+2];
 	$atNamRef->[$i] = $allSpecies[$i*3];
@@ -1130,20 +1441,16 @@ sub getQmcpackFooter {
 }
 #################################################################################################################
 
+
 #################################################################################################################
-# Subroutine to grab an optimized wavefunction from a directory containing an 
-# optimization run.  Will take the wvfcn from the .opt.xml file that corresponds
-# to the wavefunction with the lowest energy
+# Subroutine to look through the optimization directory and figure out which wavefunction
+# had the lowest energy
 #################################################################################################################
-sub getWvfcnStringFromOptDir {
+sub findLowestEnergyWvfcn {
     my $optDir = shift;
     my $optTemplateFile = shift;
-    my $twistNum = shift;
-    my $splFac = shift;
-    my $uGPU = shift;
-    my $wfile = shift;
 
-    my $start = 32;
+    my $start = 16;
 
     my $energytool = $config{energytool};
 
@@ -1152,9 +1459,22 @@ sub getWvfcnStringFromOptDir {
     my $tnum = $2;
     my $suffix = $3;
 
+    # get list of files in the optimization directory
     opendir DIR, "$optDir"; 
     my @files = grep { $_ ne '.' && $_ ne '..' } readdir DIR; 
     closedir DIR; 
+   
+
+    my $ofname = $prefix;
+    chop($ofname);
+    chop($ofname);
+    $ofname .= ".out";
+    $ofname = "$optDir/$ofname";
+#    print "outfile = $ofname\n";
+    my $rcutline = `grep rcut $ofname | head -n 1`;
+    my @arr = split(/\s+/, $rcutline);
+    my $rcutval = $arr[3];
+    print "rcut = $rcutval\n";
 
     my @rawfiles;
     foreach my $str (@files) {
@@ -1163,6 +1483,7 @@ sub getWvfcnStringFromOptDir {
 	}
     }
 
+    # Loop over optimization data files and figure out which one has the lowest average energy
     my $lowesten=100000000000000000000000000.0;
     my $lowestseqnum = -1;
     foreach my $file (sort bySequence @rawfiles) {
@@ -1177,23 +1498,71 @@ sub getWvfcnStringFromOptDir {
 	}
     }
 
-#    my $prettyseq = sprintf("%3d", $lowestseqnum);
-#    if ($prettyseq < 10) {
-#	$prettyseq = sprintf("00%d", $prettyseq);
-#    } elsif ($prettyseq < 100) {
-#	$prettyseq = sprintf("0%2d", $prettyseq);
-#    }
-#    print "Lowest Energy ($lowesten) comes from the file $optDir/$prefix$prettyseq$suffix\n";
+    # Get properly formatted sequence number (always 3 digits) for the best .opt.xml file
     my $optfileprettyseq = sprintf("%3d", $lowestseqnum-1);
     if ($optfileprettyseq < 10) {
 	$optfileprettyseq = sprintf("00%d", $optfileprettyseq);
     } elsif ($optfileprettyseq < 100) {
 	$optfileprettyseq = sprintf("0%2d", $optfileprettyseq);
     }
+
+    # Now state which wavefunction is best
     my $bestfile = "$optDir/$prefix$optfileprettyseq.opt.xml";
     print "The file with the best wavefunction is: $bestfile\n";
 
-    
+    return $lowestseqnum;
+}
+
+#################################################################################################################
+# Subroutine to grab an optimized wavefunction from a directory containing an 
+# optimization run.  Will take the wvfcn from the .opt.xml file that corresponds
+# to the wavefunction with the lowest energy
+#################################################################################################################
+sub getWvfcnStringFromOptDir {
+    my $optDir = shift;
+    my $optTemplateFile = shift;
+    my $twistNum = shift;
+    my $splFac = shift;
+    my $uGPU = shift;
+    my $wfile = shift;
+    my $seqnum = shift;
+
+    $optTemplateFile =~ /(.*\.s)(\d\d\d)(\.scalar\.dat)/;
+    my $prefix = $1;
+    my $tnum = $2;
+    my $suffix = $3;
+
+    # grab rcut from the optimization run's output file
+    my $ofname = $prefix;
+    chop($ofname);
+    chop($ofname);
+    $ofname .= ".out";
+    $ofname = "$optDir/$ofname";
+    my $rcutline = `grep rcut $ofname | head -n 1`;
+    my @arr = split(/\s+/, $rcutline);
+    my $rcutval = $arr[3];
+    print "rcut = $rcutval\n";
+
+
+    my $lowestseqnum = $seqnum;
+    unless($seqnum) {
+	$lowestseqnum = findLowestEnergyWvfcn($optDir, $optTemplateFile);
+    }
+
+    # Get properly formatted sequence number (always 3 digits) for the best .opt.xml file
+    my $optfileprettyseq = sprintf("%3d", $lowestseqnum-1);
+    if ($optfileprettyseq < 10) {
+	$optfileprettyseq = sprintf("00%d", $optfileprettyseq);
+    } elsif ($optfileprettyseq < 100) {
+	$optfileprettyseq = sprintf("0%2d", $optfileprettyseq);
+    }
+
+    # Now state which wavefunction is best
+    my $bestfile = "$optDir/$prefix$optfileprettyseq.opt.xml";
+    ##print "The file with the best wavefunction is: $bestfile\n";
+
+
+    # open the best file and start parsing it
     my $wvfcnString;
     open(BESTFILE, "$bestfile") || die "Cannot open file $bestfile\n";
     my @bfdata = <BESTFILE>;
@@ -1212,6 +1581,11 @@ sub getWvfcnStringFromOptDir {
 	}
 
 	if ($start && !$stop) {
+	    if ($line =~ /<correlation/) {
+		unless ($line =~ /rcut/) {
+		    $line =~ s/<correlation/<correlation rcut=\"$rcutval\"/;
+		}
+	    }
 	    if ($line =~ /<determinantset/) {
 		if ($line =~ /href/) {
 		    $line =~ s/href\s*=\s*\".*?\"/href=\"..\/$wfile\"/;
@@ -1251,7 +1625,6 @@ sub getWvfcnStringFromOptDir {
     $wvfcnString;
 	
 
-#LNS
 
 }
 #################################################################################################################
@@ -1299,12 +1672,15 @@ sub getWavefunctionString {
     my $tileMatrixRef = shift;
     my $locTwistNum = shift;
     my $locUseGPU = shift;
-    print "In wavefunction, use gpu = $locUseGPU\n";
+#    print "In wavefunction, use gpu = $locUseGPU\n";
     my $locUseMeshFactor = shift;
     my $locMeshFactor = shift;
     my $locUpElecs = shift;
     my $locDownElecs = shift;
     my $locSpinDependentWvfcn = shift;
+
+    my $locIsAe = shift;
+    my $atomsChargeRef = shift;
 
     if ($standAlone) {
 	$outputString .= '<?xml version="1.0"?>';
@@ -1380,6 +1756,15 @@ sub getWavefunctionString {
 		$outputString .= "      </correlation>\n";
 	    }
 	    $outputString .= "    </jastrow>\n";
+	    if ($locIsAe) {
+		$outputString .= "    <jastrow name=\"J1S\" type=\"One-Body\" function=\"Bspline\" print=\"yes\" source=\"i\">\n";
+		for (my $j = 0; $j <= $#{$atomsNameRef}; $j++) {
+		    $outputString .= "      <correlation elementType=\"${$atomsNameRef}[$j]\" cusp=\"${$atomsChargeRef}[$j]\" size=\"$sizeOneBody\" rcut=\"0.5\">\n";
+		    $outputString .= "         <coefficients id=\"${$atomsNameRef}[$j]-sr\" type=\"Array\"> -0.1 -0.05 -0.01 </coefficients>\n";
+		    $outputString .= "      </correlation>\n";
+		}
+		$outputString .= "    </jastrow>\n";
+	    }
 	} else {
 	    # In this case we have an independent jastrow for every ion
 	    $outputString .= "    <jastrow name=\"J1\" type=\"One-Body\" function=\"Bspline\" print=\"yes\" source=\"centers\">\n";
@@ -1437,7 +1822,6 @@ sub getPtclSetString {
     $#{$ionPosRef}+1 == $numIons*3 || die "Ion Positions array handed to writePtclset supposed to have\n 3 * $numIons (3 * \$numIons) entries, but it has $#{$ionPosRef}+1\n";
     my $ionIdsRef = shift;
     $#{$ionIdsRef}+1 == $numIons || die "Ion ids array handed to writePtclset supposed to have \n$numIons entries, but it has $#{$ionIdsRef}+1\n";
-
 
     if ($standAlone) {
 	$outputString .= "<?xml version=\"1.0\"?>\n";
@@ -1545,7 +1929,7 @@ sub getPtclSetString {
 
 
 #################################################################################################################
-# Subroutine to write qmcpack hamiltonian section
+# Subroutine to write qmcpack Hamiltonian section
 #################################################################################################################
 sub getHamiltonianString {
     my $standAlone = shift;
@@ -1553,6 +1937,8 @@ sub getHamiltonianString {
     my $locUseMPC = shift;
     my $locMPCIsPhysical = shift;
     my $locUseKECorr = shift;
+    my $locIsAe = shift;
+    my $atomsChargeRef = shift;
     my $ppName;
     my $ppFile;
 
@@ -1564,8 +1950,22 @@ sub getHamiltonianString {
     }
     $outputString .= '  <hamiltonian name="h0" type="generic" target="e">' . "\n";
     $outputString .= '    <pairpot type="pseudo" name="PseudoPot" source="i" wavefunction="psi0" format="xml">' ."\n";
-    while (($ppName, $ppFile) = each(%{$atNameToPPRef})) {
-	$outputString .= "      <pseudo elementType=\"$ppName\" href=\"$ppFile\"/>\n";
+    if (!$locIsAe) {
+	while (($ppName, $ppFile) = each(%{$atNameToPPRef})) {
+	    $outputString .= "      <pseudo elementType=\"$ppName\" href=\"$ppFile\"/>\n";
+	}
+    } else {
+	my $i = 0;
+	while (($ppName, $ppFile) = each(%{$atNameToPPRef})) {
+	    my $chg = ${$atomsChargeRef}[$i];
+	    $i++;
+	    $outputString .= "      <pseudo elementType=\"$ppName\">\n";
+            $outputString .= "        <header symbol=\"$ppName\" atomic-number=\"$chg\" zval=\"$chg\" />\n";
+            $outputString .= "        <local>\n";
+            $outputString .= "          <grid type=\"linear\" ri=\"0.0\" rf=\"4.0\" npts=\"201\" />\n";
+            $outputString .= "        </local>\n";
+            $outputString .= "      </pseudo>\n";
+	}
     }
     $outputString .= '    </pairpot>' ."\n";
     $outputString .= '    <constant name="IonIon" type="coulomb" source="i" target="i"/>' . "\n";
@@ -1627,6 +2027,43 @@ sub getVMCSection {
 }
 
 #################################################################################################################
+# New Subroutine to write a vmc section
+#################################################################################################################
+sub getVMCSectionNew {
+    my $useGPU_ = shift;
+    my $vmctimestep_ = shift;
+    my $vmcequiltime_ = shift;
+    my $vmcdecorrtime_ = shift;
+    my $vmcblocks_ = shift;
+    my $vmcwalkers_ = shift;
+    my $targetpop_ = shift;
+    my $useDrift_ = shift;
+    
+    my $warmupSteps_ = floor($vmcequiltime_/$vmctimestep_);
+    my $StBS_ = floor($vmcdecorrtime_/$vmctimestep_);
+
+    my $outputString;
+    if ($useGPU_) {
+	$outputString .= "  <qmc method=\"vmc\" move=\"pbyp\" gpu=\"yes\">\n";
+    } else {
+	$outputString .= "  <qmc method=\"vmc\" move=\"pbyp\">\n";
+    }
+    $outputString .= "    <estimator name=\"LocalEnergy\" hdf5=\"no\"/>\n";
+    $outputString .= "    <parameter name=\"walkers\">    $vmcwalkers_ </parameter>\n";
+    $outputString .= "    <parameter name=\"samples\">    $targetpop_ </parameter>\n";
+    $outputString .= "    <parameter name=\"stepsbetweensamples\">    $StBS_ </parameter>\n";
+    $outputString .= "    <parameter name=\"warmupSteps\">  $warmupSteps_ </parameter>\n";
+    $outputString .= "    <parameter name=\"blocks\">  $vmcblocks_ </parameter>\n";
+    $outputString .= "    <parameter name=\"timestep\">  $vmctimestep_ </parameter>\n";
+    if ($useDrift_) {
+	$outputString .= "    <parameter name=\"usedrift\">  yes </parameter>\n";
+    } else {
+    	$outputString .= "    <parameter name=\"usedrift\">   no </parameter>\n";
+    }
+    $outputString .= "  </qmc>\n";
+}
+
+#################################################################################################################
 # Subroutine to write a dmc section
 #################################################################################################################
 sub getDMCSection {
@@ -1658,6 +2095,41 @@ sub getDMCSection {
     $outputString .= "  </qmc>\n";
 }
 
+#################################################################################################################
+# New Subroutine to write a dmc section
+#################################################################################################################
+sub getDMCSectionNew {
+    my $useGPU_ = shift;
+    my $dmctstep_ = shift;
+    my $dmcequiltime_ = shift;
+    my $dmcruntime_ = shift;
+    my $dmcblocktime_ = shift;
+    my $dmcUseTmoves_ = shift;
+
+    my $dmcWarmupSteps_ = $dmcequiltime_ / $dmctstep_;
+    my $totDMCSteps_ = ($dmcruntime+$dmcequiltime_) / $dmctstep_;
+    my $dmcStepsPerBlock_ = floor($dmcblocktime_ / $dmctstep_);
+    my $dmcBlocks_ = floor($totDMCSteps_ / $dmcStepsPerBlock_);
+
+
+    my $outputString;
+    if ($useGPU_) {
+	$outputString .= "  <qmc method=\"dmc\" move=\"pbyp\" gpu=\"yes\">\n";
+    } else {
+	$outputString .= "  <qmc method=\"dmc\" move=\"pbyp\">\n";
+    }
+    $outputString .= "    <estimator name=\"LocalEnergy\" hdf5=\"no\"/>\n";
+    $outputString .= "    <parameter name=\"timestep\">  $dmctstep_ </parameter>\n";
+    $outputString .= "    <parameter name=\"warmupSteps\">  $dmcWarmupSteps_ </parameter>\n";
+    $outputString .= "    <parameter name=\"steps\">   $dmcStepsPerBlock_ </parameter>\n";
+    $outputString .= "    <parameter name=\"blocks\">  $dmcBlocks_ </parameter>\n";
+    if ($dmcUseTmoves_) {
+	$outputString .= "    <parameter name=\"nonlocalmoves\">  yes </parameter>\n";
+    } else {
+    	$outputString .= "    <parameter name=\"nonlocalmoves\">   no </parameter>\n";
+    }
+    $outputString .= "  </qmc>\n";
+}
 
 
 ################################################################################################################
@@ -1700,12 +2172,115 @@ sub getOptSection {
 	$outputString .= "    <parameter name=\"useDrift\">   no </parameter>\n";
     }
     $outputString .= "    <estimator name=\"LocalEnergy\" hdf5=\"no\"/>\n";
+    $outputString .= "    <cost name=\"energy\">                   0.0 </cost>\n";
+    $outputString .= "    <cost name=\"unreweightedvariance\">     1.0 </cost>\n";
+    $outputString .= "    <cost name=\"reweightedvariance\">       0.0 </cost>\n";
+    $outputString .= "    <parameter name=\"MinMethod\">rescale</parameter>\n";
+    $outputString .= "    <parameter name=\"GEVMethod\">mixed</parameter>\n";
+    $outputString .= "    <parameter name=\"beta\">  0.0 </parameter>\n";
+    $outputString .= "    <parameter name=\"exp0\"> -16 </parameter>\n";
+    $outputString .= "    <parameter name=\"nonlocalpp\">no</parameter>\n";
+    $outputString .= "    <parameter name=\"useBuffer\">no</parameter>\n";
+    $outputString .= "    <parameter name=\"bigchange\">9.0</parameter>\n";
+    $outputString .= "    <parameter name=\"alloweddifference\"> 1.0e-3 </parameter>\n";
+    $outputString .= "    <parameter name=\"stepsize\">4.0e-1</parameter>\n";
+    $outputString .= "    <parameter name=\"stabilizerscale\">  1.0 </parameter>\n";
+    $outputString .= "    <parameter name=\"nstabilizers\"> 3 </parameter>\n";
+    $outputString .= "    <parameter name=\"max_its\"> 1 </parameter>\n";
+    $outputString .= "  </qmc>\n";
+    if ($numOptLoops) {
+	$outputString .= "</loop>\n";
+    }
+    $outputString .= "<loop max=\"3\">\n";
+    if ($useGPU) {
+	$outputString .= "  <qmc method=\"cslinear\" move=\"pbyp\" checkpoint=\"-1\" gpu=\"yes\">\n";
+    } else {
+	$outputString .= "  <qmc method=\"cslinear\" move=\"pbyp\" checkpoint=\"-1\" gpu=\"no\">\n";
+    }
+    $outputString .= "    <parameter name=\"blocks\">   $blocks </parameter>\n";
+    $outputString .= "    <parameter name=\"warmupsteps\"> $warmupSteps </parameter>\n";
+    $outputString .= "    <parameter name=\"steps\">    $steps </parameter>\n";
+    $outputString .= "    <parameter name=\"timestep\">  $timestep  </parameter>\n";
+    $outputString .= "    <parameter name=\"walkers\">  $walkers </parameter>\n";
+    $outputString .= "    <parameter name=\"samples\">  $numOptSamples  </parameter>\n";
+    $outputString .= "    <parameter name=\"minwalkers\">  0.5 </parameter>\n";
+    $outputString .= "    <parameter name=\"maxWeight\">    1e9 </parameter>\n";
+    if ($useDrift) {
+	$outputString .= "    <parameter name=\"useDrift\">  yes </parameter>\n";
+    } else {
+	$outputString .= "    <parameter name=\"useDrift\">   no </parameter>\n";
+    }
+    $outputString .= "    <estimator name=\"LocalEnergy\" hdf5=\"no\"/>\n";
+    $outputString .= "    <cost name=\"energy\">                   0.8 </cost>\n";
+    $outputString .= "    <cost name=\"unreweightedvariance\">     0.0 </cost>\n";
+    $outputString .= "    <cost name=\"reweightedvariance\">       0.2 </cost>\n";
+    $outputString .= "    <parameter name=\"MinMethod\">quartic</parameter>\n";
+    $outputString .= "    <parameter name=\"GEVMethod\">mixed</parameter>\n";
+    $outputString .= "    <parameter name=\"beta\">  0.0 </parameter>\n";
+    $outputString .= "    <parameter name=\"exp0\"> -16 </parameter>\n";
+    $outputString .= "    <parameter name=\"nonlocalpp\">yes</parameter>\n";
+    $outputString .= "    <parameter name=\"useBuffer\">yes</parameter>\n";
+    $outputString .= "    <parameter name=\"bigchange\">9.0</parameter>\n";
+    $outputString .= "    <parameter name=\"alloweddifference\"> 1.0e-4 </parameter>\n";
+    $outputString .= "    <parameter name=\"stepsize\">4.0e-1</parameter>\n";
+    $outputString .= "    <parameter name=\"stabilizerscale\">  1.0 </parameter>\n";
+    $outputString .= "    <parameter name=\"nstabilizers\"> 3 </parameter>\n";
+    $outputString .= "    <parameter name=\"max_its\"> 1 </parameter>\n";
+    $outputString .= "  </qmc>\n";
+    $outputString .= "</loop>\n";
+    $outputString;
+}
+
+
+################################################################################################################
+# New Subroutine to write an optimization section
+# Using a routine from Jeremy that worked for Al
+# TODO: Add support for pure VMC variance minimization
+################################################################################################################
+sub getOptSectionNew {
+    my $useGPU_ = shift;
+    my $walkers_ = shift;
+    my $vmctimestep_ = shift;
+    my $vmcequiltime_ = shift;
+    my $vmcdecorrtime_ = shift;
+    my $vmcblocks_ = shift;
+    my $numOptSamples_ = shift;
+    my $numOptLoops_ = shift;
+    my $useDrift_ = shift;
+    
+    my $warmupSteps_ = floor($vmcequiltime_/$vmctimestep);
+    my $sbs_ = floor($vmcdecorrtime_/$vmctimestep);
+
+
+    my $outputString;
+    if ($numOptLoops_) {
+	$outputString .= "<loop max=\"$numOptLoops_\">\n";
+    }
+    if ($useGPU_) {
+	$outputString .= "  <qmc method=\"cslinear\" move=\"pbyp\" checkpoint=\"-1\" gpu=\"yes\">\n";
+    } else {
+	$outputString .= "  <qmc method=\"cslinear\" move=\"pbyp\" checkpoint=\"-1\" gpu=\"no\">\n";
+    }
+    $outputString .= "    <parameter name=\"blocks\">   $vmcblocks_ </parameter>\n";
+    $outputString .= "    <parameter name=\"warmupsteps\"> $warmupSteps_ </parameter>\n";
+    $outputString .= "    <parameter name=\"stepsbetweensamples\">    $sbs_ </parameter>\n";
+    $outputString .= "    <parameter name=\"timestep\">  $vmctimestep_  </parameter>\n";
+    $outputString .= "    <parameter name=\"walkers\">  $walkers_ </parameter>\n";
+    $outputString .= "    <parameter name=\"samples\">  $numOptSamples_  </parameter>\n";
+    $outputString .= "    <parameter name=\"minwalkers\">  0.5 </parameter>\n";
+    $outputString .= "    <parameter name=\"maxWeight\">    1e9 </parameter>\n";
+    if ($useDrift_) {
+	$outputString .= "    <parameter name=\"useDrift\">  yes </parameter>\n";
+    } else {
+	$outputString .= "    <parameter name=\"useDrift\">   no </parameter>\n";
+    }
+    $outputString .= "    <estimator name=\"LocalEnergy\" hdf5=\"no\"/>\n";
     $outputString .= "    <cost name=\"energy\">                   0.05 </cost>\n";
     $outputString .= "    <cost name=\"unreweightedvariance\">     0.0 </cost>\n";
     $outputString .= "    <cost name=\"reweightedvariance\">       0.95 </cost>\n";
     $outputString .= "    <parameter name=\"MinMethod\">quartic</parameter>\n";
     $outputString .= "    <parameter name=\"GEVMethod\">mixed</parameter>\n";
-    $outputString .= "    <parameter name=\"beta\">  0.05 </parameter>\n";
+    $outputString .= "    <parameter name=\"beta\">  0.0 </parameter>\n";
     $outputString .= "    <parameter name=\"exp0\"> -16 </parameter>\n";
     $outputString .= "    <parameter name=\"nonlocalpp\">no</parameter>\n";
     $outputString .= "    <parameter name=\"useBuffer\">no</parameter>\n";
@@ -1716,7 +2291,7 @@ sub getOptSection {
     $outputString .= "    <parameter name=\"nstabilizers\"> 3 </parameter>\n";
     $outputString .= "    <parameter name=\"max_its\"> 1 </parameter>\n";
     $outputString .= "  </qmc>\n";
-    if ($numOptLoops) {
+    if ($numOptLoops_) {
 	$outputString .= "</loop>\n";
     }
     $outputString;
@@ -1732,7 +2307,7 @@ sub getPwscfToken {
     my $tokenName = shift;
     my $pwscfGetTokenFileDataRef = shift;
    
-    my $outval;
+    my $outval = -999999999999999;
     for (my $i = 0; $i <= $#{$pwscfGetTokenFileDataRef}; $i++) {
 	my $line = $pwscfGetTokenFileDataRef->[$i];
 	if (index($line, $tokenName) >= 0) {
@@ -1932,7 +2507,8 @@ sub getPwscfCard {
     foreach my $line (@{$dataref}) {
 	if ($line =~ /$secname/i) {
             $start = $i;
-	} elsif ($start != -1 && $set == 0 && ((!($line =~ /[a-z]/) && !($line =~ /[0-9]/) && !($line =~ /\//)) || $line =~ /\{/)) {
+#	} elsif ($start != -1 && $set == 0 && ( (!($line =~ /[a-z]/) && !($line =~ /[0-9]/) && !($line =~ /\//) ) || $line =~ /\{/)) {
+	} elsif ($start != -1 && $set == 0 && ( ( !($line =~ /[0-9]/) && !($line =~ /\//) ) || $line =~ /\{/)) {
             $stop = $i;
             $set = 1;
         }
@@ -2204,11 +2780,13 @@ sub getKVectors {
     my $tilematref = shift;
     my $supermeshref = shift;
     my $supershiftref = shift;
+    my $eps = 1e-8;
 
     my @superrlvs;
     my @supercell;
     my @ns;
     my @n;
+    my $eps = 0.00000000001;
     
     getSuperCell(\@supercell, $ptvref, $tilematref);
 #    print "supercell is:\n";
@@ -2234,7 +2812,7 @@ sub getKVectors {
 	
 		##Search through multiples of the supercell RLV's (with shifts)
 		## and find if they belong to the FBZ of the primitive cell
-		my $nmax = 10;
+		my $nmax = 14;
 		for ($n[0] = -$nmax; $n[0] <= $nmax; $n[0]++) { 
 		    for ($n[1] = -$nmax; $n[1] <= $nmax; $n[1]++) { 
 			for ($n[2] = -$nmax; $n[2] <= $nmax; $n[2]++) { 
@@ -2254,7 +2832,7 @@ sub getKVectors {
 				for (my $j = 0; $j < 3; $j++) {
 				    $dotval += $$ptvref[$i*3+$j]*$G[$j];
 				}
-				if ($dotval < -1 || $dotval > 0) {
+				if ($dotval < -1-$eps || $dotval > $eps) {
 				    $inFBZ = 0;
 				}
 			    }
@@ -2285,7 +2863,7 @@ sub getKVectors {
 					$diff[$i] -= round($diff[$i]);
 					$diffsz += $diff[$i]*$diff[$i];
 				    }
-				    $found = $found || $diffsz < 1.0e-10;
+				    $found = $found || $diffsz < $eps;
 				}
 				if (! $found) {
 				    for (my $i = 0; $i < 3; $i++) {
@@ -2332,7 +2910,7 @@ sub getSupercellPos {
 #    print "$superrlvs[6]  $superrlvs[7]  $superrlvs[8]\n\n";
 
     my $size = -1;
-    while ($#{$posref} <= abs(getDet($tilematref))* ($#{$basisref}+1) && $size < 11) {
+    while ($#{$posref} <= abs(getDet($tilematref))* ($#{$basisref}+1) && $size < 13) {
 	$size++;
 	my @trial = (0, 0, 0);
 	
@@ -2439,6 +3017,67 @@ sub getDet {
     return $val;
 }
 
+
+sub getCellProperties {
+    my $locNumElec = shift;
+    my $matref = shift;
+    my $locTwoBodyRcut = \shift;
+    my $locNumDens = \shift;
+
+    my $loccellvol = abs(getDet($matref));
+    $$locNumDens = $locNumElec / $loccellvol;
+    
+    my $rmin = 10000000000000000000000;
+    for (my $i = -1; $i <= 1; $i++) {
+	for (my $j = -1; $j <= 1; $j++) {
+	    for (my $k = -1; $k <= 1; $k++) {
+		if ( ($i != 0) || ($j != 0) || ($k != 0) ) {
+		    my @d = (0.0, 0.0, 0.0);
+		    $d[0] = $i*$$matref[0] + $j*$$matref[3] + $k*$$matref[6];
+		    $d[1] = $i*$$matref[1] + $j*$$matref[4] + $k*$$matref[7];
+		    $d[2] = $i*$$matref[2] + $j*$$matref[5] + $k*$$matref[8];
+		    my $dist = 0.5 * sqrt($d[0]*$d[0] + $d[1]*$d[1] + $d[2]*$d[2]);
+		    if ($dist < $rmin) {
+			$rmin = $dist;
+		    }
+		}
+	    }
+	}
+    }
+    $$locTwoBodyRcut = $rmin;
+}
+
+sub getTwoBodyRPAJastrow {
+    my $locNumDens = shift;
+    my $locTwoBodyRcut = shift;
+    my $locTwoBodySplinePts = shift;
+    my $tuuc = shift;
+    my $tudc = shift;
+
+    my $wp = sqrt(4.0*3.14159265358979*$locNumDens);
+    print "wp = $wp\n";
+    print "numDens = $locNumDens\n";
+    
+    my $dr = $locTwoBodyRcut / ($locTwoBodySplinePts);
+    my $i = 0;
+    for (my $r = 0.02; $r <= $locTwoBodyRcut+0.000001; $r += $dr) {
+	$$tuuc[$i] = (0.5 / $wp / $r) * ( 1.0 - exp(-$r * sqrt($wp / 2.0)) ) * exp(-($r*2.0/$locTwoBodyRcut)**2);
+	$$tudc[$i] = (0.5 / $wp / $r) * ( 1.0 - exp(-$r * sqrt($wp)) ) * exp(-($r*2.0/$locTwoBodyRcut)**2);
+	$i++;
+    }
+}
+
+sub FracPart {
+    my $vecref = shift;
+    my @intpart = IntPart($vecref);
+    
+    my @outarr;
+    for (my $i = 0; $i <= $#{$vecref}; $i++) {
+	push(@outarr, $$vecref[$i] - $intpart[$i]);
+    }
+    return @outarr;
+}
+
 sub round {
     my $val = shift;
     
@@ -2464,7 +3103,72 @@ sub MatVec3 {
     return @outarr;
 }
 
+## This only works with 3 element vectors
+sub dot {
+    my $lvec = shift;
+    my $rvec = shift;
+    
+    my $val = $$lvec[0] * $$rvec[0] + $$lvec[1] * $$rvec[1] + $$lvec[2] * $$rvec[2];
+    return $val;
+}
 
+##################################################################################
+# Helper Subroutine for analyzing a list of kpoints with respect to a tilematrix
+#################################################################################
+
+sub analyzeTwists {
+    my $tilematref = shift;
+    my $kvecref = shift;
+
+
+    my @superIndex;
+    my @superFracs;
+
+    print "File contained " . ($#{$kvecref}+1)/3 . " primitive cell kvectors\n";
+    print "Determinant of tilematrix = " . getDet($tilematref) . "\n";
+    print "Hoping to find " . (($#{$kvecref}+1)/3 / getDet($tilematref)) . " supercell twists\n";
+
+    for (my $i = 0; $i <= $#{$kvecref}; $i += 3) {
+	my @primTwist = ($$kvecref[$i],  $$kvecref[$i+1],  $$kvecref[$i+2]);
+	my @superTwist = MatVec3($tilematref, \@primTwist);
+	my @frac = FracPart(\@superTwist);
+
+	my $found = 0;
+	for (my $j = 0; $j < ($#superFracs+1); $j += 3) {
+	    my @diff;
+	    for (my $k = 0; $k < 3; $k++) {
+		push(@diff, $frac[$k] - $superFracs[$j+$k]);
+	    }
+	    my $diffsz = dot(\@diff, \@diff);
+	    if ($diffsz < 1.0e-6) {
+		$found = 1;
+		push(@superIndex, $j);
+	    } 
+	}
+	if (!$found) {
+	    push(@superIndex, $#superFracs+1);
+	    push(@superFracs, $frac[0]);
+	    push(@superFracs, $frac[1]);
+	    push(@superFracs, $frac[2]);
+	}
+    }
+
+    my $numSuperTwists = ($#superFracs+1)/3;
+    print "Found $numSuperTwists distinct supercell twists\n";
+
+    ## For each supercell twist, count how many primitive cell twists belong to it
+    my %PrimTwistsPerSuperTwistIndex;
+    for (my $i = 0; $i <= $#superIndex; $i ++) {
+	$PrimTwistsPerSuperTwistIndex{$superIndex[$i]}++;
+    }
+    my %FreqTwists;
+    foreach (sort (keys %PrimTwistsPerSuperTwistIndex)) {
+	$FreqTwists{$PrimTwistsPerSuperTwistIndex{$_}}++
+    }
+    foreach (sort (keys %FreqTwists)) {
+	print "There are $FreqTwists{$_} SuperCell Twists that have $_ associated Primitive Cell Twists in the Wavefunction\n";
+    } 
+}
 
 
 
@@ -2585,7 +3289,65 @@ sub bySequence {
     $leftseq <=> $rightseq;
 }
 
+#################################################################################################################
 
+sub globalUsage {
+    my $usage;
+    $usage .= "\nsetup-qmc.pl handles all aspects of generating the input files for various\n";
+    $usage .= "aspects of qmc calculations of solids starting from pwscf input files\n";
+    $usage .= "\n";
+    $usage .= "setup-qmc.pl is invoked as:\n";
+    $usage .= "  setup-qmc.pl --Function [--suboptions] pwscf-infile.in\n\n";
+    $usage .= "Where --Function is one of the following:\n";
+    $usage .= "   --testwvfcn (analyze eshdf wavefunction with regards to a particular supercell and twists)\n";
+    $usage .= "   --gettilemat (get a tilematrix with optimizes the supercell shape with respect to simulation cell radius)\n";
+    $usage .= "   --genwfn (create input files to generate suitable trial wavefunctions for qmcpack)\n";
+    $usage .= "   --genfsdft (create input files to get non-self consistent energy, pw2casino and kzk)\n";
+    $usage .= "   --splconv (test convergence of spline spacing)\n";
+    $usage .= "   --optwvfcn (Optimize wavefunction (just jastrow for now))\n";
+    $usage .= "   --convdmctstep (test convergence of the dmc timestep) \n";
+    $usage .= "   --dmc (dmc calculation)\n\n";
+    die ($usage);
+}
+
+sub NSCFUsage {
+    my $usage;
+    $usage .= "\n--genwfn  generates input files for pw.x, and pw2qmcpack.x so that a\n";
+    $usage .= "          non self consistent wavefunction can be generated after a\n";
+    $usage .= "          fully converged dft calculation has been done\n\n";
+    $usage .= "To specify the size of the supercell (if there is to be one) give one \n";
+    $usage .= "of these options:\n";
+    $usage .= "   --supercellsize n (performs search for optimal supercell with n copies\n";
+    $usage .= "                      of the primitive cell)\n";
+    $usage .= "   --tilemat i i i i i i i i i (uses the specified tile matrix to get supercell\n";
+    $usage .= "                                where the 9 i's are integers)\n\n";
+    $usage .= "Can also optionally run at a series of twists in the supercell specified with\n";
+    $usage .= "the following keywords:\n";
+    $usage .= "   --kpoint f f f (Do calculation at twist given by 3 floats (in reduced coordinates))\n";
+    $usage .= "   --kshift f f f (Shift the grid of supercell k-points by f f f)\n";
+    $usage .= "   --kmesh i i i  (Generate wfn for ixixi mesh of k-points of the supercell)\n\n";
+    die ($usage);
+}
+
+sub FSDFTUsage {
+    my $usage;
+    $usage .= "\n--genfsdft  generates input files for pw.x, and pw2qmcpack.x so that the\n";
+    $usage .= "            energy of the non self-consistend wavefunction can found within dft\n";
+    $usage .= "            Also -pw2casino.in and a pw.x input file to attempt to get the kzk\n";
+    $usage .= "            energy for this size cell is written\n\n";
+    $usage .= "To specify the size of the supercell (if there is to be one) give one \n";
+    $usage .= "of these options:\n";
+    $usage .= "   --supercellsize n (performs search for optimal supercell with n copies\n";
+    $usage .= "                      of the primitive cell)\n";
+    $usage .= "   --tilemat i i i i i i i i i (uses the specified tile matrix to get supercell\n";
+    $usage .= "                                where the 9 i's are integers)\n\n";
+    $usage .= "Can also optionally run at a series of twists in the supercell specified with\n";
+    $usage .= "the following keywords:\n";
+    $usage .= "   --kpoint f f f (Do calculation at twist given by 3 floats (in reduced coordinates))\n";
+    $usage .= "   --kshift f f f (Shift the grid of supercell k-points by f f f)\n";
+    $usage .= "   --kmesh i i i  (Generate wfn for ixixi mesh of k-points of the supercell)\n\n";
+    die ($usage);
+}
 
  #**************************************************************************
  # $RCSfile$   $Author: lshulenburger $

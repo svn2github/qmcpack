@@ -1,7 +1,7 @@
-ppconvert => '/remote/lshulen/sharedmaintenance/mywfconv/build/ppconvert',
-energytool => '/remote/lshulen/bin/energy.pl',
-supercell => '/remote/lshulen/sharedmaintenance/qmc-tools-working/laptop-briefcase/Matrices-Det/getSupercell',
-twenergytool => '/remote/lshulen/bin/TwistAvg.pl',
+ppconvert => '/gprojects/qmcpack/redsky/bin/ppconvert',
+energytool => '/gprojects/qmcpack/redsky/bin/energy.pl',
+supercell => '/gprojects/qmcpack/redsky/bin/getSupercell',
+twenergytool => '/gprojects/qmcpack/redsky/bin/TwistAvg.pl',
 gnuplot => '/usr/bin/gnuplot',
 
 
