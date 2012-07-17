@@ -57,6 +57,8 @@ namespace qmcplusplus {
 	  Update_Particle ///move a particle by particle
     };
     
+    // Need to typedef Walker_t first
+    typedef Bead_ParticleSet::Walker_t Walker_t;
     ///container type of the Properties of a Walker
     typedef Walker_t::PropertyContainer_t  PropertyContainer_t;
     ///container type of Walkers
@@ -68,7 +70,6 @@ namespace qmcplusplus {
     typedef Walker_t::Buffer_t WBuffer_t; 
 
 
-    typedef Bead_ParticleSet::Walker_t Walker_t;
     typedef Bead_ParticleSet::RealType RealType;
     typedef Bead_ParticleSet::ParticlePos_t ParticlePos_t;
     typedef Bead_ParticleSet::Scalar_t Scalar_t;

@@ -75,6 +75,7 @@ SET(PARTICLE ${PARTICLE}
   Particle/MCWalkerConfiguration.cpp 
   Particle/DistanceTable.cpp
   Particle/HDFWalkerInputManager.cpp
+  Particle/make_clones.cpp
   LongRange/KContainer.cpp
   LongRange/StructFact.cpp
   LongRange/LPQHIBasis.cpp
@@ -133,9 +134,9 @@ SUBDIRS(QMCApp)
   SUBDIRS(QMCTools)
 #ENDIF(BUILD_QMCTOOLS)
 
-#IF(BUILD_SANDBOX)
+##IF(BUILD_SANDBOX)
 #  SUBDIRS(SandBox benchmark)
-#ENDIF(BUILD_SANDBOX)
+##ENDIF(BUILD_SANDBOX)
 
 IF(BUILD_SQD)
   SUBDIRS(SQD)

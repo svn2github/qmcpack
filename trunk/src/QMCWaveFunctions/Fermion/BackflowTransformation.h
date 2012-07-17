@@ -18,6 +18,7 @@
 #include "Particle/MCWalkerConfiguration.h"
 #include "Utilities/ProgressReportEngine.h"
 #include "OhmmsData/AttributeSet.h"
+#include "QMCWaveFunctions/TrialWaveFunction.h"
 #include "QMCWaveFunctions/OrbitalSetTraits.h"
 #include "QMCWaveFunctions/Fermion/BackflowFunctionBase.h"
 #include "QMCWaveFunctions/Fermion/Backflow_ee.h"
@@ -33,14 +34,28 @@
 namespace qmcplusplus
 {
 
-  class BackflowTransformation: public OrbitalSetTraits<QMCTraits::ValueType> 
+  class BackflowTransformation  //: public OrbitalSetTraits<QMCTraits::ValueType> 
   {
 
     public:
 
+    // All BF quantities should be real, so eliminating complex (ValueType) possibility 
+    enum {DIM=OHMMS_DIM};
+    typedef OHMMS_PRECISION                RealType;
+    typedef int                            IndexType;
+    typedef TinyVector<RealType,DIM>       PosType;
+    typedef TinyVector<RealType,DIM>       GradType;
+    typedef Tensor<RealType,DIM>           HessType;
+    typedef Vector<IndexType>     IndexVector_t;
+    typedef Vector<GradType>      GradVector_t;
+    typedef Matrix<GradType>      GradMatrix_t;
+    typedef Vector<HessType>      HessVector_t;
+    typedef Matrix<HessType>      HessMatrix_t;
+
+    typedef Array<HessType,3>       HessArray_t;
+
     typedef MCWalkerConfiguration::Walker_t Walker_t;
     typedef map<string,ParticleSet*>   PtclPoolType;
-    typedef Array<HessType,OHMMS_DIM>       HessArray_t;
     //typedef Array<GradType,3>       GradArray_t;
     //typedef Array<PosType,3>        PosArray_t;
 
@@ -82,7 +97,7 @@ namespace qmcplusplus
     int numVarBefore; 
 
     ParticleSet& targetPtcl; 
-    PtclPoolType& ptclPool;
+//    PtclPoolType& ptclPool;
 
     // matrix of laplacians
     // /vec{B(i)} = sum_{k} /grad_{k}^2 /vec{x_i} 
@@ -107,11 +122,11 @@ namespace qmcplusplus
     // \nabla_a x_i^{\alpha}   
     GradMatrix_t Cmat;
 
-    ValueType *FirstOfP, *LastOfP;
-    ValueType *FirstOfA, *LastOfA;
-    ValueType *FirstOfB, *LastOfB;
-    ValueType *FirstOfA_temp, *LastOfA_temp;
-    ValueType *FirstOfB_temp, *LastOfB_temp;
+    RealType *FirstOfP, *LastOfP;
+    RealType *FirstOfA, *LastOfA;
+    RealType *FirstOfB, *LastOfB;
+    RealType *FirstOfA_temp, *LastOfA_temp;
+    RealType *FirstOfB_temp, *LastOfB_temp;
 
     // Identity
     HessType HESS_ID;
@@ -127,14 +142,30 @@ namespace qmcplusplus
     ParticleSet::ParticlePos_t oldQP;
 
     //Vector<PosType> storeQP;
-    Vector<GradType> storeQP;
+    Vector<PosType> storeQP;
 
     /// store index of qp coordinates that changed during pbyp move
     std::vector<int> indexQP, index;
+    
+    opt_variables_type myVars;
 
-    BackflowTransformation(ParticleSet& els, PtclPoolType& pool):
-      targetPtcl(els),QP(els),ptclPool(pool),cutOff(0.0) {
-      myTable = DistanceTable::add(els,els);
+//    BackflowTransformation(ParticleSet& els, PtclPoolType& pool):
+//      targetPtcl(els),QP(els),/*ptclPool(pool),*/cutOff(0.0) {
+//      myTable = DistanceTable::add(els,els);
+//      NumTargets=els.getTotalNum();
+//      Bmat.resize(NumTargets);
+//      Bmat_full.resize(NumTargets,NumTargets);
+//      Amat.resize(NumTargets,NumTargets);
+//      newQP.resize(NumTargets);
+//      oldQP.resize(NumTargets);
+//      indexQP.resize(NumTargets);
+//      HESS_ID.diagonal(1.0);
+//      DummyHess=0.0;
+//      numVarBefore=0;
+//    }
+    BackflowTransformation(ParticleSet& els):
+      targetPtcl(els),QP(els),cutOff(0.0) {
+      myTable = DistanceTable::add(els);
       NumTargets=els.getTotalNum();
       Bmat.resize(NumTargets);
       Bmat_full.resize(NumTargets,NumTargets);
@@ -147,34 +178,36 @@ namespace qmcplusplus
       numVarBefore=0;
     }
 
-    BackflowTransformation(BackflowTransformation &tr): 
-      NumTargets(tr.NumTargets),QP(tr.QP),cutOff(tr.cutOff), 
-      targetPtcl(tr.targetPtcl),ptclPool(tr.ptclPool), numParams(tr.numParams) {
-      myTable = DistanceTable::add(targetPtcl,targetPtcl);
-      Bmat.resize(NumTargets);
-      Bmat_full.resize(NumTargets,NumTargets);
-      Amat.resize(NumTargets,NumTargets);
-      newQP.resize(NumTargets);
-      oldQP.resize(NumTargets);
-      indexQP.resize(NumTargets);
-      HESS_ID.diagonal(1.0);
-      DummyHess=0.0;
+    void copyFrom(BackflowTransformation &tr){ 
+      cutOff=tr.cutOff; 
+      numParams=tr.numParams;
       numVarBefore=tr.numVarBefore;
       optIndexMap=tr.optIndexMap; 
       bfFuns.resize((tr.bfFuns).size());
       vector<BackflowFunctionBase*>::iterator it((tr.bfFuns).begin());
       for(int i=0; i<(tr.bfFuns).size() ; i++,it++)
-        bfFuns[i] = (*it)->makeClone();
+        bfFuns[i] = (*it)->makeClone(targetPtcl);
     }
     
 // FIX FIX FIX
-    BackflowTransformation* makeClone()
+    BackflowTransformation* makeClone(ParticleSet& tqp)
     {
-       BackflowTransformation *clone = new BackflowTransformation(*this);
+       BackflowTransformation *clone = new BackflowTransformation(tqp);
+       clone->copyFrom(*this);
+//       vector<BackflowFunctionBase*>::iterator it((bfFuns).begin());
+//       for(int i=0; i<(bfFuns).size() ; i++,it++)
+//       {
+//         clone->bfFuns[i]->reportStatus(cerr);
+//       }
        return clone; 
     }
 
     ~BackflowTransformation() {}; 
+
+    bool put(xmlNodePtr cur)
+    {
+      return true;
+    }
 
     inline void
     acceptMove(const ParticleSet& P, int iat)
@@ -232,274 +265,12 @@ namespace qmcplusplus
       return false;
     }
 
-    bool put(xmlNodePtr cur)
-    {
-      bool first=true;
-      bool success=true;
-      xmlNodePtr curRoot=cur;
-      string cname;      
-
-      cutOff=-1.0;
-      cur = curRoot->children;
-      while (cur != NULL)
-      {
-        getNodeName(cname,cur);
-        if (cname == "transf" || cname == "transformation")
-        {
-          OhmmsAttributeSet spoAttrib;
-          string source("none");
-          string name("bf0");
-          string type("none");
-          spoAttrib.add (name, "name");
-          spoAttrib.add (type, "type");
-          spoAttrib.add (source, "source");
-          spoAttrib.put(cur);
-
-          sources[source] = names.size();
-          names.push_back(name);
-          if(type == "e-e") {
-            addTwoBody(cur); 
-          } else if(type == "e-e-I") {
-            APP_ABORT("e-e-I backflow is not implemented yet. \n");
-          } else if(type == "e-I") {
-            addOneBody(cur); 
-          } else {
-            APP_ABORT("Unknown backflow type. \n");
-          }
-        }
-        cur = cur->next;
-      }
-
-      //testPbyP(targetPtcl);
-
-      return success;
-    }
-
-    void addOneBody(xmlNodePtr cur)
-    {
-      OhmmsAttributeSet spoAttrib;
-      string source("none");
-      string name("bf0");
-      string type("none");
-      string funct("Gaussian");
-      string unique("no");
-      spoAttrib.add (name, "name");
-      spoAttrib.add (type, "type");
-      spoAttrib.add (source, "source");
-      spoAttrib.add (funct, "function");
-      spoAttrib.add (unique, "unique");
-      spoAttrib.put(cur);
-
-      ParticleSet* ions=0;
-      PtclPoolType::iterator pit(ptclPool.find(source));
-      if(pit == ptclPool.end())
-      {
-        APP_ABORT("Missing backflow/@source.");
-      } else {
-        ions=(*pit).second;
-      }
-      app_log() <<"Adding electron-Ion backflow for source:"
-                <<source <<" \n";
-
-      BackflowFunctionBase *tbf;
-      int nIons = ions->getTotalNum();
-      SpeciesSet &sSet = ions->getSpeciesSet();
-      int numSpecies = sSet.getTotalNum();
-
-      vector<xmlNodePtr> funs;
-      vector<int> ion2functor(nIons,-1);
-      vector<RealType> cusps; 
-      xmlNodePtr curRoot=cur;
-      string cname;
-      cur = curRoot->children;
-      while (cur != NULL)
-      {
-        getNodeName(cname,cur);
-        if (cname == "correlation")
-        {
-          RealType my_cusp=0.0;
-          string elementType("none");
-          OhmmsAttributeSet anAttrib;
-          anAttrib.add (elementType, "elementType");
-          anAttrib.add (my_cusp, "cusp");
-          anAttrib.put(cur);
-          funs.push_back(cur);
-          cusps.push_back(my_cusp);
-          if(unique == "yes") // look for <index> block, and map based on that
-          {
-            xmlNodePtr kids=cur;
-            string aname;    
-            kids = cur->children;
-            while (kids != NULL)
-            {
-              getNodeName(aname,kids);
-              if (aname == "index")
-              {
-                vector<int> pos;
-                putContent(pos, kids);
-                for(int i=0; i<pos.size(); i++) {
-                  app_log() << "Adding backflow transformation of type " << funs.size()-1 << " for atom " << pos[i] << ".\n";
-                  ion2functor[pos[i]]=funs.size()-1;
-                }
-              }
-              kids = kids->next;
-            }
-          } else {  // map based on elementType
-            int ig = sSet.findSpecies (elementType);
-            if (ig < numSpecies)
-            {
-              for (int i=0; i<ion2functor.size(); i++)
-                if (ions->GroupID[i] == ig)
-                {
-                  ion2functor[i]=funs.size()-1;
-                  app_log() << "Adding backflow transformation of element type " << elementType << " for atom " << i << ".\n";
-                }
-            } 
-          }
-        }
-        cur = cur->next;
-      }
-
-      vector<int> offsets;
-
-      if(funct == "Bspline")  {
-        app_log() <<"Using BsplineFunctor type. \n";
-
-        tbf = (BackflowFunctionBase *) new Backflow_eI<BsplineFunctor<double> >(*ions,targetPtcl);
-        Backflow_eI<BsplineFunctor<double> > *dum = (Backflow_eI<BsplineFunctor<double> >*) tbf;
-        tbf->numParams=0;
-
-        for(int i=0; i<funs.size(); i++)
-        {
-//           BsplineFunctor<double> *bsp = new BsplineFunctor<double>(cusps[i]);
-          BsplineFunctor<double> *bsp = new BsplineFunctor<double>();
-          bsp->cutoff_radius = targetPtcl.Lattice.WignerSeitzRadius;
-          bsp->put(funs[i]);
-          if(bsp->cutoff_radius > cutOff) cutOff = bsp->cutoff_radius;
-          bsp->myVars.setParameterType(optimize::SPO_P);
-          bsp->print();
-          dum->uniqueRadFun.push_back(bsp);
-          offsets.push_back(tbf->numParams);
-          tbf->numParams += bsp->NumParams;
-        } 
-        tbf->derivs.resize(tbf->numParams);
-        dum->offsetPrms.resize(nIons);
-        dum->RadFun.resize(nIons);
-        for(int i=0; i<ion2functor.size(); i++)
-        {
-          if(ion2functor[i] < 0 || ion2functor[i] >= funs.size()) {
-            APP_ABORT("backflowTransformation::put() ion not mapped to radial function.\n");
-          }
-          dum->RadFun[i] = dum->uniqueRadFun[ion2functor[i]];  
-          dum->offsetPrms[i] = offsets[ion2functor[i]];  
-        }
-      } else {
-        APP_ABORT("Unknown function type in e-I BF Transformation.\n");
-      }
-
-      bfFuns.push_back(tbf);
-
-    }
-
-    void addTwoBody(xmlNodePtr cur)
-    {
-      app_log() <<"Adding electron-electron backflow. \n";
-
-      OhmmsAttributeSet trAttrib;
-      string source("none");
-      string name("bf0");
-      string type("none");
-      string funct("Bspline");
-      trAttrib.add (name, "name");
-      trAttrib.add (funct, "function");
-      trAttrib.put(cur);
-
-      xmlNodePtr curRoot=cur;
-      //BackflowFunctionBase *tbf = (BackflowFunctionBase *) new Backflow_ee<BsplineFunctor<double> >(targetPtcl,targetPtcl);
-      Backflow_ee<BsplineFunctor<double> > *tbf = new Backflow_ee<BsplineFunctor<double> >(targetPtcl,targetPtcl);
-      SpeciesSet& species(targetPtcl.getSpeciesSet());
-      vector<int> offsets;
-
-      if(funct == "Gaussian") {
-        APP_ABORT("Disabled GaussianFunctor for now, \n");
-      } else if(funct == "Bspline")  {
-        app_log() <<"Using BsplineFunctor type. \n";
-//         BsplineFunctor<double> *bsp = new BsplineFunctor<double>(cusp);
-
-        string cname;
-        cur = curRoot->children;
-        while (cur != NULL)
-        {
-          getNodeName(cname,cur);
-          if (cname == "correlation")
-          {
-            RealType cusp=0;
-            string spA(species.speciesName[0]);
-            string spB(species.speciesName[0]);
-            OhmmsAttributeSet anAttrib;
-            anAttrib.add (cusp, "cusp");
-            anAttrib.add(spA,"speciesA");
-            anAttrib.add(spB,"speciesB");
-            anAttrib.add(cusp,"cusp");
-            anAttrib.put(cur);
-
-            int ia = species.findSpecies(spA);
-            int ib = species.findSpecies(spB);
-            if(ia==species.size() || ib == species.size())
-            {
-              APP_ABORT("Failed. Species are incorrect in e-e backflow.");
-            }
-            app_log() <<"Adding radial component for species: " <<spA <<" " <<spB <<" " <<ia <<"  " <<ib <<endl;
-
-            BsplineFunctor<double> *bsp = new BsplineFunctor<double>();
-            bsp->cutoff_radius = targetPtcl.Lattice.WignerSeitzRadius;
-            bsp->put(cur);
-            if(bsp->cutoff_radius > cutOff) cutOff = bsp->cutoff_radius;
-            bsp->myVars.setParameterType(optimize::SPO_P);
-            tbf->addFunc(ia,ib,bsp);
-            offsets.push_back(tbf->numParams); 
-            tbf->numParams += bsp->NumParams;
-            if(OHMMS::Controller->rank()==0)
-            {   
-              char fname[16];
-              sprintf(fname,"BFe-e.%s.dat",(spA+spB).c_str());
-              ofstream fout(fname);
-              fout.setf(ios::scientific, ios::floatfield);
-              fout << "# Backflow radial function \n"; 
-              bsp->print(fout);
-              fout.close();
-            }
-          }
-          cur = cur->next;
-        }
-        tbf->derivs.resize(tbf->numParams);
-        // setup offsets
-        // could keep a map<pair<>,int>
-        for(int i=0; i<tbf->RadFun.size(); i++) {
-          bool done = false;
-          for(int k=0; k<tbf->uniqueRadFun.size(); k++) {
-            if(tbf->RadFun[i] == tbf->uniqueRadFun[k]) {
-              done=true;
-              tbf->offsetPrms[i] = offsets[k];
-              break;
-            }
-          }
-          if(!done) {
-            APP_ABORT("Error creating Backflow_ee object. \n");
-          }
-        }
-        bfFuns.push_back((BackflowFunctionBase *)tbf);
-      } else {
-        APP_ABORT("Unknown function type in e-e BF Transformation.\n");
-      }
-
-    }
-
     /** reset the distance table with a new target P
      */
     void resetTargetParticleSet(ParticleSet& P)
     {
-      myTable = DistanceTable::add(P,P);
+      targetPtcl=P;
+      myTable = DistanceTable::add(P);
       for(int i=0; i<bfFuns.size(); i++)
         bfFuns[i]->resetTargetParticleSet(P);
     }
@@ -508,7 +279,7 @@ namespace qmcplusplus
     void resetParameters(const opt_variables_type& active)
     {
       //reset each unique basis functions
-      for(int i=0; i<bfFuns.size(); i++)
+      for(int i=0; i<bfFuns.size(); i++) if(bfFuns[i]->isOptimizable())
         bfFuns[i]->resetParameters(active);
     }    
 
@@ -528,7 +299,7 @@ namespace qmcplusplus
       LastOfA = FirstOfA + OHMMS_DIM*OHMMS_DIM*NumTargets*NumTargets;
 
       FirstOfB = &(Bmat_full(0,0)[0]);
-      LastOfB = FirstOfB + OHMMS_DIM*OHMMS_DIM*NumTargets*NumTargets;
+      LastOfB = FirstOfB + OHMMS_DIM*NumTargets*NumTargets;
 
       FirstOfA_temp = &(Amat_temp(0,0)[0]);
       LastOfA_temp = FirstOfA_temp + OHMMS_DIM*OHMMS_DIM*NumTargets*NumTargets;
@@ -629,6 +400,7 @@ namespace qmcplusplus
       activeParticle=iat;
       for(int i=0; i<NumTargets; i++) oldQP[i] = newQP[i] = QP.R[i];
       newQP[iat] += myTable->Temp[iat].dr1;  
+      indexQP.clear();
       std::copy(FirstOfA,LastOfA,FirstOfA_temp);
       for(int i=0; i<bfFuns.size(); i++) bfFuns[i]->evaluatePbyP(P,iat,newQP,Amat_temp);
       for(int jat=0; jat<NumTargets; jat++) {
@@ -650,6 +422,7 @@ namespace qmcplusplus
       activeParticle=iat;
       for(int i=0; i<NumTargets; i++) oldQP[i] = newQP[i] = QP.R[i];
       newQP[iat] += myTable->Temp[iat].dr1;
+      indexQP.clear();
       std::copy(FirstOfA,LastOfA,FirstOfA_temp);
       std::copy(FirstOfB,LastOfB,FirstOfB_temp);
       for(int i=0; i<bfFuns.size(); i++) bfFuns[i]->evaluatePbyP(P,iat,newQP,Bmat_temp,Amat_temp);
@@ -686,6 +459,30 @@ namespace qmcplusplus
         Amat(i,i).diagonal(1.0);
       } 
       for(int i=0; i<bfFuns.size(); i++) bfFuns[i]->evaluate(P,QP,Bmat_full,Amat);
+
+//      cerr<<"P.R \n";
+//      cerr<<P.R[0] <<endl;
+//      cerr<<"QP.R " <<endl;
+//      cerr<<QP.R[0] <<endl;
+//      cerr<<omp_get_thread_num()<<" "<<P.R[0]-QP.R[0] <<endl;
+//      APP_ABORT("TESTING BF \n");
+      
+      /*Bmat=0.0;
+      Amat=0.0;
+      Bmat_full=0.0;
+      for(int i=0; i<NumTargets; i++) {
+        Amat(i,i).diagonal(1.0);
+      }*/ 
+/*
+      // testing bf
+      for(int i=0; i<NumTargets; i++) {
+        cout<<"i: " <<i <<endl;
+        cout<<P.R[i] <<endl;
+        cout<<QP.R[i] <<endl;
+        cout<<P.R[i]-QP.R[i] <<endl;
+      }
+      // 
+*/
       QP.update(0);  // update distance tables
     } 
 
@@ -722,6 +519,7 @@ namespace qmcplusplus
         Cmat.resize(numParams,NumTargets);
         Xmat.resize(numParams,NumTargets,NumTargets);
         Ymat.resize(numParams,NumTargets);
+
       }
     
       // Uncomment to test calculation of Cmat,Xmat,Ymat
@@ -732,7 +530,7 @@ namespace qmcplusplus
       Bmat_full=0.0;
       Cmat=0.0;
       Ymat=0.0;
-      Xmat=DummyHess;
+      for(int i=0; i<Xmat.size();i++) Xmat(i)=0;
       for(int i=0; i<NumTargets; i++) {
         QP.R[i] = P.R[i];
         Amat(i,i).diagonal(1.0);
@@ -755,7 +553,8 @@ namespace qmcplusplus
        Bmat_full=0.0;
        Cmat=0.0;
        Ymat=0.0;
-       Xmat=DummyHess;
+//       Xmat=DummyHess;
+       for(int i=0; i<Xmat.size();i++) Xmat(i)=0;
        for(int i=0; i<NumTargets; i++) {
          QP.R[i] = P.R[i];
          Amat(i,i).diagonal(1.0);
@@ -825,21 +624,17 @@ namespace qmcplusplus
                    <<"i, AvDiff, max: \n";
     
          //2011-07-17: what is the proper data type?
-         ValueType df,av=0.0,cnt=0.0;
+         RealType df,av=0.0,cnt=0.0;
          RealType maxD=-100.0;
 
-         const ValueType ConstOne(1.0);
+         const RealType ConstOne(1.0);
 
          for(int k=0; k<NumTargets; k++) { 
           for(int q=0; q<OHMMS_DIM; q++) {
            cnt += ConstOne;
            df=(( (qp_1[k])[q] - (qp_2[k])[q] )/(2.0*dh)-Cmat(i,k)[q]);
            av+=df;
-#if defined(QMC_COMPLEX)
-           if( std::abs(df.real()) > maxD ) maxD=std::abs(df.real()); 
-#else
            if( std::abs(df) > maxD ) maxD=std::abs(df); 
-#endif
            //app_log() <<k <<"  " <<q <<"   "
            //          <<( (qp_1[k])[q] - (qp_2[k])[0] )/(2.0*dh)   <<"  "
            //          <<Cmat(i,k)[q] <<"  " <<(( (qp_1[k])[q] - (qp_2[k])[q] )/(2.0*dh)-Cmat(i,k)[q]) <<endl;
@@ -852,19 +647,11 @@ namespace qmcplusplus
          for(int k=0; k<NumTargets; k++) {
            for(int q=0; q<3; q++) {
              RealType dB=0.0;
-#if defined(QMC_COMPLEX)
-             for(int j=0; j<NumTargets; j++) dB+= (Bmat_full_1(j,k)[q] - Bmat_full_2(j,k)[q]).real();
-#else
              for(int j=0; j<NumTargets; j++) dB+= (Bmat_full_1(j,k)[q] - Bmat_full_2(j,k)[q]);
-#endif
              cnt+=ConstOne;
              df=(dB/(2.0*dh)-Ymat(i,k)[q]);
              av+=df;
-#if defined(QMC_COMPLEX)
-             if( std::abs(df.real()) > maxD ) maxD=std::abs(df.real()); 
-#else
              if( std::abs(df) > maxD ) maxD=std::abs(df); 
-#endif
              //app_log() <<k <<"  " <<q <<"   "
              //        <<dB/(2.0*dh)   <<"  "
              //        <<Ymat(i,k)[q] <<"  " <<(dB/(2.0*dh)-Ymat(i,k)[q]) <<endl;
@@ -879,23 +666,13 @@ namespace qmcplusplus
           for(int k2=0; k2<NumTargets; k2++) {
            for(int q1=0; q1<3; q1++) {
             for(int q2=0; q2<3; q2++) {
-#if defined(QMC_COMPLEX)
-             RealType dB;
-             convert((Amat_1(k1,k2))(q1,q2) - (Amat_2(k1,k2))(q1,q2),dB);
-#else
              RealType dB=(Amat_1(k1,k2))(q1,q2) - (Amat_2(k1,k2))(q1,q2);
-#endif
              cnt+=ConstOne;
 
              df=(dB/(2.0*dh)-(Xmat(i,k1,k2))(q1,q2));
              av+=df;
-#if defined(QMC_COMPLEX)
-             if( std::abs(df.real()) > maxD ) maxD=std::abs(df.real()); 
-#else
              if( std::abs(df) > maxD ) maxD=std::abs(df); 
-#endif
              //app_log() <<k1 <<"  " <<k2 <<"  " <<q1 <<"  " <<q2 <<"   "
-             //        <<dB/(2.0*dh)   <<"  "
              //        <<(Xmat(i,k1,k2))(q1,q2) <<"  " <<(dB/(2.0*dh)-(Xmat(i,k1,k2))(q1,q2)) <<endl;
              }
             }
@@ -976,7 +753,7 @@ namespace qmcplusplus
       Amat_1 = Amat_0 - Amat;
       qp_1 = QP.R - qp_0;
       double qpdiff = Dot(qp_1,qp_1);
-      ValueType Amdiff = 0.0;
+      RealType Amdiff = 0.0;
       for(int i=0; i<NumTargets; i++)
        for(int k=0; k<NumTargets; k++)
         for(int j=0; j<OHMMS_DIM*OHMMS_DIM; j++)

@@ -80,12 +80,12 @@ namespace qmcplusplus
         int npx=in[jp]->rows();
         int i_offset=ip*npy;
         int j_offset=jp*npx;
-        //trans_b(npx, in[jp]->cols(), in[jp]->data() 
-        //    , npy, out.cols(), out.data()
-        //    , &i_offset, &j_offset);
-        transpose_b(npx, in[jp]->cols(), in[jp]->data() 
+        trans_b(npx, in[jp]->cols(), in[jp]->data() 
             , npy, out.cols(), out.data()
-            , i_offset, j_offset);
+            , &i_offset, &j_offset);
+        //transpose_b(npx, in[jp]->cols(), in[jp]->data() 
+        //    , npy, out.cols(), out.data()
+        //    , ip*npy, jp*npx);
       }
     }
 

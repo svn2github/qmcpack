@@ -42,16 +42,12 @@ namespace qmcplusplus {
     typedef OrbitalSetTraits<ValueType>::HessVector_t  HessVector_t;
     typedef OrbitalSetTraits<ValueType>::HessMatrix_t  HessMatrix_t;
     typedef OrbitalSetTraits<ValueType>::HessType      HessType;
-    typedef Array<HessType,OHMMS_DIM>                          HessArray_t;
-    typedef TinyVector<HessType, OHMMS_DIM>                    GGGType;
-    typedef Vector<GGGType>                            GGGVector_t;
-    typedef Matrix<GGGType>                            GGGMatrix_t;
+    typedef Array<HessType,OHMMS_DIM>                  HessArray_t;
+    typedef OrbitalSetTraits<ValueType>::GradHessType  GGGType;
+    typedef OrbitalSetTraits<ValueType>::GradHessVector_t GGGVector_t;
+    typedef OrbitalSetTraits<ValueType>::GradHessMatrix_t GGGMatrix_t;
     typedef ParticleSet::Walker_t                      Walker_t;
     typedef std::map<string,SPOSetBase*> SPOPool_t;
-
-    // Optimizable variables
-    opt_variables_type myVars;
-
 
     ///true if C is an identity matrix
     bool Identity;
@@ -65,14 +61,14 @@ namespace qmcplusplus {
     IndexType BasisSetSize;
     ///index of the particle
     IndexType ActivePtcl;
-    ///counter to keep track 
-    //unsigned long Counter;
     ///matrix to store temporary value before transpose
     ValueMatrix_t t_logpsi;
     ///matrix containing the coefficients
     ValueMatrix_t C;
     ///occupation number
     Vector<RealType> Occ;
+    /// Optimizable variables
+    opt_variables_type myVars;
     ///name of the basis set
     string className;
     /** name of the object

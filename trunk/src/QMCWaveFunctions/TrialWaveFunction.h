@@ -80,9 +80,7 @@ namespace qmcplusplus
    * @brief Class to represent a many-body trial wave function
    *
    *A many-body trial wave function is represented by
-   *\f[
-   *\Psi({\bf R}) = \prod_i \psi_i({\bf R}),
-   *\f]
+   *\f$\Psi({\bf R}) = \prod_i \psi_i({\bf R})\f$,
    *where each function \f$\psi_i({\bf R})\f$ is an OrbitalBase
    (see OrbitalComponent).
    *A Composite Pattern is used to handle \f$\prod\f$ operations.
@@ -125,7 +123,10 @@ namespace qmcplusplus
         {
           return PhaseValue;
         }
-        inline RealType getAlternatePhaseDiff()
+      void getLogs(std::vector<RealType>& lvals);
+      void getPhases(std::vector<RealType>& pvals);
+      
+      inline RealType getAlternatePhaseDiff()
         {
           RealType apd=0.0;
           for (int i=0; i<Z.size(); i++)
@@ -226,6 +227,7 @@ namespace qmcplusplus
 
       /** functions to handle particle-by-particle update */
       RealType ratio(ParticleSet& P, int iat);
+      RealType ratioVector(ParticleSet& P, int iat, std::vector<RealType>& ratios);
       RealType alternateRatio(ParticleSet& P);
 
       void update(ParticleSet& P, int iat);
@@ -346,9 +348,6 @@ namespace qmcplusplus
 
       ///a list of OrbitalBases constituting many-body wave functions
       vector<OrbitalBase*> Z;
-
-      ///a list of single-particle-orbital set
-      //vector<OhmmsElementBase*> SPOSet;
 
       ///differential gradients
       ParticleSet::ParticleGradient_t delta_G;

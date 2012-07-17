@@ -24,11 +24,11 @@
 #define QMCPLUSPLUS_MATH_SIMD_ADOPTORS_HPP
 
 //#define USE_BLAS_DOT
-//#define USE_GEMV_FOR_G_DOT_V
+//#define USE_DIRAC_FAST_OPERATORS
 
 #include <simd/inner_product.hpp>
 #include <simd/trace.hpp>
-
+#include <simd/vmath.hpp>
 #endif
 /***************************************************************************
  * $RCSfile$   $Author: jmcminis $

@@ -27,7 +27,10 @@
   #include "QMCWaveFunctions/Jastrow/OneBodyJastrowOrbitalBspline.h"
   #include "QMCWaveFunctions/Jastrow/TwoBodyJastrowOrbitalBspline.h"
 #endif
+#include "LongRange/LRRPAHandlerTemp.h"
+#include "QMCWaveFunctions/Jastrow/LRBreakupUtilities.h"
 #include "Utilities/ProgressReportEngine.h"
+#include "LongRange/LRJastrowSingleton.h"
 
 namespace qmcplusplus {
 
@@ -47,6 +50,7 @@ namespace qmcplusplus {
     SpeciesSet &tSet = targetPtcl.getSpeciesSet();
     int numSpecies = sSet.getTotalNum();
     bool success=false;
+    bool Opt(false);
     while (kids != NULL) 
     {
       std::string kidsname = (char*)kids->name;
@@ -83,7 +87,8 @@ namespace qmcplusplus {
           J1->addFunc (ig,functor,jg);
           success = true;
           dJ1->addFunc(ig,functor,jg);
-
+          
+          Opt=(!functor->notOpt or Opt);
           char fname[32];
           if(ReportLevel)
           {
@@ -109,7 +114,7 @@ namespace qmcplusplus {
     {
       J1->dPsi=dJ1;
       targetPsi.addOrbital(J1,"J1_bspline");
-      J1->setOptimizable(true);
+      J1->setOptimizable(Opt); 
       return true;
     }
     else
@@ -120,6 +125,51 @@ namespace qmcplusplus {
       return false;
     }
   }
+
+  /** class to initialize bsplin functions
+   */
+  template<typename T>
+  struct BsplineInitializer
+  {
+
+    vector<T> rpaValues;
+
+    /** initialize with RPA 
+     * @param ref particleset
+     * @param bfunc bspline function to be initialized
+     * @param nopbc true, if not periodic
+     */
+    inline void initWithRPA(ParticleSet& P,  BsplineFunctor<T>& bfunc, T fac)
+    {
+      if(P.Lattice.SuperCellEnum==SUPERCELL_OPEN) // for open systems, do nothing
+      {
+        return; 
+        //T vol=std::pow(bfunc.cutoff_radius,3);
+        //rpa.reset(ref.getTotalNum(),vol*0.5);
+      }
+
+      int npts=bfunc.NumParams;
+      if(rpaValues.empty())
+      {
+        rpaValues.resize(npts);
+        LRRPAHandlerTemp<RPABreakup<T>,LPQHIBasis> rpa(P,-1.0);
+        rpa.Breakup(P,-1.0);
+        T dr=bfunc.cutoff_radius/static_cast<T>(npts);
+        T r=0;
+        for (int i=0; i<npts; i++)
+        {
+          rpaValues[i]=rpa.evaluate(r,1.0/r); //y[i]=fac*rpa.evaluate(r,1.0/r);
+          r += dr;
+        }
+      }
+      T last=rpaValues[npts-1];
+      //vector<T>  y(npts);
+      //for (int i=0; i<npts; i++) y[i]=fac*rpaValues[i];
+      //T last=y[npts-1]; 
+      for(int i=0; i<npts; i++) bfunc.Parameters[i]=fac*(rpaValues[i]-last);
+      bfunc.reset();
+    }
+  };
 
   bool BsplineJastrowBuilder::put(xmlNodePtr cur)
   {
@@ -138,6 +188,16 @@ namespace qmcplusplus {
 #ifdef QMC_CUDA
       return createOneBodyJastrow<OneBodyJastrowOrbitalBspline,DiffOneBodySpinJastrowOrbital<RadFuncType> >(cur);
 #else
+      //if(sourcePtcl->IsGrouped)
+      //{
+      //  app_log() << "Creating OneBodySpinJastrowOrbital<T> " << endl;
+      //  return createOneBodyJastrow<OneBodySpinJastrowOrbital<RadFuncType>,DiffOneBodySpinJastrowOrbital<RadFuncType> >(cur);
+      //}
+      //else
+      //{
+      //  app_log() << "Creating OneBodyJastrowOrbital<T> " << endl;
+      //  return createOneBodyJastrow<OneBodyJastrowOrbital<RadFuncType>,DiffOneBodyJastrowOrbital<RadFuncType> >(cur);
+      //}
       if(j1spin=="yes")
         return createOneBodyJastrow<OneBodySpinJastrowOrbital<RadFuncType>,DiffOneBodySpinJastrowOrbital<RadFuncType> >(cur);
       else
@@ -146,6 +206,15 @@ namespace qmcplusplus {
     } 
     else // Create a two-body Jastrow
     {
+      string init_mode("0");
+      {
+        OhmmsAttributeSet hAttrib;
+        hAttrib.add(init_mode,"init");
+        hAttrib.put(cur);
+      }
+
+      BsplineInitializer<RealType> j2Initializer;
+
       xmlNodePtr kids = cur->xmlChildrenNode;
 #ifdef QMC_CUDA
       typedef TwoBodyJastrowOrbitalBspline J2Type;
@@ -162,6 +231,7 @@ namespace qmcplusplus {
       RealType q=species(0,species.addAttribute("charge"));
 
       //std::map<std::string,RadFuncType*> functorMap;
+      bool Opt(false);
       while (kids != NULL) 
       {
 	std::string kidsname((const char*)kids->name);
@@ -207,7 +277,7 @@ namespace qmcplusplus {
 
 	  RadFuncType *functor = new RadFuncType(cusp);
 	  functor->cutoff_radius = targetPtcl.Lattice.WignerSeitzRadius;
-	  functor->put (kids);
+	  bool initialized_p=functor->put(kids);
 	  functor->elementType=pairType;
 	  if (functor->cutoff_radius < 1.0e-6) {
 	    app_log()  << "  BsplineFunction rcut is currently zero.\n"
@@ -217,8 +287,16 @@ namespace qmcplusplus {
 	     functor->reset();
 	  }
 
+          //RPA INIT 
+          if(!initialized_p && init_mode =="rpa")
+          {
+            app_log() << "  Initializing Two-Body with RPA Jastrow " << endl;
+            j2Initializer.initWithRPA(targetPtcl,*functor,-cusp/0.5);
+          }
+
           J2->addFunc(ia,ib,functor);
           dJ2->addFunc(ia,ib,functor);
+          Opt=(!functor->notOpt or Opt);
 
           char fname[32];
           if(ReportLevel)
@@ -237,10 +315,12 @@ namespace qmcplusplus {
       //J2->setDiffOrbital(dJ2);
       J2->dPsi=dJ2;
       targetPsi.addOrbital(J2,"J2_bspline");
-      J2->setOptimizable(true);
+      J2->setOptimizable(Opt);
     }
+
     return true;
   }
+
 }
 /***************************************************************************
  * $RCSfile$   $Author: jnkim $

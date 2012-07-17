@@ -32,6 +32,7 @@
 #include "QMCHamiltonians/DMCPsiValue.h"
 #include "QMCHamiltonians/PsiOverlap.h"
 #include "QMCHamiltonians/ForwardWalking.h"
+#include "QMCHamiltonians/NumberFluctuations.h"
 #include "QMCHamiltonians/trialDMCcorrection.h"
 #include "QMCHamiltonians/PairCorrEstimator.h"
 #include "QMCHamiltonians/LocalMomentEstimator.h"
@@ -60,6 +61,7 @@
 #if QMC_BUILD_LEVEL>2
 #include "QMCHamiltonians/HardSphere.h"
 #include "QMCHamiltonians/GaussianPot.h"
+#include "QMCHamiltonians/HusePot.h"
 #include "QMCHamiltonians/OscillatoryPot.h"
 #include "QMCHamiltonians/SkPot.h"
 #include "QMCHamiltonians/ModPosTelPot.h"
@@ -204,6 +206,12 @@ namespace qmcplusplus {
           hs->put(cur);
           targetH->addOperator(hs,"GaussianPot",true);
         }
+        else if (potType == "huse")
+        {
+          HusePot* hs = new HusePot(*targetPtcl);
+          hs->put(cur);
+          targetH->addOperator(hs,"HusePot",true);
+        }        
         else if (potType == "modpostel")
         {
           ModPoschlTeller* hs = new ModPoschlTeller(*targetPtcl);
@@ -341,7 +349,7 @@ namespace qmcplusplus {
           apot->put(cur);
           targetH->addOperator(apot,potName,false);
         }
-	else if(potType == "localmoment")
+   else if(potType == "localmoment")
         {
           string SourceName = "ion0";
           OhmmsAttributeSet hAttrib;
@@ -358,7 +366,14 @@ namespace qmcplusplus {
           LocalMomentEstimator* apot=new LocalMomentEstimator(*targetPtcl,*source);
           apot->put(cur);
           targetH->addOperator(apot,potName,false);
-        }        
+        }  
+         else if(potType == "numberfluctuations")
+        {
+          app_log()<<" Adding Number Fluctuation estimator"<<endl;
+          NumberFluctuations* apot=new NumberFluctuations(*targetPtcl);
+          apot->put(cur);
+          targetH->addOperator(apot,potName,false);
+        }  
 	else if(potType == "density")
         {
 	  //          if(PBCType)//only if perioidic 
@@ -688,7 +703,11 @@ namespace qmcplusplus {
         targetH->addOperator(new CoulombPBCABTemp(*source,*targetPtcl),title);
 #endif
       } else {
+#ifdef QMC_CUDA
+        targetH->addOperator(new CoulombPotentialAB_CUDA(*source,*targetPtcl),title);
+#else
         targetH->addOperator(new CoulombPotentialAB(*source,*targetPtcl),title);
+#endif
       }
     }
   }

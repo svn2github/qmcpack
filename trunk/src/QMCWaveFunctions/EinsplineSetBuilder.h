@@ -121,6 +121,7 @@ namespace qmcplusplus {
      *@param cur the current xml node
      */
     SPOSetBase* createSPOSet(xmlNodePtr cur);
+
     
   protected:
     // Type definitions
@@ -176,13 +177,15 @@ namespace qmcplusplus {
 
     Tensor<double,OHMMS_DIM> Lattice, RecipLattice, LatticeInv, SuperLattice;
     UnitCellType SuperCell, PrimCell, PrimCellInv;
-    int NumBands, NumElectrons, NumSpins, NumTwists, 
-      NumCoreStates;
+    int NumBands, NumElectrons, NumSpins, NumTwists, NumCoreStates;
+    int MaxNumGvecs;
     RealType MeshFactor;
     TinyVector<int,3> MeshSize;
     vector<vector<TinyVector<int,3> > > Gvecs;
-    fftw_plan FFTplan;
-    Array<complex<double>,3> FFTbox;
+
+    //fftw_plan FFTplan;
+    //Array<complex<double>,3> FFTbox;
+
     Vector<int> IonTypes;
     Vector<TinyVector<double,OHMMS_DIM> > IonPos;
     /////////////////////////////
@@ -210,8 +213,8 @@ namespace qmcplusplus {
     void AnalyzeTwists();
     void AnalyzeTwists2();
     void TileIons();
-    void OccupyBands(int spin, bool sortBands);
-    void OccupyBands_ESHDF(int spin, bool sortBands);
+    void OccupyBands(int spin, int sortBands);
+    void OccupyBands_ESHDF(int spin, int sortBands);
     void ReadBands      (int spin, EinsplineSetLocal* orbitalSet);
     void ReadBands_ESHDF(int spin, EinsplineSetLocal* orbitalSet);
     void ReadBands      (int spin, EinsplineSetExtended<complex<double> >* orbitalSet);

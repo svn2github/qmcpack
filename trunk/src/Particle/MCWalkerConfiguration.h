@@ -25,22 +25,8 @@
 namespace qmcplusplus {
 
   //Forward declaration
-  struct MultiChain;
-
-  struct MCSample {
-    ParticleSet::ParticlePos_t R;
-    ParticleSet::ParticleGradient_t G;
-    ParticleSet::ParticleLaplacian_t L;
-    ParticleSet::RealType LogPsi, KE, PE;
-    MCSample(ParticleSet::ParticlePos_t r,
-	     ParticleSet::ParticleGradient_t g,
-	     ParticleSet::ParticleLaplacian_t l,
-	     ParticleSet::RealType logpsi, 
-	     ParticleSet::RealType ke, 
-	     ParticleSet::RealType pe) :
-      R(r), G(g), L(l), LogPsi(logpsi), KE(ke), PE(pe)
-    { }
-  };
+  class MultiChain;
+  class MCSample;
 
   /** A set of walkers that are to be advanced by Metropolis Monte Carlo.  
    *
@@ -233,7 +219,8 @@ namespace qmcplusplus {
     }
     
     inline void resizeWalkerHistories() {
-      for(iterator Wit=WalkerList.begin();Wit!=WalkerList.end();Wit++){
+      for(iterator Wit=WalkerList.begin();Wit!=WalkerList.end();Wit++)
+      {
         if ((*Wit)->PropertyHistory.size()!=PropertyHistory.size()) (*Wit)->PropertyHistory=PropertyHistory;
         if ((*Wit)->PHindex.size()!=PHindex.size()) (*Wit)->PHindex=PHindex;
       }
@@ -289,10 +276,10 @@ namespace qmcplusplus {
     /** load SampleStack data to current walkers
      */
     void loadEnsemble();
-    /** load SampleStack data to other
-     * @param other MCWalkerConfiguration
-     */
-    void loadEnsemble(MCWalkerConfiguration& other);
+    //void loadEnsemble(const Walker_t& wcopy);
+    /** load SampleStack from others 
+      */
+    void loadEnsemble(vector<MCWalkerConfiguration*>& others);
     ///clear the ensemble
     void clearEnsemble();
     //@}
@@ -314,6 +301,9 @@ namespace qmcplusplus {
          (*it)->ParentID = (*it)->ID;
       }
     }
+
+    ///overwrite make_clones function
+    void make_clones(int n);
 
   protected:
 
@@ -341,7 +331,7 @@ namespace qmcplusplus {
      int MaxSamples;
      int CurSampleCount;
      //add samples
-     vector<MCSample> SampleStack;
+     vector<MCSample*> SampleStack;
 
     /** initialize the PropertyList
      *

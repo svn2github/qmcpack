@@ -27,12 +27,25 @@ namespace qmcplusplus
    *  FT is an optimizable functor class that implements the radial function
    *  Any class used for Jastrow functions should work
    */
-  class BackflowFunctionBase: public OrbitalSetTraits<QMCTraits::ValueType> 
+  class BackflowFunctionBase //: public OrbitalSetTraits<QMCTraits::ValueType> 
   {
 
     public:
 
-    typedef Array<HessType,OHMMS_DIM>       HessArray_t;
+    // All BF quantities should be real, so eliminating complex (ValueType) possibility 
+    enum {DIM=OHMMS_DIM};
+    typedef OHMMS_PRECISION                RealType;
+    typedef int                            IndexType;
+    typedef TinyVector<RealType,DIM>       PosType;
+    typedef TinyVector<RealType,DIM>       GradType;
+    typedef Tensor<RealType,DIM>           HessType;
+    typedef Vector<IndexType>     IndexVector_t;
+    typedef Vector<GradType>      GradVector_t;
+    typedef Matrix<GradType>      GradMatrix_t;
+    typedef Vector<HessType>      HessVector_t;
+    typedef Matrix<HessType>      HessMatrix_t;
+
+    typedef Array<HessType,3>       HessArray_t;
     //typedef Array<GradType,3>       GradArray_t;
     //typedef Array<PosType,3>        PosArray_t;
  
@@ -55,7 +68,7 @@ namespace qmcplusplus
     };
 
     ///Reference to the center
-    const ParticleSet& CenterSys;
+    ParticleSet& CenterSys;
     ///number of centers, e.g., ions
     int NumCenters;
     ///number of quantum particles
@@ -67,8 +80,10 @@ namespace qmcplusplus
     // temporary storage for derivatives
     vector<TinyVector<RealType,3> > derivs;
 
-    GradMatrix_t UIJ;
-    GradVector_t UIJ_temp; 
+// mmorales: all quantities produced by BF transformations 
+//           should be real, so change everything here to ???<RealType> 
+    Matrix<PosType> UIJ;
+    Vector<PosType> UIJ_temp; 
 
     HessMatrix_t AIJ;
     HessVector_t AIJ_temp;
@@ -76,11 +91,12 @@ namespace qmcplusplus
     GradMatrix_t BIJ;
     GradVector_t BIJ_temp;
 
-    ValueType *FirstOfU, *LastOfU;
-    ValueType *FirstOfA, *LastOfA;
-    ValueType *FirstOfB, *LastOfB;
+    RealType *FirstOfU, *LastOfU;
+    RealType *FirstOfA, *LastOfA;
+    RealType *FirstOfB, *LastOfB;
 
     bool uniqueFunctions;
+    opt_variables_type myVars;
 
     BackflowFunctionBase(ParticleSet& ions, ParticleSet& els):
      CenterSys(ions), myTable(0),numParams(0),indexOfFirstParam(-1),
@@ -89,14 +105,25 @@ namespace qmcplusplus
       NumTargets=els.getTotalNum();
     }
 
-    BackflowFunctionBase(BackflowFunctionBase &fn):
-     CenterSys(fn.CenterSys), myTable(fn.myTable),NumTargets(fn.NumTargets),NumCenters(fn.NumCenters),numParams(fn.numParams),indexOfFirstParam(fn.indexOfFirstParam),uniqueFunctions(fn.uniqueFunctions)
+    //BackflowFunctionBase(BackflowFunctionBase &fn):
+    // CenterSys(fn.CenterSys), myTable(fn.myTable),NumTargets(fn.NumTargets),NumCenters(fn.NumCenters),numParams(fn.numParams),indexOfFirstParam(fn.indexOfFirstParam)//,uniqueFunctions(fn.uniqueFunctions)
+    //{
+    //  derivs.resize(fn.derivs.size());
+    //}
+
+    void resize(int NT, int NC)
     {
-      derivs.resize(fn.derivs.size());
+      NumTargets=NT; NumCenters=NC;
+      UIJ.resize(NumTargets,NumCenters); UIJ=0;
+      AIJ.resize(NumTargets,NumCenters); AIJ=0;
+      BIJ.resize(NumTargets,NumCenters); BIJ=0;
+      UIJ_temp.resize(NumCenters); UIJ_temp=0; 
+      AIJ_temp.resize(NumCenters); AIJ_temp=0;
+      BIJ_temp.resize(NumCenters); BIJ_temp=0;
     }
 
     virtual
-    BackflowFunctionBase* makeClone()=0;
+    BackflowFunctionBase* makeClone(ParticleSet& tqp)=0;
 
     virtual ~BackflowFunctionBase() {}; 
  
@@ -148,11 +175,11 @@ namespace qmcplusplus
     
     /** calculate quasi-particle coordinates only
      */
-    virtual inline void evaluate(const ParticleSet& P, ParticleSet& QP)=0;
+    virtual void evaluate(const ParticleSet& P, ParticleSet& QP)=0;
 
     /** calculate quasi-particle coordinates, Bmat and Amat 
      */
-    virtual inline void evaluate(const ParticleSet& P, ParticleSet& QP, GradMatrix_t& Bmat, HessMatrix_t& Amat)=0;
+    virtual void evaluate(const ParticleSet& P, ParticleSet& QP, GradMatrix_t& Bmat, HessMatrix_t& Amat)=0;
 
      /** calculate quasi-particle coordinates after pbyp move  
       */
@@ -193,7 +220,7 @@ namespace qmcplusplus
     /** calculate quasi-particle coordinates, Bmat and Amat 
      *  calculate derivatives wrt to variational parameters
      */
-    virtual inline void evaluateWithDerivatives(const ParticleSet& P, ParticleSet& QP, GradMatrix_t& Bmat, HessMatrix_t& Amat, GradMatrix_t& Cmat, GradMatrix_t& Ymat, HessArray_t& Xmat)=0;
+    virtual void evaluateWithDerivatives(const ParticleSet& P, ParticleSet& QP, GradMatrix_t& Bmat, HessMatrix_t& Amat, GradMatrix_t& Cmat, GradMatrix_t& Ymat, HessArray_t& Xmat)=0;
 
   };
 

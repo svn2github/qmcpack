@@ -70,8 +70,6 @@ namespace qmcplusplus {
     ///update engines
     vector<QMCUpdateBase*> Movers;
     ///update engines
-    vector<QMCUpdateBase*> CSMovers;
-    ///update engines
     vector<EstimatorManager*> estimatorClones;;
     ///Brnach engines
     vector<SimpleFixedNodeBranch*> branchClones;

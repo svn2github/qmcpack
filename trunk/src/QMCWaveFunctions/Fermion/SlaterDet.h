@@ -15,7 +15,7 @@
 // -*- C++ -*-
 #ifndef QMCPLUSPLUS_SLATERDETERMINANT_WITHBASE_H
 #define QMCPLUSPLUS_SLATERDETERMINANT_WITHBASE_H
-#include "QMCWaveFunctions/OrbitalBase.h"
+#include "QMCWaveFunctions/FermionBase.h"
 #ifdef QMC_CUDA
   #include "QMCWaveFunctions/Fermion/DiracDeterminantCUDA.h"
 #else
@@ -33,7 +33,7 @@ namespace qmcplusplus
 //     and SlaterDeterminantWithBackflow to SlaterDet<true>
 //     and remove all virtuals and inline them 
 
-  class SlaterDet: public OrbitalBase
+  class SlaterDet: public OrbitalBase, public FermionBase
   {
     public:
     typedef DiracDeterminantBase Determinant_t;
@@ -72,7 +72,7 @@ namespace qmcplusplus
 
     void reportStatus(ostream& os);
 
-    void resetTargetParticleSet(ParticleSet& P);
+    virtual void resetTargetParticleSet(ParticleSet& P);
 
     virtual
     ValueType evaluate(ParticleSet& P
@@ -96,6 +96,11 @@ namespace qmcplusplus
     virtual void memoryUsage_DataForDerivatives(ParticleSet& P,long& orbs_only,long& orbs, long& invs, long& dets)
     {
        for (int i = 0; i < Dets.size(); ++i) Dets[i]->memoryUsage_DataForDerivatives(P,orbs_only,orbs,invs,dets);
+    }
+    
+    virtual void  copyFromDerivativeBuffer(ParticleSet& P, BufferType& buf)
+    {
+      for (int i = 0; i < Dets.size(); ++i) Dets[i]->copyFromDerivativeBuffer(P,buf);
     }
 
     ///return the total number of Dirac determinants

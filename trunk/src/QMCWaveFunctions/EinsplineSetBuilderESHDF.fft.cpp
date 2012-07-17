@@ -27,6 +27,21 @@
 
 namespace qmcplusplus {
 
+  bool sortByIndex(BandInfo leftB, BandInfo rightB)
+    {
+
+      if (leftB.BandIndex==rightB.BandIndex)
+      {
+        if  ((leftB.Energy < rightB.Energy+1e-6)&&(leftB.Energy > rightB.Energy-1e-6))
+          return leftB.TwistIndex < rightB.TwistIndex;
+        else
+          return leftB.Energy<rightB.Energy;
+      }
+      else
+        return (leftB.BandIndex<rightB.BandIndex);
+    };
+
+
   bool EinsplineSetBuilder::ReadOrbitalInfo_ESHDF()
   {
     app_log() << "  Reading orbital file in ESHDF format.\n";
@@ -64,19 +79,22 @@ namespace qmcplusplus {
       for (int j=0; j<3; j++)
         LatticeInv(i,j) = RecipLattice(i,j)/(2.0*M_PI);
 
-    int have_dpsi = 0;
+    int have_dpsi = false;
     int NumAtomicOrbitals = 0;
-    HDFAttribIO<int> h_NumBands(NumBands), h_NumElectrons(NumElectrons), 
+    NumCoreStates = NumMuffinTins = NumTwists = NumSpins = NumBands = NumAtomicOrbitals = 0;
+    //vector<int> nels_spin(2);
+    //nels_spin[0]=TargetPtcl.last(0)-TargetPtcl.first(0);
+    //nels_spin[1]=TargetPtcl.getTotalNum()-nels_spin[0];
+    NumElectrons=TargetPtcl.getTotalNum();
+
+    HDFAttribIO<int> h_NumBands(NumBands), 
       h_NumSpins(NumSpins), h_NumTwists(NumTwists), h_NumCore(NumCoreStates),
       h_NumMuffinTins(NumMuffinTins), h_have_dpsi(have_dpsi), 
       h_NumAtomicOrbitals(NumAtomicOrbitals);
-    NumCoreStates = NumMuffinTins = NumTwists = NumSpins = 
-      NumBands = NumElectrons = NumAtomicOrbitals = 0;
-    have_dpsi = false;
 
     h_NumBands.read      (H5FileID, "/electrons/kpoint_0/spin_0/number_of_states");
     h_NumCore.read       (H5FileID, "/electrons/kpoint_0/spin_0/number_of_core_states");
-    h_NumElectrons.read  (H5FileID, "/electrons/number_of_electrons");
+    //h_NumElectrons.read  (H5FileID, "/electrons/number_of_electrons");
     h_NumSpins.read      (H5FileID, "/electrons/number_of_spins");
     h_NumTwists.read     (H5FileID, "/electrons/number_of_kpoints");
     h_NumMuffinTins.read (H5FileID, "/muffin_tins/number_of_tins");
@@ -171,101 +189,103 @@ namespace qmcplusplus {
     }
 
     //////////////////////////////////////////////////////////
-    // If the density has not been set in TargetPtcl, and   //
+    // Only if it is bulk: If the density has not been set in TargetPtcl, and   //
     // the density is available, read it in and save it     //
     // in TargetPtcl.                                       //
     //////////////////////////////////////////////////////////
-
-    // FIXME:  add support for more than one spin density
-    if (!TargetPtcl.Density_G.size()) 
+    if(TargetPtcl.Lattice.SuperCellEnum == SUPERCELL_BULK)
     {
-      HDFAttribIO<vector<TinyVector<int,OHMMS_DIM> > > 
-        h_reduced_gvecs(TargetPtcl.DensityReducedGvecs);
-      HDFAttribIO<Array<RealType,OHMMS_DIM> > 
-        h_density_r (TargetPtcl.Density_r);
-      TinyVector<int,3> mesh;
-      h_reduced_gvecs.read (H5FileID, "/electrons/density/gvectors");
+      // FIXME:  add support for more than one spin density
+      if (!TargetPtcl.Density_G.size()) 
+      {
+        HDFAttribIO<vector<TinyVector<int,OHMMS_DIM> > > 
+          h_reduced_gvecs(TargetPtcl.DensityReducedGvecs);
+        HDFAttribIO<Array<RealType,OHMMS_DIM> > 
+          h_density_r (TargetPtcl.Density_r);
+        TinyVector<int,3> mesh;
+        h_reduced_gvecs.read (H5FileID, "/electrons/density/gvectors");
 
-      int numG = TargetPtcl.DensityReducedGvecs.size();
-      // Convert primitive G-vectors to supercell G-vectors
-      // Also, flip sign since ESHDF format uses opposite sign convention
+        int numG = TargetPtcl.DensityReducedGvecs.size();
+        // Convert primitive G-vectors to supercell G-vectors
+        // Also, flip sign since ESHDF format uses opposite sign convention
 #pragma omp parallel for
-      for (int iG=0; iG < numG; iG++) 
-        TargetPtcl.DensityReducedGvecs[iG] = 
-          -1 * dot(TileMatrix, TargetPtcl.DensityReducedGvecs[iG]);
-      app_log() << "  Read " << numG << " density G-vectors.\n";
+        for (int iG=0; iG < numG; iG++) 
+          TargetPtcl.DensityReducedGvecs[iG] = 
+            -1 * dot(TileMatrix, TargetPtcl.DensityReducedGvecs[iG]);
+        app_log() << "  Read " << numG << " density G-vectors.\n";
 
-      for (int ispin=0; ispin<NumSpins; ispin++) {
-        ostringstream density_r_path, density_g_path;
-        density_r_path << "/electrons/density/spin_" << ispin << "/density_r";
-        density_g_path << "/electrons/density/spin_" << ispin << "/density_g";
-        h_density_r.read (H5FileID, density_r_path.str().c_str());
+        for (int ispin=0; ispin<NumSpins; ispin++) {
+          ostringstream density_r_path, density_g_path;
+          density_r_path << "/electrons/density/spin_" << ispin << "/density_r";
+          density_g_path << "/electrons/density/spin_" << ispin << "/density_g";
+          h_density_r.read (H5FileID, density_r_path.str().c_str());
 
-        if (TargetPtcl.DensityReducedGvecs.size()) {
-          app_log() << "  EinsplineSetBuilder found density in the HDF5 file.\n";
-          vector<ComplexType> density_G;
-          HDFAttribIO<vector<ComplexType > > h_density_G (density_G);
-          h_density_G.read (H5FileID, density_g_path.str().c_str());
-          if (!density_G.size()) {
-            app_error() << "  Density reduced G-vectors defined, but not the"
-              << " density.\n";
-            abort();
-          }
-          else {
-            if (ispin == 0)
-              TargetPtcl.Density_G = density_G;
-            else
-              for (int iG=0; iG<density_G.size(); iG++)
-                TargetPtcl.Density_G[iG] += density_G[iG];
+          if (TargetPtcl.DensityReducedGvecs.size()) {
+            app_log() << "  EinsplineSetBuilder found density in the HDF5 file.\n";
+            vector<ComplexType> density_G;
+            HDFAttribIO<vector<ComplexType > > h_density_G (density_G);
+            h_density_G.read (H5FileID, density_g_path.str().c_str());
+            if (!density_G.size()) {
+              app_error() << "  Density reduced G-vectors defined, but not the"
+                << " density.\n";
+              abort();
+            }
+            else {
+              if (ispin == 0)
+                TargetPtcl.Density_G = density_G;
+              else
+                for (int iG=0; iG<density_G.size(); iG++)
+                  TargetPtcl.Density_G[iG] += density_G[iG];
+            }
           }
         }
       }
-    }
 
-    //////////////////////////////////////////////////////////
-    // If the density has not been set in TargetPtcl, and   //
-    // the density is available, read it in and save it     //
-    // in TargetPtcl.                                       //
-    //////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////
+      // If the density has not been set in TargetPtcl, and   //
+      // the density is available, read it in and save it     //
+      // in TargetPtcl.                                       //
+      //////////////////////////////////////////////////////////
 
-    // FIXME:  add support for more than one spin potential
-    if (!TargetPtcl.VHXC_r[0].size()) {
-      HDFAttribIO<vector<TinyVector<int,OHMMS_DIM> > > 
-        h_reduced_gvecs(TargetPtcl.VHXCReducedGvecs);
-      TinyVector<int,3> mesh;
-      h_reduced_gvecs.read (H5FileID, "/electrons/VHXC/gvectors");
+      // FIXME:  add support for more than one spin potential
+      if (!TargetPtcl.VHXC_r[0].size()) {
+        HDFAttribIO<vector<TinyVector<int,OHMMS_DIM> > > 
+          h_reduced_gvecs(TargetPtcl.VHXCReducedGvecs);
+        TinyVector<int,3> mesh;
+        h_reduced_gvecs.read (H5FileID, "/electrons/VHXC/gvectors");
 
-      int numG = TargetPtcl.VHXCReducedGvecs.size();
-      // Convert primitive G-vectors to supercell G-vectors
-      // Also, flip sign since ESHDF format uses opposite sign convention
+        int numG = TargetPtcl.VHXCReducedGvecs.size();
+        // Convert primitive G-vectors to supercell G-vectors
+        // Also, flip sign since ESHDF format uses opposite sign convention
 #pragma omp parallel for
-      for (int iG=0; iG < numG; iG++) 
-        TargetPtcl.VHXCReducedGvecs[iG] = 
-          -1 * dot(TileMatrix, TargetPtcl.VHXCReducedGvecs[iG]);
+        for (int iG=0; iG < numG; iG++) 
+          TargetPtcl.VHXCReducedGvecs[iG] = 
+            -1 * dot(TileMatrix, TargetPtcl.VHXCReducedGvecs[iG]);
 
-      app_log() << "  Read " << numG << " VHXC G-vectors.\n";
+        app_log() << "  Read " << numG << " VHXC G-vectors.\n";
 
-      for (int ispin=0; ispin<NumSpins; ispin++) {
-        HDFAttribIO<Array<RealType,OHMMS_DIM> > 
-          h_VHXC_r (TargetPtcl.VHXC_r[ispin]);
+        for (int ispin=0; ispin<NumSpins; ispin++) {
+          HDFAttribIO<Array<RealType,OHMMS_DIM> > 
+            h_VHXC_r (TargetPtcl.VHXC_r[ispin]);
 
-        ostringstream VHXC_r_path, VHXC_g_path;
-        VHXC_r_path << "/electrons/VHXC/spin_" << ispin << "/VHXC_r";
-        VHXC_g_path << "/electrons/VHXC/spin_" << ispin << "/VHXC_g";
-        h_VHXC_r.read (H5FileID, VHXC_r_path.str().c_str());
+          ostringstream VHXC_r_path, VHXC_g_path;
+          VHXC_r_path << "/electrons/VHXC/spin_" << ispin << "/VHXC_r";
+          VHXC_g_path << "/electrons/VHXC/spin_" << ispin << "/VHXC_g";
+          h_VHXC_r.read (H5FileID, VHXC_r_path.str().c_str());
 
-        if (TargetPtcl.VHXCReducedGvecs.size()) {
-          app_log() << "  EinsplineSetBuilder found VHXC in the HDF5 file.\n";
-          vector<ComplexType> VHXC_G;
-          HDFAttribIO<vector<ComplexType > > h_VHXC_G (VHXC_G);
-          h_VHXC_G.read (H5FileID, VHXC_g_path.str().c_str());
-          if (!VHXC_G.size()) {
-            app_error() << "  VHXC reduced G-vectors defined, but not the"
-              << " VHXC.\n";
-            abort();
+          if (TargetPtcl.VHXCReducedGvecs.size()) {
+            app_log() << "  EinsplineSetBuilder found VHXC in the HDF5 file.\n";
+            vector<ComplexType> VHXC_G;
+            HDFAttribIO<vector<ComplexType > > h_VHXC_G (VHXC_G);
+            h_VHXC_G.read (H5FileID, VHXC_g_path.str().c_str());
+            if (!VHXC_G.size()) {
+              app_error() << "  VHXC reduced G-vectors defined, but not the"
+                << " VHXC.\n";
+              abort();
+            }
+            else 
+              TargetPtcl.VHXC_G[ispin] = VHXC_G;
           }
-          else 
-            TargetPtcl.VHXC_G[ispin] = VHXC_G;
         }
       }
     }
@@ -274,7 +294,7 @@ namespace qmcplusplus {
   }
 
 
-  void EinsplineSetBuilder::OccupyBands_ESHDF(int spin, bool sortBands)
+  void EinsplineSetBuilder::OccupyBands_ESHDF(int spin, int sortBands)
   {
     if (myComm->rank() != 0) return;
 
@@ -318,7 +338,13 @@ namespace qmcplusplus {
       }
     }
 
-    if (sortBands) {
+    // Now sort the bands by energy
+    if (sortBands==2)
+    {
+      app_log() << "Sorting the bands by index now:\n";
+      sort (SortBands.begin(), SortBands.end(), sortByIndex);
+    }
+    else if (sortBands==1) {
       app_log() << "Sorting the bands now:\n";
       sort (SortBands.begin(), SortBands.end());
     }
@@ -342,68 +368,68 @@ namespace qmcplusplus {
       }
     }
 
-    if(qafm!=0)
-    {
-      app_log()<<"Finding AFM pair for first "<<ntoshift<<" orbitals."<<endl;
-
-      for (int ti=0; ti<ntoshift; ti++)
-      {
-        bool found(false);
-        PosType ku = TwistAngles[SortBands[ti].TwistIndex];
-        PosType k1 = OrbitalSet->PrimLattice.k_cart(ku);
-        for (int tj=0; tj<TwistAngles.size(); tj++) 
-        {
-          if(tj!=SortBands[ti].TwistIndex)
-          {
-            ku=TwistAngles[tj];
-            PosType k2 = OrbitalSet->PrimLattice.k_cart(ku);
-            double dkx = abs(k1[0] - k2[0]);
-            double dky = abs(k1[1] - k2[1]);
-            double dkz = abs(k1[2] - k2[2]);
-            bool rightK = ((dkx<qafm+0.0001)&&(dkx>qafm-0.0001)&&(dky<0.0001)&&(dkz<0.0001));
-            if(rightK)
-            {
-              SortBands[ti].TwistIndex = tj;
-              //               app_log()<<"swapping: "<<ti<<" "<<tj<<endl;
-              found=true;
-              break;
-            }
-          }
-        }
-        if(!found)
-        {
-          if((abs(k1[1])<qafm+0.0001)&&(abs(k1[1])>qafm-0.0001)) k1[1]*=-1;
-          else if((abs(k1[2])<qafm+0.0001)&&(abs(k1[2])>qafm-0.0001)) k1[2]*=-1;
-
-          for (int tj=0; tj<TwistAngles.size(); tj++) 
-          {
-            if(tj!=SortBands[ti].TwistIndex)
-            {
-              ku=TwistAngles[tj];
-              PosType k2 = OrbitalSet->PrimLattice.k_cart(ku);
-              double dkx = abs(k1[0] - k2[0]);
-              double dky = abs(k1[1] - k2[1]);
-              double dkz = abs(k1[2] - k2[2]);
-              bool rightK = ((dkx<qafm+0.0001)&&(dkx>qafm-0.0001)&&(dky<0.0001)&&(dkz<0.0001));
-              if(rightK)
-              {
-                SortBands[ti].TwistIndex = tj;
-                //               app_log()<<"swapping: "<<ti<<" "<<tj<<endl;
-                found=true;
-                break;
-              }
-            }
-          }
-        }
-
-        if(!found)
-        {
-          app_log()<<"Need twist: ("<<k1[0]+qafm<<","<<k1[1]<<","<<k1[2]<<")"<<endl;
-          app_log()<<"Did not find afm pair for orbital: "<<ti<<", twist index: "<<SortBands[ti].TwistIndex<<endl;
-          APP_ABORT("EinsplineSetBuilder::OccupyBands_ESHDF");
-        }
-      }
-    }
+//    if(qafm!=0)
+//    {
+//      app_log()<<"Finding AFM pair for first "<<ntoshift<<" orbitals."<<endl;
+//
+//      for (int ti=0; ti<ntoshift; ti++)
+//      {
+//        bool found(false);
+//        PosType ku = TwistAngles[SortBands[ti].TwistIndex];
+//        PosType k1 = OrbitalSet->PrimLattice.k_cart(ku);
+//        for (int tj=0; tj<TwistAngles.size(); tj++) 
+//        {
+//          if(tj!=SortBands[ti].TwistIndex)
+//          {
+//            ku=TwistAngles[tj];
+//            PosType k2 = OrbitalSet->PrimLattice.k_cart(ku);
+//            double dkx = abs(k1[0] - k2[0]);
+//            double dky = abs(k1[1] - k2[1]);
+//            double dkz = abs(k1[2] - k2[2]);
+//            bool rightK = ((dkx<qafm+0.0001)&&(dkx>qafm-0.0001)&&(dky<0.0001)&&(dkz<0.0001));
+//            if(rightK)
+//            {
+//              SortBands[ti].TwistIndex = tj;
+//              //               app_log()<<"swapping: "<<ti<<" "<<tj<<endl;
+//              found=true;
+//              break;
+//            }
+//          }
+//        }
+//        if(!found)
+//        {
+//          if((abs(k1[1])<qafm+0.0001)&&(abs(k1[1])>qafm-0.0001)) k1[1]*=-1;
+//          else if((abs(k1[2])<qafm+0.0001)&&(abs(k1[2])>qafm-0.0001)) k1[2]*=-1;
+//
+//          for (int tj=0; tj<TwistAngles.size(); tj++) 
+//          {
+//            if(tj!=SortBands[ti].TwistIndex)
+//            {
+//              ku=TwistAngles[tj];
+//              PosType k2 = OrbitalSet->PrimLattice.k_cart(ku);
+//              double dkx = abs(k1[0] - k2[0]);
+//              double dky = abs(k1[1] - k2[1]);
+//              double dkz = abs(k1[2] - k2[2]);
+//              bool rightK = ((dkx<qafm+0.0001)&&(dkx>qafm-0.0001)&&(dky<0.0001)&&(dkz<0.0001));
+//              if(rightK)
+//              {
+//                SortBands[ti].TwistIndex = tj;
+//                //               app_log()<<"swapping: "<<ti<<" "<<tj<<endl;
+//                found=true;
+//                break;
+//              }
+//            }
+//          }
+//        }
+//
+//        if(!found)
+//        {
+//          app_log()<<"Need twist: ("<<k1[0]+qafm<<","<<k1[1]<<","<<k1[2]<<")"<<endl;
+//          app_log()<<"Did not find afm pair for orbital: "<<ti<<", twist index: "<<SortBands[ti].TwistIndex<<endl;
+//          APP_ABORT("EinsplineSetBuilder::OccupyBands_ESHDF");
+//        }
+//      }
+//    }
 
 
 

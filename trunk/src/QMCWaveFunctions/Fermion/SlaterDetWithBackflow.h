@@ -41,13 +41,14 @@ namespace qmcplusplus
     void setBF(BackflowTransformation* bf) 
     {
       BFTrans = bf;
-      for(int i=0; i<Dets.size(); i++) Dets[i]->setBF(bf);
+      for(int i=0; i<Dets.size(); i++) Dets[i]->setBF(BFTrans);
     }
 
-
+    void resetTargetParticleSet(ParticleSet& P);
     void checkInVariables(opt_variables_type& active)
     {
-      if(Optimizable) {
+      //if(Optimizable) {
+      if(BFTrans->isOptimizable()) {
         BFTrans->checkInVariables(active);
         for(int i=0; i<Dets.size(); i++) Dets[i]->checkInVariables(active);
       }
@@ -55,7 +56,8 @@ namespace qmcplusplus
 
     void checkOutVariables(const opt_variables_type& active)
     {
-      if(Optimizable) {
+      //if(Optimizable) {
+      if(BFTrans->isOptimizable()) {
         BFTrans->checkOutVariables(active);
         for(int i=0; i<Dets.size(); i++) Dets[i]->checkOutVariables(active);
       }
@@ -64,7 +66,8 @@ namespace qmcplusplus
     ///reset all the Dirac determinants, Optimizable is true
     void resetParameters(const opt_variables_type& active)
     {
-      if(Optimizable) {
+      //if(Optimizable) {
+      if(BFTrans->isOptimizable()) {
         BFTrans->resetParameters(active);
         for(int i=0; i<Dets.size(); i++) Dets[i]->resetParameters(active);
       }

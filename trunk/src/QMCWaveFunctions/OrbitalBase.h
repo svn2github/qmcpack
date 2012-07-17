@@ -61,9 +61,9 @@ namespace qmcplusplus
    *
    * A many-body trial wave function is
    * \f[
-   * \Psi(\{ {\bf R}\}) = \prod_i \psi_{i}(\{ {\bf R}\}),
+   \Psi(\{ {\bf R}\}) = \prod_i \psi_{i}(\{ {\bf R}\}),
    * \f]
-   * where \f$\psi\f$s are represented by
+   * where \f$\Psi\f$s are represented by
    * the derived classes from OrbtialBase.
    */
   /** @ingroup OrbitalComponent
@@ -367,6 +367,9 @@ namespace qmcplusplus
 
       /** copy the internal data saved for particle-by-particle move.*/
       virtual void copyFromBuffer(ParticleSet& P, BufferType& buf)=0;
+      
+      /** copy the internal data saved for optimization.*/
+      virtual void copyFromDerivativeBuffer(ParticleSet& P, PooledData<RealType>& buf){};
 
       /** dump the internal data to buf for optimizations
        *

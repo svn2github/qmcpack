@@ -73,7 +73,6 @@ namespace qmcplusplus {
     if(NumThreads==1) return;
 
     app_log() << "  CloneManager::makeClones makes " << NumThreads << " clones for W/Psi/H." <<endl;
-#if defined(ENABLE_CLONE_PSI_AND_H)
     app_log() << "  Cloning methods for both Psi and H are used" << endl;
     OhmmsInfo::Log->turnoff();
     OhmmsInfo::Warn->turnoff();
@@ -86,10 +85,6 @@ namespace qmcplusplus {
     }
     OhmmsInfo::Log->reset();
     OhmmsInfo::Warn->reset();
-#else
-    app_log() << "Old parse method is used." << endl;
-    cloneEngine.clone(w,psi,ham,wClones,psiClones,hClones);
-#endif
   }
 
   void CloneManager::makeClones_new(MCWalkerConfiguration& w, 
@@ -134,11 +129,12 @@ namespace qmcplusplus {
   {
 
     
-    if(guideClones.size()) 
+    if(guideClones.size())
     {
-      delete_iter(guideClones.begin()+1,guideClones.end());
+      app_log() << "  Cannot make clones again. Use existing " << NumThreads << " clones" << endl;
+      return;
     }
-    else
+       else
     {
       guideClones.resize(NumThreads,0);
     }
@@ -165,8 +161,8 @@ namespace qmcplusplus {
     
     if(guideClones.size()) 
     {
-      delete_iter(guideClones.begin()+1,guideClones.end());
-      delete_iter(wgClones.begin(),wgClones.end());
+      app_log() << "  Cannot make clones again. Use existing " << NumThreads << " clones" << endl;
+      return;
     }
     else
     {

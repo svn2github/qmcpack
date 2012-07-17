@@ -33,6 +33,7 @@
 #ifdef QMC_CUDA
   #include "QMCWaveFunctions/Fermion/DiracDeterminantCUDA.h"
 #endif
+#include "QMCWaveFunctions/Fermion/BackflowBuilder.h"
 #include "QMCWaveFunctions/Fermion/SlaterDetWithBackflow.h"
 #include "QMCWaveFunctions/Fermion/MultiSlaterDeterminantWithBackflow.h"
 #include "QMCWaveFunctions/Fermion/DiracDeterminantWithBackflow.h"
@@ -294,19 +295,24 @@ namespace qmcplusplus
 
     // change DistanceTables if using backflow
     if(UseBackflow)   { 
-       BFTrans = new BackflowTransformation(targetPtcl,ptclPool);
-       BFTrans->put(BFnode);
+       BackflowBuilder* bfbuilder = new BackflowBuilder(targetPtcl,ptclPool,targetPsi);
+       bfbuilder->put(BFnode);
+       BFTrans = bfbuilder->getBFTrans();
+       delete bfbuilder;
        if(multiDet) {
          if(FastMSD)  {
            multislaterdetfast_0->setBF(BFTrans);
            multislaterdetfast_0->resetTargetParticleSet(BFTrans->QP); 
+//           if(BFTrans->isOptimizable()) multislaterdetfast_0->Optimizable = true; 
          } else {
            multislaterdet_0->setBF(BFTrans);
            multislaterdet_0->resetTargetParticleSet(BFTrans->QP); 
+//           if(BFTrans->isOptimizable()) multislaterdet_0->Optimizable = true; 
          }
        } else {
          slaterdet_0->setBF(BFTrans); 
-         slaterdet_0->resetTargetParticleSet(BFTrans->QP);
+         slaterdet_0->resetTargetParticleSet(targetPtcl);
+         if(BFTrans->isOptimizable()) slaterdet_0->Optimizable = true; 
        }
     }
     //only single slater determinant
@@ -625,7 +631,7 @@ namespace qmcplusplus
        }
        DiracDeterminantBase* adet;
        if(UseBackflow) {
-         adet = new DiracDeterminantWithBackflow(targetPtcl,(SPOSetBasePtr) spo,0,NULL);
+         adet = new DiracDeterminantWithBackflow(targetPtcl,(SPOSetBasePtr) spo,0,0);
        } else {
          adet = new DiracDeterminantBase((SPOSetBasePtr) spo,0);
        }
@@ -645,7 +651,7 @@ namespace qmcplusplus
        }
        DiracDeterminantBase* adet;
        if(UseBackflow) {
-         adet = new DiracDeterminantWithBackflow(targetPtcl,(SPOSetBasePtr) spo,0,NULL);
+         adet = new DiracDeterminantWithBackflow(targetPtcl,(SPOSetBasePtr) spo,0,0);
        } else {
          adet = new DiracDeterminantBase((SPOSetBasePtr) spo,0);
        }

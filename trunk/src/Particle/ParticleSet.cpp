@@ -44,19 +44,17 @@ namespace qmcplusplus
   }
 
   ParticleSet::ParticleSet()
-    : UseBoundBox(true), UseSphereUpdate(true), sorted_ids(false), reordered_ids(false)
-      , SK(0), ParentTag(-1)
+    : UseBoundBox(true), UseSphereUpdate(true), IsGrouped(true)
+      , ThreadID(0), SK(0), ParentTag(-1)
     {
       initParticleSet();
       initPropertyList();
-
       add_p_timer(myTimers);
     }
 
   ParticleSet::ParticleSet(const ParticleSet& p)
-      : UseBoundBox(p.UseBoundBox), UseSphereUpdate(p.UseSphereUpdate)
-        ,sorted_ids(p.sorted_ids), reordered_ids(p.reordered_ids)
-      , SK(0), mySpecies(p.getSpeciesSet()), ParentTag(p.tag())
+      : UseBoundBox(p.UseBoundBox), UseSphereUpdate(p.UseSphereUpdate),IsGrouped(p.IsGrouped)
+      , ThreadID(0), mySpecies(p.getSpeciesSet()),SK(0), ParentTag(p.tag())
   {
     initBase();
     initParticleSet();
@@ -70,7 +68,7 @@ namespace qmcplusplus
     PropertyList.Names=p.PropertyList.Names;
     PropertyList.Values=p.PropertyList.Values;
 
-    PropertyHistory=  p.PropertyHistory;
+    PropertyHistory=p.PropertyHistory;
 
     Collectables=p.Collectables;
 
@@ -91,7 +89,6 @@ namespace qmcplusplus
     myTwist=p.myTwist;
   }
 
-
   ParticleSet::~ParticleSet()
   {
     DEBUG_MEMORY("ParticleSet::~ParticleSet");
@@ -103,6 +100,7 @@ namespace qmcplusplus
   void ParticleSet::initParticleSet()
   {
     ObjectTag = PtclObjectCounter;
+
 #pragma omp atomic
     PtclObjectCounter++;
 
@@ -127,13 +125,21 @@ namespace qmcplusplus
     addAttribute(dG);
     addAttribute(dL);
 
-    orgID.setTypeName(ParticleTags::indextype_tag); //add ID tags
-    orgID.setObjName("id0"); 
-    addAttribute(orgID);
-    
-    orgGroupID.setTypeName(ParticleTags::indextype_tag); //add ID tags
-    orgGroupID.setObjName("gid0"); 
-    addAttribute(orgGroupID);
+    Mass.setTypeName(ParticleTags::scalartype_tag);
+    Mass.setObjName("mass");
+    addAttribute(Mass);
+
+    IndirectID.setTypeName(ParticleTags::indextype_tag); //add ID tags
+    IndirectID.setObjName("id1"); 
+    addAttribute(IndirectID);
+
+    //orgID.setTypeName(ParticleTags::indextype_tag); //add ID tags
+    //orgID.setObjName("id0"); 
+    //addAttribute(orgID);
+    //
+    //orgGroupID.setTypeName(ParticleTags::indextype_tag); //add ID tags
+    //orgGroupID.setObjName("gid0"); 
+    //addAttribute(orgGroupID);
 
     myTwist=0.0;
 
@@ -143,13 +149,45 @@ namespace qmcplusplus
     //addAttribute(redR);
   }
 
-  void ParticleSet::resetGroups(const vector<int>& natpergroup)
+  void ParticleSet::resetGroups()
   {
-    SubPtcl.resize(natpergroup.size()+1);
+    int nspecies=mySpecies.getTotalNum();
+
+    if(nspecies==0)
+    {
+      APP_ABORT("ParticleSet::resetGroups() Failed. No species exisits");
+    }
+    vector<int> ng(nspecies,0);
+    for(int iat=0; iat<GroupID.size(); iat++) 
+    { 
+      if(GroupID[iat]<nspecies)
+        ng[GroupID[iat]]++;
+      else
+        APP_ABORT("ParticleSet::resetGroups() Failed. GroupID is out of bound.");
+    }
+
+    SubPtcl.resize(nspecies+1);
     SubPtcl[0]=0;
-    for(int i=0; i<natpergroup.size(); ++i)
-      SubPtcl[i+1]=SubPtcl[i]+natpergroup[i];
-    sorted_ids=true;
+    for(int i=0; i<nspecies; ++i) SubPtcl[i+1]=SubPtcl[i]+ng[i];
+
+    int membersize= mySpecies.addAttribute("membersize");
+    for(int ig=0; ig<nspecies; ++ig)
+      mySpecies(membersize,ig)=ng[ig];
+
+    //orgID=ID;
+    //orgGroupID=GroupID;
+
+    int new_id=0;
+    for(int i=0; i<nspecies; ++i)
+      for(int iat=0; iat<GroupID.size(); ++iat) if(GroupID[iat]==i) IndirectID[new_id++]=ID[iat];
+
+    IsGrouped=true;
+    for(int iat=0; iat<ID.size(); ++iat) IsGrouped &= (IndirectID[iat]==ID[iat]);
+
+    if(IsGrouped)
+      app_log() << "Particles are grouped. Safe to use groups " << endl;
+    else
+      app_log() << "ID is not grouped. Need to use IndirectID for species-dependent operations " << endl;
   }
 
   void
@@ -312,38 +350,41 @@ namespace qmcplusplus
   //}
   int ParticleSet::addTable(const ParticleSet& psrc)
   {
-    if (DistTables.empty())
-      {
-        DistTables.reserve(4);
-        DistTables.push_back(createDistanceTable(*this));
-        //add  this-this pair
-        myDistTableMap.clear();
-        myDistTableMap[ObjectTag]=0;
-        app_log() << "  ... ParticleSet::addTable Create Table #0 " << DistTables[0]->Name << endl;
 
-        if (psrc.tag() == ObjectTag) return 0;
-      }
+    if (DistTables.empty())
+    {
+      DistTables.reserve(4);
+      DistTables.push_back(createDistanceTable(*this));
+      //add  this-this pair
+      myDistTableMap.clear();
+      myDistTableMap[ObjectTag]=0;
+      app_log() << "  ... ParticleSet::addTable Create Table #0 " << DistTables[0]->Name << endl;
+
+      if (psrc.tag() == ObjectTag) return 0;
+    }
 
     if (psrc.tag() == ObjectTag)
-      {
-        app_log() << "  ... ParticleSet::addTable Reuse Table #" << 0 << " " << DistTables[0]->Name <<endl;
-        return 0;
-      }
+    {
+      app_log() << "  ... ParticleSet::addTable Reuse Table #" << 0 << " " << DistTables[0]->Name <<endl;
+      return 0;
+    }
 
     int tsize=DistTables.size(),tid;
     map<int,int>::iterator tit(myDistTableMap.find(psrc.tag()));
     if (tit == myDistTableMap.end())
-      {
-        tid=DistTables.size();
-        DistTables.push_back(createDistanceTable(psrc,*this));
-        myDistTableMap[psrc.tag()]=tid;
-        app_log() << "  ... ParticleSet::addTable Create Table #" << tid << " " << DistTables[tid]->Name <<endl;
-      }
+    {
+      tid=DistTables.size();
+      DistTables.push_back(createDistanceTable(psrc,*this));
+      myDistTableMap[psrc.tag()]=tid;
+      app_log() << "  ... ParticleSet::addTable Create Table #" << tid << " " << DistTables[tid]->Name <<endl;
+    }
     else
-      {
-        tid = (*tit).second;
-        app_log() << "  ... ParticleSet::addTable Reuse Table #" << tid << " " << DistTables[tid]->Name << endl;
-      }
+    {
+      tid = (*tit).second;
+      app_log() << "  ... ParticleSet::addTable Reuse Table #" << tid << " " << DistTables[tid]->Name << endl;
+    }
+
+    app_log().flush();
     return tid;
   }
 

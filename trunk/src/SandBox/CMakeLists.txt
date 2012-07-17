@@ -23,12 +23,16 @@ SET(SANDBOX)
 
 IF(HAVE_EINSPLINE)
 
-  SET(ESTEST einspline_bench einspline_smp)
+  SET(ESTEST einspline_bench einspline_smp einspline_validation)
 
   FOREACH(p ${ESTEST})
     ADD_EXECUTABLE( ${p}  ${p}.cpp)
     TARGET_LINK_LIBRARIES(${p} qmcbase qmcutil)
-    TARGET_LINK_LIBRARIES(${p} ${EINSPLINE_LIBRARIES})
+    IF(HAVE_EINSPLINE_EXT)
+      TARGET_LINK_LIBRARIES(${p} ${EINSPLINE_LIBRARIES})
+    else()
+      TARGET_LINK_LIBRARIES(${p} einspline)
+    endif()
     IF(MPI_LIBRARY)
       TARGET_LINK_LIBRARIES(${p} ${MPI_LIBRARY})
     ENDIF(MPI_LIBRARY)

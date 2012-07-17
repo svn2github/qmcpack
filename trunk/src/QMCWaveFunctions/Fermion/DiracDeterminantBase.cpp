@@ -731,6 +731,8 @@ namespace qmcplusplus {
     } else {
       buf.get(psiM.first_address(),psiM.last_address());
     }
+    P.G += myG;
+    P.L += myL;
   }
   
   DiracDeterminantBase::RealType DiracDeterminantBase::evaluateLogForDerivativeBuffer(ParticleSet& P, PooledData<RealType>& buf)
@@ -748,8 +750,8 @@ namespace qmcplusplus {
   
     DiracDeterminantBase::RealType DiracDeterminantBase::evaluateLogFromDerivativeBuffer(ParticleSet& P, PooledData<RealType>& buf)
   {
-    P.G += myG;
-    P.L += myL;
+//    P.G += myG;
+//    P.L += myL;
     return LogValue;
   }
 
@@ -771,8 +773,13 @@ namespace qmcplusplus {
 
 //       APP_ABORT("  DiracDeterminantBase::evaluate is disabled");
 
-      ValueType logval = evaluateLog(P, G, L);
+      RealType logval = evaluateLog(P, G, L);
+#if defined(QMC_COMPLEX)
+      RealType ratioMag = std::exp(logval);
+      return std::complex<OHMMS_PRECISION>(std::cos(PhaseValue)*ratioMag,std::sin(PhaseValue)*ratioMag);
+#else
       return std::cos(PhaseValue)*std::exp(logval);
+#endif
     }
 
 

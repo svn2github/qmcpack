@@ -67,9 +67,11 @@ namespace qmcplusplus {
       branchClones[ip] = new BranchEngineType(*branchEngine);
     }
     
-#pragma omp parallel 
+#if !defined(BGP_BUG)
+#pragma omp parallel for
+#endif
+      for(int ip=0; ip<NumThreads; ++ip)
       {
-        int ip=omp_get_thread_num();
         if(QMCDriverMode[QMC_UPDATE_MODE])
         {
           if(UseFastGrad == "yes")
@@ -99,19 +101,14 @@ namespace qmcplusplus {
   {
 
     ReportEngine PRE("DMCOMP","resetUpdateEngines");
-
     bool fixW = (Reconfiguration == "yes");
-    
-    Timer init_timer;
 
     makeClones(W,Psi,H);
 
+    Timer init_timer;
     if(Movers.empty()) 
     {
-      //load walkers
-      W.loadEnsemble();
-      for(int ip=1;ip<NumThreads;++ip) wClones[ip]->loadEnsemble(W);
-
+      W.loadEnsemble(wClones);
       branchEngine->initWalkerController(W,fixW,false);
 
       //if(QMCDriverMode[QMC_UPDATE_MODE]) W.clearAuxDataSet();
@@ -145,9 +142,11 @@ namespace qmcplusplus {
         app_log() << o.str() << endl;
       }
 
-#pragma omp parallel 
+#if !defined(BGP_BUG)
+#pragma omp parallel for
+#endif
+      for(int ip=0; ip<NumThreads; ++ip)
       {
-        int ip=omp_get_thread_num();
         estimatorClones[ip]= new EstimatorManager(*Estimators);
         estimatorClones[ip]->setCollectionMode(false);
 
@@ -178,6 +177,7 @@ namespace qmcplusplus {
       }
     }
 
+
     branchEngine->checkParameters(W);
 
     int mxage=mover_MaxAge;
@@ -192,7 +192,7 @@ namespace qmcplusplus {
       if(BranchInterval<0) BranchInterval=1;
       int miage=(QMCDriverMode[QMC_UPDATE_MODE])?1:5;
       mxage=(mover_MaxAge<0)?miage:mover_MaxAge;
-      for(int ip=0; ip<Movers.size(); ++ip) Movers[ip]->MaxAge=mxage;
+      for(int i=0; i<NumThreads; ++i) Movers[i]->MaxAge=mxage;
     }
 
     {
@@ -254,7 +254,15 @@ namespace qmcplusplus {
           if(QMCDriverMode[QMC_UPDATE_MODE] && now%updatePeriod == 0) Movers[ip]->updateWalkers(wit, wit_end);
         }//#pragma omp parallel
        
-        branchEngine->branch(CurrentStep,W, branchClones);
+        //Collectables are weighted but not yet normalized
+        if(W.Collectables.size()) 
+        { // only when collectable is not empty, need to generalize for W != wClones[0]
+          for(int ip=1; ip<NumThreads; ++ip) 
+            W.Collectables += wClones[ip]->Collectables;
+        }
+
+        branchEngine->branch(CurrentStep, W, branchClones);
+
 //         if(storeConfigs && (CurrentStep%storeConfigs == 0)) {
 //           ForwardWalkingHistory.storeConfigsForForwardWalking(W);
 //           W.resetWalkerParents();

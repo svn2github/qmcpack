@@ -63,6 +63,7 @@ QMCCorrelatedSamplingLinearOptimize::QMCCorrelatedSamplingLinearOptimize(MCWalke
     m_param.add(exp0,"exp0","double");
     m_param.add(MinMethod,"MinMethod","string");
     m_param.add(LambdaMax,"LambdaMax","double");
+    m_param.add(nstabilizers,"nstabilizers","int");
     //Set parameters for line minimization:
     this->add_timers(myTimers);
 }
@@ -114,6 +115,7 @@ bool QMCCorrelatedSamplingLinearOptimize::run()
     Matrix<RealType> Left(N,N);
     Matrix<RealType> LeftT(N,N);
     Matrix<RealType> Right(N,N);
+    Right=0; LeftT=0; Left=0;
 
     vmcCSEngine->fillOverlapHamiltonianMatrices(LeftT,Right);
     vector<std::pair<RealType,RealType> > mappedStabilizers;
@@ -165,7 +167,7 @@ bool QMCCorrelatedSamplingLinearOptimize::run()
         }
 
       RealType XS(stabilityBase+stabilizerScale*stability);
-      if ((GEVtype!="H2")||(failedTries>0))
+      if (failedTries>0)
       {
         for (int i=1; i<N; i++) LeftT(i,i) += std::exp(XS);
         app_log()<<"  Using XS:"<<XS<<endl;
@@ -251,7 +253,11 @@ bool QMCCorrelatedSamplingLinearOptimize::run()
             continue;
 //                     for (int i=0; i<numParams; i++) optTarget->Params(i) = optparm[i];
         }
-        else for (int i=0; i<numParams; i++) optTarget->Params(i) = optparm[i] + Lambda * optdir[i];
+        else
+        {
+           for (int i=0; i<numParams; i++) optTarget->Params(i) = optparm[i] + Lambda * optdir[i];
+           app_log()<<"  Largest LM parameter change:"<<biggestParameterChange<<endl;
+        }
         //Save this value in here for later
         Lambda = biggestParameterChange;
       }

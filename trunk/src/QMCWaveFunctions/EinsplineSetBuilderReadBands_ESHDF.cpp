@@ -25,6 +25,10 @@ namespace qmcplusplus {
 
     ReportEngine PRE("EinsplineSetBuilder","ReadBands_ESHDF(EinsplineSetExtended<complex<double > >*");
 
+    Timer c_prep, c_unpack,c_fft, c_phase, c_spline, c_newphase, c_h5, c_init;
+    double t_prep=0.0, t_unpack=0.0, t_fft=0.0, t_phase=0.0, t_spline=0.0, t_newphase=0.0, t_h5=0.0, t_init=0.0;
+
+    c_prep.restart();
     bool root = myComm->rank()==0;
     // bcast other stuff
     myComm->bcast (NumDistinctOrbitals);
@@ -38,6 +42,7 @@ namespace qmcplusplus {
     orbitalSet->StorageLaplVector.resize(N);  orbitalSet->BlendLaplVector.resize(N);
     orbitalSet->StorageGradVector.resize(N);  orbitalSet->BlendGradVector.resize(N);
     orbitalSet->StorageHessVector.resize(N);
+    orbitalSet->StorageGradHessVector.resize(N);
     orbitalSet->phase.resize(N);
     orbitalSet->eikr.resize(N);
     orbitalSet->NumValenceOrbs = NumValenceOrbs;
@@ -118,6 +123,7 @@ namespace qmcplusplus {
     {
       APP_ABORT("Core states not supported by ES-HDF yet.");
     }
+    t_prep += c_prep.elapsed();
 
     /** For valence orbitals,
      * - extended orbitals either in G or in R
@@ -125,23 +131,29 @@ namespace qmcplusplus {
      */
 
     //this can potentially break
-    Array<complex<double>,3> splineData(nx,ny,nz);
+    Array<ComplexType,3> splineData(nx,ny,nz);
 
     if(havePsig)//perform FFT using FFTW
     {
+      c_init.restart();
+      Array<ComplexType,3> FFTbox;
       FFTbox.resize(MeshSize[0], MeshSize[1], MeshSize[2]);
-      FFTplan = fftw_plan_dft_3d 
+      fftw_plan FFTplan = fftw_plan_dft_3d 
         (MeshSize[0], MeshSize[1], MeshSize[2],
          reinterpret_cast<fftw_complex*>(FFTbox.data()),
          reinterpret_cast<fftw_complex*>(FFTbox.data()),
          +1, FFTW_ESTIMATE);
 
+      Vector<complex<double> > cG(MaxNumGvecs);
+
       //this will be parallelized with OpenMP
       for(int iorb=0,ival=0; iorb<N; ++iorb, ++ival)
       {
-        Vector<complex<double> > cG;
+        //Vector<complex<double> > cG;
         int ncg=0;
         int ti=SortBands[iorb].TwistIndex;
+        c_h5.restart();
+
         if(root)
         {
           ostringstream path;
@@ -160,13 +172,27 @@ namespace qmcplusplus {
         if(!root) cG.resize(ncg);
         myComm->bcast(cG);
 
+        t_h5 += c_h5.elapsed();
+
+        c_unpack.restart();
         unpack4fftw(cG,Gvecs[ti],MeshSize,FFTbox);
+        t_unpack+= c_unpack.elapsed();
+
+        c_fft.restart();
         fftw_execute (FFTplan);
+        t_fft+= c_fft.elapsed();
+
+        c_phase.restart();
         fix_phase_rotate(FFTbox,splineData,TwistAngles[ti]);
+        t_phase+= c_phase.elapsed();
+
+        c_spline.restart();
         set_multi_UBspline_3d_z(orbitalSet->MultiSpline, ival, splineData.data());
+        t_spline+= c_spline.elapsed();
       }
 
       fftw_destroy_plan(FFTplan);
+      t_init+=c_init.elapsed();
     }
     else
     {
@@ -188,6 +214,14 @@ namespace qmcplusplus {
 
       //return true;
     }
+
+    app_log() << "    READBANDS::PREP   = " << t_prep << endl;
+    app_log() << "    READBANDS::H5     = " << t_h5 << endl;
+    app_log() << "    READBANDS::UNPACK = " << t_unpack << endl;
+    app_log() << "    READBANDS::FFT    = " << t_fft << endl;
+    app_log() << "    READBANDS::PHASE  = " << t_phase << endl;
+    app_log() << "    READBANDS::SPLINE = " << t_spline << endl;
+    app_log() << "    READBANDS::SUM    = " << t_init << endl;
 
     //now localized orbitals
     for(int iorb=0,ival=0; iorb<N; ++iorb, ++ival)
@@ -289,6 +323,7 @@ namespace qmcplusplus {
     orbitalSet->StorageLaplVector.resize(N);  orbitalSet->BlendLaplVector.resize(N);
     orbitalSet->StorageGradVector.resize(N);  orbitalSet->BlendGradVector.resize(N);
     orbitalSet->StorageHessVector.resize(N);
+    orbitalSet->StorageGradHessVector.resize(N);
     orbitalSet->phase.resize(N);
     orbitalSet->eikr.resize(N);
     orbitalSet->NumValenceOrbs = NumValenceOrbs;
@@ -326,7 +361,8 @@ namespace qmcplusplus {
     app_log() << "MeshSize = (" << MeshSize[0] << ", " 
 	      << MeshSize[1] << ", " << MeshSize[2] << ")\n";
 
-    int nx, ny, nz, bi, ti;
+    //int nx, ny, nz, bi, ti;
+    int nx, ny, nz;
     nx=MeshSize[0]; ny=MeshSize[1]; nz=MeshSize[2];
     Ugrid x_grid, y_grid, z_grid;
     BCtype_d xBC, yBC, zBC;
@@ -403,6 +439,7 @@ namespace qmcplusplus {
         Array<complex<double>,3> rawData;
         for(int iorb=0,ival=0; iorb<N; ++iorb, ++ival)
         {
+          int ti=SortBands[iorb].TwistIndex;
           if(root)
           {
             ostringstream path;
@@ -437,8 +474,9 @@ namespace qmcplusplus {
     }
     else
     {
+      Array<ComplexType,3> FFTbox;
       FFTbox.resize(MeshSize[0], MeshSize[1], MeshSize[2]);
-      FFTplan = fftw_plan_dft_3d 
+      fftw_plan FFTplan = fftw_plan_dft_3d 
         (MeshSize[0], MeshSize[1], MeshSize[2],
          reinterpret_cast<fftw_complex*>(FFTbox.data()),
          reinterpret_cast<fftw_complex*>(FFTbox.data()),

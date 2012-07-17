@@ -14,6 +14,7 @@
 // MPI_COMM_WORLD class
 //
 
+#include <Configuration.h>
 #include "oompi-config.h"
 
 #include "Comm_world.h"
@@ -22,7 +23,7 @@
 #include "Error_table.h"
 #include "Message.h"
 #include "Datatype.h"
-
+#include <Message/OpenMP.h>
 
 //
 // Instantiate OOMPI_COMM_WORLD
@@ -135,8 +136,24 @@ OOMPI_Comm_world::Init(int& argc, char**& argv, bool call_init)
 
     if (call_init) {
       MPI_Initialized(&flag);
-      if (!flag)
+      if (!flag) 
+      {
+#if defined(ENABLE_OPENMP)
+        int provided, claimed;
+        MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+        MPI_Query_thread(&claimed);
+        if (claimed != provided) 
+        {
+          std::ostringstream o;
+	  o << "OOMPI_Comm_world::init"
+           << "\n  MPI_Query_thread thread level " << claimed
+	   << "\n  MPI_Init_threadthread level " << provided;
+          APP_ABORT(o.str());
+        }
+#else
 	MPI_Init(&argc, &argv);
+#endif
+      }
     }
 
     MPI_Constructor(MPI_COMM_WORLD, false);
@@ -149,7 +166,7 @@ OOMPI_Comm_world::Init(int& argc, char**& argv, bool call_init)
 
     int flag2, *addr;
 
-    // Initialize other gloabal instances from built in attributes
+    // Initialize other global instances from built in attributes
 
     MPI_Attr_get(MPI_COMM_WORLD, MPI_HOST, &addr, &flag2);
     OOMPI_HOST = *addr;

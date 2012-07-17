@@ -1,105 +1,147 @@
-#include <cmath>
+/** @file TestFunc.h
+ *
+ * Test functor in a PW basis set
+ */
+#ifndef QCMPLUSPLUS_PW_COMPONENT_BENCH_H
+#define QCMPLUSPLUS_PW_COMPONENT_BENCH_H
+#include <type_traits/scalar_traits.h>
+#include <config/stdlib/math.h>
 
-struct TestFunc {
+namespace qmcplusplus 
+{
+  /** a PW function at K
+   */
+  template<typename T>
+    struct PWComponent {
 
-  double k0,k1,k2;
-  double d2factor;
+      TinyVector<T,3> K;
+      T kk;
 
-  TestFunc(int nk0=1, int nk1=1, int nk2=1) {
-    const double twopi = 8.0*std::atan(1.0);
-    k0=twopi*static_cast<double>(nk0);
-    k1=twopi*static_cast<double>(nk1);
-    k2=twopi*static_cast<double>(nk2);
-    d2factor = -(k0*k0+k1*k1+k2*k2);
-  }
+      /** default constructor 
+       *
+       * Multiply 2pi
+       */
+      PWComponent(int nk0=1, int nk1=1, int nk2=1) 
+      {
+        K[0]=TWOPI*static_cast<T>(nk0);
+        K[1]=TWOPI*static_cast<T>(nk1);
+        K[2]=TWOPI*static_cast<T>(nk2);
+        kk=-(K[0]*K[0]+K[1]*K[1]+K[2]*K[2]);
+      }
 
-  //inline double operator()(const TinyVector<double,3>& pos) {
-  //  return sin(k0*pos[0])*sin(k1*pos[1])*sin(k2*pos[2]);
-  //}
-  //inline double operator()(double x, double y, double z) {
-  //  return sin(k0*x)*sin(k1*y)*sin(k2*z);
-  //}
-  //
-  template<class PV>
-  inline double f(const PV& pos) {
-    return std::sin(k0*pos[0])*std::sin(k1*pos[1])*std::sin(k2*pos[2]);
-  }
+      template<typename PV, typename VT>
+        inline void v(const PV& pos, VT& val) 
+        {
+          T kdotp=dot(K,pos);
+          complex<T> res(std::cos(kdotp),std::sin(kdotp));
+          convert(res,val);
+        }
 
-  inline double f(double x, double y, double z) {
-    return std::sin(k0*x)*std::sin(k1*y)*std::sin(k2*z);
-  }
+      template<class PV, typename VT, typename GT, typename LT>
+        inline void vgl(const PV& pos, VT& v, GT& g, LT& l)
+        {
+          T kdotp=dot(K,pos);
+          T sinx=std::sin(kdotp);
+          T cosx=std::cos(kdotp);
+          complex<T> eikr(cosx,sinx);
+          complex<T> ieikr(-sinx,cosx);
+          TinyVector<complex<T>,3> g1(K[0]*ieikr,K[1]*ieikr,K[2]*ieikr);
 
-  template<class PV>
-  inline PV df(const PV& pos) {
-    return PV(k0*std::cos(k0*pos[0])*std::sin(k1*pos[1])*std::sin(k2*pos[2]),
-        k1*std::sin(k0*pos[0])*std::cos(k1*pos[1])*std::sin(k2*pos[2]),
-        k2*std::sin(k0*pos[0])*std::sin(k1*pos[1])*std::cos(k2*pos[2]));
-  }
+          convert(eikr,v);
+          convert(g1,g);
+          convert(kk*eikr,l);
+        }
 
-  template<class PV>
-  inline double d2f(const PV& pos) {
-    return d2factor*f(pos);
-  }
+      template<class PV, typename VT, typename GT, typename HT>
+        inline void vgh(const PV& pos, VT& v, GT& g, HT& h)
+        {
+          T kdotp=dot(K,pos);
+          T sinx=std::sin(kdotp);
+          T cosx=std::cos(kdotp);
+          complex<T> eikr(cosx,sinx);
+          complex<T> ieikr(-sinx,cosx);
+          TinyVector<complex<T>,3> g1(K[0]*ieikr,K[1]*ieikr,K[2]*ieikr);
+          Tensor<complex<T>,3> h1(-K[0]*K[0]*eikr,-K[0]*K[1]*eikr,-K[0]*K[2]*eikr
+              ,-K[1]*K[0]*eikr,-K[1]*K[1]*eikr,-K[1]*K[2]*eikr
+              ,-K[2]*K[0]*eikr,-K[2]*K[1]*eikr,-K[2]*K[2]*eikr
+              );
+          convert(eikr,v);
+          convert(g1,g);
+          convert(h1,h);
+        }
+    };
 
-  inline double d2f(double x, double y, double z) {
-    return d2factor*f(x,y,z);
-  }
+  template<typename T>
+    struct PW {
 
-};
+      typedef typename scalar_traits<T>::real_type real_type;
+      typedef typename scalar_traits<T>::value_type value_type;
+      typedef PWComponent<real_type> basis_type;
 
-struct ComboFunc {
+      std::vector<value_type> C;
+      std::vector<basis_type*> F;
 
-  std::vector<double> C;
-  std::vector<TestFunc*> F;
+      PW() {}
+      ~PW() 
+      {
+        for(int i=0; i<F.size(); i++) delete F[i];
+      }
 
-  ComboFunc() {}
-  ~ComboFunc() 
-  {
-    for(int i=0; i<F.size(); i++) delete F[i];
-  }
+      void push_back(value_type c, basis_type* fn) 
+      { 
+        C.push_back(c); 
+        F.push_back(fn);
+      }
 
-  void push_back(double c, TestFunc* fn) { 
-    C.push_back(c); 
-    F.push_back(fn);
-  }
+      template<typename PV>
+        inline void v(const PV& pos,value_type& res)
+        {
+          value_type t;
+          res=value_type();
+          for(int i=0; i<C.size(); i++) 
+          {
+            F[i]->v(pos,t);
+            res+=C[i]*t;
+          }
+        }
 
-  inline double f(double x, double y, double z) {
-    double res=0;
-    for(int i=0; i<C.size(); i++) res += C[i]*F[i]->f(x,y,z);
-    return res;
-  }
+      template<typename PV>
+        inline void vgl(const PV& pos, value_type& res, TinyVector<value_type,3>& grad, value_type& lap)
+        {
+          res=0.0;
+          grad=0.0;
+          lap=0.0;
+          value_type v,l;
+          TinyVector<value_type,3> g;
+          for(int i=0; i<C.size(); i++) 
+          {
+            F[i]->vgl(pos,v,g,l);
+            res+=C[i]*v;
+            grad+=C[i]*g;
+            lap+=C[i]*l;
+          }
+        }
 
-  template<class PV>
-  inline PV df(const PV& pos) {
-    PV res(0.0,0.0,0.0);
-#if defined(USE_BLITZ_TINYVECTOR)
-    for(int i=0; i<C.size(); i++) 
-    { PV t=F[i]->df(pos);
-      res[0] += C[i]*t[0];
-      res[1] += C[i]*t[1];
-      res[2] += C[i]*t[2];
-    }
-#else
-    for(int i=0; i<C.size(); i++) res += C[i]*F[i]->df(pos);
+      template<typename PV>
+        inline void vgh(const PV& pos,value_type& res,TinyVector<value_type,3>& grad, Tensor<value_type,3>& hess)
+        {
+          res=0.0;
+          grad=0.0;
+          hess=0.0;
+          value_type v;
+          TinyVector<value_type,3> g;
+          Tensor<value_type,3> h;
+          for(int i=0; i<C.size(); i++) 
+          {
+            F[i]->vgh(pos,v,g,h);
+            res+=C[i]*v;
+            grad+=C[i]*g;
+            hess+=C[i]*h;
+          }
+        }
+
+    };
+
+}
 #endif
-    return res;
-  }
-
-  inline double d2f(double x, double y, double z) {
-    double res=0;
-    for(int i=0; i<C.size(); i++) res += C[i]*F[i]->d2f(x,y,z);
-    return res;
-  }
-
-  template<class PV>
-  inline double f(const PV& pos) {
-    return f(pos[0],pos[1],pos[2]);
-  }
-
-  template<class PV>
-  inline double d2f(const PV& pos) {
-    return d2f(pos[0],pos[1],pos[2]);
-  }
-
-};
 

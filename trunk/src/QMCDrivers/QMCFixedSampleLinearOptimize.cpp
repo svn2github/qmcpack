@@ -44,7 +44,7 @@ namespace qmcplusplus
 
 QMCFixedSampleLinearOptimize::QMCFixedSampleLinearOptimize(MCWalkerConfiguration& w,
                                      TrialWaveFunction& psi, QMCHamiltonian& h, HamiltonianPool& hpool, WaveFunctionPool& ppool): QMCLinearOptimize(w,psi,h,hpool,ppool),
-        Max_iterations(1), exp0(-16), exp1(0),  nstabilizers(10), stabilizerScale(0.5), bigChange(1), eigCG(1), TotalCGSteps(2), w_beta(0.0),
+        Max_iterations(1), exp0(-16), exp1(0),  nstabilizers(3), stabilizerScale(2.0), bigChange(1), eigCG(1), TotalCGSteps(1), w_beta(0.0),
         MinMethod("quartic"), GEVtype("mixed"), StabilizerMethod("best"), GEVSplit("no")
 {
     //set the optimization flag
@@ -85,8 +85,8 @@ QMCFixedSampleLinearOptimize::RealType QMCFixedSampleLinearOptimize::Func(RealTy
     for (int i=0; i<optparm.size(); i++) optTarget->Params(i) = optparm[i] + dl*optdir[i];
     QMCLinearOptimize::RealType c = optTarget->Cost(false);
     //only allow this to go false if it was true. If false, stay false
-//     if (validFuncVal) 
-    validFuncVal = optTarget->IsValid;
+//    if (validFuncVal) 
+      validFuncVal = optTarget->IsValid;
     
     return c;
 }
@@ -164,7 +164,8 @@ bool QMCFixedSampleLinearOptimize::run()
           Matrix<RealType> LeftT(N,N);
           Matrix<RealType> Left(N,N);
           Matrix<RealType> Right(N,N);
-          RealType H2rescale=optTarget->fillOverlapHamiltonianMatrices(LeftT,Right);
+          Matrix<RealType> S(N,N);
+          RealType H2rescale=optTarget->fillOverlapHamiltonianMatrices(LeftT,Right,S);
           Left=0.0;
 //           optTarget->fillOverlapHamiltonianMatrices(Ham2, Ham, Var, S);
           
@@ -191,14 +192,17 @@ bool QMCFixedSampleLinearOptimize::run()
           }
           
           
-          //Find largest off-diagonal element compared to diagonal element.
-          //This gives us an idea how well conditioned it is and can be used to stabilize.
-          RealType od_largest(0);
-          for (int i=0; i<N; i++) for (int j=0; j<N; j++)
-            od_largest=std::max( std::max(od_largest,std::abs(Left(i,j))-std::abs(Left(i,i))), std::abs(Left(i,j))-std::abs(Left(j,j)));
-//             app_log()<<"od_largest "<<od_largest<<endl;
-          if (od_largest>0) od_largest = std::log(od_largest)/(nstabilizers-1);
-          if (od_largest<=0) od_largest = stabilizerScale;
+//           //Find largest off-diagonal element compared to diagonal element.
+//           //This gives us an idea how well conditioned it is and can be used to stabilize.
+//           RealType od_largest(0);
+//           for (int i=0; i<N; i++) for (int j=0; j<N; j++)
+//             od_largest=std::max( std::max(od_largest,std::abs(Left(i,j))-std::abs(Left(i,i))), std::abs(Left(i,j))-std::abs(Left(j,j)));
+//           app_log()<<"od_largest "<<od_largest<<endl;
+//           if((nstabilizers>1)and (od_largest>0)) od_largest = std::log(od_largest)/(nstabilizers-1);
+//           if (od_largest<=0) od_largest = stabilizerScale;
+    
+    app_log()<<"  stabilityBase "<<stabilityBase<<endl;
+    app_log()<<"  stabilizerScale "<<stabilizerScale<<endl;
 
           RealType safe = Left(0,0);
           for (int stability=0; stability<nstabilizers; stability++)
@@ -207,47 +211,62 @@ bool QMCFixedSampleLinearOptimize::run()
               for (int j=0; j<N; j++)
                   LeftT(i,j)= Left(j,i);
 
-            RealType XS(stabilityBase+od_largest*stability);
-            int nms(0);
-            for (int i=0; i<mappedStabilizers.size(); i++) if (mappedStabilizers[i].second==mappedStabilizers[i].second) nms++;
-            if (nms>=3)
+//             RealType XS(stabilityBase+od_largest*stability);
+//             int nms(0);
+//             for (int i=0; i<mappedStabilizers.size(); i++) if (mappedStabilizers[i].second==mappedStabilizers[i].second) nms++;
+//            if (nms>=3)
+//            {
+//              RealType estval(0);
+//              bool SuccessfulFit(fitMappedStabilizers(mappedStabilizers,XS,estval,100));
+//              if (!SuccessfulFit)
+//              {
+//                if (stability==0)
+//                  stabilityBase+=stabilizerScale;
+//                else
+//                {
+//                  RealType maxXS(mappedStabilizers[0].second);
+//                  RealType minXS(mappedStabilizers[0].second);
+//                  for (int i=1; i<mappedStabilizers.size(); i++) 
+//                    if (mappedStabilizers[i].second==mappedStabilizers[i].second)
+//                    {
+//                      maxXS=std::max(maxXS,mappedStabilizers[i].second);
+//                      minXS=std::min(minXS,mappedStabilizers[i].second);
+//                    }
+//                  //resetting XS range
+//                  od_largest=(maxXS-minXS)/(nstabilizers-stability+1);
+//                  nstabilizers=nstabilizers-stability;
+//                  stability=1;
+//                  stabilityBase=minXS;
+//                  app_log()<<" Resetting XS range new its:"<<stability<<"/"<<nstabilizers;
+//                }
+//                XS = stabilityBase+od_largest*stability;
+//              }
+//            }
+//             for (int i=1; i<N; i++) LeftT(i,i) += std::exp(XS);
+//             app_log()<<"  Using XS:"<<XS<<endl;
+
+
+            RealType XS(stabilityBase+stabilizerScale*stability);
+            if (failedTries>0)
             {
-              RealType estval(0);
-              bool SuccessfulFit(fitMappedStabilizers(mappedStabilizers,XS,estval,100));
-              if (!SuccessfulFit)
-              {
-                if (stability==0)
-                  stabilityBase+=stabilizerScale;
-                else
-                {
-                  RealType maxXS(mappedStabilizers[0].second);
-                  RealType minXS(mappedStabilizers[0].second);
-                  for (int i=1; i<mappedStabilizers.size(); i++) 
-                    if (mappedStabilizers[i].second==mappedStabilizers[i].second)
-                    {
-                      maxXS=std::max(maxXS,mappedStabilizers[i].second);
-                      minXS=std::min(minXS,mappedStabilizers[i].second);
-                    }
-                  //resetting XS range
-                  od_largest=(maxXS-minXS)/(nstabilizers-stability+1);
-                  nstabilizers=nstabilizers-stability;
-                  stability=1;
-                  stabilityBase=minXS;
-                  app_log()<<" Resetting XS range new its:"<<stability<<"/"<<nstabilizers;
-                }
-                XS = stabilityBase+od_largest*stability;
-              }
+              for (int i=1; i<N; i++) LeftT(i,i) += std::exp(XS);
+              app_log()<<"  Using XS:"<<XS<<endl;
             }
-            for (int i=1; i<N; i++) LeftT(i,i) += std::exp(XS);
-            app_log()<<"  Using XS:"<<XS<<endl;
-            
+      
             RealType lowestEV(0);
+//             myTimers[2]->start();
+// //                     lowestEV =getLowestEigenvector(LeftT,RightT,currentParameterDirections);
+//             lowestEV = getLowestEigenvector(LeftT,currentParameterDirections);
+//             myTimers[2]->stop();
+
             myTimers[2]->start();
-//                     lowestEV =getLowestEigenvector(LeftT,RightT,currentParameterDirections);
+      //                     lowestEV =getLowestEigenvector(LeftT,RightT,currentParameterDirections);
             lowestEV = getLowestEigenvector(LeftT,currentParameterDirections);
-            myTimers[2]->stop();
+            Lambda = getNonLinearRescale(currentParameterDirections,Right);
+            myTimers[2]->stop();            
             
-            Lambda = H2rescale*getNonLinearRescale(currentParameterDirections,Right);
+            
+//             Lambda = H2rescale*getNonLinearRescale(currentParameterDirections,S);
             RealType bigVec(0);
             for (int i=0; i<numParams; i++) bigVec = std::max(bigVec,std::abs(currentParameterDirections[i+1]));
             if (std::abs(Lambda*bigVec)>bigChange)
@@ -321,7 +340,11 @@ bool QMCFixedSampleLinearOptimize::run()
                   continue;
 //                     for (int i=0; i<numParams; i++) optTarget->Params(i) = optparm[i];
               }
-              else for (int i=0; i<numParams; i++) optTarget->Params(i) = optparm[i] + Lambda * optdir[i];
+              else
+              {
+                 for (int i=0; i<numParams; i++) optTarget->Params(i) = optparm[i] + Lambda * optdir[i];
+                 app_log()<<"  Good Step. Largest LM parameter change:"<<biggestParameterChange<<endl;
+              }
               //Save this value in here for later
               Lambda = biggestParameterChange;
             }
@@ -338,7 +361,17 @@ bool QMCFixedSampleLinearOptimize::run()
 
             // mmorales
             Valid=optTarget->IsValid;
-            if (!ValidCostFunction(Valid)) continue;
+            if (!ValidCostFunction(Valid))
+            {
+              app_log()<<"  Good Step, but cost function invalid"<<endl;
+              failedTries++; stability--;
+              if(stability<0) stabilityBase+=stabilizerScale;
+              else stability=nstabilizers;
+//                   mappedStabilizers.push_back(*(new std::pair<RealType,RealType>(std::numeric_limits<RealType>::quiet_NaN(),XS)));
+              mappedStabilizers.push_back(make_pair<RealType,RealType>(XS,std::numeric_limits<RealType>::quiet_NaN()));
+              continue;
+            }
+
             if (newCost < lastCost)
             {
               //Move was acceptable

@@ -380,8 +380,8 @@ namespace qmcplusplus {
   bool
   EinsplineSetBuilder::ReadOrbitalInfo()
   {
-    H5FileID = H5Fopen(H5FileName.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
-//     H5FileID = H5Fopen(H5FileName.c_str(),H5F_ACC_RDONLY,H5P_DEFAULT);
+//    H5FileID = H5Fopen(H5FileName.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
+    H5FileID = H5Fopen(H5FileName.c_str(),H5F_ACC_RDONLY,H5P_DEFAULT);
     if (H5FileID < 0) {
       app_error() << "Could not open HDF5 file \"" << H5FileName 
 		  << "\" in EinsplineSetBuilder::createSPOSet.  Aborting.\n";
@@ -1872,6 +1872,7 @@ else if (occ_format=="band"){
     orbitalSet->StorageLaplVector.resize(N);  orbitalSet->BlendLaplVector.resize(N);
     orbitalSet->StorageGradVector.resize(N);  orbitalSet->BlendGradVector.resize(N);
     orbitalSet->StorageHessVector.resize(N);
+    orbitalSet->StorageGradHessVector.resize(N);
     orbitalSet->phase.resize(N);
     orbitalSet->eikr.resize(N);
     orbitalSet->NumValenceOrbs = NumValenceOrbs;
@@ -2532,6 +2533,7 @@ void
     orbitalSet->StorageLaplVector.resize(N);  orbitalSet->BlendLaplVector.resize(N);
     orbitalSet->StorageGradVector.resize(N);  orbitalSet->BlendGradVector.resize(N);
     orbitalSet->StorageHessVector.resize(N);
+    orbitalSet->StorageGradHessVector.resize(N);
     orbitalSet->phase.resize(N);
     orbitalSet->eikr.resize(N);
     orbitalSet->NumValenceOrbs = NumValenceOrbs;

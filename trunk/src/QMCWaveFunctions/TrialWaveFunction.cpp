@@ -221,8 +221,14 @@ namespace qmcplusplus
 //           forces everything to be evaluated. This was probably done because for optm with the
 //           nonlocal component in the cost function, the slater determinant might not be optimizable
 //           but this must be called anyway to load the inverse. CHECK CHECK CHECK, FIX FIX FIX 
-        logpsi += (*it)->evaluateLog(P, P.G, P.L,buf,false);
-        PhaseValue += (*it)->PhaseValue;
+        if ((*it)->Optimizable)
+        {
+          logpsi += (*it)->evaluateLog(P, P.G, P.L,buf,false);
+          PhaseValue += (*it)->PhaseValue;
+        }
+        else
+//          ValueType x = (*it)->evaluateLog(P, P.G, P.L,buf,false);
+          (*it)->copyFromDerivativeBuffer(P,buf);//keep buffer synched
       }
     convert(logpsi,LogValue);
     return LogValue;
@@ -264,7 +270,7 @@ namespace qmcplusplus
         if ((*it)->Optimizable)
           logpsi_opt += (*it)->evaluateLog(P, P.G, P.L);
         else
-            logpsi_fixed += (*it)->evaluateLog(P, fixedG, fixedL);
+          logpsi_fixed += (*it)->evaluateLog(P, fixedG, fixedL);
       }
     P.G += fixedG;
     P.L += fixedL;
@@ -292,7 +298,15 @@ namespace qmcplusplus
     vector<OrbitalBase*>::iterator it(Z.begin());
     vector<OrbitalBase*>::iterator it_end(Z.end());
     for (; it!=it_end; ++it)
-      logpsi_opt += (*it)->evaluateLog(P, P.G, P.L,buf,true);
+      {
+        if ((*it)->Optimizable)
+          logpsi_opt += (*it)->evaluateLog(P, P.G, P.L,buf,true);
+        else
+          logpsi_fixed += (*it)->evaluateLog(P, fixedG, fixedL,buf,true);
+      }      
+    
+    P.G += fixedG;
+    P.L += fixedL;
     convert(logpsi_fixed,logpsi_fixed_r);
     convert(logpsi_opt,logpsi_opt_r);
     //logpsi_fixed_r = real(logpsi_fixed);
@@ -328,6 +342,32 @@ namespace qmcplusplus
     for (int i=0,ii=0; i<Z.size(); ++i,ii+=2)
       {
         r *= Z[i]->ratio(P,iat);
+      }
+#if defined(QMC_COMPLEX)
+    //return std::exp(evaluateLogAndPhase(r,PhaseValue));
+    RealType logr=evaluateLogAndPhase(r,PhaseDiff);
+    return std::exp(logr);
+#else
+    if (r<0) PhaseDiff=M_PI;
+    //     else PhaseDiff=0.0;
+    return r;
+#endif
+  }
+
+  TrialWaveFunction::RealType TrialWaveFunction::ratioVector(ParticleSet& P, int iat, std::vector<RealType>& ratios)
+  {
+    //TAU_PROFILE("TrialWaveFunction::ratio","(ParticleSet& P,int iat)", TAU_USER);
+    ratios.resize(Z.size(),0);
+    ValueType r(1.0);
+    for (int i=0,ii=0; i<Z.size(); ++i,ii+=2)
+      {
+        ValueType zr=Z[i]->ratio(P,iat);
+        r *= zr; 
+#if defined(QMC_COMPLEX)
+        ratios[i] = abs(zr);
+#else
+        ratios[i] = zr;
+#endif
       }
 #if defined(QMC_COMPLEX)
     //return std::exp(evaluateLogAndPhase(r,PhaseValue));
@@ -516,6 +556,9 @@ TrialWaveFunction::RealType TrialWaveFunction::alternateRatioGrad(ParticleSet& P
     for (int i=0; i<Z.size(); i++) Z[i]->acceptMove(P,iat);
     PhaseValue += PhaseDiff;
     PhaseDiff=0.0;
+
+    LogValue=0;
+    for (int i=0; i<Z.size(); i++) LogValue+= Z[i]->LogValue;
   }
 
 //void TrialWaveFunction::resizeByWalkers(int nwalkers){
@@ -541,6 +584,25 @@ TrialWaveFunction::RealType TrialWaveFunction::alternateRatioGrad(ParticleSet& P
   {
     for (int i=0; i<Z.size(); i++) Z[i]->reportStatus(os);
   }
+  
+  void TrialWaveFunction::getLogs(std::vector<RealType>& lvals)
+  {
+    lvals.resize(Z.size(),0);
+    for (int i=0; i<Z.size(); i++)
+    {
+      lvals[i] = Z[i]->LogValue;
+    }
+  }
+
+  void TrialWaveFunction::getPhases(std::vector<RealType>& pvals)
+  {
+    pvals.resize(Z.size(),0);
+    for (int i=0; i<Z.size(); i++)
+    {
+      pvals[i] = Z[i]->PhaseValue;
+    }
+  }
+
 
   TrialWaveFunction::RealType TrialWaveFunction::registerData(ParticleSet& P, PooledData<RealType>& buf)
   {
@@ -607,11 +669,11 @@ TrialWaveFunction::RealType TrialWaveFunction::alternateRatioGrad(ParticleSet& P
     PhaseValue=0.0;
     vector<OrbitalBase*>::iterator it(Z.begin());
     vector<OrbitalBase*>::iterator it_end(Z.end());
-    for (int ii=1; it!=it_end; ++it,ii+=2)
-      {
-        logpsi += (*it)->updateBuffer(P,buf,fromscratch);
-        PhaseValue += (*it)->PhaseValue;
-      }
+    for (; it!=it_end; ++it)
+    {
+      logpsi += (*it)->updateBuffer(P,buf,fromscratch);
+      PhaseValue += (*it)->PhaseValue;
+    }
     convert(logpsi,LogValue);
     //LogValue=real(logpsi);
     buf.put(PhaseValue);

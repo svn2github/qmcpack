@@ -32,46 +32,46 @@ namespace qmcplusplus {
   void ParticleSet::createSK() 
   {
    
-    if(!sorted_ids && !reordered_ids)
-    {
-      //save ID and GroupID
-      orgID=ID;
-      orgGroupID=GroupID;
+    //if(!sorted_ids && !reordered_ids)
+    //{
+    //  //save ID and GroupID
+    //  orgID=ID;
+    //  orgGroupID=GroupID;
 
-      if(groups()<1)
-      {
-        int nspecies=mySpecies.getTotalNum();
-        vector<int> ppg(nspecies,0);
-        for(int iat=0; iat<GroupID.size(); ++iat) ppg[GroupID[iat]]+=1;
-        SubPtcl.resize(nspecies+1);
-        SubPtcl[0]=0;
-        for(int i=0; i<nspecies; ++i) SubPtcl[i+1]=SubPtcl[i]+ppg[i];
-        int new_id=0;
-        for(int i=0; i<nspecies; ++i)
-          for(int iat=0; iat<GroupID.size(); ++iat) if(GroupID[iat]==i) orgID[new_id++]=ID[iat];
-        bool grouped=true;
-        for(int iat=0; iat<ID.size(); ++iat) grouped &= (orgID[iat]==ID[iat]);
+    //  if(groups()<1)
+    //  {
+    //    int nspecies=mySpecies.getTotalNum();
+    //    vector<int> ppg(nspecies,0);
+    //    for(int iat=0; iat<GroupID.size(); ++iat) ppg[GroupID[iat]]+=1;
+    //    SubPtcl.resize(nspecies+1);
+    //    SubPtcl[0]=0;
+    //    for(int i=0; i<nspecies; ++i) SubPtcl[i+1]=SubPtcl[i]+ppg[i];
+    //    int new_id=0;
+    //    for(int i=0; i<nspecies; ++i)
+    //      for(int iat=0; iat<GroupID.size(); ++iat) if(GroupID[iat]==i) orgID[new_id++]=ID[iat];
+    //    bool grouped=true;
+    //    for(int iat=0; iat<ID.size(); ++iat) grouped &= (orgID[iat]==ID[iat]);
 
-        if(grouped)
-        {
-          app_log() << "  ParticleSet is grouped. No need to reorder." << endl;
-        }
-        else
-        {
-          app_log() << "  Need to reorder. Only R is swapped." << endl;
-          ParticlePos_t oldR(R);
-          for(int iat=0; iat<R.size(); ++iat) R[iat]=oldR[orgID[iat]];
-          for(int i=0; i<groups(); ++i)
-            for(int iat=first(i); iat<last(i); ++iat) GroupID[iat]=i;
-          reordered_ids=true;
-        }
-      }//once group is set, nothing to be done
-      sorted_ids=true;
-    }
+    //    if(grouped)
+    //    {
+    //      app_log() << "  ParticleSet is grouped. No need to reorder." << endl;
+    //    }
+    //    else
+    //    {
+    //      app_log() << "  Need to reorder. Only R is swapped." << endl;
+    //      ParticlePos_t oldR(R);
+    //      for(int iat=0; iat<R.size(); ++iat) R[iat]=oldR[orgID[iat]];
+    //      for(int i=0; i<groups(); ++i)
+    //        for(int iat=first(i); iat<last(i); ++iat) GroupID[iat]=i;
+    //      reordered_ids=true;
+    //    }
+    //  }//once group is set, nothing to be done
+    //  sorted_ids=true;
+    //}
 
-    int membersize= mySpecies.addAttribute("membersize");
-    for(int ig=0; ig<mySpecies.size(); ++ig)
-      SubPtcl[ig+1]=SubPtcl[ig]+mySpecies(membersize,ig);
+    //int membersize= mySpecies.addAttribute("membersize");
+    //for(int ig=0; ig<mySpecies.size(); ++ig)
+    //  SubPtcl[ig+1]=SubPtcl[ig]+mySpecies(membersize,ig);
 
     convert2Cart(R); //make sure that R is in Cartesian coordinates
     //if(Lattice.BoxBConds[0] && SK == 0)
@@ -92,9 +92,24 @@ namespace qmcplusplus {
       //This uses the copy constructor to avoid recomputing the data.
       //SKOld = new StructFact(*SK);
     }
+
+    //set the mass array
+    int beforemass=mySpecies.numAttributes();
+    int massind= mySpecies.addAttribute("mass");
+    if(beforemass == massind) 
+    {
+      app_log() << "  ParticleSet::createSK setting mass of  " << getName() << " to 1.0" << endl;
+      for(int ig=0; ig<mySpecies.getTotalNum(); ++ig) 
+        mySpecies(massind,ig)=1.0; 
+    }
+
+    for(int iat=0; iat<GroupID.size(); iat++) 
+      Mass[iat]=mySpecies(massind,GroupID[iat]);
+
   }
 
-  void ParticleSet::convert(const ParticlePos_t& pin, ParticlePos_t& pout){
+  void ParticleSet::convert(const ParticlePos_t& pin, ParticlePos_t& pout)
+  {
 
     if(pin.getUnit() == pout.getUnit())   {
       pout = pin;
@@ -182,12 +197,16 @@ namespace qmcplusplus {
 
   void ParticleSet::convert2UnitInBox(const ParticlePos_t& pin, ParticlePos_t& pout) 
   {
-    APP_ABORT("Do implement ParticleSet::convert2UnitInBox");
-    for(int i=0; i<pin.size(); ++i)
-    {
-      //MinimumImageBConds<RealType,DIM>::apply(Lattice.G,pin[i]);
-    }
+    pout.setUnit(PosUnit::LatticeUnit); 
+    convert2Unit(pin,pout); // convert to crystalline unit
+    put2box(pout);
   }
+
+  void ParticleSet::convert2CartInBox(const ParticlePos_t& pin, ParticlePos_t& pout) 
+  {
+    convert2UnitInBox(pin,pout); // convert to crystalline unit
+    convert2Cart(pout);
+  } 
 }
 /***************************************************************************
  * $RCSfile$   $Author$

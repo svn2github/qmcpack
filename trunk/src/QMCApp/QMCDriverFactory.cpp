@@ -33,16 +33,6 @@
 #include "QMCDrivers/QMCCorrelatedSamplingLinearOptimize.h"
 #include "QMCDrivers/QMCChooseBestParameters.h"    
 #include "QMCDrivers/ZeroVarianceOptimize.h"
-#if QMC_BUILD_LEVEL>2
-#include "QMCDrivers/QMCSHLinearOptimize.h"
-#endif
-//#include "QMCDrivers/RQMCMultiple.h"
-////THESE ARE BROKEN
-////#if !defined(QMC_COMPLEX)
-////#include "QMCDrivers/RQMCMultiWarp.h"
-////#include "QMCDrivers/RQMCMultiplePbyP.h"
-////#endif
-//#endif
 #include "QMCDrivers/WaveFunctionTester.h"
 #include "Utilities/OhmmsInfo.h"
 #include <queue>
@@ -102,7 +92,11 @@ namespace qmcplusplus {
     string multi_tag("no");
     string warp_tag("no");
     string append_tag("no"); 
+#if defined(QMC_CUDA)
+    string gpu_tag("yes");
+#else
     string gpu_tag("no");
+#endif
     
     OhmmsAttributeSet aAttrib;
     aAttrib.add(qmc_mode,"method");
@@ -120,8 +114,6 @@ namespace qmcplusplus {
     WhatToDo[UPDATE_MODE]= (update_mode == "pbyp");
 #if defined(QMC_CUDA)
     WhatToDo[GPU_MODE      ] = (gpu_tag     == "yes");
-#else
-    WhatToDo[GPU_MODE      ] = 0;
 #endif
 
     OhmmsInfo::flush();
@@ -152,19 +144,11 @@ namespace qmcplusplus {
     }
     else
     {
-      if(qmc_mode.find("vmc")<nchars)
-      {
-        newRunType=VMC_RUN;
-      }
-      else if(qmc_mode.find("dmc")<nchars)
-      {
-        newRunType=DMC_RUN;
-      }
-      else if(qmc_mode.find("rn")<nchars)
-      {
-        newRunType=RN_RUN;
-      }
-      else if(qmc_mode.find("fw")<nchars) //number 9
+      if(qmc_mode.find("ptcl")<nchars) WhatToDo[UPDATE_MODE]=1;
+      if(qmc_mode.find("mul")<nchars) WhatToDo[MULTIPLE_MODE]=1;
+      if(qmc_mode.find("warp")<nchars) WhatToDo[SPACEWARP_MODE]=1;
+      
+      if(qmc_mode.find("fw")<nchars) //number 9
       {
         newRunType=FW_RUN;
         WhatToDo[UPDATE_MODE]=1;
@@ -180,14 +164,13 @@ namespace qmcplusplus {
         WhatToDo[SPACEWARP_MODE]=0;
         WhatToDo[ALTERNATE_MODE]=1;
       }
-      else if(qmc_mode.find("wfqmc")<nchars) //number 8
+#if QMC_BUILD_LEVEL>2
+      else if(qmc_mode.find("ee")<nchars) //number >8
       {
-        newRunType=WFMC_RUN;
-        WhatToDo[UPDATE_MODE]=0;
-        WhatToDo[MULTIPLE_MODE]=0;
-        WhatToDo[SPACEWARP_MODE]=0;
-        WhatToDo[ALTERNATE_MODE]=1;
+        newRunType=EE_RUN;
+        if(qmc_mode.find("cs")<nchars) WhatToDo[MULTIPLE_MODE]=1;
       }
+#endif
       else if (qmc_mode.find("rmcPbyP")<nchars)
       {
         newRunType=RMC_PBYP_RUN;
@@ -196,9 +179,18 @@ namespace qmcplusplus {
       {
         newRunType=RMC_RUN;
       }
-      if(qmc_mode.find("ptcl")<nchars) WhatToDo[UPDATE_MODE]=1;
-      if(qmc_mode.find("mul")<nchars) WhatToDo[MULTIPLE_MODE]=1;
-      if(qmc_mode.find("warp")<nchars) WhatToDo[SPACEWARP_MODE]=1;
+      else if(qmc_mode.find("vmc")<nchars)
+      {
+        newRunType=VMC_RUN;
+      }
+      else if(qmc_mode.find("dmc")<nchars)
+      {
+        newRunType=DMC_RUN;
+      }
+      else if(qmc_mode.find("rn")<nchars)
+      {
+        newRunType=RN_RUN;
+      }
     } 
 
     unsigned long newQmcMode=WhatToDo.to_ulong();
@@ -248,6 +240,7 @@ namespace qmcplusplus {
     //branchEngine has to be transferred to a new QMCDriver
     if(branchEngine) qmcDriver->setBranchEngine(branchEngine);
     
+    OhmmsInfo::flush();
     
     return append_run;
   }
@@ -349,30 +342,6 @@ namespace qmcplusplus {
       qmcDriver = fac.create(*qmcSystem,*primaryPsi,*(psiPool->getWaveFunction("guide")),*primaryH,*hamPool,*psiPool);
     } 
 #endif
-//#if QMC_BUILD_LEVEL>1
-//    else if(curRunType == RMC_RUN)
-//    {
-//      app_log() << "Using RQMCMultiple: no warping, no pbyp" << endl;
-//      qmcDriver = new RQMCMultiple(*qmcSystem,*primaryPsi,*primaryH,*psiPool);
-//    }
-//#endif
-//#if defined(QMC_BUILD_COMPLETE)
-//    else if(curRunType == RMC_RUN) 
-//    {
-//#if defined(QMC_COMPLEX)
-//      qmcDriver = new RQMCMultiple(*qmcSystem,*primaryPsi,*primaryH);
-//#else
-//      if(curQmcModeBits[SPACEWARP_MODE]) 
-//        qmcDriver = new RQMCMultiWarp(*qmcSystem,*primaryPsi,*primaryH, *ptclPool);
-//      else 
-//        qmcDriver = new RQMCMultiple(*qmcSystem,*primaryPsi,*primaryH);
-//    }
-//    else if (curRunType==RMC_PBYP_RUN)
-//    {
-//      qmcDriver = new RQMCMultiplePbyP(*qmcSystem,*primaryPsi,*primaryH);
-//#endif
-//    }
-//#endif
     else if(curRunType == OPTIMIZE_RUN)
     {
       QMCOptimize *opt = new QMCOptimize(*qmcSystem,*primaryPsi,*primaryH,*hamPool,*psiPool);
@@ -387,15 +356,6 @@ namespace qmcplusplus {
       opt->setWaveFunctionNode(psiPool->getWaveFunctionNode("psi0"));
       qmcDriver=opt;
     } 
-    #if QMC_BUILD_LEVEL>2
-    else if(curRunType == SH_RUN)
-    {
-      QMCSHLinearOptimize *opt = new QMCSHLinearOptimize(*qmcSystem,*primaryPsi,*primaryH,*hamPool,*psiPool);
-      //ZeroVarianceOptimize *opt = new ZeroVarianceOptimize(*qmcSystem,*primaryPsi,*primaryH );
-      opt->setWaveFunctionNode(psiPool->getWaveFunctionNode("psi0"));
-      qmcDriver=opt;
-    } 
-    #endif
     else if(curRunType == CS_LINEAR_OPTIMIZE_RUN)
     {
       QMCCorrelatedSamplingLinearOptimize *opt = new QMCCorrelatedSamplingLinearOptimize(*qmcSystem,*primaryPsi,*primaryH,*hamPool,*psiPool);

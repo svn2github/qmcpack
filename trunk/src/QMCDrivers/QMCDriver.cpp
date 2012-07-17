@@ -203,12 +203,9 @@ namespace qmcplusplus {
     TimerManager.print(myComm);
     TimerManager.reset();
 
-    if(DumpConfig)
-    {
-      wOut->dump(W);
-      branchEngine->finalize(W);
-      RandomNumberControl::write(RootName,myComm);
-    }
+    if(DumpConfig) wOut->dump(W);
+    branchEngine->finalize(W);
+    RandomNumberControl::write(RootName,myComm);
 
     delete wOut;
     wOut=0;
@@ -314,7 +311,7 @@ namespace qmcplusplus {
           rAttrib.add(Period4CheckPoint,"stride");
           rAttrib.add(Period4CheckPoint,"period");
           rAttrib.put(tcur);
-          DumpConfig=(Period4CheckPoint>0);
+          //DumpConfig=(Period4CheckPoint>0);
         }
         else if(cname == "dumpconfig") {
           OhmmsAttributeSet rAttrib; 
@@ -329,7 +326,8 @@ namespace qmcplusplus {
       }
     }
 
-    if(Period4CheckPoint==0)  Period4CheckPoint=(nBlocks+1)*nSteps;
+    DumpConfig=(Period4CheckPoint>0);
+    if(!DumpConfig)  Period4CheckPoint=(nBlocks+1)*nSteps; //just safeguard
     
     int Nthreads = omp_get_max_threads();
     int Nprocs=myComm->size();
@@ -361,7 +359,7 @@ namespace qmcplusplus {
       Period4WalkerDump=(nBlocks+1)*nSteps;
 
 
-    app_log() << "  Walker Check Points are dumped every " << Period4CheckPoint << " steps." << endl;
+    app_log() << "  Walker Check Points are dumped every " << Period4CheckPoint << " block." << endl;
     if (Period4WalkerDump>0) app_log() << "  Walker Samples are dumped every " << Period4WalkerDump << " steps." << endl;
     //reset CurrentStep to zero if qmc/@continue='no'
     if(!AppendRun) CurrentStep=0;
