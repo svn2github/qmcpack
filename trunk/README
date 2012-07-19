@@ -20,7 +20,6 @@ to set the XYZ_HOME for XYZ package.
 
   export CXX=icpc
   export CC=icc
-  export MKL_HOME=/usr/local/intel/mkl/10.0.3.020
   export LIBXML2_HOME=/usr/local
   export HDF5_HOME=/usr/local
   export BOOST_HOME=/usr/local/boost
@@ -39,14 +38,12 @@ Several toolchain files used by the developers are available in config
 directory.  They are used on large-scale parallel machines where setting up all
 the neccesary packages can be tricky. 
 
-* AbeMvapich2.cmake for Abe cluster at NCSA
-* JaguarGNU.cmake for CrayXT systems at ORNL
-* KrakenGNU.cmake for CrayXT5 system at NICS
+* TitanGNU.cmake for CrayXT systems at ORNL
 
-Once a sutiable toolchain file is found, follow these step (example on abe.ncsa.uiuc.edu):
+Once a sutiable toolchain file is found, follow these step (example on jaguar at OLCF)
 * cd build
-* cmake -DCMAKE_TOOLCHAIN_FILE=../config/AbeMvapich2.cmake -DCMAKE_VERBOSE_MAKEFILE=TRUE ..
-* cmake -DCMAKE_TOOLCHAIN_FILE=../config/AbeMvapich2.cmake -DCMAKE_VERBOSE_MAKEFILE=TRUE ..
+* cmake -DCMAKE_TOOLCHAIN_FILE=../config/TitanGNU.cmake -DCMAKE_VERBOSE_MAKEFILE=TRUE ..
+* cmake -DCMAKE_TOOLCHAIN_FILE=../config/TitanGNU.cmake -DCMAKE_VERBOSE_MAKEFILE=TRUE ..
 * make
 
-For more informaton, consult QMCPACK wiki at http://www.mcc.uiuc.edu/qmcpack
+For more informaton, consult QMCPACK wiki at http://qmcpack.cmscc.org

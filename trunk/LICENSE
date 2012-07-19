@@ -3,8 +3,10 @@ Important Notice for qmcpack developers and end-users:
 i) The original programs developed by Jeongnim Kim and her collaborators
 are distributed under UIUC/NCSA Open Source License (below). 
 
-ii) Some packages/features are not available under open source license and require
-separate license agreements with the authors. Contact the responsible authors.
+ii) Einspline library included in this distribution is released under the UIUC
+Open Source License. The source codes do not reflect the dual licenses granted
+by Ken Esler, the author of einspline library.  Stand-alone library under GPL
+can be downloaded at http://einspline.sourceforge.net/.
 
 -------------
 		  University of Illinois/NCSA Open Source License
