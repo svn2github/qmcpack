@@ -47,6 +47,8 @@ set(PREFETCH_AHEAD 10)
 set(HAVE_MKL 1)
 set(HAVE_MKL_VML 1)
 
+set(CUDA_NVCC_FLAGS "-arch=sm_20;-Drestrict=__restrict__;-DNO_CUDA_MAIN;-O3")
+
 include_directories(/usr/local/intel/mkl/include)
 link_libraries(-L/usr/local/intel/mkl/lib/intel64 -mkl=sequential)
 

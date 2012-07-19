@@ -6,11 +6,6 @@ are distributed under UIUC/NCSA Open Source License (below).
 ii) Some packages/features are not available under open source license and require
 separate license agreements with the authors. Contact the responsible authors.
 
-iii) autoconf/automake scripts are distributed under GPL (see COPYING).
-
-iv) The sources derived from any package distributed under GPL contain
-explicit acknowledgments of the original works and are distributed under GPL.
-
 -------------
 		  University of Illinois/NCSA Open Source License
 
