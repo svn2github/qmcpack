@@ -6,6 +6,7 @@
 #if defined(__bgp__)
 #include <dcmf.h>
 #endif
+#include <sys/time.h>
 
 namespace qmcplusplus
 {
