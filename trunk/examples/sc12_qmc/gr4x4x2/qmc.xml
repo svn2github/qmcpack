@@ -3,7 +3,7 @@
   <project id="bench" series="0"/>
   <random seed="-1"/>
   <wavefunction name="psi0" target="e">
-    <determinantset type="bspline" href="../lda.pwscf.h5" sort="1" 
+    <determinantset type="bspline" href="lda.pwscf.h5" sort="1" 
       tilematrix="4 0 0 0 4 0 0 0 2" twistnum="0" source="ion0" version="0.10" gpu="yes" precision="float">
       <slaterdeterminant>
         <determinant id="updet" size="256">
