@@ -1,8 +1,8 @@
 SET(CMAKE_SYSTEM_PROCESSOR "XK7")
 #2011-12-06
 
-set(CMAKE_C_COMPILER  /opt/cray/xt-asyncpe/default/bin/cc)
-set(CMAKE_CXX_COMPILER  /opt/cray/xt-asyncpe/default/bin/CC)
+set(CMAKE_C_COMPILER  gcc)
+set(CMAKE_CXX_COMPILER  /opt/openmpi/1.6.4/gcc4/bin/mpicxx)
 set(GNU_OPTS "-DADD_ -DINLINE_ALL=inline -DDISABLE_TIMER=1 -DUSE_REAL_STRUCT_FACTOR") 
 #set(GNU_OPTS "-DADD_ -DINLINE_ALL=inline -DUSE_REAL_STRUCT_FACTOR -DDISABLE_TIMER=1 -DHAVE_FMA4=1 -DHAVE_AMDLIBM=1")
 set(GNU_FLAGS "-malign-double -fomit-frame-pointer -ffast-math -fopenmp -O3 -Drestrict=__restrict__ -finline-limit=1000 -fstrict-aliasing -funroll-all-loops -Wno-deprecated ")
@@ -25,23 +25,28 @@ SET(PREFETCH_AHEAD 12)
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-set(CMAKE_SHARED_LINKER_FLAGS "")
-
-FOREACH(type SHARED_LIBRARY SHARED_MODULE EXE)
-  SET(CMAKE_${type}_LINK_STATIC_C_FLAGS "-Wl,-Bstatic")
-  SET(CMAKE_${type}_LINK_DYNAMIC_C_FLAGS "-static")
-  SET(CMAKE_${type}_LINK_STATIC_CXX_FLAGS "-Wl,-Bstatic")
-  SET(CMAKE_${type}_LINK_DYNAMIC_CXX_FLAGS "-static")
-ENDFOREACH(type)
+#set(CMAKE_SHARED_LINKER_FLAGS "")
+#FOREACH(type SHARED_LIBRARY SHARED_MODULE EXE)
+#  SET(CMAKE_${type}_LINK_STATIC_C_FLAGS "-Wl,-Bstatic")
+#  SET(CMAKE_${type}_LINK_DYNAMIC_C_FLAGS "-static")
+#  SET(CMAKE_${type}_LINK_STATIC_CXX_FLAGS "-Wl,-Bstatic")
+#  SET(CMAKE_${type}_LINK_DYNAMIC_CXX_FLAGS "-static")
+#ENDFOREACH(type)
 
 set(CMAKE_FIND_ROOT_PATH
-  /opt/cray/hdf5/1.8.9/gnu/47
-  /opt/fftw/3.3.0.1/interlagos
-  /sw/xk6/boost/1.44.0/cle4.0_gnu4.5.3
-  /ccs/home/jnkim/titan/gnu47/libxml2
+/home/ihk/share/oic5
 )
 
+set(Boost_INCLUDE_DIR /home/ihk/share/boost)
+
 #AMD math lib
-include_directories(/ccs/home/jnkim/lib/amdlibm/include)
-link_libraries(/ccs/home/jnkim/lib/amdlibm/lib/static/libamdlibm.a)
+include_directories(/home/ihk/share/oic5/amdlibm-3-0-2/include)
+link_libraries(-llapack -lblas /home/ihk/share/oic5/amdlibm-3-0-2/lib/static/libamdlibm.a -lz)
+
+INCLUDE(Platform/UnixPaths)
+
+SET(CMAKE_CXX_LINK_SHARED_LIBRARY)
+SET(CMAKE_CXX_LINK_MODULE_LIBRARY)
+SET(CMAKE_C_LINK_SHARED_LIBRARY)
+SET(CMAKE_C_LINK_MODULE_LIBRARY)
 

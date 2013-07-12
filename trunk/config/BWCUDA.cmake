@@ -1,8 +1,8 @@
 SET(CMAKE_SYSTEM_PROCESSOR "XK6")
-#2012-02-17
+#2012-11-29
 #NEED THESES + defaults
 #  module swap PrgEnv-pgi PrgEnv-gnu
-#  module load xtpe-accel-nvidia20
+#  module load xtpe-accel-nvidia35
 #  module load cudatools
 set(CMAKE_C_COMPILER  /opt/cray/xt-asyncpe/default/bin/cc)
 set(CMAKE_CXX_COMPILER  /opt/cray/xt-asyncpe/default/bin/CC)
@@ -35,17 +35,23 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_SHARED_LINKER_FLAGS "")
 
 set(CMAKE_FIND_ROOT_PATH
-  /opt/cray/hdf5/1.8.9/gnu/47
-  /opt/fftw/3.3.0.1/interlagos
-  /sw/xk6/boost/1.44.0/cle4.0_gnu4.5.3
-  /ccs/home/jnkim/mat034/xk6/gnu45/libxml2
+/opt/cray/hdf5/default/gnu/47
+/opt/fftw/default/interlagos
+/u/staff/rmokos/libs/boost
+/u/staff/rmokos/libs/libxml2
 )
 
+#set(HAVE_LIBBOOST 1)
+#include_directories(/u/staff/rmokos/libs/boost)
+
 # bypass einspline search
-#set(EINSPLINE_HOME /lustre/widow3/scratch/jnkim/einspline)
+#set(EINSPLINE_HOME /u/sciteam/jnkim/svnwork/einspline)
 #set(HAVE_EINSPLINE 1)
 #set(HAVE_EINSPLINE_EXT 0)
 
+#include_directories(/opt/nvidia/cuda/4.0.17a/include )
+#SET(CUDA_NVCC_FLAGS "-arch;sm_20;-Drestrict=__restrict__")
+#set(CUDA_NVCC_FLAGS "-arch=sm_20;-Drestrict=__restrict__;-DNO_CUDA_MAIN;-O3;-use_fast_math")
 set(CUDA_NVCC_FLAGS "-arch=sm_35;-Drestrict=__restrict__;-DNO_CUDA_MAIN;-O3")
 set(CUDA_CUDART_LIBRARY /opt/cray/nvidia/default/lib64/libcuda.so)
 set(CUDA_CUDA_LIBRARY /opt/cray/nvidia/default/lib64/libcuda.so)
