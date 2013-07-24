@@ -24,7 +24,7 @@ SET(QMCPLUSPLUS_VERSION "${QMCPLUSPLUS_VERSION_MAJOR}.${QMCPLUSPLUS_VERSION_MINO
 ######################################################################
 # Build level
 ######################################################################
-SET(QMC_BUILD_LEVEL 1 CACHE INTEGER 
+SET(QMC_BUILD_LEVEL 2 CACHE INTEGER 
   "QMC Build Level: 1=bare, 2=developer, 3=experimental")
 
 ######################################################################
@@ -382,7 +382,7 @@ IF(QMC_CUDA)
     MESSAGE(STATUS "Setting CUDA FLAGS="${CUDA_NVCC_FLAGS})
   else()
     SET(CUDA_NVCC_FLAGS
-      "-arch=sm_13;-Drestrict=__restrict__;-DNO_CUDA_MAIN;-O3;-use_fast_math")#
+      "-arch=sm_35;-Drestrict=__restrict__;-DNO_CUDA_MAIN;-O3")#
     MESSAGE(WARNING "Using outdated CUDA FLAGS="${CUDA_NVCC_FLAGS})
   endif()
   FIND_PACKAGE(CUDA REQUIRED)

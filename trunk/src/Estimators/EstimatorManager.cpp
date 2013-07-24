@@ -22,7 +22,6 @@
 #include "Message/CommUtilities.h"
 #include "Estimators/LocalEnergyEstimator.h"
 #include "Estimators/LocalEnergyOnlyEstimator.h"
-#include "Estimators/RMCLocalEnergyEstimator.h"
 #include "Estimators/CollectablesEstimator.h"
 #include "QMCDrivers/SimpleFixedNodeBranch.h"
 #include "Utilities/IteratorUtility.h"
@@ -482,17 +481,7 @@ bool EstimatorManager::put(MCWalkerConfiguration& W, QMCHamiltonian& H, xmlNodeP
         add(new LocalEnergyEstimator(H,use_hdf5=="yes"),MainEstimatorName);
       }
       else
-        if (est_name=="RMC")
-        {
-          int nobs(20);
-          OhmmsAttributeSet hAttrib;
-          hAttrib.add(nobs, "nobs");
-          hAttrib.put(cur);
-          max4ascii=nobs*H.sizeOfObservables()+3;
-          add(new RMCLocalEnergyEstimator(H,nobs),MainEstimatorName);
-        }
-        else
-          extra.push_back(est_name);
+        extra.push_back(est_name);
     }
     cur = cur->next;
   }

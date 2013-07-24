@@ -23,7 +23,6 @@
 #include "QMCWaveFunctions/TrialWaveFunction.h"
 #include "QMCDrivers/VMC/VMCFactory.h"
 #include "QMCDrivers/DMC/DMCFactory.h"
-#include "QMCDrivers/RMC/RMCFactory.h"
 #include "QMCDrivers/QMCOptimize.h"
 #include "QMCDrivers/QMCFixedSampleLinearOptimize.h"
 #include "QMCDrivers/QMCCorrelatedSamplingLinearOptimize.h"
@@ -135,10 +134,6 @@ bool QMCDriverFactory::setQMCDriver(int curSeries, xmlNodePtr cur)
 //         newRunType=RMC_PBYP_RUN;
 //       }
 //       else
-    if(qmc_mode.find("rmc")<nchars)
-    {
-      newRunType=RMC_RUN;
-    }
     else if(qmc_mode.find("vmc")<nchars)
     {
       newRunType=VMC_RUN;
