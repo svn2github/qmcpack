@@ -25,7 +25,12 @@ SET(QMCDRIVERS
   DMC/DMCFactory.cpp
   DMC/WalkerControlFactory.cpp
   DMC/WalkerReconfiguration.cpp
+  RMC/RMCSingleOMP.cpp
+  RMC/RMCUpdatePbyP.cpp
+  RMC/RMCUpdateAll.cpp
+  RMC/RMCFactory.cpp
   ../Estimators/LocalEnergyEstimator.cpp
+  ../Estimators/RMCLocalEnergyEstimator.cpp
   ../Estimators/LocalEnergyEstimatorHDF.cpp
   ../Estimators/EstimatorManager.cpp
   ../Estimators/MultipleEnergyEstimator.cpp

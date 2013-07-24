@@ -40,41 +40,36 @@ SET(SRCS ${SRCS}
   nubspline_create.c      
   nubasis.c               
   nugrid.c                
+  multi_bspline_copy.c  
 )
 
-IF(HAVE_SSE)
+#do not compiler c functions
+IF(HAVE_SSE41)
   SET(SRCS ${SRCS} 
-    multi_bspline_eval_sse_s.c   
-    multi_bspline_eval_sse_c.c   
     multi_bspline_eval_sse_s_cpp.cc       
-    multi_bspline_eval_sse_c_cpp.cc       
     )
 else()
   SET(SRCS ${SRCS} 
-    multi_bspline_eval_std_s.c 
-    multi_bspline_eval_std_c.c 
-    multi_bspline_eval_std_s_cpp.cc       
-    multi_bspline_eval_std_c_cpp.cc       
+    multi_bspline_eval_std2_s_cpp.cc       
     )
 endif()
+#    multi_bspline_eval_sse_c_cpp.cc       
+#    multi_bspline_eval_std_c_cpp.cc       
 
 
 IF(HAVE_SSE2)
   set(SRCS ${SRCS} 
-    multi_bspline_eval_sse_d.c    
+    multi_bspline_eval_std_d.c 
     multi_bspline_eval_sse_d_cpp.cc 
-    multi_bspline_eval_sse_z.c   
     multi_bspline_eval_sse_z_cpp.cc       
-    multi_nubspline_eval_sse_z.c 
     multi_nubspline_eval_sse_z_cpp.cc   
     )
+
 else()
   SET(SRCS ${SRCS} 
-    multi_bspline_eval_std2_d.c 
-    multi_bspline_eval_std2_z.c 
     multi_bspline_eval_std2_d_cpp.cc       
     multi_bspline_eval_std2_z_cpp.cc       
-    multi_nubspline_eval_std_z.c 
+    multi_bspline_eval_std2_s_cpp.cc       
     multi_nubspline_eval_std_z_cpp.cc   
     )
 endif()
@@ -93,3 +88,5 @@ endif()
 #ADD_EXECUTABLE(time_multi time_multi_new.c)
 #target_link_libraries(time_multi einspline)
 #add_dependencies(time_multi ${PROJECT_BINARY_HOME}/include/einspline/bspline.h)
+ADD_EXECUTABLE(test_multi_single test_multi_single.cpp)
+target_link_libraries(test_multi_single einspline)

@@ -20,26 +20,42 @@ SET(SANDBOX)
 #  TARGET_LINK_LIBRARIES( observable_helper_test qmcbase qmcutil)
 #ENDIF(HAVE_MPI)
 
+set(MYTEST lattice)
+FOREACH(p $ {MYTEST})
+ADD_EXECUTABLE( $ {p}  $ {p} .cpp)
+TARGET_LINK_LIBRARIES($ {p} qmcbase qmcutil)
+
+FOREACH(l $ {QMC_UTIL_LIBS})
+TARGET_LINK_LIBRARIES($ {p} $ {l})
+ENDFOREACH(l $ {QMC_UTIL_LIBS})
+
+TARGET_LINK_LIBRARIES($ {p} $ {LAPACK_LIBRARY} $ {BLAS_LIBRARY} $ {FORTRAN_LIBRARIES})
+
+IF(MPI_LIBRARY)
+TARGET_LINK_LIBRARIES($ {p} $ {MPI_LIBRARY})
+ENDIF(MPI_LIBRARY)
+ENDFOREACH(p $ {MYTEST})
+
 
 IF(HAVE_EINSPLINE)
 
-  SET(ESTEST einspline_bench einspline_smp einspline_validation)
+SET(ESTEST einspline_bench einspline_smp einspline_validation)
 
-  FOREACH(p ${ESTEST})
-    ADD_EXECUTABLE( ${p}  ${p}.cpp)
-    TARGET_LINK_LIBRARIES(${p} qmcbase qmcutil)
-    IF(HAVE_EINSPLINE_EXT)
-      TARGET_LINK_LIBRARIES(${p} ${EINSPLINE_LIBRARIES})
-    else()
-      TARGET_LINK_LIBRARIES(${p} einspline)
-    endif()
-    IF(MPI_LIBRARY)
-      TARGET_LINK_LIBRARIES(${p} ${MPI_LIBRARY})
-    ENDIF(MPI_LIBRARY)
+FOREACH(p $ {ESTEST})
+ADD_EXECUTABLE( $ {p}  $ {p} .cpp)
+TARGET_LINK_LIBRARIES($ {p} qmcbase qmcutil)
+IF(HAVE_EINSPLINE_EXT)
+TARGET_LINK_LIBRARIES($ {p} $ {EINSPLINE_LIBRARIES})
+else()
+  TARGET_LINK_LIBRARIES($ {p} einspline)
+  endif()
+  IF(MPI_LIBRARY)
+  TARGET_LINK_LIBRARIES($ {p} $ {MPI_LIBRARY})
+  ENDIF(MPI_LIBRARY)
 
-  ENDFOREACH(p ${ESTEST})
+  ENDFOREACH(p $ {ESTEST})
 
-ENDIF(HAVE_EINSPLINE)
+  ENDIF(HAVE_EINSPLINE)
 
 #ADD_EXECUTABLE(gnubug gnubug.cpp)
 #TARGET_LINK_LIBRARIES(gnubug qmcbase qmcutil)

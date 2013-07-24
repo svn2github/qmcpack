@@ -8,7 +8,7 @@
 // (at your option) any later version.  This program is    //
 // distributed in the hope that it will be useful, but     //
 // WITHOUT ANY WARRANTY; without even the implied warranty //
-// of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. //  
+// of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. //
 // See the GNU General Public License for more details.    //
 // For more information, please see the PIMC++ Home Page:  //
 //           http://pathintegrals.info                     //
@@ -22,14 +22,15 @@ main()
   LinearGrid ygrid(0.0, 5.0, 30);
   LinearGrid zgrid(0.0, 5.0, 40);
   Array<double,1> f(20,30,40);
-
   for (int ix=0; ix<xgrid.NumPoints; ix++)
     for (int iy=0; iy<xgrid.NumPoints; iy++)
-      for (int iz=0; iz<xgrid.NumPoints; iz++) {
-	x = xgrid(ix);	y = ygrid(iy);	z = zgrid(iz);
-	f(ix,iy,iz) = cos(2.0*x)*cos(2.0*y)*cos(2.0*z);
+      for (int iz=0; iz<xgrid.NumPoints; iz++)
+      {
+        x = xgrid(ix);
+        y = ygrid(iy);
+        z = zgrid(iz);
+        f(ix,iy,iz) = cos(2.0*x)*cos(2.0*y)*cos(2.0*z);
       }
-  
   TricubicSpline(&xgrid, &ygrid, &zgrid, f);
 }
 

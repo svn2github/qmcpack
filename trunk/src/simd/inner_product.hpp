@@ -36,10 +36,32 @@ namespace qmcplusplus {
      * @param source starting address of the source
      * @param n size of the data to copy
      */
+    template<typename T1, typename T2>
+      inline void copy(T1* restrict target, const T2* restrict source, size_t n)
+      {
+        for(size_t i=0; i<n;  ++i) target[i]=static_cast<T1>(source[i]);
+      }
+
+    /** copy function using memcpy 
+     * @param target starting address of the target
+     * @param source starting address of the source
+     * @param n size of the data to copy
+     */
     template<typename T>
       inline void copy(T* restrict target, const T* restrict source, size_t n)
       {
         memcpy(target,source,sizeof(T)*n);
+      }
+
+    /** copy complex to two real containers */
+    template<typename T1, typename T2>
+      inline void copy(T1* restrict target_r, T1* restrict target_i, const complex<T2>* restrict source, size_t n)
+      {
+        for(int i=0; i<n; ++i)
+        {
+          *target_r++=static_cast<T1>(source[i].real());
+          *target_i++=static_cast<T1>(source[i].imag());
+        }
       }
 
     /** dot product

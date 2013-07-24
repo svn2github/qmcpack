@@ -1,14 +1,11 @@
 SET(HAMSRCS
   QMCHamiltonianBase.cpp
   QMCHamiltonian.cpp
-  CoulombPBCAATemp.cpp
-  CoulombPBCABTemp.cpp
-  HamiltonianFactory.cpp
+  CoulombPBCAA.cpp
+  CoulombPBCAB.cpp
   NonLocalTOperator.cpp
   NumericalRadialPotential.cpp
-  RPAPressure.cpp
   ForwardWalking.cpp
-  trialDMCcorrection.cpp
   PairCorrEstimator.cpp
   LocalMomentEstimator.cpp
   DensityEstimator.cpp
@@ -16,6 +13,8 @@ SET(HAMSRCS
   SkEstimator.cpp
   MomentumEstimator.cpp
   ForceBase.cpp
+  HamiltonianFactory.cpp
+  CoulombPotentialFactory.cpp
 )
 #  FSAtomPseudoPot.cpp
 

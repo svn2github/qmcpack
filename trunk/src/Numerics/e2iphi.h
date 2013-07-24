@@ -7,22 +7,41 @@
 //   Urbana, IL 61801
 //   e-mail: esler@uiuc.edu
 //
-// Supported by 
+// Supported by
 //   National Center for Supercomputing Applications, UIUC
 //////////////////////////////////////////////////////////////////
 #ifndef QMCPLUSPLUS_E2IPHI_H
 #define QMCPLUSPLUS_E2IPHI_H
 
+#include <config.h>
 #include <vector>
 #include <complex>
-#include <config.h>
 #include <config/stdlib/math.h>
 
-#if defined(HAVE_ACML)
-extern "C"
+// #if defined(HAVE_ACML)
+// extern "C"
+// {
+// #include <acml_mv.h>
+// }
+
+#if defined(HAVE_AMDLIBM)
+namespace std
 {
-#include <acml_mv.h>
+#include <amdlibm.h>
 }
+using namespace std;
+
+/* additional translations for AMD libm */
+
+#undef vrda_sincos
+#define vrda_sincos amd_vrda_sincos
+
+#undef vrsa_sincosf
+#define vrsa_sincosf amd_vrsa_sincosf
+
+#undef vrsa_sincos
+#define vrsa_sincos amd_vrsa_sincosf
+
 inline void
 eval_e2iphi(int n, double* restrict phi, double* restrict c, double *restrict s)
 {
@@ -70,7 +89,8 @@ eval_e2iphi(int n, double* restrict phi, std::complex<double>* restrict z)
 {
   double s[n],c[n];
   vsincos(s,c,phi,&n);
-  for (int i=0; i<n; i++) z[i] = std::complex<double>(c[i],s[i]);
+  for (int i=0; i<n; i++)
+    z[i] = std::complex<double>(c[i],s[i]);
 }
 
 inline void
@@ -78,7 +98,8 @@ eval_e2iphi (int n, float* restrict phi, std::complex<float>* restrict z)
 {
   float s[n],c[n];
   vssincos(s,c,phi,&n);
-  for (int i=0; i<n; i++) z[i] = std::complex<float>(c[i],s[i]);
+  for (int i=0; i<n; i++)
+    z[i] = std::complex<float>(c[i],s[i]);
 }
 #elif defined(HAVE_MKL_VML)
 #include <mkl_vml_functions.h>
@@ -107,16 +128,21 @@ eval_e2iphi (int n, const float* restrict phi, std::complex<float>* restrict z)
 #else/* generic case */
 template<typename T>
 inline void
-eval_e2iphi (int n, const T* restrict phi, T* phase_r, T* phase_i)
+eval_e2iphi (int n, const T* restrict phi, T* restrict phase_r, T* restrict phase_i)
 {
-  for (int i=0; i<n; i++) sincos(phi[i],&phase_i,&phase_r);
+  for (int i=0; i<n; i++)
+    sincos(*phi++,phase_i++,phase_r++);
 }
 template<typename T>
 inline void
 eval_e2iphi (int n, const T* restrict phi, std::complex<T>* restrict z)
 {
   T s,c;
-  for (int i=0; i<n; i++) {sincos(phi[i],&s,&c); z[i]=std::complex<T>(c,s);}
+  for (int i=0; i<n; i++)
+  {
+    sincos(phi[i],&s,&c);
+    z[i]=std::complex<T>(c,s);
+  }
 }
 #endif
 
@@ -128,11 +154,11 @@ eval_e2iphi(std::vector<T>& phi, std::vector<std::complex<T> >& z)
   eval_e2iphi(phi.size(),&phi[0],&z[0]);
 }
 
-template<typename T>
-inline void
-eval_e2iphi(APPNAMESPACE::Vector<T>& phi, APPNAMESPACE::Vector<std::complex<T> >& z)
-{
-  eval_e2iphi(phi.size(),phi.data(),z.data());
-}
+//template<typename T>
+//inline void
+//eval_e2iphi(qmcplusplus::Vector<T>& phi, qmcplusplus::Vector<std::complex<T> >& z)
+//{
+//  eval_e2iphi(phi.size(),phi.data(),z.data());
+//}
 
 #endif

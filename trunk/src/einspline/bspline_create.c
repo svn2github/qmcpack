@@ -96,7 +96,7 @@ solve_deriv_interp_1d_s (float bands[], float coefs[],
 // On exit, coefs with contain interpolating B-spline coefs
 void 
 solve_periodic_interp_1d_s (float bands[], float coefs[],
-			    int M, int cstride)
+			    int M, size_t cstride) //int M, int cstride)
 {
   float lastCol[M];
   // Now solve:
@@ -239,7 +239,7 @@ find_coefs_1d_s (Ugrid grid, BCtype_s bc,
 		 float *data,  intptr_t dstride,
 		 float *coefs, intptr_t cstride)
 {
-  int M = grid.num;
+  size_t M = grid.num;
   float basis[4] = {1.0/6.0, 2.0/3.0, 1.0/6.0, 0.0};
   if (bc.lCode == PERIODIC || bc.lCode == ANTIPERIODIC) {
 #ifdef HAVE_C_VARARRAYS
@@ -247,7 +247,7 @@ find_coefs_1d_s (Ugrid grid, BCtype_s bc,
 #else
     float *bands = malloc(4*M*sizeof(float));
 #endif    
-    for (int i=0; i<M; i++) {
+    for (size_t i=0; i<M; i++) {
       bands[4*i+0] = basis[0];
       bands[4*i+1] = basis[1];
       bands[4*i+2] = basis[2];
@@ -257,9 +257,9 @@ find_coefs_1d_s (Ugrid grid, BCtype_s bc,
       solve_periodic_interp_1d_s (bands, coefs, M, cstride);
     else
       solve_antiperiodic_interp_1d_s (bands, coefs, M, cstride);
-#ifndef HAVE_C_VARARRAYS
+//#ifndef HAVE_C_VARARRAYS
     free (bands);
-#endif
+//#endif
   }
   else {
     // Setup boundary conditions
@@ -461,7 +461,7 @@ create_UBspline_3d_s (Ugrid x_grid, Ugrid y_grid, Ugrid z_grid,
 		      float *data)
 {
   // Create new spline
-  UBspline_3d_s* restrict spline = malloc (sizeof(UBspline_3d_s));
+  UBspline_3d_s* spline = malloc (sizeof(UBspline_3d_s));
   spline->spcode = U3D;
   spline->tcode  = SINGLE_REAL;
   spline->xBC = xBC; 
@@ -492,10 +492,11 @@ create_UBspline_3d_s (Ugrid x_grid, Ugrid y_grid, Ugrid z_grid,
   spline->x_stride = Ny*Nz;
   spline->y_stride = Nz;
 
+  spline->coefs_size=(size_t)Nx*(size_t)Ny*(size_t)Nz;
 #ifndef HAVE_SSE2
-  spline->coefs      = malloc (sizeof(float)*Nx*Ny*Nz);
+  spline->coefs      = malloc (sizeof(float)*spline->coefs_size);
 #else
-  posix_memalign ((void**)&spline->coefs, 16, (sizeof(float)*Nx*Ny*Nz));
+  posix_memalign ((void**)&spline->coefs, 16, (sizeof(float)*spline->coefs_size));
 #endif
 
   // First, solve in the X-direction 
@@ -1008,7 +1009,7 @@ solve_deriv_interp_1d_d (double bands[], double coefs[],
 // On exit, coefs with contain interpolating B-spline coefs
 void 
 solve_periodic_interp_1d_d (double bands[], double coefs[],
-			    int M, int cstride)
+			    int M, intptr_t cstride)
 {
   double lastCol[M];
   // Now solve:
@@ -1370,13 +1371,18 @@ create_UBspline_3d_d (Ugrid x_grid, Ugrid y_grid, Ugrid z_grid,
   spline->x_stride = Ny*Nz;
   spline->y_stride = Nz;
 
+  spline->coefs_size=(size_t)Nx*(size_t)Ny*(size_t)Nz;
+
 #ifndef HAVE_SSE2
-  spline->coefs      = malloc (sizeof(double)*Nx*Ny*Nz);
+  spline->coefs      = malloc (sizeof(double)*spline->coefs_size);
 #else
-  posix_memalign ((void**)&spline->coefs, 16, (sizeof(double)*Nx*Ny*Nz));
+  posix_memalign ((void**)&spline->coefs, 16, (sizeof(double)*spline->coefs_size)); 
 #endif
 
+  if(data != NULL) // only data is provided
+  {
   // First, solve in the X-direction 
+#pragma omp parallel for
   for (int iy=0; iy<My; iy++) 
     for (int iz=0; iz<Mz; iz++) {
       intptr_t doffset = iy*Mz+iz;
@@ -1386,6 +1392,7 @@ create_UBspline_3d_d (Ugrid x_grid, Ugrid y_grid, Ugrid z_grid,
     }
   
   // Now, solve in the Y-direction
+#pragma omp parallel for
   for (int ix=0; ix<Nx; ix++) 
     for (int iz=0; iz<Nz; iz++) {
       intptr_t doffset = ix*Ny*Nz + iz;
@@ -1395,6 +1402,7 @@ create_UBspline_3d_d (Ugrid x_grid, Ugrid y_grid, Ugrid z_grid,
     }
 
   // Now, solve in the Z-direction
+#pragma omp parallel for
   for (int ix=0; ix<Nx; ix++) 
     for (int iy=0; iy<Ny; iy++) {
       intptr_t doffset = (ix*Ny+iy)*Nz;
@@ -1402,7 +1410,7 @@ create_UBspline_3d_d (Ugrid x_grid, Ugrid y_grid, Ugrid z_grid,
       find_coefs_1d_d (spline->z_grid, zBC, spline->coefs+doffset, 1, 
 		       spline->coefs+coffset, 1);
     }
-
+  }
   init_sse_data();
   return spline;
 }
@@ -1429,6 +1437,7 @@ recompute_UBspline_3d_d (UBspline_3d_d* spline, double *data)
     Nz = Mz+2;
 
   // First, solve in the X-direction 
+#pragma omp parallel for
   for (int iy=0; iy<My; iy++) 
     for (int iz=0; iz<Mz; iz++) {
       intptr_t doffset = iy*Mz+iz;
@@ -1438,6 +1447,7 @@ recompute_UBspline_3d_d (UBspline_3d_d* spline, double *data)
     }
   
   // Now, solve in the Y-direction
+#pragma omp parallel for
   for (int ix=0; ix<Nx; ix++) 
     for (int iz=0; iz<Nz; iz++) {
       intptr_t doffset = ix*Ny*Nz + iz;
@@ -1447,6 +1457,7 @@ recompute_UBspline_3d_d (UBspline_3d_d* spline, double *data)
     }
 
   // Now, solve in the Z-direction
+#pragma omp parallel for
   for (int ix=0; ix<Nx; ix++) 
     for (int iy=0; iy<Ny; iy++) {
       intptr_t doffset = (ix*Ny+iy)*Nz;

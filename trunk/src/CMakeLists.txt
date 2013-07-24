@@ -1,10 +1,15 @@
+
 CONFIGURE_FILE(${qmcpack_SOURCE_DIR}/src/config.h.cmake.in
                ${qmcpack_BINARY_DIR}/src/config.h)
 
+if(QMC_PHI)
+  MESSAGE(STATUS "Minimal build to test codelets on phi")
+else()
 ####################################
 # create libqmcutil
 ####################################
 SET(UTILITIES
+  qmc_common.cpp
   Utilities/RandRandom.cpp 
   Utilities/RandomGenerator.cpp 
   Utilities/OhmmsObject.cpp 
@@ -30,6 +35,7 @@ IF(QMC_CUDA)
    SET(UTILITIES ${UTILITIES} 
        Numerics/CUDA/cuda_inverse.cu 
        CUDA/gpu_vector.cpp
+       CUDA/gpu_misc.cpp
        Particle/accept_kernel.cu)
 ENDIF(QMC_CUDA)
 
@@ -87,11 +93,11 @@ IF(OHMMS_DIM MATCHES 2)
   SET(PARTICLE ${PARTICLE} LongRange/TwoDEwaldHandler.cpp)
 ENDIF(OHMMS_DIM MATCHES 2)
 
-IF(QMC_BUILD_LEVEL GREATER 2)
-  IF(NOT QMC_COMPLEX)
-    SET(PARTICLE ${PARTICLE} Particle/Bead_ParticleSet.cpp )
-  ENDIF(NOT QMC_COMPLEX)
-ENDIF(QMC_BUILD_LEVEL GREATER 2)
+# IF(QMC_BUILD_LEVEL GREATER 2)
+#   IF(NOT QMC_COMPLEX)
+#     SET(PARTICLE ${PARTICLE} Particle/Bead_ParticleSet.cpp )
+#   ENDIF(NOT QMC_COMPLEX)
+# ENDIF(QMC_BUILD_LEVEL GREATER 2)
 
 SET(PARTICLEIO
   ParticleTags.cpp 
@@ -134,10 +140,15 @@ SUBDIRS(QMCApp)
   SUBDIRS(QMCTools)
 #ENDIF(BUILD_QMCTOOLS)
 
-##IF(BUILD_SANDBOX)
-#  SUBDIRS(SandBox benchmark)
-##ENDIF(BUILD_SANDBOX)
+IF(BUILD_SANDBOX)
+  SUBDIRS(SandBox)
+ENDIF(BUILD_SANDBOX)
+
+IF(BUILD_BENCHMARK)
+  SUBDIRS(benchmark)
+ENDIF(BUILD_BENCHMARK)
 
 IF(BUILD_SQD)
   SUBDIRS(SQD)
 ENDIF(BUILD_SQD)
+endif()
