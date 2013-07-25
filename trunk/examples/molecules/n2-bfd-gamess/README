@@ -1,0 +1,6 @@
+HF calculation of N2
+BFD pseudopotential http://burkatzki.com/pseudos/step4.2.php?format=gamess&element=N&basis=vtz
+Basis: vtz
+
+n2.hf.inp : gamess input
+N.BFD.xml : pseudopotential file for QMCPACK
