@@ -2,5 +2,19 @@ HF calculation of N2
 BFD pseudopotential http://burkatzki.com/pseudos/step4.2.php?format=gamess&element=N&basis=vtz
 Basis: vtz
 
-n2.hf.inp : gamess input
-N.BFD.xml : pseudopotential file for QMCPACK
+1. Run GAMESS
+  n2.hf.inp : gamess input
+  n2.hf.out : gamess out
+
+2. Convert GAMESS output for QMCPACK
+  $convert4qmc -gamessAscii n2.hf.out
+
+  Generated files:
+  sample.Gaussian-G2.ptcl.xml : define ionic and electronic systems 
+  sample.Gaussian-G2.xml : trial wavefunction
+
+  sample.Gaussian-G2.xml include one-body and two-body Jastrow functions with rcut=10 bohr.
+
+3. QMC calculations
+  N.BFD.xml : pseudopotential file for QMCPACK
+  a. Optimization using opt.xml

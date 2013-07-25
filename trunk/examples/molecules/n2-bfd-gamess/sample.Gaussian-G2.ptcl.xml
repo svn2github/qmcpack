@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<qmcsystem>
+  <particleset name="e">
+    <group name="u" size="5">
+      <parameter name="charge">-1</parameter>
+      <attrib name="position" datatype="posArray">
+  3.1813164113e-01 -7.5047244709e-01 -8.8240147717e-01
+ -7.3995065542e-01  6.9081306948e-02 -1.4059195324e+00
+ -4.7718598530e-01 -4.7710237893e-01  1.5197896379e+00
+  4.2563193474e-01  2.3662552658e-01  1.7087848862e+00
+  6.8231000928e-01  4.6765981058e-01 -9.7313170392e-01
+</attrib>
+    </group>
+    <group name="d" size="5">
+      <parameter name="charge">-1</parameter>
+      <attrib name="position" datatype="posArray">
+  8.1137917018e-01 -1.7321645244e-01 -1.0357012039e+00
+ -4.0463523706e-01  2.5050228431e-01 -1.7166832402e+00
+  8.2703428528e-01 -6.2025089228e-02  1.0596446787e+00
+ -7.5178227642e-01  3.2875780555e-01  9.1426396913e-01
+  5.3112651539e-01  5.9653471672e-01  8.1259598248e-01
+</attrib>
+    </group>
+  </particleset>
+  <particleset name="ion0" size="2">
+    <group name="N">
+      <parameter name="charge">5</parameter>
+      <parameter name="valence">3</parameter>
+      <parameter name="atomicnumber">7</parameter>
+    </group>
+    <attrib name="position" datatype="posArray">
+  0.0000000000e+00  0.0000000000e+00 -1.0370797323e+00
+  0.0000000000e+00  0.0000000000e+00  1.0370797323e+00
+</attrib>
+    <attrib name="ionid" datatype="stringArray">
+ N N 
+</attrib>
+  </particleset>
+</qmcsystem>
