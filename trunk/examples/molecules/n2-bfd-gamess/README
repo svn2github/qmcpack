@@ -18,3 +18,4 @@ Basis: vtz
 3. QMC calculations
   N.BFD.xml : pseudopotential file for QMCPACK
   a. Optimization using opt.xml
+  b. running vmc-dmc : using N2.opt.wfs.xml from the previous step

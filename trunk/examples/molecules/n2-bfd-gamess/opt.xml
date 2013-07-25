@@ -25,6 +25,8 @@
       <cost name="energy">                   0.00 </cost>                                    
       <cost name="unreweightedvariance">     1.00 </cost>                                    
       <cost name="reweightedvariance">       0.00 </cost>                                    
+      <parameter name="nonlocalpp"          >    yes         </parameter>
+      <parameter name="useBuffer"           >    yes         </parameter>
     </qmc>  
   </loop>
   <loop max="5">                                                                            
@@ -38,6 +40,8 @@
       <cost name="energy">                   0.50 </cost>                                    
       <cost name="unreweightedvariance">     0.00 </cost>                                    
       <cost name="reweightedvariance">       0.50 </cost>                                    
+      <parameter name="nonlocalpp"          >    yes         </parameter>
+      <parameter name="useBuffer"           >    yes         </parameter>
     </qmc>  
   </loop>
   <qmc method="vmc" move="pbyp" target="e">

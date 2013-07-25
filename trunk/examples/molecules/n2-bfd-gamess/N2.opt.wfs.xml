@@ -2042,15 +2042,15 @@
     </determinantset>
     <jastrow name="J2" type="Two-Body" function="Bspline" print="yes">
       <correlation rcut="8" size="10" speciesA="u" speciesB="u">
-        <coefficients id="uu" type="Array">0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0</coefficients>
+        <coefficients id="uu" type="Array"> 0.4157351438 0.2834953514 0.1884380279 0.126667649 0.08529136422 0.0543923177 0.03232488975 0.01890991047 0.009039065738 0.009216146539</coefficients>
       </correlation>
       <correlation rcut="8" size="10" speciesA="u" speciesB="d">
-        <coefficients id="ud" type="Array">0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0</coefficients>
+        <coefficients id="ud" type="Array"> 0.6225962725 0.3819123591 0.2407158107 0.1564500816 0.09963293113 0.06044888697 0.03298485602 0.01934921288 0.007890795818 0.01628172993</coefficients>
       </correlation>
     </jastrow>
     <jastrow name="J1" type="One-Body" function="Bspline" source="ion0" print="yes">
       <correlation rcut="8" size="10" cusp="0" elementType="N">
-        <coefficients id="eN" type="Array">0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0</coefficients>
+        <coefficients id="eN" type="Array"> -1.221245288 -1.058722412 -0.7893281958 -0.5470831857 -0.3603131896 -0.2243570824 -0.129613368 -0.0473367093 -0.01827943803 0.05521143645</coefficients>
       </correlation>
     </jastrow>
   </wavefunction>
