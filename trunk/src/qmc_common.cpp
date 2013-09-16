@@ -62,7 +62,7 @@ void QMCState::initialize(int argc, char **argv)
   }
   if(stopit)
   {
-    cerr<<endl 
+    cerr<<endl;
 //      << "QMCPACK version "<< QMCPLUSPLUS_VERSION_MAJOR <<"." 
 //      << QMCPLUSPLUS_VERSION_MINOR << "." << QMCPLUSPLUS_VERSION_PATCH
 //      << " subversion " << QMCPLUSPLUS_BRANCH
