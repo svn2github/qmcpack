@@ -1,0 +1,78 @@
+Consult QMCPACK wiki at http://qmcpack.cmscc.org/
+
+h1. Getting and building QMCPACK
+
+h2. Prerequisite 
+
+* C/C++ compilers
+* cmake, build utility, http://www.cmake.org
+* blas/lapack, numerical library, use platform-optimized libraries
+* libxml2, XML parser, http://xmlsoft.org/ 
+* hdf5, portable I/O library, http://www.hdfgroup.org/HDF5/
+* boost, peer-reviewed portable C++ source libraries, http://www.boost.org
+* einspline, 3D bspline library, http://einspline.sourceforge.net/
+* fftw, FFT library, http://www.fftw.org/
+
+h2. Build types : provide an option with cmake
+
+Create a build directory for each build
+
+* CPU with real wavefunctions       : default
+* CPU with complex wavefunctions    : -DQMC_COMPLEX=1
+* GPU(CUDA) with real wavefunctions : -DQMC_CUDA=1
+
+h2. Building with environment variables
+
+This method works with GNU, Intel, and IBM XLC compilers. When the libraries
+are installed in standard locations, e.g., /usr, /usr/local, there is no need
+to set the XYZ_HOME for XYZ package.
+
+* Set the environments (the examples below assume bash, Intel compilers and MKL library)
+
+  export CXX=icpc
+  export CC=icc
+  export MKL_HOME=/usr/local/intel/mkl/10.0.3.020
+  export LIBXML2_HOME=/usr/local
+  export HDF5_HOME=/usr/local
+  export BOOST_HOME=/usr/local/boost
+  export EINSPLINE_HOME=/usr/local/einspline
+  export FFTW_HOME=/usr/local/fftw
+
+* Move to build directory, run cmake and make
+
+  cd build
+  cmake ..
+  make
+
+h2. Building with a toolchain file
+
+Several toolchain files used by the developers are available in config
+directory.  They are used on large-scale parallel machines where setting up all
+the neccesary packages can be tricky. 
+
+Once a sutiable toolchain file is found, follow these step (example on edison.nersc.gov):
+
+* cd build
+* cmake -DCMAKE_TOOLCHAIN_FILE=../config/XC30Intel.cmake -DCMAKE_VERBOSE_MAKEFILE=TRUE ..
+* cmake -DCMAKE_TOOLCHAIN_FILE=../config/XC30Intel.cmake -DCMAKE_VERBOSE_MAKEFILE=TRUE ..
+* make
+
+h2. These toolchain files are tested by the developed on 2013-05-03
+
+May use the external packages built by the developers on each platform. 
+
+* TitanGNU.cmake     : titan@olcf PrgEnv-gnu   
+* TitanCUDA.cmake    : titan@olcf PrgEnv-gnu+xtpe-accel-nvidia35
+* BGQToolChain.cmake : mira@alcf
+* BWGNU.cmake        : bw@ncsa PrgEnv-gnu   
+* BWCUDA.cmake       : bw@ncsa PrgEnv-gnu+xtpe-accel-nvidia35
+* XC30Intel.cmake    : edison@nersc PrgEnv-intel
+* PsiIntelMPI.cmake  : Intel processor with AVX, Intel MPI
+
+Modify CMAKE_FIND_ROOT_PATH to point to the local builds in a toolchain file
+
+        set(CMAKE_FIND_ROOT_PATH
+         /opt/apps/gnu44/fftw-3.3.2
+         /opt/apps/gnu44/hdf5-1.8.10
+        )
+
