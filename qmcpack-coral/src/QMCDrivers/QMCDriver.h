@@ -58,6 +58,8 @@ namespace qmcplusplus
 
 class MCWalkerConfiguration;
 class HDFWalkerOutput;
+
+
 /** @ingroup QMCDrivers
  * @{
  * @brief abstract base class for QMC engines
@@ -82,6 +84,10 @@ public:
    */
   bitset<4> QMCDriverMode;
 
+  /// whether to allow traces
+  bool allow_traces;
+  /// traces xml
+  xmlNodePtr traces_xml;
 
   /// Constructor.
   QMCDriver(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h, WaveFunctionPool& ppool);
@@ -183,6 +189,10 @@ public:
     qmcNode=cur;
     m_param.put(cur);
   }
+
+  ///set global offsets of the walkers
+  void setWalkerOffsets();
+
   //virtual vector<RandomGenerator_t*>& getRng() {}
 
   ///Observables manager
@@ -212,6 +222,8 @@ protected:
   bool DumpConfig;
   ///true, if the size of population is fixed.
   bool ConstPopulation;
+  ///true, if it is a real QMC engine
+  bool IsQMCDriver;
   /** the number of times this QMCDriver is executed
    *
    * MyCounter is initialized to zero by the constructor and is incremented
@@ -284,9 +296,9 @@ protected:
   ///maximum cpu in secs
   RealType MaxCPUSecs;
 
-  ///Time-step factor \f$ 1/(2\Tau)\f$
+  ///Time-step factor \f$ 1/(2\tau)\f$
   RealType m_oneover2tau;
-  ///Time-step factor \f$ \sqrt{\Tau}\f$
+  ///Time-step factor \f$ \sqrt{\tau}\f$
   RealType m_sqrttau;
 
   ///pointer to qmc node in xml file
@@ -369,7 +381,11 @@ protected:
    */
   bool finalize(int block, bool dumpwalkers=true);
 
-
+  int rotation;
+  void adiosCheckpoint(int block);
+  void adiosCheckpointFinal(int block, bool dumpwalkers);
+  string getRotationName(string RootName);
+  string getLastRotationName(string RootName);
 
 };
 /**@}*/
@@ -377,7 +393,7 @@ protected:
 
 #endif
 /***************************************************************************
- * $RCSfile: QMCDriver.h,v $   $Author: jmcminis $
- * $Revision: 5794 $   $Date: 2013-04-25 20:14:53 -0400 (Thu, 25 Apr 2013) $
- * $Id: QMCDriver.h 5794 2013-04-26 00:14:53Z jmcminis $
+ * $RCSfile: QMCDriver.h,v $   $Author: jnkim $
+ * $Revision: 6022 $   $Date: 2013-10-24 16:09:47 -0400 (Thu, 24 Oct 2013) $
+ * $Id: QMCDriver.h 6022 2013-10-24 20:09:47Z jnkim $
  ***************************************************************************/

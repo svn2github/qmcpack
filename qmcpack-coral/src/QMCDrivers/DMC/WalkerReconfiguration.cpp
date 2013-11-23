@@ -35,7 +35,7 @@ WalkerReconfiguration::WalkerReconfiguration(Communicate* c) :WalkerControlBase(
 int WalkerReconfiguration::getIndexPermutation(MCWalkerConfiguration& W)
 {
   int nw(W.getActiveWalkers());
-  if(Zeta.empty())
+  if(Zeta.size()!=nw)
   {
     Zeta.resize(nw+1);
     IndexCopy.resize(nw);
@@ -189,8 +189,8 @@ WalkerReconfiguration::branch(int iter, MCWalkerConfiguration& W, RealType trigg
 }
 
 /***************************************************************************
- * $RCSfile: WalkerReconfiguration.cpp,v $   $Author: jmcminis $
- * $Revision: 5794 $   $Date: 2013-04-25 20:14:53 -0400 (Thu, 25 Apr 2013) $
- * $Id: WalkerReconfiguration.cpp 5794 2013-04-26 00:14:53Z jmcminis $
+ * $RCSfile: WalkerReconfiguration.cpp,v $   $Author: jnkim $
+ * $Revision: 6034 $   $Date: 2013-10-28 10:23:38 -0400 (Mon, 28 Oct 2013) $
+ * $Id: WalkerReconfiguration.cpp 6034 2013-10-28 14:23:38Z jnkim $
  ***************************************************************************/
 

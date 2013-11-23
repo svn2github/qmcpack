@@ -44,7 +44,7 @@ CloneManager::CloneManager(HamiltonianPool& hpool): cloneEngine(hpool)
   wPerNode.resize(NumThreads+1,0);
 }
 
-///clenup non-static data members
+///cleanup non-static data members
 CloneManager::~CloneManager()
 {
   // delete_iter(CSMovers.begin(),CSMovers.end());
@@ -76,7 +76,11 @@ void CloneManager::makeClones(MCWalkerConfiguration& w,
   char pname[16];
   for(int ip=1; ip<NumThreads; ++ip)
   {
+#if defined(USE_PARTCILESET_CLONE)
+    wClones[ip]=dynamic_cast<MCWalkerConfiguration*>(w.get_clone(ip));
+#else
     wClones[ip]=new MCWalkerConfiguration(w);
+#endif
     psiClones[ip]=psi.makeClone(*wClones[ip]);
     hClones[ip]=ham.makeClone(*wClones[ip],*psiClones[ip]);
   }

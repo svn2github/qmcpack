@@ -16,6 +16,7 @@
 // -*- C++ -*-
 #ifndef QMCPLUSPLUS_QMCDRIFTOPERATORS_H
 #define QMCPLUSPLUS_QMCDRIFTOPERATORS_H
+#include "type_traits/scalar_traits.h"
 #include "ParticleBase/ParticleAttribOps.h"
 #include "ParticleBase/RandomSeqGenerator.h"
 namespace qmcplusplus
@@ -123,15 +124,24 @@ inline void setScaledDriftPbyP(T tau,
   }
 }
 
-template<class T, unsigned D>
+/** scale drift
+ * @param tau_au timestep au
+ * @param qf quantum forces
+ * @param drift scaled quantum forces
+ * @param return correction term
+ *
+ * Assume, mass=1
+ */
+template<class T, class T1, unsigned D>
 inline T setScaledDriftPbyPandNodeCorr(T tau,
-                                       const ParticleAttrib<TinyVector<T,D> >& qf,
+                                       const ParticleAttrib<TinyVector<T1,D> >& qf,
                                        ParticleAttrib<TinyVector<T,D> >& drift)
 {
-  T norm=0.0, norm_scaled=0.0, tau2=tau*tau;
+  T norm=0.0, norm_scaled=0.0, tau2=tau*tau, vsq;
   for(int iat=0; iat<qf.size(); ++iat)
   {
-    T vsq=dot(qf[iat],qf[iat]);
+    convert(dot(qf[iat],qf[iat]),vsq);
+    //T vsq=dot(qf[iat],qf[iat]);
     T sc=(vsq<numeric_limits<T>::epsilon())? tau:((-1.0+std::sqrt(1.0+2.0*tau*vsq))/vsq);
     norm_scaled+=vsq*sc*sc;
     norm+=vsq*tau2;
@@ -140,18 +150,27 @@ inline T setScaledDriftPbyPandNodeCorr(T tau,
   return std::sqrt(norm_scaled/norm);
 }
 
-template<class T, unsigned D>
-inline T setScaledDriftPbyPandNodeCorr(T tau,
-                                       const ParticleAttrib<TinyVector<complex<T>,D> >& qf,
+/** scale drift
+ * @param tau_au timestep au
+ * @param massinv 1/m per particle
+ * @param qf quantum forces
+ * @param drift scaled quantum forces
+ * @param return correction term
+ */
+template<class T, class T1, unsigned D>
+inline T setScaledDriftPbyPandNodeCorr(T tau_au, const vector<T>& massinv,
+                                       const ParticleAttrib<TinyVector<T1,D> >& qf,
                                        ParticleAttrib<TinyVector<T,D> >& drift)
 {
-  T norm=0.0, norm_scaled=0.0, tau2=tau*tau;
-  for(int iat=0; iat<qf.size(); ++iat)
+  T norm=0.0, norm_scaled=0.0, vsq;
+  for(int iat=0; iat<massinv.size(); ++iat)
   {
-    T vsq=real(dot(qf[iat],qf[iat]));
+    T tau=tau_au*massinv[iat];
+    convert(dot(qf[iat],qf[iat]),vsq);
+    //T vsq=dot(qf[iat],qf[iat]);
     T sc=(vsq<numeric_limits<T>::epsilon())? tau:((-1.0+std::sqrt(1.0+2.0*tau*vsq))/vsq);
     norm_scaled+=vsq*sc*sc;
-    norm+=vsq*tau2;
+    norm+=vsq*tau*tau;
     drift[iat]=sc*qf[iat];
   }
   return std::sqrt(norm_scaled/norm);
@@ -254,7 +273,7 @@ inline void assignDrift(T s,
 }
 #endif
 /***************************************************************************
- * $RCSfile$   $Author: jmcminis $
- * $Revision: 5794 $   $Date: 2013-04-25 20:14:53 -0400 (Thu, 25 Apr 2013) $
- * $Id: DriftOperators.h 5794 2013-04-26 00:14:53Z jmcminis $
+ * $RCSfile$   $Author: jnkim $
+ * $Revision: 5890 $   $Date: 2013-06-25 00:27:46 -0400 (Tue, 25 Jun 2013) $
+ * $Id: DriftOperators.h 5890 2013-06-25 04:27:46Z jnkim $
  ***************************************************************************/

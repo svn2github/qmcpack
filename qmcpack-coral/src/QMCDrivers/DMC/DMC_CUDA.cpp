@@ -39,8 +39,8 @@ DMCcuda::DMCcuda(MCWalkerConfiguration& w, TrialWaveFunction& psi,
   QMCType ="DMCcuda";
   QMCDriverMode.set(QMC_UPDATE_MODE,1);
   QMCDriverMode.set(QMC_WARMUP,0);
-  m_param.add(myWarmupSteps,"warmupSteps","int");
-  m_param.add(nTargetSamples,"targetWalkers","int");
+  //m_param.add(myWarmupSteps,"warmupSteps","int");
+  //m_param.add(nTargetSamples,"targetWalkers","int");
   m_param.add(NonLocalMove,"nonlocalmove","string");
   m_param.add(NonLocalMove,"nonlocalmoves","string");
   m_param.add(ScaleWeight, "scaleweight", "string");
@@ -514,8 +514,22 @@ void DMCcuda::resetUpdateEngine()
     Mover = new DMCUpdatePbyPWithRejection(W,Psi,H,Random);
     Mover->resetRun(branchEngine,Estimators);
     //Mover->initWalkersForPbyP(W.begin(),W.end());
-    branchEngine->checkParameters(W);
   }
+  else
+  {
+    int nw_multi=branchEngine->resetRun(qmcNode);
+    if(nw_multi>1)
+    {
+      app_log() << " Current population " << W.getActiveWalkers() << " " << W.getGlobalNumWalkers()  << endl;
+      app_log() << " The target population has changed. Multiply walkers by " << nw_multi << endl;
+      W.createWalkers((nw_multi-1)*W.getActiveWalkers());
+      setWalkerOffsets();
+      app_log() << " New population " << W.getActiveWalkers() << " " << W.getGlobalNumWalkers()  << endl;
+    }
+  }
+
+  branchEngine->checkParameters(W);
+
   //    Mover->updateWalkers(W.begin(),W.end());
   app_log() << "  DMC PbyP Update with a fluctuating population" << endl;
   Mover->MaxAge=1;
@@ -568,6 +582,15 @@ DMCcuda::put(xmlNodePtr q)
 {
   //nothing to add
   NLop.put(q);
+
+  BranchInterval=-1;
+  ParameterSet p;
+  p.add(BranchInterval,"branchInterval","string");
+  p.add(BranchInterval,"branchinterval","string");
+  p.add(BranchInterval,"substeps","int");
+  p.add(BranchInterval,"subSteps","int");
+  p.add(BranchInterval,"sub_steps","int");
+  p.put(q);
   return true;
 }
 }

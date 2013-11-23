@@ -5,13 +5,6 @@ SET(HAMSRCS
   CoulombPBCABTemp.cpp
   HamiltonianFactory.cpp
   NonLocalTOperator.cpp
-  NumericalRadialPotential.cpp
-  ForwardWalking.cpp
-  PairCorrEstimator.cpp
-  LocalMomentEstimator.cpp
-  DensityEstimator.cpp
-  SkEstimator.cpp
-  MomentumEstimator.cpp
   ForceBase.cpp
 )
 #  FSAtomPseudoPot.cpp
@@ -19,9 +12,6 @@ SET(HAMSRCS
 IF(OHMMS_DIM MATCHES 3)
   SET(HAMSRCS ${HAMSRCS}
     ChiesaCorrection.cpp
-    PulayForce.cpp
-    ZeroVarianceForce.cpp
-    ForceCeperley.cpp
     LocalCorePolPotential.cpp
     LocalECPotential.cpp
     NonLocalECPComponent.cpp
@@ -46,18 +36,9 @@ IF(OHMMS_DIM MATCHES 3)
       LocalECPotential_CUDA.cpp
       NonLocalECPotential_CUDA.cpp
       CoulombPotential_CUDA.cpp
-      SkEstimator_CUDA.cpp
       )
   ENDIF(QMC_CUDA)
 
-  # Add research-related sources here
-  IF(QMC_BUILD_LEVEL GREATER 1)
-    SET(HAMSRCS ${HAMSRCS}
-      LennardJones_smoothed.cpp
-      HFDHE2_Moroni1995.cpp
-      HeSAPT_smoothed.cpp
-     )
-  ENDIF(QMC_BUILD_LEVEL GREATER 1)
 ENDIF(OHMMS_DIM MATCHES 3)
 
 #IF(HAVE_LIBFFTW)

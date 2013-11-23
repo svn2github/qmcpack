@@ -21,8 +21,7 @@
 #include "Message/OpenMP.h"
 #include "Message/CommOperators.h"
 #include "tau/profiler.h"
-//#define ENABLE_VMC_OMP_MASTER
-
+#include <qmc_common.h>
 namespace qmcplusplus
 {
 
@@ -39,6 +38,9 @@ VMCSingleOMP::VMCSingleOMP(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMC
   m_param.add(UseDrift,"useDrift","string");
   m_param.add(UseDrift,"usedrift","string");
   m_param.add(UseDrift,"use_drift","string");
+
+  prevSteps=nSteps;
+  prevStepsBetweenSamples=nStepsBetweenSamples;
 }
 
 bool VMCSingleOMP::run()
@@ -59,12 +61,9 @@ bool VMCSingleOMP::run()
       IndexType updatePeriod=(QMCDriverMode[QMC_UPDATE_MODE])?Period4CheckProperties:0;
       //assign the iterators and resuse them
       MCWalkerConfiguration::iterator wit(W.begin()+wPerNode[ip]), wit_end(W.begin()+wPerNode[ip+1]);
-
       Movers[ip]->startBlock(nSteps);
       int now_loc=CurrentStep;
-
       RealType cnorm=1.0/static_cast<RealType>(wPerNode[ip+1]-wPerNode[ip]);
-
       for (int step=0; step<nSteps; ++step)
       {
         //collectables are reset, it is accumulated while advancing walkers
@@ -75,23 +74,23 @@ bool VMCSingleOMP::run()
         Movers[ip]->accumulate(wit,wit_end);
         ++now_loc;
         //if (updatePeriod&& now_loc%updatePeriod==0) Movers[ip]->updateWalkers(wit,wit_end);
-        if (Period4WalkerDump&& now_loc%myPeriod4WalkerDump==0)
+        if (Period4WalkerDump&& now_loc%Period4WalkerDump==0)
           wClones[ip]->saveEnsemble(wit,wit_end);
 //           if(storeConfigs && (now_loc%storeConfigs == 0))
 //             ForwardWalkingHistory.storeConfigsForForwardWalking(*wClones[ip]);
       }
-
       Movers[ip]->stopBlock(false);
     }//end-of-parallel for
     //Estimators->accumulateCollectables(wClones,nSteps);
     CurrentStep+=nSteps;
     Estimators->stopBlock(estimatorClones);
-    //why was this commented out? Are checkpoints stored some other way?
     if(storeConfigs)
       recordBlock(block);
   }//block
   hpmStop(QMC_VMC_0_EVENT);
   Estimators->stop(estimatorClones);
+  for (int ip=0; ip<NumThreads; ++ip)
+    Movers[ip]->stopRun2();
   //copy back the random states
   for (int ip=0; ip<NumThreads; ++ip)
     *(RandomNumberControl::Children[ip])=*(Rng[ip]);
@@ -113,19 +112,16 @@ void VMCSingleOMP::resetRun()
   if(nTargetPopulation>0)
     branchEngine->iParam[SimpleFixedNodeBranch::B_TARGETWALKERS]=static_cast<int>(std::ceil(nTargetPopulation));
   makeClones(W,Psi,H);
-  //std::vector<IndexType> samples_th(omp_get_max_threads(),0);
-  myPeriod4WalkerDump=(Period4WalkerDump>0)?Period4WalkerDump:(nBlocks+1)*nSteps;
+  FairDivideLow(W.getActiveWalkers(),NumThreads,wPerNode);
+  app_log() << "  Initial partition of walkers ";
+  std::copy(wPerNode.begin(),wPerNode.end(),ostream_iterator<int>(app_log()," "));
+  app_log() << endl;
   if (Movers.empty())
   {
     Movers.resize(NumThreads,0);
     branchClones.resize(NumThreads,0);
     estimatorClones.resize(NumThreads,0);
     Rng.resize(NumThreads,0);
-    //int nwtot=(W.getActiveWalkers()/NumThreads)*NumThreads;
-    FairDivideLow(W.getActiveWalkers(),NumThreads,wPerNode);
-    app_log() << "  Initial partition of walkers ";
-    std::copy(wPerNode.begin(),wPerNode.end(),ostream_iterator<int>(app_log()," "));
-    app_log() << endl;
 #if !defined(BGP_BUG)
     #pragma omp parallel for
 #endif
@@ -200,7 +196,6 @@ void VMCSingleOMP::resetRun()
         app_log() << os.str() << endl;
     }
   }
-  app_log() << "  Samples are dumped in memory every " << myPeriod4WalkerDump << " steps " << endl;
   app_log() << "  Total Sample Size   =" << nTargetSamples << endl;
   app_log() << "  Walker distribution on root = ";
   std::copy(wPerNode.begin(),wPerNode.end(),ostream_iterator<int>(app_log()," "));
@@ -292,6 +287,81 @@ void VMCSingleOMP::resetRun()
 bool
 VMCSingleOMP::put(xmlNodePtr q)
 {
+  //grep minimumTargetWalker
+  int target_min=-1;
+  ParameterSet p;
+  p.add(target_min,"minimumtargetwalkers","int"); //p.add(target_min,"minimumTargetWalkers","int"); 
+  p.add(target_min,"minimumsamples","int"); //p.add(target_min,"minimumSamples","int");
+  p.put(q);
+
+  app_log() << "\n<vmc function=\"put\">"
+    << "\n  qmc_counter=" << qmc_common.qmc_counter << "  my_counter=" << MyCounter<< endl;
+  if(qmc_common.qmc_counter && MyCounter)
+  {
+    nSteps=prevSteps;
+    nStepsBetweenSamples=prevStepsBetweenSamples;
+  }
+  else
+  {
+    int nw=W.getActiveWalkers();
+    //compute samples and overwrite steps for the given samples
+    int Nthreads = omp_get_max_threads();
+    int Nprocs=myComm->size();
+    //target samples set by samples or samplesperthread/dmcwalkersperthread
+    nTargetPopulation=std::max(nTargetPopulation,nSamplesPerThread*Nprocs*Nthreads);
+    nTargetSamples=static_cast<int>(std::ceil(nTargetPopulation));
+
+    if(nTargetSamples)
+    {
+      int nwtot=nw*Nprocs;  //total number of walkers used by this qmcsection
+      nTargetSamples=std::max(nwtot,nTargetSamples);
+      if(target_min>0) 
+      { 
+        nTargetSamples=std::max(nTargetSamples,target_min);
+        nTargetPopulation=std::max(nTargetPopulation,static_cast<double>(target_min));
+      }
+      nTargetSamples=((nTargetSamples+nwtot-1)/nwtot)*nwtot; // nTargetSamples are always multiples of total number of walkers
+      nSamplesPerThread=nTargetSamples/Nprocs/Nthreads;
+      int ns_target=nTargetSamples*nStepsBetweenSamples; //total samples to generate
+      int ns_per_step=Nprocs*nw;  //total samples per step
+      nSteps=std::max(nSteps,(ns_target/ns_per_step+nBlocks-1)/nBlocks);
+      Period4WalkerDump=nStepsBetweenSamples=ns_per_step*nSteps*nBlocks/nTargetSamples;
+    }
+    else
+    {
+      Period4WalkerDump = nStepsBetweenSamples=(nBlocks+1)*nSteps; //some positive number, not used
+      nSamplesPerThread=0;
+    }
+  }
+  prevSteps=nSteps;
+  prevStepsBetweenSamples=nStepsBetweenSamples;
+
+  app_log() << "  time step      = " << Tau << endl;
+  app_log() << "  blocks         = " << nBlocks << endl;
+  app_log() << "  steps          = " << nSteps << endl;
+  app_log() << "  substeps       = " << nSubSteps << endl;
+  app_log() << "  current        = " << CurrentStep << endl;
+  app_log() << "  target samples = " << nTargetPopulation << endl;
+  app_log() << "  walkers/mpi    = " << W.getActiveWalkers() << endl << endl;
+  app_log() << "  stepsbetweensamples = " << nStepsBetweenSamples << endl;
+
+  m_param.get(app_log());
+
+  if(DumpConfig)
+  {
+    app_log() << "  DumpConfig==true Configurations are dumped to config.h5 with a period of " << Period4CheckPoint << " blocks" << endl;
+  }
+  else
+  {
+    app_log() << "  DumpConfig==false Nothing (configurations, state) will be saved." << endl;
+  }
+
+  if (Period4WalkerDump>0)
+    app_log() << "  Walker Samples are dumped every " << Period4WalkerDump << " steps." << endl;
+
+  app_log() << "</vmc>" << endl;
+  app_log().flush();
+
   return true;
 }
 }

@@ -51,7 +51,7 @@ public:
 
   ///@enum enumeration to access curData and accumData for reduction
   enum {ENERGY_INDEX=0
-                     , ENERGY_SQ_INDEX
+        , ENERGY_SQ_INDEX
         , WALKERSIZE_INDEX
         , WEIGHT_INDEX
         , EREF_INDEX
@@ -66,6 +66,8 @@ public:
         , LE_MAX
        };
 
+  ///id for the method
+  IndexType MyMethod;
   ///context id
   IndexType MyContext;
   ///number of contexts
@@ -80,8 +82,6 @@ public:
   IndexType MaxCopy;
   ///current number of walkers per processor
   IndexType NumWalkers;
-  ///a dummy integer
-  IndexType DummyIndex;
   ///Number of walkers created by this node
   IndexType NumWalkersCreated;
   ///Number of walkers sent during the exchange
@@ -310,8 +310,8 @@ public:
 }
 #endif
 /***************************************************************************
- * $RCSfile$   $Author: jmcminis $
- * $Revision: 5794 $   $Date: 2013-04-25 20:14:53 -0400 (Thu, 25 Apr 2013) $
- * $Id: WalkerControlBase.h 5794 2013-04-26 00:14:53Z jmcminis $
+ * $RCSfile$   $Author: jnkim $
+ * $Revision: 6034 $   $Date: 2013-10-28 10:23:38 -0400 (Mon, 28 Oct 2013) $
+ * $Id: WalkerControlBase.h 6034 2013-10-28 14:23:38Z jnkim $
  ***************************************************************************/
 

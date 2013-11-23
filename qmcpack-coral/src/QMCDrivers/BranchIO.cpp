@@ -18,6 +18,14 @@
 #include "HDFVersion.h"
 #include "Message/CommOperators.h"
 #include "io/hdf_archive.h"
+#ifdef HAVE_ADIOS
+#include "adios.h"
+#include "adios_read.h"
+#include "ADIOS/ADIOS_config.h"
+#ifdef ADIOS_VERIFY
+#include "ADIOS/ADIOS_verify.h"
+#endif
+#endif
 //#include <boost/archive/text_oarchive.hpp>
 //
 namespace qmcplusplus
@@ -57,6 +65,56 @@ struct h5data_proxy<accumulator_set<T> >: public h5_space_type<T,1>
   }
 };
 
+#ifdef HAVE_ADIOS
+
+int64_t BranchIO::get_Checkpoint_size()
+{
+  int64_t adios_groupsize = 8     \
+                            + 8 * (4)                     \
+                            + 8 * (4)                     \
+                            + 8 * (4)                     \
+                            + 8 * (4)                     \
+                            + 4 * (8)                     \
+                            + 8 * (16);
+  return adios_groupsize;
+}
+
+
+void BranchIO::adios_checkpoint(int64_t adios_handle)
+{
+  //append .config.h5 if missing
+  void* vparam = (void*)ref.vParam.data();
+  void* iparam = (void*)ref.iParam.data();
+  unsigned long branchmode = ref.BranchMode.to_ulong();
+  RealType* energy = ref.EnergyHist.properties;
+  RealType* variance = ref.VarianceHist.properties;
+  RealType* r2accepted = ref.R2Accepted.properties;
+  RealType* r2proposed = ref.R2Proposed.properties;
+  adios_write (adios_handle, "branchmode", &branchmode);
+  adios_write (adios_handle, "energy", energy);
+  adios_write (adios_handle, "r2accepted", r2accepted);
+  adios_write (adios_handle, "r2proposed", r2proposed);
+  adios_write (adios_handle, "variance", variance);
+  adios_write (adios_handle, "iparam", iparam);
+  adios_write (adios_handle, "vparam", vparam);
+}
+
+#ifdef ADIOS_VERIFY
+void BranchIO::adios_checkpoint_verify(ADIOS_FILE *fp)
+{
+  unsigned long branchmode = ref.BranchMode.to_ulong();
+  IO_VERIFY::adios_checkpoint_verify_variables(fp, "branchmode", branchmode);
+  IO_VERIFY::adios_checkpoint_verify_variables(fp, "energy", (RealType*) ref.EnergyHist.properties);
+  IO_VERIFY::adios_checkpoint_verify_variables(fp, "variance", (RealType*)ref.VarianceHist.properties);
+  IO_VERIFY::adios_checkpoint_verify_variables(fp, "r2accepted", (RealType*)ref.R2Accepted.properties);
+  IO_VERIFY::adios_checkpoint_verify_variables(fp, "r2proposed", (RealType *)ref.R2Proposed.properties);
+  IO_VERIFY::adios_checkpoint_verify_variables(fp, "iparam", (RealType *)ref.iParam.data());
+  IO_VERIFY::adios_checkpoint_verify_intarray_variables(fp, "vparam", (int *)ref.vParam.data());
+}
+#endif
+
+#endif
+
 bool BranchIO::write(const string& fname)
 {
   //append .config.h5 if missing
@@ -89,7 +147,7 @@ bool BranchIO::write(const string& fname)
   //PopHist is not being used in 2010-10-19
   //if(ref.BranchMode[SimpleFixedNodeBranch::B_DMC])
   //{
-  //  dump.push("population");
+	//  dump.push("population");
   //  dump.write(ref.PopHist.myData,"histogram");
   //}
   return true;
@@ -97,6 +155,65 @@ bool BranchIO::write(const string& fname)
 
 bool BranchIO::read(const string& fname)
 {
+  #ifdef HAVE_ADIOS
+	if(ADIOS::getRdADIOS())
+	{
+		ADIOS::open(fname, myComm->getMPI());	
+		int n=ref.vParam.size()+ref.iParam.size();
+		/** temporary storage to broadcast restart data */
+  	vector<RealType> pdata(n+3+16,-1);
+		ADIOS::read(ref.vParam.data(),"vparam");
+		ADIOS::read(ref.iParam.data(),"iparam");
+		ADIOS::read(&ref.BranchMode,"branchmode");
+    std::copy(ref.vParam.begin(),ref.vParam.end(),pdata.begin());
+    std::copy(ref.iParam.begin(),ref.iParam.end(),pdata.begin()+ref.vParam.size());
+		int offset=n;
+		HDFVersion res_version(0,4); //start using major=0 and minor=4
+  	HDFVersion res_20080624(0,5);//major revision on 2008-06-24 0.5
+ 		HDFVersion in_version(0,1);
+    pdata[offset++]=ref.BranchMode.to_ulong();
+    pdata[offset++]=in_version[0];
+    pdata[offset++]=in_version[1];
+    accumulator_set<RealType> temp;
+    ADIOS::read(&temp,"energy");
+    std::copy(temp.properties,temp.properties+4,pdata.begin()+offset);
+    offset+=4;
+    ADIOS::read(&temp,"variance");
+    std::copy(temp.properties,temp.properties+4,pdata.begin()+offset);
+    offset+=4;
+    ADIOS::read(&temp,"r2accepted");
+    std::copy(temp.properties,temp.properties+4,pdata.begin()+offset);
+    offset+=4;
+    ADIOS::read(&temp,"r2proposed");
+    std::copy(temp.properties,temp.properties+4,pdata.begin()+offset);
+    offset+=4;
+		myComm->bcast(pdata);
+		if(myComm->rank())
+  	{
+      int ii=0;
+      for(int i=0; i<ref.vParam.size(); ++i,++ii)
+        ref.vParam[i]=pdata[ii];
+      for(int i=0; i<ref.iParam.size(); ++i,++ii)
+        ref.iParam[i]=static_cast<int>(pdata[ii]);
+      ref.BranchMode=static_cast<unsigned long>(pdata[ii]);
+		}
+		{
+			int ii=n+3;
+    	ref.EnergyHist.reset(pdata[ii],pdata[ii+1],pdata[ii+2]);
+    	ii+=4;
+    	ref.VarianceHist.reset(pdata[ii],pdata[ii+1],pdata[ii+2]);
+    	ii+=4;
+    	ref.R2Accepted.reset(pdata[ii],pdata[ii+1],pdata[ii+2]);
+    	ii+=4;
+    	ref.R2Proposed.reset(pdata[ii],pdata[ii+1],pdata[ii+2]);
+    	ii+=4;
+		}	
+		ADIOS::close();
+		return true;
+	} 
+	else if(ADIOS::getRdHDF5())
+	#endif
+	{
   //append .config.h5 if missing
   string h5name(fname);
   if(fname.find("config.h5")>= fname.size())
@@ -176,6 +293,7 @@ bool BranchIO::read(const string& fname)
     ii+=4;
   }
   return true;
+	}
 }
 }
 

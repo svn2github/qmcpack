@@ -36,12 +36,11 @@ QMCDriver* DMCFactory::create(MCWalkerConfiguration& w, TrialWaveFunction& psi
   app_log() << "Creating DMCMP for the qmc driver" << endl;
   QMCDriver*  qmc = new DMCOMP(w,psi,h,hpool,ppool);
   qmc->setUpdateMode(PbyPUpdate);
-  qmc->put(myNode);
   return qmc;
 }
 }
 /***************************************************************************
- * $RCSfile: DMCFactory.cpp,v $   $Author: jmcminis $
- * $Revision: 5794 $   $Date: 2013-04-25 20:14:53 -0400 (Thu, 25 Apr 2013) $
- * $Id: DMCFactory.cpp 5794 2013-04-26 00:14:53Z jmcminis $
+ * $RCSfile: DMCFactory.cpp,v $   $Author: jnkim $
+ * $Revision: 6035 $   $Date: 2013-10-28 10:34:33 -0400 (Mon, 28 Oct 2013) $
+ * $Id: DMCFactory.cpp 6035 2013-10-28 14:34:33Z jnkim $
  ***************************************************************************/

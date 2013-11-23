@@ -76,9 +76,9 @@ protected:
   vector<QMCUpdateBase*> Movers;
 //     ///update engines
 //     vector<QMCRenyiUpdateBase*> RenyiMovers;
-  ///update engines
-  vector<EstimatorManager*> estimatorClones;;
-  ///Brnach engines
+  ///estimator managers
+  vector<EstimatorManager*> estimatorClones;
+  ///Branch engines
   vector<SimpleFixedNodeBranch*> branchClones;
   ///Walkers per node
   vector<int> wPerNode;

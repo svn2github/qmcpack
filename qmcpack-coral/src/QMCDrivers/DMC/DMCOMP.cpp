@@ -24,6 +24,7 @@
 #include "Utilities/Timer.h"
 #include "OhmmsApp/RandomNumberControl.h"
 #include "Utilities/ProgressReportEngine.h"
+#include <qmc_common.h>
 
 namespace qmcplusplus
 {
@@ -40,7 +41,7 @@ DMCOMP::DMCOMP(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian&
   m_param.add(KillWalker,"killnode","string");
   m_param.add(BenchMarkRun,"benchmark","string");
   m_param.add(Reconfiguration,"reconfiguration","string");
-  m_param.add(BranchInterval,"branchInterval","string");
+  //m_param.add(BranchInterval,"branchInterval","string");
   m_param.add(NonLocalMove,"nonlocalmove","string");
   m_param.add(NonLocalMove,"nonlocalmoves","string");
   m_param.add(mover_MaxAge,"MaxAge","double");
@@ -56,7 +57,16 @@ void DMCOMP::resetComponents(xmlNodePtr cur)
   put(cur);
   //app_log()<<"DMCOMP::resetComponents"<<endl;
   Estimators->reset();
-  branchEngine->resetRun(cur);
+  int nw_multi=branchEngine->resetRun(cur);
+  if(nw_multi>1)
+  {
+    app_log() << " Current population " << W.getActiveWalkers() << " " << W.getGlobalNumWalkers()  << endl;
+    app_log() << " The target population has changed. Multiply walkers by " << nw_multi << endl;
+    W.createWalkers((nw_multi-1)*W.getActiveWalkers());
+    setWalkerOffsets();
+    FairDivideLow(W.getActiveWalkers(),NumThreads,wPerNode);
+    app_log() << " New population " << W.getActiveWalkers() << " per task  total =" << W.getGlobalNumWalkers()  << endl;
+  }
   branchEngine->checkParameters(W);
   //delete Movers[0];
   for(int ip=0; ip<NumThreads; ++ip)
@@ -107,6 +117,7 @@ void DMCOMP::resetUpdateEngines()
   {
     W.loadEnsemble(wClones);
     branchEngine->initWalkerController(W,fixW,false);
+    setWalkerOffsets();
     //if(QMCDriverMode[QMC_UPDATE_MODE]) W.clearAuxDataSet();
     Movers.resize(NumThreads,0);
     branchClones.resize(NumThreads,0);
@@ -211,6 +222,7 @@ bool DMCOMP::run()
   Timer myclock;
   IndexType block = 0;
   IndexType updatePeriod=(QMCDriverMode[QMC_UPDATE_MODE])?Period4CheckProperties:(nBlocks+1)*nSteps;
+  int sample = 0;
   do // block
   {
     Estimators->startBlock(nSteps);
@@ -251,6 +263,7 @@ bool DMCOMP::run()
 //         }
       if(variablePop)
         FairDivideLow(W.getActiveWalkers(),NumThreads,wPerNode);
+      sample++;
     }
 //       branchEngine->debugFWconfig();
     Estimators->stopBlock(acceptRatio());
@@ -267,8 +280,11 @@ bool DMCOMP::run()
   for(int ip=0; ip<NumThreads; ip++)
     *(RandomNumberControl::Children[ip])=*(Rng[ip]);
   Estimators->stop();
-  return finalize(block);
+  for (int ip=0; ip<NumThreads; ++ip)
+    Movers[ip]->stopRun2();
+  return finalize(nBlocks);
 }
+
 
 void DMCOMP::benchMark()
 {
@@ -301,7 +317,22 @@ void DMCOMP::benchMark()
 bool
 DMCOMP::put(xmlNodePtr q)
 {
-  //nothing to do
+  BranchInterval=-1;
+  ParameterSet p;
+  p.add(BranchInterval,"branchInterval","string");
+  p.add(BranchInterval,"branchinterval","string");
+  p.add(BranchInterval,"substeps","int");
+  p.add(BranchInterval,"subSteps","int");
+  p.add(BranchInterval,"sub_steps","int");
+  p.put(q);
+
+  //app_log() << "\n DMC::put qmc_counter=" << qmc_common.qmc_counter << "  my_counter=" << MyCounter<< endl;
+  //app_log() << "  timestep       = " << Tau << endl;
+  //app_log() << "  blocks         = " << nBlocks << endl;
+  //app_log() << "  steps          = " << nSteps << endl;
+  //app_log() << "  current        = " << CurrentStep << endl;
+  //app_log() << "  walkers/mpi    = " << W.getActiveWalkers() << endl << endl;
+  //app_log().flush();
   return true;
 }
 }

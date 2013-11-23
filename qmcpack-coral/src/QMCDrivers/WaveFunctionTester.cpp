@@ -91,32 +91,25 @@ WaveFunctionTester::run()
     runRatioTest();
     runRatioTest2();
   }
+  else if (checkClone == "yes")
+    runCloneTest();
+  else if(checkEloc != "no")
+    printEloc();
+  else if (sourceName.size() != 0)
+  {
+    runGradSourceTest();
+    runZeroVarianceTest();
+  }
+  else if (checkRatio =="deriv")
+    runDerivTest();
+  else if (checkRatio =="derivclone")
+    runDerivCloneTest();
+  else if (wftricks =="rotate")
+    runwftricks();
+  else if (wftricks =="plot")
+    runNodePlot();
   else
-    if (checkClone == "yes")
-      runCloneTest();
-    else
-      if(checkEloc != "no")
-        printEloc();
-      else
-        if (sourceName.size() != 0)
-        {
-          runGradSourceTest();
-          runZeroVarianceTest();
-        }
-        else
-          if (checkRatio =="deriv")
-            runDerivTest();
-          else
-            if (checkRatio =="derivclone")
-              runDerivCloneTest();
-            else
-              if (wftricks =="rotate")
-                runwftricks();
-              else
-                if (wftricks =="plot")
-                  runNodePlot();
-                else
-                  runBasicTest();
+    runBasicTest();
   RealType ene = H.evaluate(W);
   *fout << " Energy " << ene << endl;
   return true;
@@ -1524,7 +1517,7 @@ void  WaveFunctionTester::runNodePlot()
 }
 
 /***************************************************************************
- * $RCSfile$   $Author: jmcminis $
- * $Revision: 5794 $   $Date: 2013-04-25 20:14:53 -0400 (Thu, 25 Apr 2013) $
- * $Id: WaveFunctionTester.cpp 5794 2013-04-26 00:14:53Z jmcminis $
+ * $RCSfile$   $Author: jnkim $
+ * $Revision: 5917 $   $Date: 2013-08-05 09:28:41 -0400 (Mon, 05 Aug 2013) $
+ * $Id: WaveFunctionTester.cpp 5917 2013-08-05 13:28:41Z jnkim $
  ***************************************************************************/

@@ -47,6 +47,8 @@ WalkerControlBase* createWalkerController(int nwtot, Communicate* comm, xmlNodeP
   bool fixw= (reconfig || reconfigopt == "yes"|| reconfigopt == "pure");
   if(fixw)
   {
+    int nwloc=std::max(omp_get_max_threads(),nwtot/ncontexts);
+    nwtot=nwloc*ncontexts; 
     nmax=nwtot/ncontexts;
     nmin=nwtot/ncontexts;
   }
@@ -96,6 +98,7 @@ WalkerControlBase* createWalkerController(int nwtot, Communicate* comm, xmlNodeP
   }
   wc->Nmin=nmin;
   wc->Nmax=nmax;
+  wc->MyMethod=fixw;
   return wc;
 }
 
@@ -191,8 +194,8 @@ WalkerControlBase* CreateWalkerController(
 }
 }
 /***************************************************************************
- * $RCSfile: WalkerControlFactory.cpp,v $   $Author: jmcminis $
- * $Revision: 5794 $   $Date: 2013-04-25 20:14:53 -0400 (Thu, 25 Apr 2013) $
- * $Id: WalkerControlFactory.cpp 5794 2013-04-26 00:14:53Z jmcminis $
+ * $RCSfile: WalkerControlFactory.cpp,v $   $Author: jnkim $
+ * $Revision: 6034 $   $Date: 2013-10-28 10:23:38 -0400 (Mon, 28 Oct 2013) $
+ * $Id: WalkerControlFactory.cpp 6034 2013-10-28 14:23:38Z jnkim $
  ***************************************************************************/
 
