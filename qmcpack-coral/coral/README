@@ -1,0 +1,15 @@
+Coral Benchmark on Titan 2013-11-14
+Using 780 nodes and 256 walkers per node
+
+FOM on GPU 228106
+FOM on CPU 72198.8
+
+$grep Execution gpu.w256.n780.p1x1.log 
+QMC Execution time = 5.0070117891e+01 secs 
+QMC Execution time = 8.7538327771e+01 secs 
+Total Execution time = 1.3762485512e+02 secs
+
+$ grep Execution cpu.w16.n780.p8x2.log 
+QMC Execution time = 1.5343211449e+01 secs 
+QMC Execution time = 2.7656985181e+02 secs 
+Total Execution time = 2.9193003961e+02 secs

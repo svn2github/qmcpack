@@ -1,0 +1,14 @@
+#!/bin/bash
+#PBS -A mat044
+#PBS -j oe
+#PBS -N q.cpu
+#PBS -l walltime=00:15:00,nodes=780
+#PBS -l gres=widow3
+#PBS -V
+
+export OMP_NUM_THREADS=8
+let NP=$PBS_NUM_NODES*2
+
+cd $PBS_O_WORKDIR
+
+aprun -n ${NP} -S 1 -d ${OMP_NUM_THREADS} ./qmcapp_r --async_swap input.cpu.xml &> cpu.w16.n780.p8x2.log
